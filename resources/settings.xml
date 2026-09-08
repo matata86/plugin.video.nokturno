@@ -1,11 +1,5 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <settings>
-  <category label="30001">
-    <setting id="luna_enabled" type="bool" label="30014" default="true"/>
-    <setting id="luna_url" type="text" label="30002" default="http://192.168.1.10:7126" enable="eq(-1,true)"/>
-    <setting id="token" type="text" label="30003" default="" enable="eq(-2,true)"/>
-    <setting id="search_streams" type="bool" label="30009" default="true" enable="eq(-3,true)"/>
-  </category>
   <category label="30050">
     <setting id="ws_enabled" type="bool" label="30051" default="false"/>
     <setting id="ws_username" type="text" label="30052" default="" enable="eq(-1,true)"/>
@@ -22,6 +16,12 @@
     <setting id="sosac_user_id" type="text" label="30032" default="" enable="eq(-6,true)"/>
     <setting id="sosac_url" type="text" label="30033" default="https://stremio.sosac.tv/cs" enable="eq(-7,true)" visible="false"/>
     <setting id="cross_search" type="bool" label="30034" default="true" enable="eq(-8,true)"/>
+  </category>
+  <category label="30001">
+    <setting id="luna_enabled" type="bool" label="30014" default="true"/>
+    <setting id="luna_url" type="text" label="30002" default="http://192.168.1.10:7126" enable="eq(-1,true)"/>
+    <setting id="token" type="text" label="30003" default="" enable="eq(-2,true)"/>
+    <setting id="search_streams" type="bool" label="30009" default="true" enable="eq(-3,true)"/>
   </category>
   <category label="30004">
     <setting id="stream_mode" type="enum" label="30005" lvalues="30006|30007|30008" default="1"/>
