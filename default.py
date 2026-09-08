@@ -519,6 +519,7 @@ def collect_streams(apis, ctype, item_id, meta, alt=None):
         hide_sd=on("hide_sd", "false"),
         max_size_gb=max_gb,
         order=STREAM_ORDERS[int(setting("sort_streams", "0"))],
+        pref_surround=on("pref_surround", "false"),
     )
 
 
@@ -543,7 +544,9 @@ def stream_label(s):
     parts = [f"[COLOR {QUALITY_COLORS.get(s.get('quality_rank', 0), GREY)}][B]{quality or raw}[/B][/COLOR]"]
     if rest and quality:
         parts.append(rest)
-    langs = [f"[COLOR {LANG_COLORS.get(code, 'FFE0E0E0')}]{code}[/COLOR]" for code in sorted(s.get("langs") or [])]
+    channels = s.get("channels") or {}
+    langs = [f"[COLOR {LANG_COLORS.get(code, 'FFE0E0E0')}]{code}[/COLOR]" + (f" {channels[code]:g}" if code in channels else "")
+             for code in sorted(s.get("langs") or [])]
     if langs:
         parts.append("zvuk " + " ".join(langs))
     if s.get("subs"):

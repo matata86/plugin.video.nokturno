@@ -12,6 +12,7 @@ LANG_ALIASES = {"GB": "EN", "US": "EN", "UK": "EN", "CZ": "CZ", "SK": "SK", "EN"
 SIZE_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*([GMT])(?:B|iB)?(?![A-Za-z/])", re.I)
 BITRATE_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*Mb/s", re.I)
 LANG_RE = re.compile(r"\b([A-Z]{2})\b")
+AUDIO_RE = re.compile(r"\b([A-Z]{2})\s+(\d(?:\.\d)?)\b")   # „CZ 5.1“, „GB 2.0“
 
 
 def quality_rank(text):
@@ -55,10 +56,26 @@ def parse_stream(s):
         audio = label  # „Sosáč CZ - HD“
     s["langs"] = parse_langs(audio)
     s["subs"] = parse_langs(subs)
+    # kanály zvuku podle jazyka: {"CZ": 5.1, "EN": 7.1}; Sosáč/Luna bez údaje → prázdné
+    channels = {}
+    for code, ch in AUDIO_RE.findall(audio):
+        try:
+            channels[LANG_ALIASES.get(code, code)] = float(ch)
+        except ValueError:
+            pass
+    s["channels"] = channels
     return s
 
 
-def arrange(streams, pref_lang="", hide_sd=False, max_size_gb=0.0, order="source"):
+def is_surround(s, pref_lang=""):
+    """5.1 a víc – v preferovaném jazyce, když je nastaven, jinak v kterémkoli."""
+    ch = s.get("channels") or {}
+    if pref_lang and pref_lang in ch:
+        return ch[pref_lang] >= 5.1
+    return any(v >= 5.1 for v in ch.values())
+
+
+def arrange(streams, pref_lang="", hide_sd=False, max_size_gb=0.0, order="source", pref_surround=False):
     """Vyfiltruje a seřadí streamy; když by filtr nic nenechal, vrátí původní pořadí.
 
     order: source (jak přišly) | quality (nejlepší první) | size_desc | size_asc
@@ -77,7 +94,9 @@ def arrange(streams, pref_lang="", hide_sd=False, max_size_gb=0.0, order="source
     keyed = list(enumerate(kept))
 
     def lang_key(s):
-        return 0 if (pref_lang and pref_lang in s["langs"]) else 1
+        lang = 0 if (pref_lang and pref_lang in s["langs"]) else 1
+        surround = 0 if (pref_surround and is_surround(s, pref_lang)) else 1
+        return (lang, surround)
 
     # řazení podle kvality/velikosti je hlavní klíč, preferovaný jazyk jen rozhoduje remízy
     # (dřív jazyk přebíjel kvalitu → za HD Sosáčem v češtině se objevilo 4K v angličtině)
@@ -87,8 +106,8 @@ def arrange(streams, pref_lang="", hide_sd=False, max_size_gb=0.0, order="source
         keyed.sort(key=lambda p: (-p[1]["size_gb"], lang_key(p[1]), p[0]))
     elif order == "size_asc":
         keyed.sort(key=lambda p: (p[1]["size_gb"] or 1e9, lang_key(p[1]), p[0]))
-    elif pref_lang:
-        # bez řazení: jen preferovaný jazyk dopředu, pořadí uvnitř skupin zachovat
+    elif pref_lang or pref_surround:
+        # bez řazení: jen preferovaný jazyk / 5.1 dopředu, pořadí uvnitř skupin zachovat
         keyed.sort(key=lambda p: lang_key(p[1]))
     return [s for _, s in keyed]
 

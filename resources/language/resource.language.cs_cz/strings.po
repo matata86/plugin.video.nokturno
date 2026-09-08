@@ -453,3 +453,7 @@ msgstr "Podpoř autora (Ko-fi):"
 msgctxt "#30141"
 msgid "https://ko-fi.com/matata86"
 msgstr "https://ko-fi.com/matata86"
+
+msgctxt "#30131"
+msgid "Prefer surround sound (5.1 and up)"
+msgstr "Preferovat prostorový zvuk (5.1 a víc)"
