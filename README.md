@@ -1,4 +1,4 @@
-# Nokturno — filmy a seriály z WebShare a Sosáče pro Kodi
+# Nokturno — filmy a seriály z WebShare, Sosáče a Luny pro Kodi
 
 Video doplněk pro Kodi (19+ / Python 3, testováno na Kodi 21 Omega, CoreELEC). Tři rovnocenné zdroje, každý jde zapnout samostatně:
 
@@ -8,7 +8,7 @@ Video doplněk pro Kodi (19+ / Python 3, testováno na Kodi 21 Omega, CoreELEC).
 | **Sosáč** | katalogy Sosáče (nejpopulárnější, nově přidané, žánry, podle písmene), filmy i seriály s epizodami, CZ dabing, CZ titulky ze streamuj | účet **Streamuj.tv** (jméno + heslo) — nic víc; katalogy jsou veřejné, k Sosáči se nepřihlašuje, Stremio není potřeba |
 | **Luna: Absolute Cinema** | TMDB katalogy (trendy, populární, podle roku, žánru…), streamy z WebShare s rozpoznanou kvalitou a jazyky | běžící server [Luna](https://stremio.cz/d/47-luna-absolute-cinema-addon-pro-prehravani-sifrovaneho-obsahu-z-webshare) v LAN (např. jako [addon Home Assistantu](https://github.com/matata86/ha-addons)) |
 
-Doplněk sám nic nestahuje mimo zvolené zdroje a k WebShare se přihlašuje jen tam, kde ho o to požádáš.
+Přihlašovací údaje zůstávají v Kodi — doplněk je posílá jen službě, ke které patří (WebShare, Streamuj, Luna).
 
 ## Co umí
 
