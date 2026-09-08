@@ -508,9 +508,10 @@ def mark_playing(key, title=""):
 
 def main_menu(apis):
     if not any(apis.values()):
-        xbmcgui.Dialog().ok(L(30000), L(30104))
-        ADDON.openSettings()
-        xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+        # bez modálního dialogu: ten by při volání z widgetu/JSON-RPC čekal na OK a zablokoval i vypínání Kodi
+        notify(L(30104), xbmcgui.NOTIFICATION_WARNING, 6000)
+        folder_item(L(30107), build_url(action="settings"))
+        xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
         return
     if STORE.in_progress() or STORE.recently_watched(1):
         folder_item(L(30063), build_url(action="continue"))
@@ -893,8 +894,7 @@ def play_ws(apis, ident, name=""):
 def download_dir():
     d = setting("download_dir")
     if not d:
-        xbmcgui.Dialog().ok(L(30000), L(30076))
-        ADDON.openSettings()
+        notify(L(30076), xbmcgui.NOTIFICATION_WARNING, 6000)
         return None
     return xbmcvfs.translatePath(d)
 
@@ -1057,6 +1057,7 @@ def router(query):
         "sosac_link": sosac_link_account,
         "trakt_logout": trakt_logout,
         "clear_cache": lambda: (STORE.clear_cache(), notify(L(30099))),
+        "settings": lambda: (xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False), ADDON.openSettings()),
     }
     if action in simple:
         return simple[action]()

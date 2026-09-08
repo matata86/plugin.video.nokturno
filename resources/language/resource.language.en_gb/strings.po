@@ -437,3 +437,7 @@ msgstr ""
 msgctxt "#30127"
 msgid "Sosáč account linked"
 msgstr ""
+
+msgctxt "#30107"
+msgid "Open settings"
+msgstr ""

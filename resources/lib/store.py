@@ -43,6 +43,9 @@ def migrate_profile(new_dir):
                 shutil.copy(src, dst)
         if os.path.exists(os.path.join(old_dir, "settings.xml")):
             old_settings = os.path.join(old_dir, "settings.xml")
+            # soubor zkopírovat dřív, než si Kodi založí prázdný; plugin navíc hodnoty aplikuje přes setSetting
+            if not os.path.exists(os.path.join(new_dir, "settings.xml")):
+                shutil.copy(old_settings, os.path.join(new_dir, "settings.xml"))
     with open(marker, "w") as f:
         f.write("1")
     return old_settings
