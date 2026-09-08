@@ -445,3 +445,11 @@ msgstr "Otevřít nastavení"
 msgctxt "#30130"
 msgid "Legacy: via the Sosáč Stremio addon (only if you don't have a Streamuj account filled in)"
 msgstr "Starší režim přes Stremio doplněk Sosáče (jen když nemáš vyplněný účet Streamuj)"
+
+msgctxt "#30140"
+msgid "Support the author (Ko-fi):"
+msgstr "Podpoř autora (Ko-fi):"
+
+msgctxt "#30141"
+msgid "https://ko-fi.com/matata86"
+msgstr "https://ko-fi.com/matata86"
