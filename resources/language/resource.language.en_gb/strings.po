@@ -15,7 +15,7 @@ msgid "Nokturno"
 msgstr ""
 
 msgctxt "#30001"
-msgid "Server"
+msgid "Luna"
 msgstr ""
 
 msgctxt "#30002"
@@ -124,4 +124,80 @@ msgstr ""
 
 msgctxt "#30036"
 msgid "Sosáč – series"
+msgstr ""
+
+msgctxt "#30014"
+msgid "Enable Luna source"
+msgstr ""
+
+msgctxt "#30040"
+msgid "New search…"
+msgstr ""
+
+msgctxt "#30041"
+msgid "Clear history"
+msgstr ""
+
+msgctxt "#30042"
+msgid "Remove from history"
+msgstr ""
+
+msgctxt "#30043"
+msgid "Mark as watched"
+msgstr ""
+
+msgctxt "#30044"
+msgid "Mark as unwatched"
+msgstr ""
+
+msgctxt "#30045"
+msgid "Search WebShare"
+msgstr ""
+
+msgctxt "#30050"
+msgid "WebShare (direct)"
+msgstr ""
+
+msgctxt "#30051"
+msgid "Search WebShare directly (no Luna server needed)"
+msgstr ""
+
+msgctxt "#30052"
+msgid "WebShare user name / e-mail"
+msgstr ""
+
+msgctxt "#30053"
+msgid "WebShare password (or 40-char salted hash)"
+msgstr ""
+
+msgctxt "#30054"
+msgid "Sort results"
+msgstr ""
+
+msgctxt "#30055"
+msgid "Relevance"
+msgstr ""
+
+msgctxt "#30056"
+msgid "Newest"
+msgstr ""
+
+msgctxt "#30057"
+msgid "Rating"
+msgstr ""
+
+msgctxt "#30058"
+msgid "Largest"
+msgstr ""
+
+msgctxt "#30059"
+msgid "Smallest"
+msgstr ""
+
+msgctxt "#30103"
+msgid "WebShare login or request failed"
+msgstr ""
+
+msgctxt "#30104"
+msgid "No source is configured – enable Luna, Sosáč or WebShare in settings"
 msgstr ""

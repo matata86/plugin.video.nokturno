@@ -15,8 +15,8 @@ msgid "Nokturno"
 msgstr "Nokturno"
 
 msgctxt "#30001"
-msgid "Server"
-msgstr "Server"
+msgid "Luna"
+msgstr "Luna"
 
 msgctxt "#30002"
 msgid "Luna server address (http://IP:7126)"
@@ -125,3 +125,79 @@ msgstr "Sosáč – filmy"
 msgctxt "#30036"
 msgid "Sosáč – series"
 msgstr "Sosáč – seriály"
+
+msgctxt "#30014"
+msgid "Enable Luna source"
+msgstr "Zapnout zdroj Luna"
+
+msgctxt "#30040"
+msgid "New search…"
+msgstr "Nové hledání…"
+
+msgctxt "#30041"
+msgid "Clear history"
+msgstr "Vymazat historii"
+
+msgctxt "#30042"
+msgid "Remove from history"
+msgstr "Odstranit z historie"
+
+msgctxt "#30043"
+msgid "Mark as watched"
+msgstr "Označit jako zhlédnuté"
+
+msgctxt "#30044"
+msgid "Mark as unwatched"
+msgstr "Označit jako nezhlédnuté"
+
+msgctxt "#30045"
+msgid "Search WebShare"
+msgstr "Hledat na WebShare"
+
+msgctxt "#30050"
+msgid "WebShare (direct)"
+msgstr "WebShare (přímo)"
+
+msgctxt "#30051"
+msgid "Search WebShare directly (no Luna server needed)"
+msgstr "Hledat přímo na WebShare (bez serveru Luna)"
+
+msgctxt "#30052"
+msgid "WebShare user name / e-mail"
+msgstr "WebShare uživatel / e-mail"
+
+msgctxt "#30053"
+msgid "WebShare password (or 40-char salted hash)"
+msgstr "WebShare heslo (nebo 40znakový salted hash)"
+
+msgctxt "#30054"
+msgid "Sort results"
+msgstr "Řazení výsledků"
+
+msgctxt "#30055"
+msgid "Relevance"
+msgstr "Relevance"
+
+msgctxt "#30056"
+msgid "Newest"
+msgstr "Nejnovější"
+
+msgctxt "#30057"
+msgid "Rating"
+msgstr "Hodnocení"
+
+msgctxt "#30058"
+msgid "Largest"
+msgstr "Největší"
+
+msgctxt "#30059"
+msgid "Smallest"
+msgstr "Nejmenší"
+
+msgctxt "#30103"
+msgid "WebShare login or request failed"
+msgstr "Přihlášení nebo dotaz na WebShare selhal"
+
+msgctxt "#30104"
+msgid "No source is configured – enable Luna, Sosáč or WebShare in settings"
+msgstr "Není nastaven žádný zdroj – zapni v nastavení Lunu, Sosáč nebo WebShare"
