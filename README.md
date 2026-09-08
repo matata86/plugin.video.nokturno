@@ -1,5 +1,7 @@
 # Nokturno — filmy a seriály z WebShare, Sosáče a Luny pro Kodi
 
+[![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/matata86)
+
 Video doplněk pro Kodi (19+ / Python 3, testováno na Kodi 21 Omega, CoreELEC). Tři rovnocenné zdroje, každý jde zapnout samostatně:
 
 | zdroj | co dává | co potřebuje |
@@ -67,3 +69,13 @@ Test klientů bez Kodi: `python3 resources/lib/luna_api.py http://IP:7126 e1.XXX
 ## Licence
 
 MIT
+
+---
+
+## Podpora
+
+Pomohlo ti to? Kafe autorovi udělá radost ☕
+
+[![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/matata86)
+
+**https://ko-fi.com/matata86**
