@@ -437,3 +437,7 @@ msgstr "Propojení účtu Sosáče se nezdařilo"
 msgctxt "#30127"
 msgid "Sosáč account linked"
 msgstr "Účet Sosáče propojen"
+
+msgctxt "#30107"
+msgid "Open settings"
+msgstr "Otevřít nastavení"
