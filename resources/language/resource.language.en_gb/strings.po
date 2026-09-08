@@ -453,3 +453,7 @@ msgstr ""
 msgctxt "#30141"
 msgid "https://ko-fi.com/matata86"
 msgstr ""
+
+msgctxt "#30131"
+msgid "Prefer surround sound (5.1 and up)"
+msgstr ""
