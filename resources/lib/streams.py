@@ -75,15 +75,21 @@ def arrange(streams, pref_lang="", hide_sd=False, max_size_gb=0.0, order="source
     if not kept:
         kept = list(streams)
     keyed = list(enumerate(kept))
+
+    def lang_key(s):
+        return 0 if (pref_lang and pref_lang in s["langs"]) else 1
+
+    # řazení podle kvality/velikosti je hlavní klíč, preferovaný jazyk jen rozhoduje remízy
+    # (dřív jazyk přebíjel kvalitu → za HD Sosáčem v češtině se objevilo 4K v angličtině)
     if order == "quality":
-        keyed.sort(key=lambda p: (-p[1]["quality_rank"], -p[1]["bitrate"], p[0]))
+        keyed.sort(key=lambda p: (-p[1]["quality_rank"], lang_key(p[1]), -p[1]["bitrate"], p[0]))
     elif order == "size_desc":
-        keyed.sort(key=lambda p: (-p[1]["size_gb"], p[0]))
+        keyed.sort(key=lambda p: (-p[1]["size_gb"], lang_key(p[1]), p[0]))
     elif order == "size_asc":
-        keyed.sort(key=lambda p: (p[1]["size_gb"] or 1e9, p[0]))
-    if pref_lang:
-        # preferovaný jazyk zvuku dopředu, pořadí uvnitř skupin zachovat
-        keyed.sort(key=lambda p: 0 if pref_lang in p[1]["langs"] else 1)
+        keyed.sort(key=lambda p: (p[1]["size_gb"] or 1e9, lang_key(p[1]), p[0]))
+    elif pref_lang:
+        # bez řazení: jen preferovaný jazyk dopředu, pořadí uvnitř skupin zachovat
+        keyed.sort(key=lambda p: lang_key(p[1]))
     return [s for _, s in keyed]
 
 
