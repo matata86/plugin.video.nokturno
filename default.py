@@ -27,7 +27,7 @@ from sosac_api import SosacApi, SosacError, names_match, register as sosac_regis
 from sosac_api import is_sosac_id as _is_stremio_sosac_id  # noqa: E402
 from sosac_direct import SosacDirect, is_direct_id  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
-from streams import arrange  # noqa: E402
+from streams import arrange, parse_stream  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
 from webshare_api import SORTS, WebshareApi, WebshareError, human_size  # noqa: E402
 
@@ -42,6 +42,11 @@ WS_PAGE = 40
 CACHE_TTL = 600
 SOSAC_TAG = "[COLOR FFE0A040]Sosáč[/COLOR]"
 WS_TAG = "[COLOR FF60B0FF]WebShare[/COLOR]"
+LUNA_TAG = "[COLOR FFB39DFF]Luna[/COLOR]"
+SOURCE_TAGS = {"main": LUNA_TAG, "search": WS_TAG, "sosac": SOSAC_TAG, "ws": WS_TAG}
+QUALITY_COLORS = {4: "FFFFC94D", 3: "FF7FE07F", 2: "FF7FC8FF", 1: "FFA0A0A0"}
+LANG_COLORS = {"CZ": "FF7FE07F", "SK": "FF7FE07F", "EN": "FFE0E0E0"}
+GREY = "FF9A9A9A"
 PLAYING_PROP = "nokturno.playing"
 PREF_LANGS = ("", "CZ", "SK", "EN")
 STREAM_ORDERS = ("source", "quality", "size_desc", "size_asc")
@@ -352,11 +357,14 @@ def art_for(meta, video=None):
     return {k: v for k, v in art.items() if v}
 
 
-def add_meta_item(meta, ctype, alt=None):
-    """`alt` = id téhož titulu v Sosáči (sloučený výsledek hledání) → streamy z obou zdrojů."""
+def add_meta_item(meta, ctype, alt=None, tag_source=False):
+    """`alt` = id téhož titulu v Sosáči (sloučený výsledek hledání) → streamy z obou zdrojů.
+
+    `tag_source`: ve smíšeném hledání označit tituly, které má jen Sosáč (v katalozích Sosáče je to zbytečné).
+    """
     label = display_name(meta)
-    if is_sosac_id(meta.get("id")):
-        label = f"{label}  {SOSAC_TAG}"
+    if tag_source and is_sosac_id(meta.get("id")):
+        label = f"{label}  [COLOR {GREY}]· Sosáč[/COLOR]"
     li = xbmcgui.ListItem(label=label)
     li.setArt(art_for(meta))
     fill_info(li, meta, ctype)
@@ -515,10 +523,39 @@ def collect_streams(apis, ctype, item_id, meta, alt=None):
 
 
 def stream_label(s):
-    label = s["label"]
+    """Jeden řádek: zdroj · kvalita (barevně) · zvuk · titulky · bitrate/velikost.
+
+    Luna = přesná shoda přes Lunu, WebShare = fulltext WebShare (přes Lunu nebo přímo), Sosáč = streamuj.
+    """
+    parse_stream(s)
+    tag = SOURCE_TAGS.get(s.get("source"), "")
+    raw = s["label"]
+    for junk in ("(WS)", "Sosáč"):
+        raw = raw.replace(junk, "")
+    raw = raw.strip()
+    # kvalita = tučně a barevně, zbytek názvu (HDR, DV, 60 %) normálně
+    quality = {4: "4K", 3: "Full HD", 2: "HD", 1: "SD"}.get(s.get("quality_rank", 0), "")
+    import re as _re
+    rest = _re.sub(r"\b(4K|Full HD|UHD|FHD|HD|SD)\b", "", raw)   # \b → „HDR“ zůstane celé
+    rest = " ".join(rest.replace(" - ", " ").split())
     if s.get("source") == "sosac":
-        label = f"{SOSAC_TAG} {label[len('Sosáč '):] if label.startswith('Sosáč ') else label}"
-    return f"[B]{label}[/B]  {s['detail']}".strip()
+        rest = ""   # u Sosáče je zbytek jen jazyk, ten je už v „zvuk“
+    parts = [f"[COLOR {QUALITY_COLORS.get(s.get('quality_rank', 0), GREY)}][B]{quality or raw}[/B][/COLOR]"]
+    if rest and quality:
+        parts.append(rest)
+    langs = [f"[COLOR {LANG_COLORS.get(code, 'FFE0E0E0')}]{code}[/COLOR]" for code in sorted(s.get("langs") or [])]
+    if langs:
+        parts.append("zvuk " + " ".join(langs))
+    if s.get("subs"):
+        parts.append("tit. " + " ".join(sorted(s["subs"])))
+    tech = []
+    if s.get("bitrate"):
+        tech.append(f"{s['bitrate']:g} Mb/s")
+    if s.get("size_gb"):
+        tech.append(f"{s['size_gb']:.1f} GB")
+    if tech:
+        parts.append(f"[COLOR {GREY}]{' · '.join(tech)}[/COLOR]")
+    return (tag + "  " if tag else "") + "  ".join(parts)
 
 
 def mark_playing(key, title=""):
@@ -663,8 +700,9 @@ def search_run(apis, kind, query, offset=0):
         except SosacError as e:
             errors.append(e)
     # stejný titul z obou zdrojů jen jednou – zdroj se ukáže až u streamů
+    mixed = bool(luna_metas) and bool(sosac_metas)
     for meta, alt in merge_results(luna_metas, sosac_metas):
-        add_meta_item(meta, ctype, alt=alt)
+        add_meta_item(meta, ctype, alt=alt, tag_source=mixed)
     # bez Luny nabídneme rovnou soubory z WebShare (jinak je má Luna: Search u titulu)
     if apis["ws"] and not apis["luna"]:
         try:

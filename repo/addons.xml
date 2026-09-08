@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
-<addon id="plugin.video.nokturno" name="Nokturno" version="1.4.1" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="1.5.0" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -22,7 +22,8 @@
       <icon>resources/icon.png</icon>
       <fanart>resources/fanart.jpg</fanart>
     </assets>
-    <news>1.4.1 – odkaz na podporu autora (Ko-fi) v popisu a nastavení
+    <news>1.5.0 – nové logo; seznam streamů: zdroj (Luna / WebShare / Sosáč), barevná kvalita, jazyky zvuku a titulků, velikost; štítek Sosáč jen ve smíšeném hledání
+1.4.1 – odkaz na podporu autora (Ko-fi) v popisu a nastavení
 1.4.0 – Sosáč napřímo: katalogy z tv.sosac.to a streamy ze streamuj.tv (stačí účet Streamuj, bez Stremia a bez loginu k Sosáči), CZ titulky ze streamuj
 1.3.3 – popisy a pořadí nastavení: WebShare, Sosáč, Luna jako rovnocenné zdroje
 1.3.2 – bez modálních dialogů při chybějícím nastavení (blokovaly Kodi při volání z widgetu)
