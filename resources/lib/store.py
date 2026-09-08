@@ -16,9 +16,36 @@ import json
 import os
 import time
 
+OLD_ADDON_ID = "plugin.video.luna"  # do 1.3.0 se doplněk jmenoval takhle
+DATA_FILES = ("history", "watched", "items", "favourites", "downloads", "trakt")
 HISTORY_MAX = 30
 WATCHED_MAX = 5000
 ITEMS_MAX = 2000
+
+
+def migrate_profile(new_dir):
+    """Jednorázově přenese data z profilu starého ID (plugin.video.luna) do nového.
+
+    Vrací cestu ke starému settings.xml (plugin z něj přebere nastavení), nebo None.
+    """
+    marker = os.path.join(new_dir, ".migrated")
+    if os.path.exists(marker):
+        return None
+    old_dir = os.path.join(os.path.dirname(new_dir.rstrip("/\\")), OLD_ADDON_ID)
+    os.makedirs(new_dir, exist_ok=True)
+    old_settings = None
+    if os.path.isdir(old_dir):
+        import shutil
+        for name in DATA_FILES:
+            src = os.path.join(old_dir, name + ".json")
+            dst = os.path.join(new_dir, name + ".json")
+            if os.path.exists(src) and not os.path.exists(dst):
+                shutil.copy(src, dst)
+        if os.path.exists(os.path.join(old_dir, "settings.xml")):
+            old_settings = os.path.join(old_dir, "settings.xml")
+    with open(marker, "w") as f:
+        f.write("1")
+    return old_settings
 
 
 class Store:

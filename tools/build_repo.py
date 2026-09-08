@@ -16,7 +16,7 @@ import zipfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPO = os.path.join(ROOT, "repo")
 ADDONS = {
-    "plugin.video.luna": ROOT,                                   # samotný doplněk = kořen repozitáře
+    "plugin.video.nokturno": ROOT,                                   # samotný doplněk = kořen repozitáře
     "repository.nokturno": os.path.join(ROOT, "repository.nokturno"),
 }
 EXCLUDE = {".git", ".gitignore", "repo", "tools", "repository.nokturno", "__pycache__", ".github"}

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.luna" name="Nokturno" version="1.3.0" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="1.3.1" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -14,13 +14,14 @@
     <description lang="cs_CZ">Klient serveru Luna: Absolute Cinema (streamování z WebShare). Prochází katalogy TMDB (trendy, populární, nejlépe hodnocené, podle roku, podle jazyka, hledání) a přehrává streamy přes server Luna — v Kodi se k WebShare nepřihlašuješ. Volitelně přidá Sosáč (stremio.sosac.tv) jako druhý zdroj: jeho katalogy, hledání napříč a dohledání streamů. Stačí nastavit adresu Luny běžící kdekoli v LAN (např. jako addon Home Assistantu) a vložit adresu doplňku ze setup stránky Luny.</description>
     <platform>all</platform>
     <license>MIT</license>
-    <source>https://github.com/matata86/plugin.video.luna</source>
-    <website>https://github.com/matata86/plugin.video.luna</website>
+    <source>https://github.com/matata86/plugin.video.nokturno</source>
+    <website>https://github.com/matata86/plugin.video.nokturno</website>
     <assets>
       <icon>resources/icon.png</icon>
       <fanart>resources/fanart.jpg</fanart>
     </assets>
-    <news>1.3.0 – Pokračovat ve sledování a další díl, Můj seznam, Naposledy zhlédnuté, filtr a řazení streamů (jazyk, SD, velikost), stahování do složky, Trakt.tv, cache API, widgety
+    <news>1.3.1 – nové ID doplňku plugin.video.nokturno (nastavení a historie se přenesou automaticky)
+1.3.0 – Pokračovat ve sledování a další díl, Můj seznam, Naposledy zhlédnuté, filtr a řazení streamů (jazyk, SD, velikost), stahování do složky, Trakt.tv, cache API, widgety
 1.2.1 – stejný titul z Luny a Sosáče je ve výsledcích hledání jen jednou, zdroj je vidět až u streamů
 1.2.0 – WebShare přímo (účet v nastavení, bez serveru Luna), Luna jde vypnout; historie hledání; zhlédnuto/rozkoukáno
 1.1.1 – nový název Nokturno a logo

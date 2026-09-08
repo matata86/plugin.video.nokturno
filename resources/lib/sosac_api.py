@@ -65,7 +65,7 @@ def register(base_url, sosac_user, sosac_pass, streamuj_user, streamuj_pass, pre
     """Získá userId bez Stremia: server ho při GET /configure sám vygeneruje (redirect),
     POST /configure/save k němu přiváže účty Sosáče a Streamuj. Vrací userId."""
     base = base_url.rstrip("/")
-    req = urllib.request.Request(base + "/configure", headers={"User-Agent": "Kodi plugin.video.luna"})
+    req = urllib.request.Request(base + "/configure", headers={"User-Agent": "Kodi plugin.video.nokturno"})
 
     class NoRedirect(urllib.request.HTTPRedirectHandler):
         def redirect_request(self, *args, **kwargs):  # noqa: D401
@@ -92,7 +92,7 @@ def register(base_url, sosac_user, sosac_pass, streamuj_user, streamuj_pass, pre
         "prefer_czsk": prefer_czsk,
     }}).encode("utf-8")
     req = urllib.request.Request(base + "/configure/save", data=payload, headers={
-        "Content-Type": "application/json", "User-Agent": "Kodi plugin.video.luna"})
+        "Content-Type": "application/json", "User-Agent": "Kodi plugin.video.nokturno"})
     try:
         with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
             result = json.loads(resp.read().decode("utf-8"))
@@ -120,7 +120,7 @@ class SosacApi:
         if extra_query:
             query.update(extra_query)
         url = f"{self.base}/{path}?{urllib.parse.urlencode(query)}"
-        req = urllib.request.Request(url, headers={"User-Agent": "Kodi plugin.video.luna"})
+        req = urllib.request.Request(url, headers={"User-Agent": "Kodi plugin.video.nokturno"})
         try:
             with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
                 return json.loads(resp.read().decode("utf-8"))

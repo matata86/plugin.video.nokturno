@@ -24,7 +24,7 @@ import xbmcvfs
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "lib"))
 from luna_api import LunaApi, LunaError, parse_base_url, parse_token  # noqa: E402
 from sosac_api import SosacApi, SosacError, is_sosac_id, names_match, register as sosac_register  # noqa: E402
-from store import Store  # noqa: E402
+from store import Store, migrate_profile  # noqa: E402
 from streams import arrange  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
 from webshare_api import SORTS, WebshareApi, WebshareError, human_size  # noqa: E402
@@ -44,6 +44,16 @@ PLAYING_PROP = "nokturno.playing"
 PREF_LANGS = ("", "CZ", "SK", "EN")
 STREAM_ORDERS = ("source", "quality", "size_desc", "size_asc")
 
+# přechod z ID plugin.video.luna: data i nastavení ze starého profilu
+_old_settings = migrate_profile(PROFILE)
+if _old_settings:
+    try:
+        import xml.etree.ElementTree as _ET
+        for el in _ET.parse(_old_settings).getroot().iter("setting"):
+            if el.get("id") and (el.text or "") != "":
+                ADDON.setSetting(el.get("id"), el.text)
+    except Exception as _e:  # noqa: BLE001
+        xbmc.log(f"[{ADDON_ID}] migrace nastavení: {_e}", xbmc.LOGWARNING)
 STORE = Store(PROFILE)
 Errors = (LunaError, SosacError, WebshareError, TraktError)
 
