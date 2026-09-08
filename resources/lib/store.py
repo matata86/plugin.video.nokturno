@@ -14,6 +14,7 @@ se mění), proto vlastní evidence.
 import hashlib
 import json
 import os
+import threading
 import time
 
 OLD_ADDON_ID = "plugin.video.luna"  # do 1.3.0 se doplněk jmenoval takhle
@@ -73,12 +74,25 @@ class Store:
         self._cache[name] = data
         return data
 
+    def _tmp(self, path):
+        """Dočasný soubor musí být unikátní — plugin i služba (a víc instancí pluginu)
+        zapisují souběžně a se společným jménem si ho navzájem přejmenují pod rukama
+        (`FileNotFoundError: items.json.tmp -> items.json`)."""
+        return f"{path}.{os.getpid()}.{threading.get_ident()}.tmp"
+
     def save(self, name, data):
         self._cache[name] = data
-        tmp = self._path(name) + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False)
-        os.replace(tmp, self._path(name))
+        path = self._path(name)
+        tmp = self._tmp(path)
+        try:
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False)
+            os.replace(tmp, path)
+        except OSError:  # zápis cache není kritický, ať kvůli němu nepadne výpis
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
 
     def reload(self, name, default):
         """Načte znovu z disku – když soubor mění i služba na pozadí."""
@@ -230,12 +244,16 @@ class Store:
         except (OSError, ValueError):
             pass
         data = loader()
+        tmp = self._tmp(path)
         try:
-            with open(path + ".tmp", "w", encoding="utf-8") as f:
+            with open(tmp, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False)
-            os.replace(path + ".tmp", path)
+            os.replace(tmp, path)
         except OSError:
-            pass
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
         return data
 
     def clear_cache(self):
