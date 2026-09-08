@@ -1,0 +1,95 @@
+# Kodi Media Center language file
+# Addon Name: Luna: Absolute Cinema
+# Addon id: plugin.video.luna
+msgid ""
+msgstr ""
+"Project-Id-Version: plugin.video.luna\n"
+"Language: cs_CZ\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+
+msgctxt "#30000"
+msgid "Luna: Absolute Cinema"
+msgstr "Luna: Absolute Cinema"
+
+msgctxt "#30001"
+msgid "Server"
+msgstr "Server"
+
+msgctxt "#30002"
+msgid "Luna server address (http://IP:7126)"
+msgstr "Adresa serveru Luna (http://IP:7126)"
+
+msgctxt "#30003"
+msgid "Addon URL or token from Luna setup page"
+msgstr "Adresa doplňku nebo token ze setup stránky Luny"
+
+msgctxt "#30004"
+msgid "Playback"
+msgstr "Přehrávání"
+
+msgctxt "#30005"
+msgid "Stream selection"
+msgstr "Výběr streamu"
+
+msgctxt "#30006"
+msgid "Play best quality automatically"
+msgstr "Přehrát nejlepší kvalitu automaticky"
+
+msgctxt "#30007"
+msgid "Show list of streams"
+msgstr "Zobrazit seznam streamů"
+
+msgctxt "#30008"
+msgid "Ask in a dialog"
+msgstr "Zeptat se v dialogu"
+
+msgctxt "#30010"
+msgid "Search movies"
+msgstr "Hledat film"
+
+msgctxt "#30011"
+msgid "Search series"
+msgstr "Hledat seriál"
+
+msgctxt "#30012"
+msgid "Movies"
+msgstr "Filmy"
+
+msgctxt "#30013"
+msgid "Series"
+msgstr "Seriály"
+
+msgctxt "#30020"
+msgid "All"
+msgstr "Vše"
+
+msgctxt "#30021"
+msgid "Next page »"
+msgstr "Další strana »"
+
+msgctxt "#30022"
+msgid "Specials"
+msgstr "Speciály"
+
+msgctxt "#30023"
+msgid "Season %d"
+msgstr "%d. série"
+
+msgctxt "#30024"
+msgid "Choose stream"
+msgstr "Vyber stream"
+
+msgctxt "#30100"
+msgid "Paste the addon URL from Luna's setup page (http://IP:7126/setup) into the settings first."
+msgstr "Nejdřív vlož do nastavení adresu doplňku ze setup stránky Luny (http://IP:7126/setup)."
+
+msgctxt "#30101"
+msgid "Luna server is not responding"
+msgstr "Server Luna neodpovídá"
+
+msgctxt "#30102"
+msgid "No stream found"
+msgstr "Žádný stream nenalezen"

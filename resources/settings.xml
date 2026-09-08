@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings>
+  <category label="30001">
+    <setting id="luna_url" type="text" label="30002" default="http://192.168.1.10:7126"/>
+    <setting id="token" type="text" label="30003" default=""/>
+    <setting label="30004" type="lsep"/>
+    <setting id="stream_mode" type="enum" label="30005" lvalues="30006|30007|30008" default="1"/>
+  </category>
+</settings>
