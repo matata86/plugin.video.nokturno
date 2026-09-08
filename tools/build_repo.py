@@ -41,6 +41,9 @@ def zip_addon(addon_id, src, version):
                     continue
                 full = os.path.join(base, f)
                 zf.write(full, os.path.join(addon_id, os.path.relpath(full, src)))
+    if addon_id.startswith("repository."):
+        # stabilní název pro odkaz v README (verzovaný zip zůstává pro Kodi)
+        shutil.copy(out, os.path.join(out_dir, f"{addon_id}.zip"))
     # ikona/fanart vedle zipu – Kodi je ukazuje v obchodě ještě před instalací
     for asset in ("icon.png", "fanart.jpg"):
         for cand in (os.path.join(src, "resources", asset), os.path.join(src, asset)):
