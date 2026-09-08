@@ -103,11 +103,11 @@ msgid "Sosáč"
 msgstr ""
 
 msgctxt "#30031"
-msgid "Enable Sosáč as a second source"
+msgid "Enable Sosáč (catalogues from tv.sosac.to, streams from streamuj.tv)"
 msgstr ""
 
 msgctxt "#30032"
-msgid "userId (filled automatically; or paste it from the Stremio addon URL)"
+msgid "userId from the Sosáč Stremio addon URL"
 msgstr ""
 
 msgctxt "#30033"
@@ -415,11 +415,11 @@ msgid "Sosáč password"
 msgstr ""
 
 msgctxt "#30128"
-msgid "Streamuj.tv user name (blank = same as Sosáč)"
+msgid "Streamuj.tv user name"
 msgstr ""
 
 msgctxt "#30129"
-msgid "Streamuj.tv password (blank = same as Sosáč)"
+msgid "Streamuj.tv password"
 msgstr ""
 
 msgctxt "#30124"
@@ -440,4 +440,8 @@ msgstr ""
 
 msgctxt "#30107"
 msgid "Open settings"
+msgstr ""
+
+msgctxt "#30130"
+msgid "Legacy: via the Sosáč Stremio addon (only if you don't have a Streamuj account filled in)"
 msgstr ""

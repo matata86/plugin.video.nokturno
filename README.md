@@ -5,7 +5,7 @@ Video doplněk pro Kodi (19+ / Python 3, testováno na Kodi 21 Omega, CoreELEC).
 | zdroj | co dává | co potřebuje |
 |---|---|---|
 | **WebShare přímo** | hledání souborů na WebShare a přehrávání, bez dalšího serveru | účet WebShare (jméno + heslo) |
-| **Sosáč** | katalogy Sosáče (novinky, populární, podle písmene…), filmy i seriály s epizodami, CZ dabing | účet Sosáče (jméno + heslo; userId si doplněk obstará sám) |
+| **Sosáč** | katalogy Sosáče (nejpopulárnější, nově přidané, žánry, podle písmene), filmy i seriály s epizodami, CZ dabing, CZ titulky ze streamuj | účet **Streamuj.tv** (jméno + heslo) — nic víc; katalogy jsou veřejné, k Sosáči se nepřihlašuje, Stremio není potřeba |
 | **Luna: Absolute Cinema** | TMDB katalogy (trendy, populární, podle roku, žánru…), streamy z WebShare s rozpoznanou kvalitou a jazyky | běžící server [Luna](https://stremio.cz/d/47-luna-absolute-cinema-addon-pro-prehravani-sifrovaneho-obsahu-z-webshare) v LAN (např. jako [addon Home Assistantu](https://github.com/matata86/ha-addons)) |
 
 Doplněk sám nic nestahuje mimo zvolené zdroje a k WebShare se přihlašuje jen tam, kde ho o to požádáš.
@@ -40,7 +40,7 @@ Aspoň jeden zdroj z tabulky výše — účet WebShare, účet Sosáče, nebo s
 Zapni, co máš — jeden, dva nebo všechny tři:
 
 - **WebShare (přímo)** — jméno + heslo k WebShare (nebo 40znakový salted hash, který používá WebShare doplněk pro Stremio).
-- **Sosáč** — jméno + heslo k Sosáči (a Streamuj.tv, pokud se liší); `userId` si doplněk obstará sám tlačítkem *Propojit účet*. Kdo už má Sosáč ve Stremiu, může místo toho vložit `userId` z jeho adresy.
+- **Sosáč** — jméno + heslo ke **Streamuj.tv** (přehrávač Sosáče). Katalogy a hledání jdou z veřejných JSON exportů `tv.sosac.to`, streamy ze `streamuj.tv` — stejně jako oficiální Kodi doplněk Sosáče. Starší režim přes Stremio doplněk Sosáče (`userId`) zůstává v nastavení jako záloha.
 - **Luna** — otevři setup stránku Luny (`http://IP-Luny:7126/setup`), zkopíruj **adresu doplňku** (`…/e1.XXXX/manifest.json`) a vlož ji do pole *Adresa doplňku nebo token*; adresa serveru se z ní vezme sama.
 
 ## Struktura
@@ -49,7 +49,8 @@ Zapni, co máš — jeden, dva nebo všechny tři:
 addon.xml
 default.py                    # router a obrazovky Kodi
 resources/lib/luna_api.py     # klient API Luny (bez závislosti na Kodi, jde spustit samostatně)
-resources/lib/sosac_api.py    # klient Stremio API Sosáče + párování názvů pro hledání napříč
+resources/lib/sosac_direct.py # Sosáč napřímo: veřejné JSONy tv.sosac.to + streamy/titulky ze streamuj.tv
+resources/lib/sosac_api.py    # starší režim přes Stremio API Sosáče + párování názvů pro hledání napříč
 resources/lib/webshare_api.py # přímý klient WebShare API (login s md5crypt/sha1, hledání, odkaz)
 resources/lib/store.py        # historie hledání + zhlédnuto/rozkoukáno (JSON v profilu)
 resources/lib/streams.py      # rozbor, filtr a řazení streamů
@@ -61,7 +62,7 @@ resources/settings.xml
 resources/language/…          # en_GB, cs_CZ
 ```
 
-Test klientů bez Kodi: `python3 resources/lib/luna_api.py http://IP:7126 e1.XXXX`, `python3 resources/lib/sosac_api.py <userId>`
+Test klientů bez Kodi: `python3 resources/lib/luna_api.py http://IP:7126 e1.XXXX`, `python3 resources/lib/sosac_direct.py <streamuj_user> <streamuj_heslo>`
 
 ## Licence
 

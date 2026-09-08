@@ -23,7 +23,9 @@ import xbmcvfs
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "lib"))
 from luna_api import LunaApi, LunaError, parse_base_url, parse_token  # noqa: E402
-from sosac_api import SosacApi, SosacError, is_sosac_id, names_match, register as sosac_register  # noqa: E402
+from sosac_api import SosacApi, SosacError, names_match, register as sosac_register  # noqa: E402
+from sosac_api import is_sosac_id as _is_stremio_sosac_id  # noqa: E402
+from sosac_direct import SosacDirect, is_direct_id  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
 from streams import arrange  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
@@ -56,6 +58,11 @@ if _old_settings:
         xbmc.log(f"[{ADDON_ID}] migrace nastavení: {_e}", xbmc.LOGWARNING)
 STORE = Store(PROFILE)
 Errors = (LunaError, SosacError, WebshareError, TraktError)
+
+
+def is_sosac_id(item_id):
+    """Sosáč napřímo (`sosacd_…`) i starší Stremio režim (`sosac2_…`)."""
+    return is_direct_id(item_id) or _is_stremio_sosac_id(item_id)
 
 
 def L(sid):
@@ -110,13 +117,27 @@ def sosac_user_id():
 def get_sosac():
     if not on("sosac_enabled"):
         return None
+    # napřímo: veřejné JSONy Sosáče + streamuj.tv s účtem Streamuj (bez Stremia, bez loginu k Sosáči)
+    su, sp = setting("streamuj_username").strip(), setting("streamuj_password").strip()
+    if su and sp:
+        return SosacDirect(su, sp, cache=STORE, cache_ttl=CACHE_TTL, index_store=STORE)
+    # starší režim přes Stremio doplněk Sosáče (userId)
     user_id = sosac_user_id()
     if not user_id and setting("sosac_username") and setting("sosac_password"):
-        # userId si doplněk obstará sám z přihlašovacích údajů (stejně jako konfigurační stránka Sosáče)
         user_id = sosac_link_account(quiet=True)
-    if not user_id:
-        return None
-    return SosacApi(setting("sosac_url", "https://stremio.sosac.tv/cs"), user_id, cache=STORE, cache_ttl=CACHE_TTL)
+    if user_id:
+        return SosacApi(setting("sosac_url", "https://stremio.sosac.tv/cs"), user_id, cache=STORE, cache_ttl=CACHE_TTL)
+    return None
+
+
+def resolve_url(apis, url):
+    """'streamuj:…' odkazy Sosáče napřímo se mění na finální mp4 až při přehrání."""
+    if url and url.startswith("streamuj:"):
+        api = apis.get("sosac")
+        if not isinstance(api, SosacDirect):
+            api = SosacDirect(setting("streamuj_username"), setting("streamuj_password"), cache=STORE)
+        return api.resolve(url)
+    return url
 
 
 def sosac_link_account(quiet=False):
@@ -840,15 +861,16 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None):
                                                      id=item_id, type=ctype, series=series_id, alt=alt))])
         li.setProperty("IsPlayable", "true")
         # přehrání jde přes plugin (ne přímo URL), aby služba věděla, co se hraje
-        url = build_url(action="play", type=ctype, id=item_id, series=series_id, url=s["url"])
+        url = build_url(action="play", type=ctype, id=item_id, series=series_id, url=s["url"],
+                        subs="|".join(s.get("subtitles") or []))
         xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=False)
     xbmcplugin.endOfDirectory(HANDLE)
 
 
-def play(apis, ctype, item_id, series_id=None, url=None, alt=None):
+def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs=""):
     meta, video = load_meta(apis, ctype, item_id, series_id)
     if url:
-        chosen = {"url": url}
+        chosen = {"url": url, "subtitles": [s for s in subs.split("|") if s]}
     else:
         streams = collect_streams(apis, ctype, item_id, meta, alt)
         if not streams:
@@ -864,9 +886,12 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None):
             chosen = streams[idx]
     title = (video or {}).get("title") or display_name(meta)
     # label i InfoTag: při přímém otevření (JSON-RPC, widgety) nemá Kodi původní položku seznamu
-    li = xbmcgui.ListItem(label=title, path=chosen["url"])
+    li = xbmcgui.ListItem(label=title, path=resolve_url(apis, chosen["url"]))
     li.setArt(art_for(meta, video))
     fill_info(li, meta, "series" if video else ctype, video=video)
+    subtitles = [resolve_url(apis, s) for s in chosen.get("subtitles") or []]
+    if subtitles:
+        li.setSubtitles(subtitles)
     STORE.remember_item(item_id, snapshot(meta, ctype, video, series_id, alt))
     mark_playing(item_id, title)
     xbmcplugin.setResolvedUrl(HANDLE, True, li)
@@ -934,7 +959,7 @@ def download_stream(apis, url, name, key, ctype, series_id=None, alt=None):
             STORE.remember_item(key, snapshot(meta, ctype, video, series_id, alt))
         except Errors:
             pass
-    enqueue_download(url, name, f"dl:{key}:{abs(hash(url)) % 10**8}", dest_name=name)
+    enqueue_download(resolve_url(apis, url), name, f"dl:{key}:{abs(hash(url)) % 10**8}", dest_name=name)
 
 
 def download_ws(apis, ident, name):
@@ -1088,7 +1113,7 @@ def router(query):
         elif action == "streams":
             list_streams(apis, p["type"], p["id"], p.get("series"), alt=p.get("alt"))
         elif action == "play":
-            play(apis, p["type"], p["id"], p.get("series"), url=p.get("url"), alt=p.get("alt"))
+            play(apis, p["type"], p["id"], p.get("series"), url=p.get("url"), alt=p.get("alt"), subs=p.get("subs", ""))
         elif action == "play_ws":
             play_ws(apis, p["ident"], p.get("name", ""))
         elif action == "download":
