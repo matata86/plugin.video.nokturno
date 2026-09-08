@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.luna" name="Luna: Absolute Cinema" version="1.0.1" provider-name="matata86">
+<addon id="plugin.video.luna" name="Luna: Absolute Cinema" version="1.1.0" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -9,8 +9,8 @@
   <extension point="xbmc.addon.metadata">
     <summary lang="en_GB">Browse and play movies and series from a Luna: Absolute Cinema server</summary>
     <summary lang="cs_CZ">Procházení a přehrávání filmů a seriálů ze serveru Luna: Absolute Cinema</summary>
-    <description lang="en_GB">Kodi client for the Luna: Absolute Cinema server (WebShare streaming). Browses TMDB catalogues (trending, popular, top rated, by year, by language, search) and plays streams through the Luna server — no WebShare login inside Kodi. Point the addon to a Luna server running anywhere in your LAN (e.g. as a Home Assistant add-on) and paste the addon URL from Luna's setup page.</description>
-    <description lang="cs_CZ">Klient serveru Luna: Absolute Cinema (streamování z WebShare). Prochází katalogy TMDB (trendy, populární, nejlépe hodnocené, podle roku, podle jazyka, hledání) a přehrává streamy přes server Luna — v Kodi se k WebShare nepřihlašuješ. Stačí nastavit adresu Luny běžící kdekoli v LAN (např. jako addon Home Assistantu) a vložit adresu doplňku ze setup stránky Luny.</description>
+    <description lang="en_GB">Kodi client for the Luna: Absolute Cinema server (WebShare streaming). Browses TMDB catalogues (trending, popular, top rated, by year, by language, search) and plays streams through the Luna server — no WebShare login inside Kodi. Optionally adds Sosáč (stremio.sosac.tv) as a second source: its catalogues, cross-source search and stream lookup. Point the addon to a Luna server running anywhere in your LAN (e.g. as a Home Assistant add-on) and paste the addon URL from Luna's setup page.</description>
+    <description lang="cs_CZ">Klient serveru Luna: Absolute Cinema (streamování z WebShare). Prochází katalogy TMDB (trendy, populární, nejlépe hodnocené, podle roku, podle jazyka, hledání) a přehrává streamy přes server Luna — v Kodi se k WebShare nepřihlašuješ. Volitelně přidá Sosáč (stremio.sosac.tv) jako druhý zdroj: jeho katalogy, hledání napříč a dohledání streamů. Stačí nastavit adresu Luny běžící kdekoli v LAN (např. jako addon Home Assistantu) a vložit adresu doplňku ze setup stránky Luny.</description>
     <platform>all</platform>
     <license>MIT</license>
     <source>https://github.com/matata86/plugin.video.luna</source>
@@ -19,7 +19,8 @@
       <icon>resources/icon.png</icon>
       <fanart>resources/fanart.jpg</fanart>
     </assets>
-    <news>1.0.1 – streamy i z fulltextu WebShare (Luna: Search), sloučené s hlavním zdrojem
+    <news>1.1.0 – Sosáč jako druhý zdroj: vlastní katalogy, hledání napříč oběma zdroji, dohledání streamů titulu v druhém zdroji; název filmu v OSD přehrávače
+1.0.1 – streamy i z fulltextu WebShare (Luna: Search), sloučené s hlavním zdrojem
 1.0.0 – první vydání</news>
   </extension>
 </addon>

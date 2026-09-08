@@ -97,3 +97,31 @@ msgstr ""
 msgctxt "#30102"
 msgid "No stream found"
 msgstr ""
+
+msgctxt "#30030"
+msgid "Sosáč"
+msgstr ""
+
+msgctxt "#30031"
+msgid "Enable Sosáč as a second source"
+msgstr ""
+
+msgctxt "#30032"
+msgid "Sosáč userId (or the whole Stremio addon URL)"
+msgstr ""
+
+msgctxt "#30033"
+msgid "Sosáč address"
+msgstr ""
+
+msgctxt "#30034"
+msgid "Also look up streams for a title in the other source"
+msgstr ""
+
+msgctxt "#30035"
+msgid "Sosáč – movies"
+msgstr ""
+
+msgctxt "#30036"
+msgid "Sosáč – series"
+msgstr ""

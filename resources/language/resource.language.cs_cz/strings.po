@@ -97,3 +97,31 @@ msgstr "Server Luna neodpovídá"
 msgctxt "#30102"
 msgid "No stream found"
 msgstr "Žádný stream nenalezen"
+
+msgctxt "#30030"
+msgid "Sosáč"
+msgstr "Sosáč"
+
+msgctxt "#30031"
+msgid "Enable Sosáč as a second source"
+msgstr "Zapnout Sosáč jako druhý zdroj"
+
+msgctxt "#30032"
+msgid "Sosáč userId (or the whole Stremio addon URL)"
+msgstr "Sosáč userId (nebo celá adresa Stremio doplňku)"
+
+msgctxt "#30033"
+msgid "Sosáč address"
+msgstr "Adresa Sosáče"
+
+msgctxt "#30034"
+msgid "Also look up streams for a title in the other source"
+msgstr "Dohledat streamy titulu i v druhém zdroji"
+
+msgctxt "#30035"
+msgid "Sosáč – movies"
+msgstr "Sosáč – filmy"
+
+msgctxt "#30036"
+msgid "Sosáč – series"
+msgstr "Sosáč – seriály"

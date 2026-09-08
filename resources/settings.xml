@@ -3,8 +3,15 @@
   <category label="30001">
     <setting id="luna_url" type="text" label="30002" default="http://192.168.1.10:7126"/>
     <setting id="token" type="text" label="30003" default=""/>
-    <setting label="30004" type="lsep"/>
     <setting id="search_streams" type="bool" label="30009" default="true"/>
+  </category>
+  <category label="30030">
+    <setting id="sosac_enabled" type="bool" label="30031" default="true"/>
+    <setting id="sosac_user_id" type="text" label="30032" default="" enable="eq(-1,true)"/>
+    <setting id="sosac_url" type="text" label="30033" default="https://stremio.sosac.tv/cs" enable="eq(-2,true)"/>
+    <setting id="cross_search" type="bool" label="30034" default="true" enable="eq(-3,true)"/>
+  </category>
+  <category label="30004">
     <setting id="stream_mode" type="enum" label="30005" lvalues="30006|30007|30008" default="1"/>
   </category>
 </settings>
