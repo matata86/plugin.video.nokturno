@@ -47,7 +47,7 @@ Aspoň jeden zdroj: server Luna v LAN (na PC, NAS, nebo jako addon Home Assistan
 
 **Doporučeno – přes repozitář (automatické aktualizace):**
 
-1. Stáhni `repository.nokturno-1.0.0.zip` z [repo/repository.nokturno](https://github.com/matata86/plugin.video.nokturno/raw/main/repo/repository.nokturno/repository.nokturno-1.0.0.zip).
+1. Stáhni **[repository.nokturno.zip](https://github.com/matata86/plugin.video.nokturno/raw/main/repo/repository.nokturno/repository.nokturno.zip)** (vždy aktuální verze repozitáře).
 2. Kodi → Doplňky → Instalovat ze souboru ZIP (musí být povoleno „Neznámé zdroje“) → vyber ten zip.
 3. Doplňky → Instalovat z repozitáře → **Nokturno repozitář** → Video doplňky → **Nokturno** → Instalovat.
 4. Od té doby Kodi nové verze stahuje samo (nebo je nabídne, podle nastavení aktualizací).
