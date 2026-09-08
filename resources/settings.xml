@@ -8,14 +8,15 @@
   </category>
   <category label="30030">
     <setting id="sosac_enabled" type="bool" label="30031" default="true"/>
-    <setting id="sosac_username" type="text" label="30122" default="" enable="eq(-1,true)"/>
-    <setting id="sosac_password" type="text" option="hidden" label="30123" default="" enable="eq(-2,true)"/>
-    <setting id="streamuj_username" type="text" label="30128" default="" enable="eq(-3,true)"/>
-    <setting id="streamuj_password" type="text" option="hidden" label="30129" default="" enable="eq(-4,true)"/>
-    <setting label="30124" type="action" action="RunPlugin(plugin://plugin.video.nokturno/?action=sosac_link)" enable="eq(-5,true)"/>
-    <setting id="sosac_user_id" type="text" label="30032" default="" enable="eq(-6,true)"/>
-    <setting id="sosac_url" type="text" label="30033" default="https://stremio.sosac.tv/cs" enable="eq(-7,true)" visible="false"/>
-    <setting id="cross_search" type="bool" label="30034" default="true" enable="eq(-8,true)"/>
+    <setting id="streamuj_username" type="text" label="30128" default="" enable="eq(-1,true)"/>
+    <setting id="streamuj_password" type="text" option="hidden" label="30129" default="" enable="eq(-2,true)"/>
+    <setting id="cross_search" type="bool" label="30034" default="true" enable="eq(-3,true)"/>
+    <setting label="30130" type="lsep"/>
+    <setting id="sosac_user_id" type="text" label="30032" default="" enable="eq(-5,true)"/>
+    <setting id="sosac_username" type="text" label="30122" default="" enable="eq(-6,true)"/>
+    <setting id="sosac_password" type="text" option="hidden" label="30123" default="" enable="eq(-7,true)"/>
+    <setting label="30124" type="action" action="RunPlugin(plugin://plugin.video.nokturno/?action=sosac_link)" enable="eq(-8,true)"/>
+    <setting id="sosac_url" type="text" label="30033" default="https://stremio.sosac.tv/cs" enable="eq(-9,true)" visible="false"/>
   </category>
   <category label="30001">
     <setting id="luna_enabled" type="bool" label="30014" default="true"/>
