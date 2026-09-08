@@ -31,9 +31,42 @@ def _poster_broken(meta):
 
 
 def _needs(meta):
-    if not meta.get("imdb_id"):
-        return False
-    return not meta.get("description") or _poster_broken(meta)
+    if meta.get("imdb_id"):
+        return not meta.get("description") or _poster_broken(meta)
+    # bez IMDb id zbývá dohledat podle názvu a roku — jen když chybí nebo je mrtvý obrázek
+    return bool(meta.get("name") or meta.get("_title")) and (not meta.get("poster") or _poster_broken(meta))
+
+
+def _norm(text):
+    import unicodedata
+    return "".join(c for c in unicodedata.normalize("NFKD", (text or "").lower()) if c.isalnum() or c == " ").strip()
+
+
+def _fetch_title(luna, store, ctype, title, year):
+    """Poster/fanart/popis z TMDB (přes Lunu) podle názvu a roku — pro tituly bez IMDb id."""
+    if not luna or not title:
+        return {}
+
+    def load():
+        try:
+            cid = "search.movie" if ctype == "movie" else "search.series"
+            metas = luna.catalog(ctype, cid, search=title)
+        except Exception:  # noqa: BLE001
+            return {}
+        want = _norm(title)
+        for m in metas[:10]:
+            if _norm(m.get("name")) != want:
+                continue
+            my = str(m.get("year") or m.get("releaseInfo") or "")[:4]
+            if year and my.isdigit() and abs(int(my) - int(year)) > 1:
+                continue
+            picked = {k: m[k] for k in ("poster", "background", "description", "imdbRating", "genres") if m.get(k)}
+            if m.get("imdb_id") or str(m.get("id", "")).startswith("tt"):
+                picked["imdb_id"] = m.get("imdb_id") or m["id"]
+            return picked
+        return {}
+    key = f"ttname:{ctype}:{_norm(title)}:{year or ''}"
+    return store.cached(key, TTL, load) if store else load()
 
 
 def _fetch(luna, store, ctype, imdb):
@@ -60,13 +93,20 @@ def _fetch(luna, store, ctype, imdb):
 
 def _apply(meta, extra):
     for k, v in extra.items():
-        if k == "poster":
-            if not meta.get("poster") or _poster_broken(meta):
-                meta["poster"] = v
+        if k in ("poster", "background"):
+            if not meta.get(k) or DEAD_IMAGES in (meta.get(k) or ""):
+                meta[k] = v
             continue
         if k in FIELDS or not meta.get(k):
             meta.setdefault(k, v) if k in ("imdb_id",) else meta.__setitem__(k, v)
     return meta
+
+
+def _lookup(luna, store, ctype, meta):
+    if meta.get("imdb_id"):
+        return _fetch(luna, store, ctype, meta["imdb_id"])
+    year = str(meta.get("year") or "")[:4]
+    return _fetch_title(luna, store, ctype, meta.get("_title") or meta.get("name"), year if year.isdigit() else "")
 
 
 def enrich(metas, luna=None, store=None, ctype="movie", deadline=DEADLINE):
@@ -75,7 +115,7 @@ def enrich(metas, luna=None, store=None, ctype="movie", deadline=DEADLINE):
     if not todo:
         return 0
     pool = ThreadPoolExecutor(max_workers=WORKERS)
-    futures = {pool.submit(_fetch, luna, store, ctype, m["imdb_id"]): m for m in todo}
+    futures = {pool.submit(_lookup, luna, store, ctype, m): m for m in todo}
     done, _pending = wait(futures, timeout=deadline)
     filled = 0
     for fut in done:
@@ -93,7 +133,7 @@ def enrich(metas, luna=None, store=None, ctype="movie", deadline=DEADLINE):
 def enrich_one(meta, luna=None, store=None, ctype="movie"):
     if _needs(meta):
         try:
-            extra = _fetch(luna, store, ctype, meta["imdb_id"])
+            extra = _lookup(luna, store, ctype, meta)
         except Exception:  # noqa: BLE001
             return meta
         if extra:
