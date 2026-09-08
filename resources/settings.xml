@@ -43,5 +43,7 @@
   </category>
   <category label="30105">
     <setting label="30106" type="action" action="RunPlugin(plugin://plugin.video.nokturno/?action=clear_cache)"/>
+    <setting label="30140" type="lsep"/>
+    <setting label="30141" type="lsep"/>
   </category>
 </settings>

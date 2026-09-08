@@ -445,3 +445,11 @@ msgstr ""
 msgctxt "#30130"
 msgid "Legacy: via the Sosáč Stremio addon (only if you don't have a Streamuj account filled in)"
 msgstr ""
+
+msgctxt "#30140"
+msgid "Support the author (Ko-fi):"
+msgstr ""
+
+msgctxt "#30141"
+msgid "https://ko-fi.com/matata86"
+msgstr ""
