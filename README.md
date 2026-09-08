@@ -1,6 +1,6 @@
-# plugin.video.luna — Luna: Absolute Cinema pro Kodi
+# Nokturno (plugin.video.luna) — Luna: Absolute Cinema + Sosáč pro Kodi
 
-Video doplněk pro Kodi (19+ / Python 3, testováno na Kodi 21 Omega, CoreELEC), který je klientem serveru **[Luna: Absolute Cinema](https://stremio.cz/d/47-luna-absolute-cinema-addon-pro-prehravani-sifrovaneho-obsahu-z-webshare)** — Stremio addon serveru pro streamování z WebShare.
+Video doplněk pro Kodi (19+ / Python 3, testováno na Kodi 21 Omega, CoreELEC). Je klientem serveru **[Luna: Absolute Cinema](https://stremio.cz/d/47-luna-absolute-cinema-addon-pro-prehravani-sifrovaneho-obsahu-z-webshare)** — Stremio addon serveru pro streamování z WebShare.
 
 Doplněk sám nic nestahuje ani se nepřihlašuje k WebShare. Volá HTTP API Luny (Stremio protokol) a streamy přehrává přes ni:
 

@@ -1,4 +1,4 @@
-"""Luna: Absolute Cinema — video doplněk pro Kodi.
+"""Nokturno — video doplněk pro Kodi (Luna: Absolute Cinema + Sosáč).
 
 Dva zdroje: server Luna (TMDB katalogy + streamy z WebShare přes Lunu) a
 Sosáč (vlastní katalogy a streamy ze streamuj.tv, Stremio API). Hledání

@@ -1,5 +1,5 @@
 # Kodi Media Center language file
-# Addon Name: Luna: Absolute Cinema
+# Addon Name: Nokturno
 # Addon id: plugin.video.luna
 msgid ""
 msgstr ""
@@ -11,7 +11,7 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 msgctxt "#30000"
-msgid "Luna: Absolute Cinema"
+msgid "Nokturno"
 msgstr ""
 
 msgctxt "#30001"
