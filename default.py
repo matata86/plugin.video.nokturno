@@ -212,7 +212,8 @@ def art_for(meta, video=None):
     return {k: v for k, v in art.items() if v}
 
 
-def add_meta_item(meta, ctype):
+def add_meta_item(meta, ctype, alt=None):
+    """`alt` = id téhož titulu v Sosáči (sloučený výsledek hledání) → streamy z obou zdrojů."""
     label = display_name(meta)
     if is_sosac_id(meta.get("id")):
         label = f"{label}  {SOSAC_TAG}"
@@ -220,13 +221,13 @@ def add_meta_item(meta, ctype):
     li.setArt(art_for(meta))
     fill_info(li, meta, ctype)
     if ctype == "series":
-        xbmcplugin.addDirectoryItem(HANDLE, build_url(action="seasons", id=meta["id"]), li, isFolder=True)
+        xbmcplugin.addDirectoryItem(HANDLE, build_url(action="seasons", id=meta["id"], alt=alt), li, isFolder=True)
     else:
         apply_watched(li, meta["id"])
-        add_playable(li, "movie", meta["id"])
+        add_playable(li, "movie", meta["id"], alt=alt)
 
 
-def add_playable(li, ctype, item_id, series_id=None):
+def add_playable(li, ctype, item_id, series_id=None, alt=None):
     """Podle nastavení buď rovnou přehrát nejlepší stream, nebo otevřít výběr.
 
     U epizod se předává i id seriálu — Sosáč dává epizodám vlastní id
@@ -234,10 +235,10 @@ def add_playable(li, ctype, item_id, series_id=None):
     """
     if setting("stream_mode", "1") == "0":
         li.setProperty("IsPlayable", "true")
-        url = build_url(action="play", type=ctype, id=item_id, series=series_id)
+        url = build_url(action="play", type=ctype, id=item_id, series=series_id, alt=alt)
         xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=False)
     else:
-        url = build_url(action="streams", type=ctype, id=item_id, series=series_id)
+        url = build_url(action="streams", type=ctype, id=item_id, series=series_id, alt=alt)
         xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
 
 
@@ -283,11 +284,21 @@ def load_meta(apis, ctype, item_id, series_id=None):
     return meta, video
 
 
-def cross_streams(apis, ctype, item_id, meta):
-    """Streamy z druhého zdroje pro stejný titul (Luna ↔ Sosáč)."""
+def cross_streams(apis, ctype, item_id, meta, alt=None):
+    """Streamy z druhého zdroje pro stejný titul (Luna ↔ Sosáč).
+
+    `alt` = id protějšku v Sosáči už známé z hledání (sloučený výsledek) – bez dohledávání.
+    """
     if not on("cross_search"):
         return []
     base_id, season, episode = split_episode_id(item_id)
+    if alt and apis["sosac"] and not is_sosac_id(base_id):
+        try:
+            target = alt if season is None else apis["sosac"].episode_id(alt, season, episode)
+            return apis["sosac"].streams(ctype, target) if target else []
+        except SosacError as e:
+            log_error(f"cross-search (alt): {e}")
+            return []
     title = meta.get("_title") or meta.get("name") or ""
     year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
     orig = meta.get("_orig") or None
@@ -426,6 +437,32 @@ def search_new(apis, kind):
     search_run(apis, kind, query)
 
 
+def same_title(luna_meta, sosac_meta):
+    """Stejný film/seriál v obou zdrojích: shoda názvu nebo originálu + rok ±1 (je-li znám)."""
+    name = luna_meta.get("name") or ""
+    if not (names_match(name, sosac_meta.get("_title")) or names_match(name, sosac_meta.get("_orig"))):
+        return False
+    y1 = str(luna_meta.get("year") or luna_meta.get("releaseInfo") or "")[:4]
+    y2 = str(sosac_meta.get("year") or "")[:4]
+    if y1.isdigit() and y2.isdigit() and abs(int(y1) - int(y2)) > 1:
+        return False
+    return True
+
+
+def merge_results(luna_metas, sosac_metas):
+    """Vrátí [(meta, alt)] – titul z Luny s přibaleným id Sosáče, zbylé položky Sosáče zvlášť."""
+    merged, used = [], set()
+    for lm in luna_metas:
+        alt = None
+        for sm in sosac_metas:
+            if sm["id"] not in used and same_title(lm, sm):
+                alt, _ = sm["id"], used.add(sm["id"])
+                break
+        merged.append((lm, alt))
+    merged.extend((sm, None) for sm in sosac_metas if sm["id"] not in used)
+    return merged
+
+
 def search_run(apis, kind, query, offset=0):
     STORE.add_history(kind, query)
     if kind == "ws":
@@ -433,20 +470,21 @@ def search_run(apis, kind, query, offset=0):
         return
     ctype = kind
     xbmcplugin.setContent(HANDLE, "tvshows" if ctype == "series" else "movies")
-    errors = []
+    errors, luna_metas, sosac_metas = [], [], []
     if apis["luna"]:
         try:
             cid = "search.movie" if ctype == "movie" else "search.series"
-            for m in apis["luna"].catalog(ctype, cid, search=query):
-                add_meta_item(m, ctype)
+            luna_metas = apis["luna"].catalog(ctype, cid, search=query)
         except LunaError as e:
             errors.append(e)
     if apis["sosac"]:
         try:
-            for m in apis["sosac"].search(ctype, query):
-                add_meta_item(m, ctype)
+            sosac_metas = apis["sosac"].search(ctype, query)
         except SosacError as e:
             errors.append(e)
+    # stejný titul z obou zdrojů jen jednou – zdroj se ukáže až u streamů
+    for meta, alt in merge_results(luna_metas, sosac_metas):
+        add_meta_item(meta, ctype, alt=alt)
     # bez Luny nabídneme rovnou soubory z WebShare (jinak je má Luna: Search u titulu)
     if apis["ws"] and not apis["luna"]:
         try:
@@ -495,7 +533,7 @@ def toggle_watched(key):
 
 # --- seriály ---------------------------------------------------------------------
 
-def list_seasons(apis, series_id):
+def list_seasons(apis, series_id, alt=None):
     meta = api_for(apis, series_id).meta("series", series_id)
     videos = meta.get("videos") or []
     seasons = sorted({int(v.get("season") or 0) for v in videos}, key=lambda s: (s == 0, s))
@@ -512,11 +550,12 @@ def list_seasons(apis, series_id):
         eps = [v for v in videos if int(v.get("season") or 0) == s]
         if eps and all(STORE.playcount(v.get("id") or f"{series_id}:{s}:{v.get('episode')}") for v in eps):
             li.getVideoInfoTag().setPlaycount(1)
-        xbmcplugin.addDirectoryItem(HANDLE, build_url(action="episodes", id=series_id, season=s), li, isFolder=True)
+        url = build_url(action="episodes", id=series_id, season=s, alt=alt)
+        xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
     xbmcplugin.endOfDirectory(HANDLE)
 
 
-def list_episodes(apis, series_id, season):
+def list_episodes(apis, series_id, season, alt=None):
     meta = api_for(apis, series_id).meta("series", series_id)
     xbmcplugin.setContent(HANDLE, "episodes")
     videos = [v for v in meta.get("videos") or [] if int(v.get("season") or 0) == season]
@@ -528,15 +567,15 @@ def list_episodes(apis, series_id, season):
         fill_info(li, meta, "series", video=v)
         ep_id = v.get("id") or f"{series_id}:{season}:{v.get('episode')}"
         apply_watched(li, ep_id)
-        add_playable(li, "series", ep_id, series_id=series_id)
+        add_playable(li, "series", ep_id, series_id=series_id, alt=alt)
     xbmcplugin.endOfDirectory(HANDLE)
 
 
 # --- přehrávání ------------------------------------------------------------------
 
-def list_streams(apis, ctype, item_id, series_id=None):
+def list_streams(apis, ctype, item_id, series_id=None, alt=None):
     meta, video = load_meta(apis, ctype, item_id, series_id)
-    streams = all_streams(apis, ctype, item_id) + cross_streams(apis, ctype, item_id, meta)
+    streams = all_streams(apis, ctype, item_id) + cross_streams(apis, ctype, item_id, meta, alt)
     if not streams:
         notify(L(30102))
         xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
@@ -549,17 +588,17 @@ def list_streams(apis, ctype, item_id, series_id=None):
         apply_watched(li, item_id)
         li.setProperty("IsPlayable", "true")
         # přehrání jde přes plugin (ne přímo URL), aby služba věděla, co se hraje
-        url = build_url(action="play", type=ctype, id=item_id, series=series_id, url=s["url"])
+        url = build_url(action="play", type=ctype, id=item_id, series=series_id, url=s["url"])  # alt už netřeba
         xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=False)
     xbmcplugin.endOfDirectory(HANDLE)
 
 
-def play(apis, ctype, item_id, series_id=None, url=None):
+def play(apis, ctype, item_id, series_id=None, url=None, alt=None):
     meta, video = load_meta(apis, ctype, item_id, series_id)
     if url:
         chosen = {"url": url}
     else:
-        streams = all_streams(apis, ctype, item_id) + cross_streams(apis, ctype, item_id, meta)
+        streams = all_streams(apis, ctype, item_id) + cross_streams(apis, ctype, item_id, meta, alt)
         if not streams:
             notify(L(30102))
             xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
@@ -627,13 +666,13 @@ def router(query):
         elif action == "search_run":
             search_run(apis, p["type"], p.get("q", ""), offset=int(p.get("offset") or 0))
         elif action == "seasons":
-            list_seasons(apis, p["id"])
+            list_seasons(apis, p["id"], alt=p.get("alt"))
         elif action == "episodes":
-            list_episodes(apis, p["id"], int(p.get("season") or 0))
+            list_episodes(apis, p["id"], int(p.get("season") or 0), alt=p.get("alt"))
         elif action == "streams":
-            list_streams(apis, p["type"], p["id"], p.get("series"))
+            list_streams(apis, p["type"], p["id"], p.get("series"), alt=p.get("alt"))
         elif action == "play":
-            play(apis, p["type"], p["id"], p.get("series"), url=p.get("url"))
+            play(apis, p["type"], p["id"], p.get("series"), url=p.get("url"), alt=p.get("alt"))
         elif action == "play_ws":
             play_ws(apis, p["ident"], p.get("name", ""))
         else:
