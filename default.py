@@ -258,8 +258,12 @@ def snapshot(meta, ctype, video=None, series_id=None, alt=None):
     }
 
 
-def apply_watched(li, key):
-    """Zhlédnuto (fajfka) a bod pro pokračování z vlastní evidence."""
+def apply_watched(li, key, context=None):
+    """Zhlédnuto (fajfka) a bod pro pokračování z vlastní evidence.
+
+    `context`: další položky kontextového menu. Kodi při každém `addContextMenuItems` přepisuje
+    položky od indexu 0, proto se menu skládá tady najednou.
+    """
     tag = li.getVideoInfoTag()
     count = STORE.playcount(key)
     if count:
@@ -270,7 +274,8 @@ def apply_watched(li, key):
             tag.setResumePoint(resume, total)
         except Exception:  # noqa: BLE001 – Kodi < 20
             pass
-    li.addContextMenuItems([(L(30044) if count else L(30043), runplugin(action="toggle_watched", id=key))])
+    li.addContextMenuItems(list(context or []) +
+                           [(L(30044) if count else L(30043), runplugin(action="toggle_watched", id=key))])
 
 
 def fav_context(key, ctype, series_id=None, alt=None):
@@ -368,11 +373,12 @@ def add_meta_item(meta, ctype, alt=None, tag_source=False):
     li = xbmcgui.ListItem(label=label)
     li.setArt(art_for(meta))
     fill_info(li, meta, ctype)
-    li.addContextMenuItems([fav_context(meta["id"], ctype, alt=alt)])
+    fav = fav_context(meta["id"], ctype, alt=alt)
     if ctype == "series":
+        li.addContextMenuItems([fav])
         xbmcplugin.addDirectoryItem(HANDLE, build_url(action="seasons", id=meta["id"], alt=alt), li, isFolder=True)
     else:
-        apply_watched(li, meta["id"])
+        apply_watched(li, meta["id"], [fav])
         add_playable(li, "movie", meta["id"], alt=alt)
 
 
@@ -404,11 +410,11 @@ def add_snapshot_item(key, snap, extra_context=None):
     li = xbmcgui.ListItem(label=label)
     fill_info_snapshot(li, snap)
     ctx = [fav_context(key, snap.get("type", "movie"), snap.get("series"), snap.get("alt"))] + (extra_context or [])
-    li.addContextMenuItems(ctx)
     if snap.get("type") == "series" and snap.get("season") is None:
+        li.addContextMenuItems(ctx)
         xbmcplugin.addDirectoryItem(HANDLE, build_url(action="seasons", id=key, alt=snap.get("alt")), li, isFolder=True)
         return
-    apply_watched(li, key)
+    apply_watched(li, key, ctx)
     add_playable(li, "series" if snap.get("season") is not None else "movie", key,
                  series_id=snap.get("series"), alt=snap.get("alt"))
 
@@ -424,9 +430,8 @@ def add_ws_file(f, extra_context=None):
     tag.setMediaType("video")
     tag.setTitle(f["name"])
     tag.setPlot(f"{WS_TAG}  {f.get('size_h', '')}  {votes}")
-    apply_watched(li, key)
     ctx = [(L(30070), runplugin(action="download_ws", ident=f["ident"], name=f["name"]))] + (extra_context or [])
-    li.addContextMenuItems(ctx)
+    apply_watched(li, key, ctx)
     li.setProperty("IsPlayable", "true")
     xbmcplugin.addDirectoryItem(HANDLE, build_url(action="play_ws", ident=f["ident"], name=f["name"]), li, isFolder=False)
 
@@ -835,8 +840,7 @@ def list_continue(apis):
                                     f"{int(video.get('season') or 0)}x{int(video.get('episode') or 0):02d} {video.get('title') or ''}")
         li.setArt(art_for(meta, video))
         fill_info(li, meta, "series", video=video)
-        li.addContextMenuItems([fav_context(ep_id, "series", snap["series"], snap.get("alt"))])
-        apply_watched(li, ep_id)
+        apply_watched(li, ep_id, [fav_context(ep_id, "series", snap["series"], snap.get("alt"))])
         add_playable(li, "series", ep_id, series_id=snap["series"], alt=snap.get("alt"))
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
@@ -876,8 +880,7 @@ def list_episodes(apis, series_id, season, alt=None):
         li.setArt(art_for(meta, v))
         fill_info(li, meta, "series", video=v)
         ep_id = v.get("id") or f"{series_id}:{season}:{v.get('episode')}"
-        li.addContextMenuItems([fav_context(ep_id, "series", series_id, alt)])
-        apply_watched(li, ep_id)
+        apply_watched(li, ep_id, [fav_context(ep_id, "series", series_id, alt)])
         add_playable(li, "series", ep_id, series_id=series_id, alt=alt)
     xbmcplugin.endOfDirectory(HANDLE)
 
@@ -897,9 +900,8 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None):
         li.setArt(art_for(meta, video))
         # název titulu do InfoTagu → v OSD přehrávače je jméno filmu/epizody, ne popis streamu
         fill_info(li, meta, "series" if video else ctype, video=video)
-        apply_watched(li, item_id)
-        li.addContextMenuItems([(L(30070), runplugin(action="download", url=s["url"], name=f"{title} [{s['label']}]",
-                                                     id=item_id, type=ctype, series=series_id, alt=alt))])
+        apply_watched(li, item_id, [(L(30070), runplugin(action="download", url=s["url"], name=f"{title} [{s['label']}]",
+                                                         id=item_id, type=ctype, series=series_id, alt=alt))])
         li.setProperty("IsPlayable", "true")
         # přehrání jde přes plugin (ne přímo URL), aby služba věděla, co se hraje
         url = build_url(action="play", type=ctype, id=item_id, series=series_id, url=s["url"],

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
-<addon id="plugin.video.nokturno" name="Nokturno" version="1.5.2" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="1.5.3" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -22,7 +22,8 @@
       <icon>resources/icon.png</icon>
       <fanart>resources/fanart.jpg</fanart>
     </assets>
-    <news>1.5.2 – volba „Preferovat prostorový zvuk (5.1 a víc)“, kanály zvuku v popisku streamu
+    <news>1.5.3 – oprava: „Přidat do Mého seznamu“ v kontextovém menu (přepisovalo ho „Označit jako zhlédnuté“)
+1.5.2 – volba „Preferovat prostorový zvuk (5.1 a víc)“, kanály zvuku v popisku streamu
 1.5.1 – nové logo (monogram N), řazení podle kvality má přednost před jazykem
 1.5.0 – nové logo; seznam streamů: zdroj (Luna / WebShare / Sosáč), barevná kvalita, jazyky zvuku a titulků, velikost; štítek Sosáč jen ve smíšeném hledání
 1.4.1 – odkaz na podporu autora (Ko-fi) v popisu a nastavení
