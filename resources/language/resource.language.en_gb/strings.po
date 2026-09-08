@@ -46,6 +46,10 @@ msgctxt "#30008"
 msgid "Ask in a dialog"
 msgstr ""
 
+msgctxt "#30009"
+msgid "Also search WebShare full-text (Luna: Search, slower)"
+msgstr ""
+
 msgctxt "#30010"
 msgid "Search movies"
 msgstr ""

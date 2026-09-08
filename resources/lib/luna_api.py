@@ -5,6 +5,7 @@ Bez závislostí na Kodi — jde testovat samostatně:
 """
 import json
 import re
+import threading
 import unicodedata
 import urllib.parse
 import urllib.request
@@ -15,6 +16,7 @@ TIMEOUT = 40
 # Luna používá emoji, které fonty Kodi skinů většinou neumí – nahradíme textem.
 EMOJI_MAP = {
     "\U0001F50A": "Zvuk:",   # 🔊
+    "\U0001F50E": "(WS)",    # 🔎 – výsledek fulltextu WebShare (Luna: Search)
     "\U0001F4AC": "Tit.:",   # 💬
     "\U0001F3AC": "",        # 🎬
     "\U0001F4BE": "",        # 💾
@@ -53,7 +55,8 @@ def clean_label(text):
         else:
             out.append(ch)
     text = "".join(out)
-    text = re.sub(r"[ \t]+", " ", text)
+    # název streamu má i zalomení řádku („🔎\n4K“, „4K\nHDR“) → jeden řádek
+    text = re.sub(r"\s+", " ", text)
     return text.strip()
 
 
@@ -118,14 +121,52 @@ class LunaApi:
     def meta(self, ctype, item_id):
         return self._get(self._meta_url("meta", ctype, item_id + ".json")).get("meta") or {}
 
-    def streams(self, ctype, item_id):
-        url = "/".join([self.base, self.token, "stream", ctype, item_id + ".json"])
-        streams = self._get(url).get("streams") or []
-        for s in streams:
-            s["label"] = clean_label(s.get("name") or "")
-            s["detail"] = " | ".join(
-                clean_label(line) for line in (s.get("title") or s.get("description") or "").split("\n") if line.strip()
-            )
+    def _stream_source(self, prefix, ctype, item_id):
+        parts = [self.base] + ([prefix] if prefix else []) + [self.token, "stream", ctype, item_id + ".json"]
+        return self._get("/".join(parts)).get("streams") or []
+
+    def streams(self, ctype, item_id, include_search=True):
+        """Streamy z hlavního zdroje Luny + z „Luna: Search“ (fulltext WebShare).
+
+        Stremio má oba nainstalované jako dva doplňky a ukazuje výsledky
+        obou; tady je sloučíme — hlavní (přesná shoda) první, hledání za ním.
+        Oba dotazy běží souběžně, hledání trvá i desítky sekund.
+        """
+        sources = [("", ctype, item_id)]
+        if include_search:
+            sources.append(("search", ctype, item_id))
+        results = {}
+        errors = []
+
+        def worker(prefix):
+            try:
+                results[prefix] = self._stream_source(prefix, ctype, item_id)
+            except LunaError as e:
+                errors.append(e)
+                results[prefix] = []
+
+        threads = [threading.Thread(target=worker, args=(src[0],)) for src in sources]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        if errors and not any(results.values()):
+            raise errors[0]
+
+        streams, seen = [], set()
+        for prefix, _, _ in sources:
+            for s in results.get(prefix, []):
+                url = s.get("url") or ""
+                if not url or url in seen:
+                    continue
+                seen.add(url)
+                s["source"] = "search" if prefix else "main"
+                s["label"] = clean_label(s.get("name") or "")
+                s["detail"] = " | ".join(
+                    clean_label(line) for line in (s.get("title") or s.get("description") or "").split("\n")
+                    if line.strip()
+                )
+                streams.append(s)
         return streams
 
 

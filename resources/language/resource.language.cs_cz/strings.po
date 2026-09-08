@@ -46,6 +46,10 @@ msgctxt "#30008"
 msgid "Ask in a dialog"
 msgstr "Zeptat se v dialogu"
 
+msgctxt "#30009"
+msgid "Also search WebShare full-text (Luna: Search, slower)"
+msgstr "Hledat i fulltextem na WebShare (Luna: Search, pomalejší)"
+
 msgctxt "#30010"
 msgid "Search movies"
 msgstr "Hledat film"

@@ -215,7 +215,7 @@ def list_episodes(api, series_id, season):
 
 
 def list_streams(api, ctype, item_id):
-    streams = api.streams(ctype, item_id)
+    streams = api.streams(ctype, item_id, include_search=ADDON.getSetting("search_streams") != "false")
     if not streams:
         xbmcgui.Dialog().notification(L(30000), L(30102), xbmcgui.NOTIFICATION_INFO, 4000)
         xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
@@ -230,7 +230,7 @@ def list_streams(api, ctype, item_id):
 
 
 def play(api, ctype, item_id):
-    streams = api.streams(ctype, item_id)
+    streams = api.streams(ctype, item_id, include_search=ADDON.getSetting("search_streams") != "false")
     if not streams:
         xbmcgui.Dialog().notification(L(30000), L(30102), xbmcgui.NOTIFICATION_INFO, 4000)
         xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
