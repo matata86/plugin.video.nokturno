@@ -26,6 +26,7 @@ from luna_api import LunaApi, LunaError, parse_base_url, parse_token  # noqa: E4
 from sosac_api import SosacApi, SosacError, names_match, register as sosac_register  # noqa: E402
 from sosac_api import is_sosac_id as _is_stremio_sosac_id  # noqa: E402
 from sosac_direct import SosacDirect, is_direct_id  # noqa: E402
+from enrich import enrich, enrich_one  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
 from streams import arrange, parse_stream  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
@@ -446,6 +447,8 @@ def load_meta(apis, ctype, item_id, series_id=None):
     api = api_for(apis, base_id)
     meta_type = "series" if season is not None else ctype
     meta = api.meta(meta_type, base_id)
+    if is_sosac_id(base_id):
+        enrich_one(meta, apis["luna"], STORE, meta_type)
     video = None
     if season is not None:
         video = next((v for v in meta.get("videos") or []
@@ -627,6 +630,9 @@ def list_genres(apis, ctype, cid, src):
 def list_catalog(apis, ctype, cid, src, genre=None, search=None, skip=0):
     xbmcplugin.setContent(HANDLE, "tvshows" if ctype == "series" else "movies")
     metas = apis[src].catalog(ctype, cid, genre=genre, search=search, skip=skip)
+    if src == "sosac":
+        # exporty Sosáče nemají popis → dotáhnout podle IMDb id (Luna / Cinemeta, cache)
+        enrich(metas, apis["luna"], STORE, ctype)
     for m in metas:
         add_meta_item(m, ctype)
     # Luna vrací stránky po ~20, ale některé katalogy o pár položek méně
@@ -709,7 +715,9 @@ def search_run(apis, kind, query, offset=0):
             errors.append(e)
     # stejný titul z obou zdrojů jen jednou – zdroj se ukáže až u streamů
     mixed = bool(luna_metas) and bool(sosac_metas)
-    for meta, alt in merge_results(luna_metas, sosac_metas):
+    merged = merge_results(luna_metas, sosac_metas)
+    enrich([m for m, _alt in merged if is_sosac_id(m.get("id"))], apis["luna"], STORE, ctype)
+    for meta, alt in merged:
         add_meta_item(meta, ctype, alt=alt, tag_source=mixed)
     # bez Luny nabídneme rovnou soubory z WebShare (jinak je má Luna: Search u titulu)
     if apis["ws"] and not apis["luna"]:
@@ -849,6 +857,8 @@ def list_continue(apis):
 
 def list_seasons(apis, series_id, alt=None):
     meta = api_for(apis, series_id).meta("series", series_id)
+    if is_sosac_id(series_id):
+        enrich_one(meta, apis["luna"], STORE, "series")
     videos = meta.get("videos") or []
     seasons = sorted({int(v.get("season") or 0) for v in videos}, key=lambda s: (s == 0, s))
     xbmcplugin.setContent(HANDLE, "seasons")
