@@ -284,7 +284,12 @@ def fav_context(key, ctype, series_id=None, alt=None):
     return (label, runplugin(action="toggle_fav", id=key, type=ctype, series=series_id, alt=alt))
 
 
-def fill_info(li, meta, ctype="movie", video=None):
+def fill_info(li, meta, ctype="movie", video=None, tech=True):
+    """`tech=False` vynechá stopáž a hodnocení.
+
+    V seznamu streamů jsou to údaje o filmu, ne o streamu, ale skiny je vykreslují jako
+    samostatné sloupce vpravo (Arctic Fuse) a ubírají tím šířku popisku streamu.
+    """
     tag = li.getVideoInfoTag()
     tag.setMediaType("episode" if video else ("tvshow" if ctype == "series" else "movie"))
     title = (video or {}).get("title") or (meta.get("_title") if is_sosac_id(meta.get("id")) else None) \
@@ -296,12 +301,12 @@ def fill_info(li, meta, ctype="movie", video=None):
         tag.setTvShowTitle(meta.get("_title") or meta.get("name") or "")
     tag.setPlot((video or {}).get("overview") or meta.get("description") or "")
     year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
-    if year.isdigit():
+    if tech and year.isdigit():
         tag.setYear(int(year))
     if meta.get("genres"):
         tag.setGenres([str(g) for g in meta["genres"]])
     try:
-        if meta.get("imdbRating"):
+        if tech and meta.get("imdbRating"):
             tag.setRating(float(meta["imdbRating"]))
     except (TypeError, ValueError):
         pass
@@ -310,7 +315,7 @@ def fill_info(li, meta, ctype="movie", video=None):
         tag.setIMDBNumber(meta.get("imdb_id") or meta.get("id"))
     runtime = str((video or meta).get("runtime") or "")
     digits = "".join(ch for ch in runtime if ch.isdigit())
-    if digits:
+    if tech and digits:
         tag.setDuration(int(digits) * 60)
     if video:
         tag.setSeason(int(video.get("season") or 0))
@@ -532,7 +537,11 @@ def collect_streams(apis, ctype, item_id, meta, alt=None):
 
 
 def stream_label(s):
-    """Jeden řádek: zdroj · kvalita (barevně) · zvuk · titulky · bitrate/velikost.
+    """Jeden řádek: zvuk · velikost · kvalita · zdroj · zbytek.
+
+    Pořadí je dané šířkou: skiny s úzkým sloupcem seznamu (Arctic Fuse dává seznamu jen
+    půl obrazovky) konec řádku oříznou, proto jde jazyk s počtem kanálů a velikost dopředu
+    a zdroj až za kvalitu. 5.1 a víc je tučně, ať je surround vidět na první pohled.
 
     Luna = přesná shoda přes Lunu, WebShare = fulltext WebShare (přes Lunu nebo přímo), Sosáč = streamuj.
     """
@@ -548,25 +557,31 @@ def stream_label(s):
     rest = _re.sub(r"\b(4K|Full HD|UHD|FHD|HD|SD)\b", "", raw)   # \b → „HDR“ zůstane celé
     rest = " ".join(rest.replace(" - ", " ").split())
     if s.get("source") == "sosac":
-        rest = ""   # u Sosáče je zbytek jen jazyk, ten je už v „zvuk“
-    parts = [f"[COLOR {QUALITY_COLORS.get(s.get('quality_rank', 0), GREY)}][B]{quality or raw}[/B][/COLOR]"]
-    if rest and quality:
-        parts.append(rest)
+        rest = ""   # u Sosáče je zbytek jen jazyk, ten je už ve zvuku
+
+    parts = []
     channels = s.get("channels") or {}
-    langs = [f"[COLOR {LANG_COLORS.get(code, 'FFE0E0E0')}]{code}[/COLOR]" + (f" {channels[code]:g}" if code in channels else "")
-             for code in sorted(s.get("langs") or [])]
+    pref = PREF_LANGS[int(setting("pref_lang", "0"))]
+    langs = []
+    for code in sorted(s.get("langs") or [], key=lambda c: (c != pref, c)):   # preferovaný jazyk první
+        txt = f"[COLOR {LANG_COLORS.get(code, 'FFE0E0E0')}]{code}[/COLOR]"
+        if code in channels:
+            txt += f" [B]{channels[code]:g}[/B]" if channels[code] >= 5.1 else f" {channels[code]:g}"
+        langs.append(txt)
     if langs:
-        parts.append("zvuk " + " ".join(langs))
-    if s.get("subs"):
-        parts.append("tit. " + " ".join(sorted(s["subs"])))
-    tech = []
-    if s.get("bitrate"):
-        tech.append(f"{s['bitrate']:g} Mb/s")
+        parts.append(" ".join(langs))
     if s.get("size_gb"):
-        tech.append(f"{s['size_gb']:.1f} GB")
-    if tech:
-        parts.append(f"[COLOR {GREY}]{' · '.join(tech)}[/COLOR]")
-    return (tag + "  " if tag else "") + "  ".join(parts)
+        parts.append(f"{s['size_gb']:.1f} GB")
+    parts.append(f"[COLOR {QUALITY_COLORS.get(s.get('quality_rank', 0), GREY)}][B]{quality or raw}[/B][/COLOR]")
+    if tag:
+        parts.append(tag)
+    if rest and quality:
+        parts.append(f"[COLOR {GREY}]{rest}[/COLOR]")
+    if s.get("subs"):
+        parts.append(f"[COLOR {GREY}]tit. {' '.join(sorted(s['subs']))}[/COLOR]")
+    if s.get("bitrate"):
+        parts.append(f"[COLOR {GREY}]{s['bitrate']:g} Mb/s[/COLOR]")
+    return "  ".join(parts)
 
 
 def mark_playing(key, title=""):
@@ -908,8 +923,9 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None):
     for s in streams:
         li = xbmcgui.ListItem(label=stream_label(s))
         li.setArt(art_for(meta, video))
-        # název titulu do InfoTagu → v OSD přehrávače je jméno filmu/epizody, ne popis streamu
-        fill_info(li, meta, "series" if video else ctype, video=video)
+        # název titulu do InfoTagu → v OSD přehrávače je jméno filmu/epizody, ne popis streamu;
+        # stopáž a hodnocení ne — skin by z nich udělal sloupce a ukrojil šířku popisku streamu
+        fill_info(li, meta, "series" if video else ctype, video=video, tech=False)
         apply_watched(li, item_id, [(L(30070), runplugin(action="download", url=s["url"], name=f"{title} [{s['label']}]",
                                                          id=item_id, type=ctype, series=series_id, alt=alt))])
         li.setProperty("IsPlayable", "true")

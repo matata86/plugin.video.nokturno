@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
-<addon id="plugin.video.nokturno" name="Nokturno" version="1.5.4" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="1.5.5" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -22,7 +22,8 @@
       <icon>resources/icon.png</icon>
       <fanart>resources/fanart.jpg</fanart>
     </assets>
-    <news>1.5.4 – popis, stopáž a obsazení u titulů Sosáče (exporty Sosáče popis nemají; dotahuje se podle IMDb id z Luny, bez Luny z Cinemety, cache 30 dní)
+    <news>1.5.5 – popis streamu čitelný i v úzkém sloupci seznamu (Arctic Fuse): nejdřív jazyk s počtem kanálů (5.1 a víc tučně), velikost a kvalita, pak zdroj a zbytek; preferovaný jazyk je první; stopáž a hodnocení filmu se v seznamu streamů už nevyplňují, braly šířku popisku
+1.5.4 – popis, stopáž a obsazení u titulů Sosáče (exporty Sosáče popis nemají; dotahuje se podle IMDb id z Luny, bez Luny z Cinemety, cache 30 dní)
 1.5.3 – oprava: „Přidat do Mého seznamu“ v kontextovém menu (přepisovalo ho „Označit jako zhlédnuté“)
 1.5.2 – volba „Preferovat prostorový zvuk (5.1 a víc)“, kanály zvuku v popisku streamu
 1.5.1 – nové logo (monogram N), řazení podle kvality má přednost před jazykem
