@@ -107,7 +107,7 @@ msgid "Enable Sosáč as a second source"
 msgstr ""
 
 msgctxt "#30032"
-msgid "Sosáč userId (or the whole Stremio addon URL)"
+msgid "userId (filled automatically; or paste it from the Stremio addon URL)"
 msgstr ""
 
 msgctxt "#30033"
@@ -200,4 +200,240 @@ msgstr ""
 
 msgctxt "#30104"
 msgid "No source is configured – enable Luna, Sosáč or WebShare in settings"
+msgstr ""
+
+msgctxt "#30060"
+msgid "My list"
+msgstr ""
+
+msgctxt "#30061"
+msgid "Add to My list"
+msgstr ""
+
+msgctxt "#30062"
+msgid "Remove from My list"
+msgstr ""
+
+msgctxt "#30063"
+msgid "Continue watching"
+msgstr ""
+
+msgctxt "#30064"
+msgid "Recently watched"
+msgstr ""
+
+msgctxt "#30065"
+msgid "Added to My list"
+msgstr ""
+
+msgctxt "#30066"
+msgid "Removed from My list"
+msgstr ""
+
+msgctxt "#30067"
+msgid "Next episode"
+msgstr ""
+
+msgctxt "#30070"
+msgid "Download"
+msgstr ""
+
+msgctxt "#30071"
+msgid "Downloads"
+msgstr ""
+
+msgctxt "#30072"
+msgid "Queued for download: %s"
+msgstr ""
+
+msgctxt "#30073"
+msgid "Downloading: %s"
+msgstr ""
+
+msgctxt "#30074"
+msgid "Downloaded: %s"
+msgstr ""
+
+msgctxt "#30075"
+msgid "Download failed: %s"
+msgstr ""
+
+msgctxt "#30076"
+msgid "Set the download folder in settings first."
+msgstr ""
+
+msgctxt "#30077"
+msgid "Already in the download queue"
+msgstr ""
+
+msgctxt "#30078"
+msgid "queued"
+msgstr ""
+
+msgctxt "#30079"
+msgid "downloading"
+msgstr ""
+
+msgctxt "#30080"
+msgid "done"
+msgstr ""
+
+msgctxt "#30081"
+msgid "error"
+msgstr ""
+
+msgctxt "#30082"
+msgid "cancelling"
+msgstr ""
+
+msgctxt "#30083"
+msgid "Cancel download"
+msgstr ""
+
+msgctxt "#30084"
+msgid "Remove from list"
+msgstr ""
+
+msgctxt "#30085"
+msgid "Retry"
+msgstr ""
+
+msgctxt "#30086"
+msgid "Delete the downloaded file %s as well?"
+msgstr ""
+
+msgctxt "#30087"
+msgid "Download folder"
+msgstr ""
+
+msgctxt "#30090"
+msgid "Trakt.tv"
+msgstr ""
+
+msgctxt "#30091"
+msgid "Sync watched status with Trakt"
+msgstr ""
+
+msgctxt "#30092"
+msgid "Trakt client id (trakt.tv/oauth/applications)"
+msgstr ""
+
+msgctxt "#30093"
+msgid "Trakt client secret"
+msgstr ""
+
+msgctxt "#30094"
+msgid "Fill in Trakt client id and secret first (create an app at trakt.tv/oauth/applications)."
+msgstr ""
+
+msgctxt "#30095"
+msgid "Open %s and enter the code: [B]%s[/B]"
+msgstr ""
+
+msgctxt "#30096"
+msgid "Trakt sign-in failed"
+msgstr ""
+
+msgctxt "#30097"
+msgid "Signed in to Trakt"
+msgstr ""
+
+msgctxt "#30098"
+msgid "Sign out of Trakt"
+msgstr ""
+
+msgctxt "#30099"
+msgid "Cache cleared"
+msgstr ""
+
+msgctxt "#30100"
+msgid "Sign in to Trakt (device code)"
+msgstr ""
+
+msgctxt "#30105"
+msgid "Advanced"
+msgstr ""
+
+msgctxt "#30106"
+msgid "Clear API cache (catalogues, series)"
+msgstr ""
+
+msgctxt "#30110"
+msgid "Preferred audio language"
+msgstr ""
+
+msgctxt "#30111"
+msgid "Any"
+msgstr ""
+
+msgctxt "#30112"
+msgid "Czech"
+msgstr ""
+
+msgctxt "#30113"
+msgid "Slovak"
+msgstr ""
+
+msgctxt "#30114"
+msgid "English"
+msgstr ""
+
+msgctxt "#30115"
+msgid "Hide SD streams"
+msgstr ""
+
+msgctxt "#30116"
+msgid "Max stream size in GB (0 = unlimited)"
+msgstr ""
+
+msgctxt "#30117"
+msgid "Sort streams"
+msgstr ""
+
+msgctxt "#30118"
+msgid "As provided"
+msgstr ""
+
+msgctxt "#30119"
+msgid "Best quality first"
+msgstr ""
+
+msgctxt "#30120"
+msgid "Largest first"
+msgstr ""
+
+msgctxt "#30121"
+msgid "Smallest first"
+msgstr ""
+
+msgctxt "#30122"
+msgid "Sosáč user name"
+msgstr ""
+
+msgctxt "#30123"
+msgid "Sosáč password"
+msgstr ""
+
+msgctxt "#30128"
+msgid "Streamuj.tv user name (blank = same as Sosáč)"
+msgstr ""
+
+msgctxt "#30129"
+msgid "Streamuj.tv password (blank = same as Sosáč)"
+msgstr ""
+
+msgctxt "#30124"
+msgid "Link account now (gets userId automatically)"
+msgstr ""
+
+msgctxt "#30125"
+msgid "Fill in the Sosáč user name and password first."
+msgstr ""
+
+msgctxt "#30126"
+msgid "Linking the Sosáč account failed"
+msgstr ""
+
+msgctxt "#30127"
+msgid "Sosáč account linked"
 msgstr ""

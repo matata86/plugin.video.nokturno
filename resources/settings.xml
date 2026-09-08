@@ -14,11 +14,33 @@
   </category>
   <category label="30030">
     <setting id="sosac_enabled" type="bool" label="30031" default="true"/>
-    <setting id="sosac_user_id" type="text" label="30032" default="" enable="eq(-1,true)"/>
-    <setting id="sosac_url" type="text" label="30033" default="https://stremio.sosac.tv/cs" enable="eq(-2,true)"/>
-    <setting id="cross_search" type="bool" label="30034" default="true" enable="eq(-3,true)"/>
+    <setting id="sosac_username" type="text" label="30122" default="" enable="eq(-1,true)"/>
+    <setting id="sosac_password" type="text" option="hidden" label="30123" default="" enable="eq(-2,true)"/>
+    <setting id="streamuj_username" type="text" label="30128" default="" enable="eq(-3,true)"/>
+    <setting id="streamuj_password" type="text" option="hidden" label="30129" default="" enable="eq(-4,true)"/>
+    <setting label="30124" type="action" action="RunPlugin(plugin://plugin.video.luna/?action=sosac_link)" enable="eq(-5,true)"/>
+    <setting id="sosac_user_id" type="text" label="30032" default="" enable="eq(-6,true)"/>
+    <setting id="sosac_url" type="text" label="30033" default="https://stremio.sosac.tv/cs" enable="eq(-7,true)" visible="false"/>
+    <setting id="cross_search" type="bool" label="30034" default="true" enable="eq(-8,true)"/>
   </category>
   <category label="30004">
     <setting id="stream_mode" type="enum" label="30005" lvalues="30006|30007|30008" default="1"/>
+    <setting id="pref_lang" type="enum" label="30110" lvalues="30111|30112|30113|30114" default="1"/>
+    <setting id="hide_sd" type="bool" label="30115" default="false"/>
+    <setting id="max_size_gb" type="text" label="30116" default="0"/>
+    <setting id="sort_streams" type="enum" label="30117" lvalues="30118|30119|30120|30121" default="0"/>
+  </category>
+  <category label="30071">
+    <setting id="download_dir" type="folder" label="30087" default="" source="files" option="writeable"/>
+  </category>
+  <category label="30090">
+    <setting id="trakt_enabled" type="bool" label="30091" default="false"/>
+    <setting id="trakt_client_id" type="text" label="30092" default="" enable="eq(-1,true)"/>
+    <setting id="trakt_client_secret" type="text" option="hidden" label="30093" default="" enable="eq(-2,true)"/>
+    <setting label="30100" type="action" action="RunPlugin(plugin://plugin.video.luna/?action=trakt_auth)" enable="eq(-3,true)"/>
+    <setting label="30098" type="action" action="RunPlugin(plugin://plugin.video.luna/?action=trakt_logout)" enable="eq(-4,true)"/>
+  </category>
+  <category label="30105">
+    <setting label="30106" type="action" action="RunPlugin(plugin://plugin.video.luna/?action=clear_cache)"/>
   </category>
 </settings>
