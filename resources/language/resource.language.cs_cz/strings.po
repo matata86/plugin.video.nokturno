@@ -107,8 +107,8 @@ msgid "Enable Sosáč as a second source"
 msgstr "Zapnout Sosáč jako druhý zdroj"
 
 msgctxt "#30032"
-msgid "Sosáč userId (or the whole Stremio addon URL)"
-msgstr "Sosáč userId (nebo celá adresa Stremio doplňku)"
+msgid "userId (filled automatically; or paste it from the Stremio addon URL)"
+msgstr "userId (doplní se samo; nebo ho vlož ze Stremio adresy)"
 
 msgctxt "#30033"
 msgid "Sosáč address"
@@ -201,3 +201,239 @@ msgstr "Přihlášení nebo dotaz na WebShare selhal"
 msgctxt "#30104"
 msgid "No source is configured – enable Luna, Sosáč or WebShare in settings"
 msgstr "Není nastaven žádný zdroj – zapni v nastavení Lunu, Sosáč nebo WebShare"
+
+msgctxt "#30060"
+msgid "My list"
+msgstr "Můj seznam"
+
+msgctxt "#30061"
+msgid "Add to My list"
+msgstr "Přidat do Mého seznamu"
+
+msgctxt "#30062"
+msgid "Remove from My list"
+msgstr "Odebrat z Mého seznamu"
+
+msgctxt "#30063"
+msgid "Continue watching"
+msgstr "Pokračovat ve sledování"
+
+msgctxt "#30064"
+msgid "Recently watched"
+msgstr "Naposledy zhlédnuté"
+
+msgctxt "#30065"
+msgid "Added to My list"
+msgstr "Přidáno do Mého seznamu"
+
+msgctxt "#30066"
+msgid "Removed from My list"
+msgstr "Odebráno z Mého seznamu"
+
+msgctxt "#30067"
+msgid "Next episode"
+msgstr "Další díl"
+
+msgctxt "#30070"
+msgid "Download"
+msgstr "Stáhnout"
+
+msgctxt "#30071"
+msgid "Downloads"
+msgstr "Stahování"
+
+msgctxt "#30072"
+msgid "Queued for download: %s"
+msgstr "Zařazeno ke stažení: %s"
+
+msgctxt "#30073"
+msgid "Downloading: %s"
+msgstr "Stahuji: %s"
+
+msgctxt "#30074"
+msgid "Downloaded: %s"
+msgstr "Staženo: %s"
+
+msgctxt "#30075"
+msgid "Download failed: %s"
+msgstr "Stahování selhalo: %s"
+
+msgctxt "#30076"
+msgid "Set the download folder in settings first."
+msgstr "Nejdřív nastav složku pro stahování v nastavení."
+
+msgctxt "#30077"
+msgid "Already in the download queue"
+msgstr "Už je ve frontě stahování"
+
+msgctxt "#30078"
+msgid "queued"
+msgstr "ve frontě"
+
+msgctxt "#30079"
+msgid "downloading"
+msgstr "stahuje se"
+
+msgctxt "#30080"
+msgid "done"
+msgstr "hotovo"
+
+msgctxt "#30081"
+msgid "error"
+msgstr "chyba"
+
+msgctxt "#30082"
+msgid "cancelling"
+msgstr "ruší se"
+
+msgctxt "#30083"
+msgid "Cancel download"
+msgstr "Zrušit stahování"
+
+msgctxt "#30084"
+msgid "Remove from list"
+msgstr "Odebrat ze seznamu"
+
+msgctxt "#30085"
+msgid "Retry"
+msgstr "Zkusit znovu"
+
+msgctxt "#30086"
+msgid "Delete the downloaded file %s as well?"
+msgstr "Smazat i stažený soubor %s?"
+
+msgctxt "#30087"
+msgid "Download folder"
+msgstr "Složka pro stahování"
+
+msgctxt "#30090"
+msgid "Trakt.tv"
+msgstr "Trakt.tv"
+
+msgctxt "#30091"
+msgid "Sync watched status with Trakt"
+msgstr "Synchronizovat zhlédnuto s Traktem"
+
+msgctxt "#30092"
+msgid "Trakt client id (trakt.tv/oauth/applications)"
+msgstr "Trakt client id (trakt.tv/oauth/applications)"
+
+msgctxt "#30093"
+msgid "Trakt client secret"
+msgstr "Trakt client secret"
+
+msgctxt "#30094"
+msgid "Fill in Trakt client id and secret first (create an app at trakt.tv/oauth/applications)."
+msgstr "Nejdřív vyplň Trakt client id a secret (aplikaci vytvoříš na trakt.tv/oauth/applications)."
+
+msgctxt "#30095"
+msgid "Open %s and enter the code: [B]%s[/B]"
+msgstr "Otevři %s a zadej kód: [B]%s[/B]"
+
+msgctxt "#30096"
+msgid "Trakt sign-in failed"
+msgstr "Přihlášení k Traktu se nezdařilo"
+
+msgctxt "#30097"
+msgid "Signed in to Trakt"
+msgstr "Přihlášeno k Traktu"
+
+msgctxt "#30098"
+msgid "Sign out of Trakt"
+msgstr "Odhlásit od Traktu"
+
+msgctxt "#30099"
+msgid "Cache cleared"
+msgstr "Cache vymazána"
+
+msgctxt "#30100"
+msgid "Sign in to Trakt (device code)"
+msgstr "Přihlásit k Traktu (kód zařízení)"
+
+msgctxt "#30105"
+msgid "Advanced"
+msgstr "Pokročilé"
+
+msgctxt "#30106"
+msgid "Clear API cache (catalogues, series)"
+msgstr "Vymazat cache API (katalogy, seriály)"
+
+msgctxt "#30110"
+msgid "Preferred audio language"
+msgstr "Preferovaný jazyk zvuku"
+
+msgctxt "#30111"
+msgid "Any"
+msgstr "Libovolný"
+
+msgctxt "#30112"
+msgid "Czech"
+msgstr "Čeština"
+
+msgctxt "#30113"
+msgid "Slovak"
+msgstr "Slovenština"
+
+msgctxt "#30114"
+msgid "English"
+msgstr "Angličtina"
+
+msgctxt "#30115"
+msgid "Hide SD streams"
+msgstr "Skrýt SD streamy"
+
+msgctxt "#30116"
+msgid "Max stream size in GB (0 = unlimited)"
+msgstr "Max. velikost streamu v GB (0 = bez omezení)"
+
+msgctxt "#30117"
+msgid "Sort streams"
+msgstr "Řazení streamů"
+
+msgctxt "#30118"
+msgid "As provided"
+msgstr "Jak přišly"
+
+msgctxt "#30119"
+msgid "Best quality first"
+msgstr "Nejlepší kvalita první"
+
+msgctxt "#30120"
+msgid "Largest first"
+msgstr "Největší první"
+
+msgctxt "#30121"
+msgid "Smallest first"
+msgstr "Nejmenší první"
+
+msgctxt "#30122"
+msgid "Sosáč user name"
+msgstr "Sosáč uživatelské jméno"
+
+msgctxt "#30123"
+msgid "Sosáč password"
+msgstr "Sosáč heslo"
+
+msgctxt "#30128"
+msgid "Streamuj.tv user name (blank = same as Sosáč)"
+msgstr "Streamuj.tv uživatelské jméno (prázdné = stejné jako Sosáč)"
+
+msgctxt "#30129"
+msgid "Streamuj.tv password (blank = same as Sosáč)"
+msgstr "Streamuj.tv heslo (prázdné = stejné jako Sosáč)"
+
+msgctxt "#30124"
+msgid "Link account now (gets userId automatically)"
+msgstr "Propojit účet teď (userId se získá automaticky)"
+
+msgctxt "#30125"
+msgid "Fill in the Sosáč user name and password first."
+msgstr "Nejdřív vyplň jméno a heslo k Sosáči."
+
+msgctxt "#30126"
+msgid "Linking the Sosáč account failed"
+msgstr "Propojení účtu Sosáče se nezdařilo"
+
+msgctxt "#30127"
+msgid "Sosáč account linked"
+msgstr "Účet Sosáče propojen"

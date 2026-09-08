@@ -65,9 +65,16 @@ class LunaError(Exception):
 
 
 class LunaApi:
-    def __init__(self, base_url, token):
+    def __init__(self, base_url, token, cache=None, cache_ttl=600):
         self.base = base_url.rstrip("/")
         self.token = token
+        self.cache = cache  # objekt s .cached(key, ttl, loader) – manifest a meta se nemění každou minutu
+        self.cache_ttl = cache_ttl
+
+    def _get_cached(self, url):
+        if self.cache is None:
+            return self._get(url)
+        return self.cache.cached(url, self.cache_ttl, lambda: self._get(url))
 
     # --- HTTP -------------------------------------------------------------
     def _get(self, url):
@@ -83,7 +90,7 @@ class LunaApi:
 
     # --- Stremio zdroje -----------------------------------------------------
     def manifest(self):
-        return self._get(self._meta_url("manifest.json"))
+        return self._get_cached(self._meta_url("manifest.json"))
 
     def catalogs(self, ctype):
         """Katalogy pro daný typ, bez interních (calendar, people)."""
@@ -119,7 +126,7 @@ class LunaApi:
         return self._get(url).get("metas") or []
 
     def meta(self, ctype, item_id):
-        return self._get(self._meta_url("meta", ctype, item_id + ".json")).get("meta") or {}
+        return self._get_cached(self._meta_url("meta", ctype, item_id + ".json")).get("meta") or {}
 
     def _stream_source(self, prefix, ctype, item_id):
         parts = [self.base] + ([prefix] if prefix else []) + [self.token, "stream", ctype, item_id + ".json"]

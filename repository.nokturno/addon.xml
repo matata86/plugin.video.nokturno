@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="repository.nokturno" name="Nokturno repozitář" version="1.0.0" provider-name="matata86">
+  <extension point="xbmc.addon.repository" name="Nokturno repozitář">
+    <dir>
+      <info compressed="false">https://raw.githubusercontent.com/matata86/plugin.video.luna/main/repo/addons.xml</info>
+      <checksum>https://raw.githubusercontent.com/matata86/plugin.video.luna/main/repo/addons.xml.md5</checksum>
+      <datadir zip="true">https://raw.githubusercontent.com/matata86/plugin.video.luna/main/repo/</datadir>
+    </dir>
+  </extension>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="cs_CZ">Repozitář doplňku Nokturno – automatické aktualizace</summary>
+    <summary lang="en_GB">Nokturno add-on repository – automatic updates</summary>
+    <description lang="cs_CZ">Po instalaci tohoto repozitáře se doplněk Nokturno (Luna + Sosáč + WebShare) aktualizuje sám. Zdroj: github.com/matata86/plugin.video.luna</description>
+    <description lang="en_GB">Install this repository once and the Nokturno add-on keeps itself up to date. Source: github.com/matata86/plugin.video.luna</description>
+    <platform>all</platform>
+    <license>MIT</license>
+    <source>https://github.com/matata86/plugin.video.luna</source>
+    <assets>
+      <icon>icon.png</icon>
+    </assets>
+  </extension>
+</addon>

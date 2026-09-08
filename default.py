@@ -4,13 +4,15 @@ Zdroje (každý jde vypnout v nastavení):
 - Luna: server v LAN, TMDB katalogy + streamy z WebShare přes Lunu
 - Sosáč: vlastní katalogy a streamy (Stremio API, jen userId)
 - WebShare přímo: hledání souborů a stream přes WebShare API (účet), bez Luny
-Hledání prochází zapnuté zdroje; u titulu se streamy dohledají i v druhém
-zdroji. Historie hledání a zhlédnuto/rozkoukáno se ukládají do profilu doplňku
-(zhlédnutí zapisuje služba `service.py` podle skutečného přehrávání).
+Hledání prochází zapnuté zdroje; stejný titul z Luny a Sosáče je jen jednou
+(Sosáč se přibalí jako `alt`), streamy se dohledají v druhém zdroji.
+Do profilu doplňku se ukládá historie hledání, zhlédnuto/rozkoukáno (zapisuje
+`service.py`), Můj seznam, snímky titulů pro Pokračovat a fronta stahování.
 """
 import json
 import os
 import sys
+import time
 import urllib.parse
 
 import xbmc
@@ -21,9 +23,11 @@ import xbmcvfs
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "lib"))
 from luna_api import LunaApi, LunaError, parse_base_url, parse_token  # noqa: E402
-from sosac_api import SosacApi, SosacError, is_sosac_id, names_match  # noqa: E402
+from sosac_api import SosacApi, SosacError, is_sosac_id, names_match, register as sosac_register  # noqa: E402
 from store import Store  # noqa: E402
-from webshare_api import SORTS, WebshareApi, WebshareError  # noqa: E402
+from streams import arrange  # noqa: E402
+from trakt_api import TraktApi, TraktError  # noqa: E402
+from webshare_api import SORTS, WebshareApi, WebshareError, human_size  # noqa: E402
 
 ADDON = xbmcaddon.Addon()
 ADDON_ID = ADDON.getAddonInfo("id")
@@ -33,16 +37,28 @@ ICON = ADDON.getAddonInfo("icon")
 PROFILE = xbmcvfs.translatePath(ADDON.getAddonInfo("profile"))
 PAGE = 20
 WS_PAGE = 40
+CACHE_TTL = 600
 SOSAC_TAG = "[COLOR FFE0A040]Sosáč[/COLOR]"
 WS_TAG = "[COLOR FF60B0FF]WebShare[/COLOR]"
 PLAYING_PROP = "nokturno.playing"
+PREF_LANGS = ("", "CZ", "SK", "EN")
+STREAM_ORDERS = ("source", "quality", "size_desc", "size_asc")
 
 STORE = Store(PROFILE)
-Errors = (LunaError, SosacError, WebshareError)
+Errors = (LunaError, SosacError, WebshareError, TraktError)
 
 
 def L(sid):
     return ADDON.getLocalizedString(sid)
+
+
+def Lf(sid, *args):
+    """Lokalizovaný řetězec s %s; když překlad zástupný symbol nemá, jen připojí hodnoty."""
+    text = L(sid)
+    try:
+        return text % args if "%" in text else " ".join([text] + [str(a) for a in args])
+    except TypeError:
+        return " ".join([text] + [str(a) for a in args])
 
 
 def setting(key, default=""):
@@ -57,6 +73,10 @@ def build_url(**params):
     return BASE_URL + "?" + urllib.parse.urlencode({k: v for k, v in params.items() if v not in (None, "")})
 
 
+def runplugin(**params):
+    return f"RunPlugin({build_url(**params)})"
+
+
 # --- zdroje ---------------------------------------------------------------------
 
 def get_luna():
@@ -66,18 +86,48 @@ def get_luna():
     token = parse_token(raw_token)
     if not token:
         return None
-    return LunaApi(parse_base_url(raw_token, setting("luna_url", "http://192.168.1.10:7126")), token)
+    base = parse_base_url(raw_token, setting("luna_url", "http://192.168.1.10:7126"))
+    return LunaApi(base, token, cache=STORE, cache_ttl=CACHE_TTL)
+
+
+def sosac_user_id():
+    user_id = setting("sosac_user_id").strip()
+    if "userId=" in user_id:
+        user_id = user_id.split("userId=", 1)[1].split("&", 1)[0]
+    return user_id
 
 
 def get_sosac():
     if not on("sosac_enabled"):
         return None
-    user_id = setting("sosac_user_id").strip()
-    if "userId=" in user_id:
-        user_id = user_id.split("userId=", 1)[1].split("&", 1)[0]
+    user_id = sosac_user_id()
+    if not user_id and setting("sosac_username") and setting("sosac_password"):
+        # userId si doplněk obstará sám z přihlašovacích údajů (stejně jako konfigurační stránka Sosáče)
+        user_id = sosac_link_account(quiet=True)
     if not user_id:
         return None
-    return SosacApi(setting("sosac_url", "https://stremio.sosac.tv/cs"), user_id)
+    return SosacApi(setting("sosac_url", "https://stremio.sosac.tv/cs"), user_id, cache=STORE, cache_ttl=CACHE_TTL)
+
+
+def sosac_link_account(quiet=False):
+    """Přiváže účet Sosáče + Streamuj k novému userId a uloží ho do nastavení."""
+    su, sp = setting("sosac_username").strip(), setting("sosac_password").strip()
+    tu, tp = setting("streamuj_username").strip() or su, setting("streamuj_password").strip() or sp
+    if not su or not sp:
+        if not quiet:
+            xbmcgui.Dialog().ok(L(30000), L(30125))
+        return ""
+    try:
+        user_id = sosac_register(setting("sosac_url", "https://stremio.sosac.tv/cs"), su, sp, tu, tp)
+    except SosacError as e:
+        log_error(e)
+        if not quiet:
+            notify(L(30126), xbmcgui.NOTIFICATION_ERROR, 5000)
+        return ""
+    ADDON.setSetting("sosac_user_id", user_id)
+    if not quiet:
+        notify(L(30127))
+    return user_id
 
 
 def get_webshare():
@@ -87,13 +137,20 @@ def get_webshare():
     if not user or not pw:
         return None
     # token WebShare přežije mezi voláními pluginu – šetří login
-    api = WebshareApi(user, pw, token=xbmcgui.Window(10000).getProperty("nokturno.ws_token"))
-    return api
+    return WebshareApi(user, pw, token=xbmcgui.Window(10000).getProperty("nokturno.ws_token"))
 
 
 def remember_ws_token(api):
     if api and api.token:
         xbmcgui.Window(10000).setProperty("nokturno.ws_token", api.token)
+
+
+def get_trakt():
+    if not on("trakt_enabled", "false"):
+        return None
+    api = TraktApi(setting("trakt_client_id"), setting("trakt_client_secret"), tokens=STORE.trakt(),
+                   on_tokens=STORE.set_trakt)
+    return api
 
 
 def get_apis():
@@ -130,12 +187,39 @@ def folder_item(label, url, icon=None, context=None):
 
 
 def display_name(meta):
-    """Sosáč má složené názvy – ukážeme jen titul (rok); Luna název tak, jak je."""
+    """Název s rokem – „Matrix (1999)“; u Sosáče jen titul bez jazyků a originálu."""
     if is_sosac_id(meta.get("id")):
         title = meta.get("_title") or meta.get("name") or ""
-        year = meta.get("year")
-        return f"{title} ({year})" if year else title
-    return meta.get("name") or meta.get("id") or ""
+        year = str(meta.get("year") or "")[:4]
+    else:
+        title = meta.get("name") or meta.get("id") or ""
+        year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
+    return f"{title} ({year})" if year.isdigit() else title
+
+
+def split_episode_id(item_id):
+    """'tt0903747:1:2' / 'sosac2_21849:1:2' → (základ, sezóna, epizoda) nebo (id, None, None)."""
+    parts = str(item_id).split(":")
+    if len(parts) >= 3 and parts[-1].isdigit() and parts[-2].isdigit():
+        return ":".join(parts[:-2]), int(parts[-2]), int(parts[-1])
+    return item_id, None, None
+
+
+def snapshot(meta, ctype, video=None, series_id=None, alt=None):
+    """Snímek titulu pro seznamy bez dotazu na API (Pokračovat, Můj seznam, Naposledy)."""
+    return {
+        "type": "series" if (video or ctype == "series") else "movie",
+        "id": (video or {}).get("id") or meta.get("id"),
+        "series": series_id or (meta.get("id") if video else None),
+        "alt": alt,
+        "title": (video or {}).get("title") or display_name(meta),
+        "tvshow": (meta.get("_title") or meta.get("name")) if (video or ctype == "series") else "",
+        "season": (video or {}).get("season"),
+        "episode": (video or {}).get("episode"),
+        "plot": (video or {}).get("overview") or meta.get("description") or "",
+        "year": str(meta.get("year") or meta.get("releaseInfo") or "")[:4],
+        "art": art_for(meta, video),
+    }
 
 
 def apply_watched(li, key):
@@ -150,8 +234,12 @@ def apply_watched(li, key):
             tag.setResumePoint(resume, total)
         except Exception:  # noqa: BLE001 – Kodi < 20
             pass
-    label = L(30044) if count else L(30043)
-    li.addContextMenuItems([(label, f"RunPlugin({build_url(action='toggle_watched', id=key)})")])
+    li.addContextMenuItems([(L(30044) if count else L(30043), runplugin(action="toggle_watched", id=key))])
+
+
+def fav_context(key, ctype, series_id=None, alt=None):
+    label = L(30062) if STORE.is_favourite(key) else L(30061)
+    return (label, runplugin(action="toggle_fav", id=key, type=ctype, series=series_id, alt=alt))
 
 
 def fill_info(li, meta, ctype="movie", video=None):
@@ -175,6 +263,7 @@ def fill_info(li, meta, ctype="movie", video=None):
             tag.setRating(float(meta["imdbRating"]))
     except (TypeError, ValueError):
         pass
+    # IMDb id: podle něj Kodi (OpenSubtitles apod.) hledá titulky
     if meta.get("imdb_id") or str(meta.get("id", "")).startswith("tt"):
         tag.setIMDBNumber(meta.get("imdb_id") or meta.get("id"))
     runtime = str((video or meta).get("runtime") or "")
@@ -201,6 +290,26 @@ def fill_info(li, meta, ctype="movie", video=None):
         tag.setDirectors([str(d) for d in meta["director"]])
 
 
+def fill_info_snapshot(li, snap):
+    """Info z uloženého snímku (bez API)."""
+    tag = li.getVideoInfoTag()
+    is_ep = snap.get("season") is not None
+    tag.setMediaType("episode" if is_ep else ("tvshow" if snap.get("type") == "series" else "movie"))
+    tag.setTitle(snap.get("title") or "")
+    if snap.get("tvshow"):
+        tag.setTvShowTitle(snap["tvshow"])
+    tag.setPlot(snap.get("plot") or "")
+    if str(snap.get("year") or "").isdigit():
+        tag.setYear(int(snap["year"]))
+    if is_ep:
+        tag.setSeason(int(snap.get("season") or 0))
+        tag.setEpisode(int(snap.get("episode") or 0))
+    base = split_episode_id(snap.get("id"))[0]
+    if str(base).startswith("tt"):
+        tag.setIMDBNumber(base)
+    li.setArt(snap.get("art") or {})
+
+
 def art_for(meta, video=None):
     art = {
         "poster": meta.get("poster") or "",
@@ -220,6 +329,7 @@ def add_meta_item(meta, ctype, alt=None):
     li = xbmcgui.ListItem(label=label)
     li.setArt(art_for(meta))
     fill_info(li, meta, ctype)
+    li.addContextMenuItems([fav_context(meta["id"], ctype, alt=alt)])
     if ctype == "series":
         xbmcplugin.addDirectoryItem(HANDLE, build_url(action="seasons", id=meta["id"], alt=alt), li, isFolder=True)
     else:
@@ -242,32 +352,47 @@ def add_playable(li, ctype, item_id, series_id=None, alt=None):
         xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
 
 
-def add_ws_file(f):
+def add_snapshot_item(key, snap, extra_context=None):
+    """Položka ze snímku (Pokračovat, Můj seznam, Naposledy)."""
+    if snap.get("type") == "ws":
+        f = {"ident": snap["id"][3:], "name": snap.get("title", ""), "img": (snap.get("art") or {}).get("thumb", ""),
+             "size_h": snap.get("size_h", ""), "positive": 0, "negative": 0}
+        add_ws_file(f, extra_context)
+        return
+    label = snap.get("title") or key
+    if snap.get("tvshow") and snap.get("season") is not None:
+        label = f"{snap['tvshow']} – {int(snap['season'])}x{int(snap['episode'] or 0):02d} {label}"
+    li = xbmcgui.ListItem(label=label)
+    fill_info_snapshot(li, snap)
+    ctx = [fav_context(key, snap.get("type", "movie"), snap.get("series"), snap.get("alt"))] + (extra_context or [])
+    li.addContextMenuItems(ctx)
+    if snap.get("type") == "series" and snap.get("season") is None:
+        xbmcplugin.addDirectoryItem(HANDLE, build_url(action="seasons", id=key, alt=snap.get("alt")), li, isFolder=True)
+        return
+    apply_watched(li, key)
+    add_playable(li, "series" if snap.get("season") is not None else "movie", key,
+                 series_id=snap.get("series"), alt=snap.get("alt"))
+
+
+def add_ws_file(f, extra_context=None):
     key = "ws:" + f["ident"]
-    votes = f"+{f['positive']}/-{f['negative']}" if (f["positive"] or f["negative"]) else ""
-    label = f"{f['name']}  [COLOR FF9A9A9A]{f['size_h']} {votes}[/COLOR]"
+    votes = f"+{f['positive']}/-{f['negative']}" if (f.get("positive") or f.get("negative")) else ""
+    label = f"{f['name']}  [COLOR FF9A9A9A]{f.get('size_h', '')} {votes}[/COLOR]"
     li = xbmcgui.ListItem(label=label)
     if f.get("img"):
         li.setArt({"thumb": f["img"], "icon": f["img"]})
     tag = li.getVideoInfoTag()
     tag.setMediaType("video")
     tag.setTitle(f["name"])
-    tag.setPlot(f"{WS_TAG}  {f['size_h']}  {votes}")
+    tag.setPlot(f"{WS_TAG}  {f.get('size_h', '')}  {votes}")
     apply_watched(li, key)
+    ctx = [(L(30070), runplugin(action="download_ws", ident=f["ident"], name=f["name"]))] + (extra_context or [])
+    li.addContextMenuItems(ctx)
     li.setProperty("IsPlayable", "true")
-    url = build_url(action="play_ws", ident=f["ident"], name=f["name"])
-    xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=False)
+    xbmcplugin.addDirectoryItem(HANDLE, build_url(action="play_ws", ident=f["ident"], name=f["name"]), li, isFolder=False)
 
 
 # --- meta a streamy -------------------------------------------------------------
-
-def split_episode_id(item_id):
-    """'tt0903747:1:2' / 'sosac2_21849:1:2' → (základ, sezóna, epizoda) nebo (id, None, None)."""
-    parts = str(item_id).split(":")
-    if len(parts) >= 3 and parts[-1].isdigit() and parts[-2].isdigit():
-        return ":".join(parts[:-2]), int(parts[-2]), int(parts[-1])
-    return item_id, None, None
-
 
 def load_meta(apis, ctype, item_id, series_id=None):
     """Meta titulu (u epizody meta seriálu + konkrétní video) pro popis a OSD."""
@@ -342,6 +467,22 @@ def all_streams(apis, ctype, item_id):
     return api.streams(ctype, item_id)
 
 
+def collect_streams(apis, ctype, item_id, meta, alt=None):
+    """Streamy ze zdroje titulu + z druhého zdroje, vyfiltrované a seřazené podle nastavení."""
+    streams = all_streams(apis, ctype, item_id) + cross_streams(apis, ctype, item_id, meta, alt)
+    try:
+        max_gb = float(setting("max_size_gb", "0").replace(",", ".") or 0)
+    except ValueError:
+        max_gb = 0.0
+    return arrange(
+        streams,
+        pref_lang=PREF_LANGS[int(setting("pref_lang", "0"))],
+        hide_sd=on("hide_sd", "false"),
+        max_size_gb=max_gb,
+        order=STREAM_ORDERS[int(setting("sort_streams", "0"))],
+    )
+
+
 def stream_label(s):
     label = s["label"]
     if s.get("source") == "sosac":
@@ -361,6 +502,8 @@ def main_menu(apis):
         ADDON.openSettings()
         xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
         return
+    if STORE.in_progress() or STORE.recently_watched(1):
+        folder_item(L(30063), build_url(action="continue"))
     if apis["luna"] or apis["sosac"]:
         folder_item(L(30010), build_url(action="search", type="movie"))
         folder_item(L(30011), build_url(action="search", type="series"))
@@ -372,6 +515,10 @@ def main_menu(apis):
     if apis["sosac"]:
         folder_item(L(30035), build_url(action="catalogs", type="movie", src="sosac"))
         folder_item(L(30036), build_url(action="catalogs", type="series", src="sosac"))
+    folder_item(L(30060), build_url(action="favourites"))
+    folder_item(L(30064), build_url(action="recent"))
+    if setting("download_dir"):
+        folder_item(L(30071), build_url(action="downloads"))
     xbmcplugin.endOfDirectory(HANDLE)
 
 
@@ -422,8 +569,8 @@ def search_menu(kind):
     """Složka hledání: nové hledání + historie dotazů."""
     folder_item(L(30040), build_url(action="search_new", type=kind))
     for q in STORE.history(kind):
-        remove = f"RunPlugin({build_url(action='history_remove', type=kind, q=q)})"
-        folder_item(q, build_url(action="search_run", type=kind, q=q), context=[(L(30042), remove)])
+        folder_item(q, build_url(action="search_run", type=kind, q=q),
+                    context=[(L(30042), runplugin(action="history_remove", type=kind, q=q))])
     if STORE.history(kind):
         folder_item(L(30041), build_url(action="history_clear", type=kind))
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
@@ -456,7 +603,8 @@ def merge_results(luna_metas, sosac_metas):
         alt = None
         for sm in sosac_metas:
             if sm["id"] not in used and same_title(lm, sm):
-                alt, _ = sm["id"], used.add(sm["id"])
+                alt = sm["id"]
+                used.add(sm["id"])
                 break
         merged.append((lm, alt))
     merged.extend((sm, None) for sm in sosac_metas if sm["id"] not in used)
@@ -526,9 +674,98 @@ def history_clear(kind):
     xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
 
 
+# --- zhlédnuto, Můj seznam, Pokračovat ----------------------------------------------
+
 def toggle_watched(key):
-    STORE.set_watched(key, not STORE.playcount(key))
+    watched = not STORE.playcount(key)
+    STORE.set_watched(key, watched)
+    trakt = get_trakt()
+    if trakt and trakt.logged_in():
+        base, season, episode = split_episode_id(key)
+        try:
+            (trakt.mark_watched if watched else trakt.unmark_watched)(base, season, episode)
+        except TraktError as e:
+            log_error(f"trakt: {e}")
     xbmc.executebuiltin("Container.Refresh")
+
+
+def toggle_fav(apis, key, ctype, series_id=None, alt=None):
+    info = STORE.item(key)
+    if not info and not str(key).startswith("ws:"):
+        try:
+            meta, video = load_meta(apis, ctype, key, series_id)
+            info = snapshot(meta, ctype, video, series_id, alt)
+        except Errors as e:
+            log_error(e)
+            info = {"type": ctype, "id": key, "title": key, "series": series_id, "alt": alt, "art": {}}
+    added = STORE.toggle_favourite(key, info)
+    notify(L(30065) if added else L(30066))
+    xbmc.executebuiltin("Container.Refresh")
+
+
+def list_favourites():
+    xbmcplugin.setContent(HANDLE, "videos")
+    for key in STORE.favourites():
+        snap = STORE.item(key)
+        if snap:
+            add_snapshot_item(key, snap)
+    xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
+def list_recent():
+    xbmcplugin.setContent(HANDLE, "videos")
+    for key, _entry in STORE.recently_watched():
+        snap = STORE.item(key)
+        if snap:
+            add_snapshot_item(key, snap)
+    xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
+def next_episode(apis, snap):
+    """Další epizoda po zhlédnuté (podle meta seriálu), nebo None."""
+    series_id = snap.get("series")
+    if not series_id or snap.get("season") is None:
+        return None
+    try:
+        meta = api_for(apis, series_id).meta("series", series_id)
+    except Errors:
+        return None
+    videos = sorted((v for v in meta.get("videos") or [] if int(v.get("season") or 0) > 0),
+                    key=lambda v: (int(v.get("season") or 0), int(v.get("episode") or 0)))
+    cur = (int(snap.get("season") or 0), int(snap.get("episode") or 0))
+    for v in videos:
+        if (int(v.get("season") or 0), int(v.get("episode") or 0)) > cur:
+            return v, meta
+
+
+def list_continue(apis):
+    """Rozkoukané tituly + další díly po naposledy zhlédnutých epizodách."""
+    xbmcplugin.setContent(HANDLE, "videos")
+    for key, _entry in STORE.in_progress():
+        snap = STORE.item(key)
+        if snap:
+            add_snapshot_item(key, snap)
+    seen_series = set()
+    for key, _entry in STORE.recently_watched(40):
+        snap = STORE.item(key)
+        if not snap or snap.get("season") is None or snap.get("series") in seen_series:
+            continue
+        seen_series.add(snap.get("series"))
+        found = next_episode(apis, snap)
+        if not found:
+            continue
+        video, meta = found
+        ep_id = video.get("id") or f"{snap['series']}:{video.get('season')}:{video.get('episode')}"
+        if STORE.playcount(ep_id):
+            continue
+        li = xbmcgui.ListItem(label=f"{L(30067)}: {meta.get('_title') or meta.get('name')} – "
+                                    f"{int(video.get('season') or 0)}x{int(video.get('episode') or 0):02d} {video.get('title') or ''}")
+        li.setArt(art_for(meta, video))
+        fill_info(li, meta, "series", video=video)
+        li.addContextMenuItems([fav_context(ep_id, "series", snap["series"], snap.get("alt"))])
+        apply_watched(li, ep_id)
+        add_playable(li, "series", ep_id, series_id=snap["series"], alt=snap.get("alt"))
+    xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
 # --- seriály ---------------------------------------------------------------------
@@ -566,6 +803,7 @@ def list_episodes(apis, series_id, season, alt=None):
         li.setArt(art_for(meta, v))
         fill_info(li, meta, "series", video=v)
         ep_id = v.get("id") or f"{series_id}:{season}:{v.get('episode')}"
+        li.addContextMenuItems([fav_context(ep_id, "series", series_id, alt)])
         apply_watched(li, ep_id)
         add_playable(li, "series", ep_id, series_id=series_id, alt=alt)
     xbmcplugin.endOfDirectory(HANDLE)
@@ -575,20 +813,23 @@ def list_episodes(apis, series_id, season, alt=None):
 
 def list_streams(apis, ctype, item_id, series_id=None, alt=None):
     meta, video = load_meta(apis, ctype, item_id, series_id)
-    streams = all_streams(apis, ctype, item_id) + cross_streams(apis, ctype, item_id, meta, alt)
+    streams = collect_streams(apis, ctype, item_id, meta, alt)
     if not streams:
         notify(L(30102))
         xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
         return
+    title = (video or {}).get("title") or display_name(meta)
     for s in streams:
         li = xbmcgui.ListItem(label=stream_label(s))
         li.setArt(art_for(meta, video))
         # název titulu do InfoTagu → v OSD přehrávače je jméno filmu/epizody, ne popis streamu
         fill_info(li, meta, "series" if video else ctype, video=video)
         apply_watched(li, item_id)
+        li.addContextMenuItems([(L(30070), runplugin(action="download", url=s["url"], name=f"{title} [{s['label']}]",
+                                                     id=item_id, type=ctype, series=series_id, alt=alt))])
         li.setProperty("IsPlayable", "true")
         # přehrání jde přes plugin (ne přímo URL), aby služba věděla, co se hraje
-        url = build_url(action="play", type=ctype, id=item_id, series=series_id, url=s["url"])  # alt už netřeba
+        url = build_url(action="play", type=ctype, id=item_id, series=series_id, url=s["url"])
         xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=False)
     xbmcplugin.endOfDirectory(HANDLE)
 
@@ -598,7 +839,7 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None):
     if url:
         chosen = {"url": url}
     else:
-        streams = all_streams(apis, ctype, item_id) + cross_streams(apis, ctype, item_id, meta, alt)
+        streams = collect_streams(apis, ctype, item_id, meta, alt)
         if not streams:
             notify(L(30102))
             xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
@@ -615,6 +856,7 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None):
     li = xbmcgui.ListItem(label=title, path=chosen["url"])
     li.setArt(art_for(meta, video))
     fill_info(li, meta, "series" if video else ctype, video=video)
+    STORE.remember_item(item_id, snapshot(meta, ctype, video, series_id, alt))
     mark_playing(item_id, title)
     xbmcplugin.setResolvedUrl(HANDLE, True, li)
 
@@ -631,8 +873,158 @@ def play_ws(apis, ident, name=""):
         return
     li = xbmcgui.ListItem(label=name or ident, path=link)
     li.getVideoInfoTag().setTitle(name or ident)
+    STORE.remember_item("ws:" + ident, {"type": "ws", "id": "ws:" + ident, "title": name or ident, "art": {}})
     mark_playing("ws:" + ident, name)
     xbmcplugin.setResolvedUrl(HANDLE, True, li)
+
+
+# --- stahování ---------------------------------------------------------------------
+
+def download_dir():
+    d = setting("download_dir")
+    if not d:
+        xbmcgui.Dialog().ok(L(30000), L(30076))
+        ADDON.openSettings()
+        return None
+    return xbmcvfs.translatePath(d)
+
+
+def safe_filename(name):
+    import re
+    name = re.sub(r"[\\/:*?\"<>|]+", "_", name or "").strip(" _.") or "video"
+    return name[:150]
+
+
+def guess_ext(url, name):
+    for ext in (".mkv", ".mp4", ".avi", ".ts", ".mov", ".m4v", ".webm", ".wmv"):
+        if name.lower().endswith(ext):
+            return ""
+        if url.lower().split("?")[0].endswith(ext):
+            return ext
+    return ".mkv"
+
+
+def enqueue_download(url, name, key, dest_name=None):
+    d = download_dir()
+    if not d:
+        return
+    base = safe_filename(dest_name or name)
+    dest = os.path.join(d, base + guess_ext(url, base))
+    entry = {"id": key, "url": url, "name": name, "dest": dest}
+    if STORE.add_download(entry):
+        notify(Lf(30072, name))
+    else:
+        notify(L(30077))
+
+
+def download_stream(apis, url, name, key, ctype, series_id=None, alt=None):
+    if not STORE.item(key):
+        try:
+            meta, video = load_meta(apis, ctype, key, series_id)
+            STORE.remember_item(key, snapshot(meta, ctype, video, series_id, alt))
+        except Errors:
+            pass
+    enqueue_download(url, name, f"dl:{key}:{abs(hash(url)) % 10**8}", dest_name=name)
+
+
+def download_ws(apis, ident, name):
+    api = apis["ws"]
+    if api is None:
+        raise WebshareError(L(30104))
+    link = api.file_link(ident)
+    remember_ws_token(api)
+    if not link:
+        notify(L(30102))
+        return
+    enqueue_download(link, name, f"dl:ws:{ident}", dest_name=name)
+
+
+def list_downloads():
+    xbmcplugin.setContent(HANDLE, "videos")
+    status_labels = {"queued": L(30078), "running": L(30079), "done": L(30080), "error": L(30081), "cancel": L(30082)}
+    for d in STORE.downloads():
+        status = d.get("status")
+        pct = int(d.get("done", 0) * 100 / d["size"]) if d.get("size") else 0
+        detail = f"{status_labels.get(status, status)}"
+        if status == "running":
+            detail += f" {pct} % · {human_size(d.get('done', 0))} / {human_size(d.get('size', 0))}"
+        elif status == "done":
+            detail += f" · {human_size(d.get('size', 0))}"
+        elif status == "error":
+            detail += f" · {d.get('error', '')[:60]}"
+        li = xbmcgui.ListItem(label=f"{d.get('name', '')}  [COLOR FF9A9A9A]{detail}[/COLOR]")
+        tag = li.getVideoInfoTag()
+        tag.setMediaType("video")
+        tag.setTitle(d.get("name", ""))
+        tag.setPlot(d.get("dest", ""))
+        ctx = [(L(30083) if status in ("queued", "running") else L(30084), runplugin(action="download_remove", id=d["id"]))]
+        if status == "error":
+            ctx.append((L(30085), runplugin(action="download_retry", id=d["id"])))
+        li.addContextMenuItems(ctx)
+        if status == "done" and os.path.exists(d.get("dest", "")):
+            li.setProperty("IsPlayable", "true")
+            xbmcplugin.addDirectoryItem(HANDLE, d["dest"], li, isFolder=False)
+        else:
+            xbmcplugin.addDirectoryItem(HANDLE, build_url(action="downloads"), li, isFolder=False)
+    xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
+def download_remove(dl_id):
+    d = next((x for x in STORE.downloads() if x.get("id") == dl_id), None)
+    if not d:
+        return
+    if d.get("status") == "running":
+        STORE.update_download(dl_id, status="cancel")  # služba smaže .part i záznam
+    else:
+        if d.get("status") == "done" and xbmcgui.Dialog().yesno(L(30000), Lf(30086, d.get("name", ""))):
+            try:
+                os.remove(d["dest"])
+            except OSError:
+                pass
+        STORE.remove_download(dl_id)
+    xbmc.executebuiltin("Container.Refresh")
+
+
+def download_retry(dl_id):
+    STORE.update_download(dl_id, status="queued", done=0, error="")
+    xbmc.executebuiltin("Container.Refresh")
+
+
+# --- Trakt -------------------------------------------------------------------------
+
+def trakt_auth():
+    trakt = get_trakt()
+    if not trakt or not trakt.client_id or not trakt.client_secret:
+        xbmcgui.Dialog().ok(L(30000), L(30094))
+        return
+    try:
+        code = trakt.device_code()
+    except TraktError as e:
+        log_error(e)
+        notify(L(30096), xbmcgui.NOTIFICATION_ERROR)
+        return
+    dialog = xbmcgui.DialogProgress()
+    dialog.create(L(30090), Lf(30095, code.get("verification_url", ""), code.get("user_code", "")))
+    interval = int(code.get("interval") or 5)
+    deadline = time.time() + int(code.get("expires_in") or 600)
+    tokens = None
+    while time.time() < deadline and not dialog.iscanceled():
+        dialog.update(int(100 - (deadline - time.time()) / int(code.get("expires_in") or 600) * 100))
+        xbmc.sleep(interval * 1000)
+        try:
+            tokens = trakt.poll_token(code["device_code"])
+        except TraktError as e:
+            log_error(e)
+            break
+        if tokens:
+            break
+    dialog.close()
+    notify(L(30097) if tokens else L(30096), xbmcgui.NOTIFICATION_INFO if tokens else xbmcgui.NOTIFICATION_ERROR)
+
+
+def trakt_logout():
+    STORE.set_trakt({})
+    notify(L(30098))
 
 
 # --- router ---------------------------------------------------------------------
@@ -640,15 +1032,24 @@ def play_ws(apis, ident, name=""):
 def router(query):
     p = dict(urllib.parse.parse_qsl(query.lstrip("?")))
     action = p.get("action")
-    # akce bez seznamu (RunPlugin)
-    if action == "history_remove":
-        return history_remove(p["type"], p.get("q", ""))
-    if action == "toggle_watched":
-        return toggle_watched(p["id"])
-    if action == "history_clear":
-        return history_clear(p["type"])
-    if action == "search":
-        return search_menu(p["type"])
+    # akce bez seznamu (RunPlugin) a bez API
+    simple = {
+        "history_remove": lambda: history_remove(p["type"], p.get("q", "")),
+        "history_clear": lambda: history_clear(p["type"]),
+        "toggle_watched": lambda: toggle_watched(p["id"]),
+        "search": lambda: search_menu(p["type"]),
+        "favourites": list_favourites,
+        "recent": list_recent,
+        "downloads": list_downloads,
+        "download_remove": lambda: download_remove(p["id"]),
+        "download_retry": lambda: download_retry(p["id"]),
+        "trakt_auth": trakt_auth,
+        "sosac_link": sosac_link_account,
+        "trakt_logout": trakt_logout,
+        "clear_cache": lambda: (STORE.clear_cache(), notify(L(30099))),
+    }
+    if action in simple:
+        return simple[action]()
 
     apis = get_apis()
     try:
@@ -665,6 +1066,10 @@ def router(query):
             search_new(apis, p["type"])
         elif action == "search_run":
             search_run(apis, p["type"], p.get("q", ""), offset=int(p.get("offset") or 0))
+        elif action == "continue":
+            list_continue(apis)
+        elif action == "toggle_fav":
+            toggle_fav(apis, p["id"], p.get("type", "movie"), p.get("series"), p.get("alt"))
         elif action == "seasons":
             list_seasons(apis, p["id"], alt=p.get("alt"))
         elif action == "episodes":
@@ -675,6 +1080,10 @@ def router(query):
             play(apis, p["type"], p["id"], p.get("series"), url=p.get("url"), alt=p.get("alt"))
         elif action == "play_ws":
             play_ws(apis, p["ident"], p.get("name", ""))
+        elif action == "download":
+            download_stream(apis, p["url"], p.get("name", ""), p["id"], p.get("type", "movie"), p.get("series"), p.get("alt"))
+        elif action == "download_ws":
+            download_ws(apis, p["ident"], p.get("name", ""))
         else:
             main_menu(apis)
     except Errors as e:
@@ -682,7 +1091,7 @@ def router(query):
         notify(L(30103) if isinstance(e, WebshareError) else L(30101), xbmcgui.NOTIFICATION_ERROR, 5000)
         if action in ("play", "play_ws"):
             xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
-        else:
+        elif action not in ("download", "download_ws", "toggle_fav"):
             xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
 
 

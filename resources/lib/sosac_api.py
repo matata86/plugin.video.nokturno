@@ -8,6 +8,7 @@ je na titul, originální název, jazyky a rok, aby šly porovnat s TMDB tituly 
 import json
 import re
 import unicodedata
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -60,10 +61,59 @@ class SosacError(Exception):
     pass
 
 
+def register(base_url, sosac_user, sosac_pass, streamuj_user, streamuj_pass, prefer_czsk=""):
+    """Získá userId bez Stremia: server ho při GET /configure sám vygeneruje (redirect),
+    POST /configure/save k němu přiváže účty Sosáče a Streamuj. Vrací userId."""
+    base = base_url.rstrip("/")
+    req = urllib.request.Request(base + "/configure", headers={"User-Agent": "Kodi plugin.video.luna"})
+
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, *args, **kwargs):  # noqa: D401
+            return None
+
+    opener = urllib.request.build_opener(NoRedirect)
+    user_id = ""
+    try:
+        with opener.open(req, timeout=TIMEOUT) as resp:
+            location = resp.headers.get("Location") or ""
+            body = resp.read().decode("utf-8", "replace")
+    except urllib.error.HTTPError as e:
+        location = e.headers.get("Location") or ""
+        body = ""
+    except Exception as e:  # noqa: BLE001
+        raise SosacError(f"configure: {e}") from e
+    m = re.search(r"userId=([0-9a-f-]{36})", location + " " + body)
+    if not m:
+        raise SosacError("configure: server nevrátil userId")
+    user_id = m.group(1)
+    payload = json.dumps({"userId": user_id, "config": {
+        "sosac_username": sosac_user, "sosac_password": sosac_pass,
+        "streamuj_username": streamuj_user, "streamuj_password": streamuj_pass,
+        "prefer_czsk": prefer_czsk,
+    }}).encode("utf-8")
+    req = urllib.request.Request(base + "/configure/save", data=payload, headers={
+        "Content-Type": "application/json", "User-Agent": "Kodi plugin.video.luna"})
+    try:
+        with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+    except Exception as e:  # noqa: BLE001
+        raise SosacError(f"configure/save: {e}") from e
+    if not result.get("success"):
+        raise SosacError(f"configure/save: {result.get('error') or 'chyba'}")
+    return user_id
+
+
 class SosacApi:
-    def __init__(self, base_url, user_id):
+    def __init__(self, base_url, user_id, cache=None, cache_ttl=600):
         self.base = base_url.rstrip("/")
         self.user_id = user_id
+        self.cache = cache
+        self.cache_ttl = cache_ttl
+
+    def _get_cached(self, path):
+        if self.cache is None:
+            return self._get(path)
+        return self.cache.cached(self.base + "/" + path, self.cache_ttl, lambda: self._get(path))
 
     def _get(self, path, extra_query=None):
         query = {"userId": self.user_id}
@@ -78,7 +128,7 @@ class SosacApi:
             raise SosacError(f"{e} ({url})") from e
 
     def manifest(self):
-        return self._get("manifest.json")
+        return self._get_cached("manifest.json")
 
     def catalogs(self, ctype):
         result = []
@@ -118,7 +168,7 @@ class SosacApi:
         return self.catalog(ctype, cid, search=query)
 
     def meta(self, ctype, item_id):
-        meta = self._get(f"meta/{ctype}/{item_id}.json").get("meta") or {}
+        meta = self._get_cached(f"meta/{ctype}/{item_id}.json").get("meta") or {}
         return self.enrich(meta)
 
     def streams(self, ctype, item_id):

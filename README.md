@@ -16,6 +16,16 @@ Kdo nemá kde provozovat Lunu, může doplněk používat jen s **účtem WebSha
 - **Hledat na WebShare** — hledání souborů přímo přes WebShare API (řazení: relevance / nejnovější / hodnocení / velikost), přehrání přes stream odkaz
 - **Hledat film / seriál** bez Luny prohledá Sosáč a rovnou přidá i soubory z WebShare
 
+### Pokračovat, Můj seznam, stahování, filtr streamů
+
+- **Pokračovat ve sledování** — rozkoukané tituly a *Další díl* po naposledy zhlédnuté epizodě
+- **Můj seznam** — vlastní seznam titulů (kontextové menu), **Naposledy zhlédnuté**
+- **Filtr a řazení streamů** — preferovaný jazyk zvuku (CZ/SK/EN), skrýt SD, max. velikost v GB, řazení podle kvality nebo velikosti; v režimu „přehrát nejlepší automaticky“ se podle toho vybírá
+- **Stahování** — kontextové menu *Stáhnout* u streamu i souboru z WebShare, stahuje služba na pozadí do nastavené složky, fronta a stav v menu *Stahování*, stažené soubory jdou přehrát rovnou
+- **Trakt.tv** — scrobble a zápis zhlédnutí (potřeba vlastní aplikace na trakt.tv/oauth/applications, přihlášení kódem zařízení)
+- **Titulky** — položky nesou IMDb id, sezónu a epizodu, takže doplňky titulků v Kodi (OpenSubtitles apod.) najdou správné titulky přes tlačítko titulků v přehrávači
+- **Widgety** — cesty doplňku jdou přidat do oblíbených a zobrazit skinem na domovské obrazovce, např. `plugin://plugin.video.luna/?action=continue`, `…?action=favourites`, `…?action=catalog&type=movie&catalog=tmdb.trending_movie&src=luna`
+
 ### Historie hledání a zhlédnuto
 
 - každé hledání má **historii** (posledních 30 dotazů, položky jde jednotlivě odstranit nebo celou smazat)
@@ -35,11 +45,20 @@ Aspoň jeden zdroj: server Luna v LAN (na PC, NAS, nebo jako addon Home Assistan
 
 ## Instalace
 
+**Doporučeno – přes repozitář (automatické aktualizace):**
+
+1. Stáhni `repository.nokturno-1.0.0.zip` z [repo/repository.nokturno](https://github.com/matata86/plugin.video.luna/raw/main/repo/repository.nokturno/repository.nokturno-1.0.0.zip).
+2. Kodi → Doplňky → Instalovat ze souboru ZIP (musí být povoleno „Neznámé zdroje“) → vyber ten zip.
+3. Doplňky → Instalovat z repozitáře → **Nokturno repozitář** → Video doplňky → **Nokturno** → Instalovat.
+4. Od té doby Kodi nové verze stahuje samo (nebo je nabídne, podle nastavení aktualizací).
+
+**Ručně:**
+
 1. Stáhni `plugin.video.luna-x.y.z.zip` z [Releases](https://github.com/matata86/plugin.video.luna/releases).
-2. Kodi → Doplňky → Instalovat ze souboru ZIP (musí být povoleno „Neznámé zdroje“).
+2. Kodi → Doplňky → Instalovat ze souboru ZIP.
 3. Otevři setup stránku Luny (`http://IP-Luny:7126/setup`), zkopíruj **adresu doplňku** (obsahuje `…/e1.XXXX/manifest.json`).
 4. V nastavení doplňku ji vlož do pole *Adresa doplňku nebo token* — adresa serveru se z ní vezme sama.
-5. (volitelně) V záložce *Sosáč* vlož `userId` (nebo celou adresu `https://stremio.sosac.tv/cs/manifest.json?userId=…`).
+5. (volitelně) V záložce *Sosáč* vyplň jméno a heslo k Sosáči (a Streamuj.tv, pokud se liší) — `userId` si doplněk obstará sám. Kdo už má Sosáč ve Stremiu, může místo toho vložit `userId` z jeho adresy.
 
 ## Struktura
 
@@ -50,7 +69,11 @@ resources/lib/luna_api.py     # klient API Luny (bez závislosti na Kodi, jde sp
 resources/lib/sosac_api.py    # klient Stremio API Sosáče + párování názvů pro hledání napříč
 resources/lib/webshare_api.py # přímý klient WebShare API (login s md5crypt/sha1, hledání, odkaz)
 resources/lib/store.py        # historie hledání + zhlédnuto/rozkoukáno (JSON v profilu)
-service.py                    # služba: sleduje přehrávání a zapisuje zhlédnuto/pozici
+resources/lib/streams.py      # rozbor, filtr a řazení streamů
+resources/lib/trakt_api.py    # Trakt.tv (device code, scrobble, historie)
+service.py                    # služba: zhlédnuto/pozice, Trakt scrobble, stahování
+repository.nokturno/          # repozitář pro automatické aktualizace
+tools/build_repo.py           # sestaví repo/ (addons.xml, md5, zipy) po změně verze
 resources/settings.xml
 resources/language/…          # en_GB, cs_CZ
 ```
