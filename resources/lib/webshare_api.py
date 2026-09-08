@@ -92,7 +92,7 @@ class WebshareApi:
         body = urllib.parse.urlencode(data).encode()
         req = urllib.request.Request(API + endpoint + "/", data=body, headers={
             "Accept": "text/xml; charset=UTF-8",
-            "User-Agent": "Kodi plugin.video.luna",
+            "User-Agent": "Kodi plugin.video.nokturno",
         })
         try:
             with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:

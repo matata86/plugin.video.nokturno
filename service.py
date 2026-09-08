@@ -23,7 +23,7 @@ import xbmcvfs
 
 ADDON = xbmcaddon.Addon()
 sys.path.insert(0, os.path.join(xbmcvfs.translatePath(ADDON.getAddonInfo("path")), "resources", "lib"))
-from store import Store  # noqa: E402
+from store import Store, migrate_profile  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
 
 PROP = "nokturno.playing"
@@ -35,7 +35,7 @@ PROFILE = xbmcvfs.translatePath(ADDON.getAddonInfo("profile"))
 
 
 def log(msg, level=xbmc.LOGINFO):
-    xbmc.log(f"[plugin.video.luna/service] {msg}", level)
+    xbmc.log(f"[plugin.video.nokturno/service] {msg}", level)
 
 
 def L(sid):
@@ -170,7 +170,7 @@ class Downloader(threading.Thread):
         tmp = dest + ".part"
         try:
             os.makedirs(os.path.dirname(dest), exist_ok=True)
-            req = urllib.request.Request(url, headers={"User-Agent": "Kodi plugin.video.luna"})
+            req = urllib.request.Request(url, headers={"User-Agent": "Kodi plugin.video.nokturno"})
             with urllib.request.urlopen(req, timeout=60) as resp, open(tmp, "wb") as out:
                 size = int(resp.headers.get("Content-Length") or 0)
                 done, last = 0, 0.0
@@ -211,6 +211,7 @@ class Downloader(threading.Thread):
 
 def main():
     monitor = xbmc.Monitor()
+    migrate_profile(PROFILE)
     store = Store(PROFILE)
     # rozdělané stahování z minula začít znovu
     for d in store.downloads():

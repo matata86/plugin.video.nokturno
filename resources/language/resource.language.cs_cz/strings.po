@@ -1,9 +1,9 @@
 # Kodi Media Center language file
 # Addon Name: Nokturno
-# Addon id: plugin.video.luna
+# Addon id: plugin.video.nokturno
 msgid ""
 msgstr ""
-"Project-Id-Version: plugin.video.luna\n"
+"Project-Id-Version: plugin.video.nokturno\n"
 "Language: cs_CZ\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"

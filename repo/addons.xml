@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
-<addon id="plugin.video.luna" name="Nokturno" version="1.3.0" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="1.3.1" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -15,13 +15,14 @@
     <description lang="cs_CZ">Klient serveru Luna: Absolute Cinema (streamování z WebShare). Prochází katalogy TMDB (trendy, populární, nejlépe hodnocené, podle roku, podle jazyka, hledání) a přehrává streamy přes server Luna — v Kodi se k WebShare nepřihlašuješ. Volitelně přidá Sosáč (stremio.sosac.tv) jako druhý zdroj: jeho katalogy, hledání napříč a dohledání streamů. Stačí nastavit adresu Luny běžící kdekoli v LAN (např. jako addon Home Assistantu) a vložit adresu doplňku ze setup stránky Luny.</description>
     <platform>all</platform>
     <license>MIT</license>
-    <source>https://github.com/matata86/plugin.video.luna</source>
-    <website>https://github.com/matata86/plugin.video.luna</website>
+    <source>https://github.com/matata86/plugin.video.nokturno</source>
+    <website>https://github.com/matata86/plugin.video.nokturno</website>
     <assets>
       <icon>resources/icon.png</icon>
       <fanart>resources/fanart.jpg</fanart>
     </assets>
-    <news>1.3.0 – Pokračovat ve sledování a další díl, Můj seznam, Naposledy zhlédnuté, filtr a řazení streamů (jazyk, SD, velikost), stahování do složky, Trakt.tv, cache API, widgety
+    <news>1.3.1 – nové ID doplňku plugin.video.nokturno (nastavení a historie se přenesou automaticky)
+1.3.0 – Pokračovat ve sledování a další díl, Můj seznam, Naposledy zhlédnuté, filtr a řazení streamů (jazyk, SD, velikost), stahování do složky, Trakt.tv, cache API, widgety
 1.2.1 – stejný titul z Luny a Sosáče je ve výsledcích hledání jen jednou, zdroj je vidět až u streamů
 1.2.0 – WebShare přímo (účet v nastavení, bez serveru Luna), Luna jde vypnout; historie hledání; zhlédnuto/rozkoukáno
 1.1.1 – nový název Nokturno a logo
@@ -30,22 +31,22 @@
 1.0.0 – první vydání</news>
   </extension>
 </addon>
-<addon id="repository.nokturno" name="Nokturno repozitář" version="1.0.0" provider-name="matata86">
+<addon id="repository.nokturno" name="Nokturno repozitář" version="1.0.1" provider-name="matata86">
   <extension point="xbmc.addon.repository" name="Nokturno repozitář">
     <dir>
-      <info compressed="false">https://raw.githubusercontent.com/matata86/plugin.video.luna/main/repo/addons.xml</info>
-      <checksum>https://raw.githubusercontent.com/matata86/plugin.video.luna/main/repo/addons.xml.md5</checksum>
-      <datadir zip="true">https://raw.githubusercontent.com/matata86/plugin.video.luna/main/repo/</datadir>
+      <info compressed="false">https://raw.githubusercontent.com/matata86/plugin.video.nokturno/main/repo/addons.xml</info>
+      <checksum>https://raw.githubusercontent.com/matata86/plugin.video.nokturno/main/repo/addons.xml.md5</checksum>
+      <datadir zip="true">https://raw.githubusercontent.com/matata86/plugin.video.nokturno/main/repo/</datadir>
     </dir>
   </extension>
   <extension point="xbmc.addon.metadata">
     <summary lang="cs_CZ">Repozitář doplňku Nokturno – automatické aktualizace</summary>
     <summary lang="en_GB">Nokturno add-on repository – automatic updates</summary>
-    <description lang="cs_CZ">Po instalaci tohoto repozitáře se doplněk Nokturno (Luna + Sosáč + WebShare) aktualizuje sám. Zdroj: github.com/matata86/plugin.video.luna</description>
-    <description lang="en_GB">Install this repository once and the Nokturno add-on keeps itself up to date. Source: github.com/matata86/plugin.video.luna</description>
+    <description lang="cs_CZ">Po instalaci tohoto repozitáře se doplněk Nokturno (Luna + Sosáč + WebShare) aktualizuje sám. Zdroj: github.com/matata86/plugin.video.nokturno</description>
+    <description lang="en_GB">Install this repository once and the Nokturno add-on keeps itself up to date. Source: github.com/matata86/plugin.video.nokturno</description>
     <platform>all</platform>
     <license>MIT</license>
-    <source>https://github.com/matata86/plugin.video.luna</source>
+    <source>https://github.com/matata86/plugin.video.nokturno</source>
     <assets>
       <icon>icon.png</icon>
     </assets>
