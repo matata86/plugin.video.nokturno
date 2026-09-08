@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.luna" name="Nokturno" version="1.2.0" provider-name="matata86">
+<addon id="plugin.video.luna" name="Nokturno" version="1.2.1" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -20,7 +20,8 @@
       <icon>resources/icon.png</icon>
       <fanart>resources/fanart.jpg</fanart>
     </assets>
-    <news>1.2.0 – WebShare přímo (účet v nastavení, bez serveru Luna), Luna jde vypnout; historie hledání; zhlédnuto/rozkoukáno
+    <news>1.2.1 – stejný titul z Luny a Sosáče je ve výsledcích hledání jen jednou, zdroj je vidět až u streamů
+1.2.0 – WebShare přímo (účet v nastavení, bez serveru Luna), Luna jde vypnout; historie hledání; zhlédnuto/rozkoukáno
 1.1.1 – nový název Nokturno a logo
 1.1.0 – Sosáč jako druhý zdroj: vlastní katalogy, hledání napříč oběma zdroji, dohledání streamů titulu v druhém zdroji; název filmu v OSD přehrávače
 1.0.1 – streamy i z fulltextu WebShare (Luna: Search), sloučené s hlavním zdrojem
