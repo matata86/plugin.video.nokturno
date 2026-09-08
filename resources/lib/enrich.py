@@ -13,6 +13,7 @@ CINEMETA = "https://v3-cinemeta.strem.io/meta/{ctype}/{imdb}.json"
 TTL = 30 * 86400
 TIMEOUT = 8
 WORKERS = 8
+DEAD_IMAGES = "movies.sosac.tv"  # jejich náhledy jsou od 2026-09 pryč (404)
 DEADLINE = 6.0  # s – déle seznam nezdržovat; zbytek se dotáhne na pozadí do cache
 FIELDS = ("description", "runtime", "director", "writer", "cast", "app_extras", "released", "country", "imdb_id")
 
@@ -24,8 +25,15 @@ def _cinemeta(ctype, imdb):
         return json.loads(resp.read().decode("utf-8")).get("meta") or {}
 
 
+def _poster_broken(meta):
+    """Náhledy Sosáče (movies.sosac.tv) vracejí 404 — poster musí přijít z TMDB."""
+    return DEAD_IMAGES in (meta.get("poster") or "")
+
+
 def _needs(meta):
-    return bool(meta.get("imdb_id")) and not meta.get("description")
+    if not meta.get("imdb_id"):
+        return False
+    return not meta.get("description") or _poster_broken(meta)
 
 
 def _fetch(luna, store, ctype, imdb):
@@ -42,7 +50,7 @@ def _fetch(luna, store, ctype, imdb):
             except Exception:  # noqa: BLE001
                 pass
         picked = {k: data[k] for k in FIELDS if data.get(k)}
-        for k in ("imdbRating", "background", "genres", "year", "releaseInfo"):
+        for k in ("imdbRating", "background", "genres", "year", "releaseInfo", "poster"):
             if data.get(k):
                 picked[k] = data[k]
         return picked
@@ -52,6 +60,10 @@ def _fetch(luna, store, ctype, imdb):
 
 def _apply(meta, extra):
     for k, v in extra.items():
+        if k == "poster":
+            if not meta.get("poster") or _poster_broken(meta):
+                meta["poster"] = v
+            continue
         if k in FIELDS or not meta.get(k):
             meta.setdefault(k, v) if k in ("imdb_id",) else meta.__setitem__(k, v)
     return meta
