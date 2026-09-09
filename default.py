@@ -310,7 +310,10 @@ def fill_info(li, meta, ctype="movie", video=None, tech=True):
         tag.setGenres([str(g) for g in meta["genres"]])
     try:
         if tech and meta.get("imdbRating"):
-            tag.setRating(float(meta["imdbRating"]))
+            rating = float(meta["imdbRating"])
+            tag.setRating(rating)
+            # skin kreslí z ratingu hvězdičky; procento posíláme zvlášť jako vlastnost
+            li.setProperty("RatingPercent", f"{round(rating * 10)} %")
     except (TypeError, ValueError):
         pass
     # IMDb id: podle něj Kodi (OpenSubtitles apod.) hledá titulky
