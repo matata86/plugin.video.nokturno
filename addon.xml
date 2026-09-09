@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="1.5.11" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="1.5.12" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -21,7 +21,8 @@
       <icon>resources/icon.png</icon>
       <fanart>resources/fanart.jpg</fanart>
     </assets>
-    <news>1.5.11 – jedno hledání pro filmy i seriály; volba typu se nabídne, jen když dotaz najde obojí
+    <news>1.5.12 – jazyk zvuku se bere i z názvu souboru (metadata zdroje občas hlásí EN u českého souboru)
+1.5.11 – jedno hledání pro filmy i seriály; volba typu se nabídne, jen když dotaz najde obojí
 1.5.10 – rok napsaný do hledání funguje jako filtr („Pět švestek 2026“ vrátí jen film z roku 2026)
 1.5.9 – výpadek Sosáče/streamuj už nespadne jako chyba doplňku (SosacError byl ve dvou třídách)
 1.5.8 – plakáty a popis titulů Sosáče bez IMDb id se dohledají z TMDB podle názvu a roku
