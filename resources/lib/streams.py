@@ -23,6 +23,20 @@ def quality_rank(text):
     return 0
 
 
+# hrubý odhad kvality podle velikosti — pro soubory, které kvalitu nemají v názvu
+SIZE_RANKS = ((14.0, 4), (5.5, 3), (1.6, 2))
+
+
+def estimate_rank(size_gb):
+    """4K / Full HD / HD podle velikosti souboru; 0 když velikost neznáme."""
+    if not size_gb:
+        return 0
+    for limit, rank in SIZE_RANKS:
+        if size_gb >= limit:
+            return rank
+    return 1
+
+
 def parse_size_gb(text):
     m = SIZE_RE.search(text or "")
     if not m:
