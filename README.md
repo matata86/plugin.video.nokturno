@@ -22,6 +22,8 @@ Přihlašovací údaje zůstávají v Kodi — doplněk je posílá jen službě
 - **Pokračovat ve sledování** (rozkoukané + další díl), **Můj seznam**, **Naposledy zhlédnuté**, historie hledání, zhlédnuto/rozkoukáno (i bez Kodi knihovny)
 - **Stahování** streamů i souborů na pozadí do zvolené složky
 - **Trakt.tv** scrobble (vlastní client id/secret), IMDb id pro doplňky titulků, cesty pro widgety skinu
+- **hodnocení v procentech** — položky nesou vlastnost `RatingPercent` („58 %“) vedle běžného ratingu, takže ji skin může ukázat místo hvězdiček
+- **anonymní statistiky** používání, které jdou v nastavení vypnout (viz níže)
 
 ## Předpoklady
 
@@ -55,10 +57,11 @@ resources/lib/luna_api.py     # klient API Luny (bez závislosti na Kodi, jde sp
 resources/lib/sosac_direct.py # Sosáč napřímo: veřejné JSONy tv.sosac.to + streamy/titulky ze streamuj.tv
 resources/lib/sosac_api.py    # starší režim přes Stremio API Sosáče + párování názvů pro hledání napříč
 resources/lib/webshare_api.py # přímý klient WebShare API (login s md5crypt/sha1, hledání, odkaz)
+resources/lib/stats.py        # čítače používání a jejich odesílání (bez závislosti na Kodi)
 resources/lib/store.py        # historie hledání + zhlédnuto/rozkoukáno (JSON v profilu)
 resources/lib/streams.py      # rozbor, filtr a řazení streamů
 resources/lib/trakt_api.py    # Trakt.tv (device code, scrobble, historie)
-service.py                    # služba: zhlédnuto/pozice, Trakt scrobble, stahování
+service.py                    # služba: zhlédnuto/pozice, Trakt scrobble, stahování, statistiky
 repository.nokturno/          # repozitář pro automatické aktualizace
 tools/build_repo.py           # sestaví repo/ (addons.xml, md5, zipy) po změně verze
 resources/settings.xml
@@ -66,6 +69,44 @@ resources/language/…          # en_GB, cs_CZ
 ```
 
 Test klientů bez Kodi: `python3 resources/lib/luna_api.py http://IP:7126 e1.XXXX`, `python3 resources/lib/sosac_direct.py <streamuj_user> <streamuj_heslo>`
+
+## Anonymní statistiky
+
+Doplněk umí hlásit, jak se používá. Slouží to k jedinému: vědět, kolik lidí ho
+má, na čem běží a co se pouští. Sběr je ve výchozím stavu zapnutý a vypíná se
+jedním přepínačem v *Nastavení → Statistiky*.
+
+**Co se posílá**
+
+| Údaj | K čemu |
+|---|---|
+| náhodné id instalace | odlišení zařízení, negeneruje se z ničeho, co by šlo zpětně přiřadit |
+| verze doplňku, verze Kodi, platforma, jazyk | na čem doplněk běží |
+| kdy se čítače založily a poslední použití | kolik instalací je živých |
+| název, rok, typ a počet přehrání jednotlivých titulů | co se nejvíc pouští |
+
+**Co se neposílá:** žádné přihlašovací údaje ke zdrojům, žádná IP adresa,
+žádný obsah hledání, nic z Traktu, nic ze stahování.
+
+Data odesílá služba na pozadí, nejvýš jednou za 6 hodin, v jednom malém POST
+požadavku. Posílá se kumulativní stav, ne přírůstky — když se odeslání
+nepovede, nic se neztratí a nic se nezapočítá dvakrát. Selhání se nikde
+neprojeví, doplněk kvůli statistikám nikdy nečeká.
+
+Sběrný bod je vlastní, adresa je v nastavení — kdo chce data posílat jinam
+nebo nikam, přepíše ji. Hlášení je jeden POST s tímto tělem, takže si vlastní
+sběrač napíše kdokoli:
+
+```json
+{
+  "id": "náhodných 32 hex znaků",
+  "version": "1.5.18", "platform": "Android", "kodi": "21.1", "lang": "cs",
+  "installed": 1786000000, "last_used": 1788970000, "plays_total": 5,
+  "plays": [{"key": "tt0133093", "t": "Matrix", "y": 1999, "k": "movie", "c": 3, "l": 1788970000}]
+}
+```
+
+Očekávaná odpověď je `{"ok": true}`.
 
 ## Nokturno v Home Assistantu
 
