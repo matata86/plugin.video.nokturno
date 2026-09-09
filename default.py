@@ -29,7 +29,7 @@ from sosac_api import is_sosac_id as _is_stremio_sosac_id  # noqa: E402
 from sosac_direct import SosacDirect, is_direct_id  # noqa: E402
 from enrich import enrich, enrich_one  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
-from streams import arrange, parse_stream  # noqa: E402
+from streams import arrange, langs_from_name, parse_stream  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
 from webshare_api import SORTS, WebshareApi, WebshareError, human_size  # noqa: E402
 
@@ -564,8 +564,10 @@ def stream_label(s):
     parts = []
     channels = s.get("channels") or {}
     pref = PREF_LANGS[int(setting("pref_lang", "0"))]
+    # metadata zdroje nemusí sedět na soubor („EN 5.1“ u souboru „…_cz_…“) — jazyk z názvu se přidá
+    codes = set(s.get("langs") or []) | langs_from_name(raw)
     langs = []
-    for code in sorted(s.get("langs") or [], key=lambda c: (c != pref, c)):   # preferovaný jazyk první
+    for code in sorted(codes, key=lambda c: (c != pref, c)):   # preferovaný jazyk první
         txt = f"[COLOR {LANG_COLORS.get(code, 'FFE0E0E0')}]{code}[/COLOR]"
         if code in channels:
             txt += f" [B]{channels[code]:g}[/B]" if channels[code] >= 5.1 else f" {channels[code]:g}"

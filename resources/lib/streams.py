@@ -50,6 +50,32 @@ def parse_langs(segment):
     return {LANG_ALIASES.get(code, code) for code in LANG_RE.findall(segment or "")} - {"HD", "SD", "DV"}
 
 
+# jazykové značky v názvech souborů — „cztit“ je titulek, ne zvuk, proto se vylučuje.
+# Hledá se po rozdělení názvu na slova, jinak by „Číslo“ dalo „slo“ (= SK).
+NAME_SPLIT_RE = re.compile(r"[^0-9A-Za-zÀ-ž]+")
+NAME_LANG_RE = re.compile(
+    r"^(cz|cze|czech|dab|dabing|dabovano|sk|slo|slovak|slovensky|en|eng|english)$", re.IGNORECASE)
+NAME_SUB_RE = re.compile(r"^(cz|sk|en)?(tit|titulky|sub|subs)$", re.IGNORECASE)
+NAME_LANG_MAP = {"cz": "CZ", "cze": "CZ", "czech": "CZ", "dab": "CZ", "dabing": "CZ", "dabovano": "CZ",
+                 "sk": "SK", "slo": "SK", "slovak": "SK", "slovensky": "SK",
+                 "en": "EN", "eng": "EN", "english": "EN"}
+
+
+def langs_from_name(name):
+    """Jazyky zvuku podle názvu souboru („…_cz_1080p.mp4“ → CZ). Titulkové značky se vynechají."""
+    words = [w for w in NAME_SPLIT_RE.split(name or "") if w]
+    out = set()
+    for index, word in enumerate(words):
+        if not NAME_LANG_RE.match(word):
+            continue
+        following = NAME_SUB_RE.match(words[index + 1]) if index + 1 < len(words) else None
+        # „cz tit“ je titulek k tomuhle jazyku; „eng cztit“ naopak znamená anglický zvuk
+        if following and not following.group(1):
+            continue
+        out.add(NAME_LANG_MAP[word.lower()])
+    return out
+
+
 def parse_stream(s):
     """Doplní do streamu klíče quality, size_gb, bitrate, langs, subs (idempotentní)."""
     if "quality_rank" in s:
