@@ -634,6 +634,10 @@ def list_catalogs(apis, ctype, src):
     xbmcplugin.endOfDirectory(HANDLE)
 
 
+# u „Trendy" nejsou v roli žánru žánry, ale časové okno TMDB — hodnota musí zůstat anglicky
+GENRE_LABELS = {"Day": "Za den", "Week": "Za týden"}
+
+
 def list_genres(apis, ctype, cid, src):
     api = apis[src]
     cat = next((c for c in api.catalogs(ctype) if c["id"] == cid), None) if api else None
@@ -643,7 +647,8 @@ def list_genres(apis, ctype, cid, src):
     if not cat["genre_required"]:
         folder_item(L(30020), build_url(action="catalog", type=ctype, catalog=cid, src=src))
     for g in cat["genres"]:
-        folder_item(g, build_url(action="catalog", type=ctype, catalog=cid, genre=g, src=src))
+        folder_item(GENRE_LABELS.get(g, g),
+                    build_url(action="catalog", type=ctype, catalog=cid, genre=g, src=src))
     xbmcplugin.endOfDirectory(HANDLE)
 
 
