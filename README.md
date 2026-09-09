@@ -93,8 +93,8 @@ požadavku. Posílá se kumulativní stav, ne přírůstky — když se odeslán
 nepovede, nic se neztratí a nic se nezapočítá dvakrát. Selhání se nikde
 neprojeví, doplněk kvůli statistikám nikdy nečeká.
 
-Sběrný bod je vlastní, adresa je v nastavení — kdo chce data posílat jinam
-nebo nikam, přepíše ji. Hlášení je jeden POST s tímto tělem, takže si vlastní
+Data chodí na `https://nokturno.full-net.cz/collect`. Adresa je v nastavení —
+kdo chce statistiky posílat jinam nebo nikam, přepíše ji. Hlášení je jeden POST s tímto tělem, takže si vlastní
 sběrač napíše kdokoli:
 
 ```json
