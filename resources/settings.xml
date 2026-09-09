@@ -44,7 +44,7 @@
   </category>
   <category label="30160">
     <setting id="stats_enabled" type="bool" label="30161" default="true"/>
-    <setting id="stats_url" type="text" label="30162" default="https://nokturno.full-met.cz/collect.php" enable="eq(-1,true)"/>
+    <setting id="stats_url" type="text" label="30162" default="https://nokturno.full-net.cz/collect" enable="eq(-1,true)"/>
     <setting label="30163" type="action" action="RunPlugin(plugin://plugin.video.nokturno/?action=stats_send)" enable="eq(-2,true)"/>
     <setting label="30164" type="lsep"/>
   </category>
