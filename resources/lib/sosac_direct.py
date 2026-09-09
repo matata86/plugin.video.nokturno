@@ -16,7 +16,7 @@ import re
 import urllib.parse
 import urllib.request
 
-from sosac_api import names_match, normalize
+from sosac_api import SosacError, names_match, normalize
 
 BASE = "http://tv.sosac.to"
 EXPORT = BASE + "/vystupy5981/"
@@ -52,10 +52,7 @@ def streamuj_hash(password):
     return hashlib.md5(hashlib.md5(password.encode("utf-8")).hexdigest().encode()).hexdigest()
 
 
-class SosacError(Exception):
-    pass
-
-
+# SosacError se dědí ze sosac_api — dvě stejnojmenné třídy by se navzájem nechytaly
 class SosacDirect:
     def __init__(self, streamuj_user="", streamuj_pass="", cache=None, cache_ttl=600, index_store=None):
         self.user = (streamuj_user or "").strip()
