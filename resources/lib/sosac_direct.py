@@ -16,7 +16,7 @@ import re
 import urllib.parse
 import urllib.request
 
-from sosac_api import SosacError, names_match, normalize
+from .sosac_api import SosacError, names_match, normalize
 
 BASE = "http://tv.sosac.to"
 EXPORT = BASE + "/vystupy5981/"
@@ -222,9 +222,20 @@ class SosacDirect:
                     found.append(self.series_meta(v))
         return found[:60]
 
+    @staticmethod
+    def _short_title(title):
+        """„Okresní přebor – Poslední zápas Pepika Hnátka“ → „Okresní přebor“.
+        Fulltext Sosáče na celý název s podtitulem nic nenajde."""
+        for sep in (" – ", " — ", " - ", ": "):
+            head = (title or "").split(sep)[0].strip()
+            if head and head != title and len(head) >= 3:
+                return head
+        return ""
+
     def find_match(self, ctype, title, year=None, orig_title=None):
         candidates = []
-        for q in list({title, orig_title} - {None, ""}):
+        queries = {title, orig_title, self._short_title(title), self._short_title(orig_title or "")}
+        for q in list(queries - {None, ""}):
             try:
                 candidates.extend(self.search(ctype, q))
             except SosacError:
