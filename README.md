@@ -14,7 +14,7 @@ Přihlašovací údaje zůstávají v Kodi — doplněk je posílá jen službě
 
 ## Co umí
 
-- **Hledat film / seriál** napříč zapnutými zdroji — stejný titul z více zdrojů jen jednou, zdroj je vidět až ve výběru streamu
+- **Hledat** napříč zapnutými zdroji — jeden dotaz pro filmy i seriály; volba typu se nabídne, jen když dotaz najde obojí. Stejný titul z více zdrojů jen jednou, zdroj je vidět až ve výběru streamu
 - **rok v dotazu je filtr** — „Pět švestek 2026“ vrátí jen film z roku 2026; číslo, které patří k názvu („2012“, „Blade Runner 2049“), se jako rok nebere
 - **Hledat na WebShare** — soubory přímo z WebShare API (řazení: relevance / nejnovější / hodnocení / velikost)
 - **katalogy** Luny (TMDB) i Sosáče; seriály → série → epizody s plakáty, popisy, hodnocením, obsazením

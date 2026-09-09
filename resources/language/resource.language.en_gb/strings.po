@@ -457,3 +457,7 @@ msgstr ""
 msgctxt "#30131"
 msgid "Prefer surround sound (5.1 and up)"
 msgstr ""
+
+msgctxt "#30150"
+msgid "Search"
+msgstr "Search"
