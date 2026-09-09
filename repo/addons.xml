@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
-<addon id="plugin.video.nokturno" name="Nokturno" version="1.5.13" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="1.5.14" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -22,7 +22,8 @@
       <icon>resources/icon.png</icon>
       <fanart>resources/fanart.jpg</fanart>
     </assets>
-    <news>1.5.13 – hledání pro filmy i seriály běží souběžně a ukazuje průběh (dřív to vypadalo jako zaseknutí)
+    <news>1.5.14 – tituly s podtitulem se v Sosáči najdou i podle části názvu před pomlčkou
+1.5.13 – hledání pro filmy i seriály běží souběžně a ukazuje průběh (dřív to vypadalo jako zaseknutí)
 1.5.12 – jazyk zvuku se bere i z názvu souboru (metadata zdroje občas hlásí EN u českého souboru)
 1.5.11 – jedno hledání pro filmy i seriály; volba typu se nabídne, jen když dotaz najde obojí
 1.5.10 – rok napsaný do hledání funguje jako filtr („Pět švestek 2026“ vrátí jen film z roku 2026)
