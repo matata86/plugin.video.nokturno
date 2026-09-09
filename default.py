@@ -72,8 +72,9 @@ def is_sosac_id(item_id):
     return is_direct_id(item_id) or _is_stremio_sosac_id(item_id)
 
 
-def L(sid):
-    return ADDON.getLocalizedString(sid)
+def L(sid, fallback=""):
+    """Nové řetězce se z strings.po načtou až po restartu Kodi — proto záloha v kódu."""
+    return ADDON.getLocalizedString(sid) or fallback
 
 
 def Lf(sid, *args):
@@ -601,8 +602,8 @@ def main_menu(apis):
     if STORE.in_progress() or STORE.recently_watched(1):
         folder_item(L(30063), build_url(action="continue"))
     if apis["luna"] or apis["sosac"]:
-        folder_item(L(30010), build_url(action="search", type="movie"))
-        folder_item(L(30011), build_url(action="search", type="series"))
+        # jedno hledání pro filmy i seriály — když dotaz najde obojí, nabídne se volba
+        folder_item(L(30150, "Hledat"), build_url(action="search", type="any"))
     if apis["ws"]:
         folder_item(L(30045), build_url(action="search", type="ws"))
     if apis["luna"]:
@@ -661,16 +662,31 @@ def list_catalog(apis, ctype, cid, src, genre=None, search=None, skip=0):
 # --- hledání + historie -----------------------------------------------------------
 
 def search_title(kind):
-    return {"movie": L(30010), "series": L(30011), "ws": L(30045)}.get(kind, L(30010))
+    return {"movie": L(30010), "series": L(30011), "ws": L(30045),
+            "any": L(30150, "Hledat")}.get(kind, L(30150, "Hledat"))
+
+
+def search_history(kind):
+    """Pro sjednocené hledání i dřívější dotazy z časů oddělených složek."""
+    if kind != "any":
+        return STORE.history(kind)
+    seen, out = set(), []
+    for key in ("any", "movie", "series"):
+        for q in STORE.history(key):
+            if q.lower() not in seen:
+                seen.add(q.lower())
+                out.append(q)
+    return out
 
 
 def search_menu(kind):
     """Složka hledání: nové hledání + historie dotazů."""
     folder_item(L(30040), build_url(action="search_new", type=kind))
-    for q in STORE.history(kind):
+    history = search_history(kind)
+    for q in history:
         folder_item(q, build_url(action="search_run", type=kind, q=q),
                     context=[(L(30042), runplugin(action="history_remove", type=kind, q=q))])
-    if STORE.history(kind):
+    if history:
         folder_item(L(30041), build_url(action="history_clear", type=kind))
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
@@ -735,15 +751,9 @@ def filter_year(merged, year):
             if str(m.get("year") or m.get("releaseInfo") or "")[:4] in (year, "")]
 
 
-def search_run(apis, kind, query, offset=0):
-    STORE.add_history(kind, query)
-    if kind == "ws":
-        list_ws_results(apis, query, offset)
-        return
-    query, want_year = split_year(query)
-    ctype = kind
-    xbmcplugin.setContent(HANDLE, "tvshows" if ctype == "series" else "movies")
-    errors, luna_metas, sosac_metas = [], [], []
+def search_source(apis, ctype, query, want_year, errors):
+    """Sloučené výsledky Luny a Sosáče pro jeden typ (film / seriál)."""
+    luna_metas, sosac_metas = [], []
     if apis["luna"]:
         try:
             cid = "search.movie" if ctype == "movie" else "search.series"
@@ -755,9 +765,34 @@ def search_run(apis, kind, query, offset=0):
             sosac_metas = apis["sosac"].search(ctype, query)
         except SosacError as e:
             errors.append(e)
-    # stejný titul z obou zdrojů jen jednou – zdroj se ukáže až u streamů
-    mixed = bool(luna_metas) and bool(sosac_metas)
     merged = filter_year(merge_results(luna_metas, sosac_metas), want_year)
+    return merged, bool(luna_metas) and bool(sosac_metas)
+
+
+def search_run(apis, kind, query, offset=0):
+    STORE.add_history(kind, query)
+    if kind == "ws":
+        list_ws_results(apis, query, offset)
+        return
+    raw_query = query
+    query, want_year = split_year(query)
+    errors = []
+    if kind == "any":
+        # jedno hledání pro obojí; volba se nabídne, jen když dotaz sedí na filmy i seriály
+        movies, _m = search_source(apis, "movie", query, want_year, errors)
+        series, _s = search_source(apis, "series", query, want_year, errors)
+        if movies and series:
+            xbmcplugin.setContent(HANDLE, "files")
+            folder_item(f"{L(30012)} ({len(movies)})", build_url(action="search_run", type="movie", q=raw_query))
+            folder_item(f"{L(30013)} ({len(series)})", build_url(action="search_run", type="series", q=raw_query))
+            for e in errors:
+                log_error(e)
+            xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+            return
+        kind = "series" if series else "movie"
+    ctype = kind
+    xbmcplugin.setContent(HANDLE, "tvshows" if ctype == "series" else "movies")
+    merged, mixed = search_source(apis, ctype, query, want_year, errors)
     enrich([m for m, _alt in merged if is_sosac_id(m.get("id"))], apis["luna"], STORE, ctype)
     for meta, alt in merged:
         add_meta_item(meta, ctype, alt=alt, tag_source=mixed)
