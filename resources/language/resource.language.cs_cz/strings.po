@@ -461,3 +461,31 @@ msgstr "Preferovat prostorový zvuk (5.1 a víc)"
 msgctxt "#30150"
 msgid "Search"
 msgstr "Hledat"
+
+msgctxt "#30160"
+msgid "Statistics"
+msgstr "Statistiky"
+
+msgctxt "#30161"
+msgid "Send anonymous usage statistics"
+msgstr "Odesílat anonymní statistiky"
+
+msgctxt "#30162"
+msgid "Collector address"
+msgstr "Adresa sběrného bodu"
+
+msgctxt "#30163"
+msgid "Send statistics now"
+msgstr "Odeslat statistiky nyní"
+
+msgctxt "#30164"
+msgid "Sends a random installation id, add-on version, platform, last use and per-title play counts. Nothing else leaves the device."
+msgstr "Posílá se náhodné id instalace, verze doplňku, platforma, poslední použití a počty přehrání jednotlivých titulů. Nic dalšího zařízení neopouští."
+
+msgctxt "#30165"
+msgid "Statistics sent"
+msgstr "Statistiky odeslány"
+
+msgctxt "#30166"
+msgid "Statistics could not be sent"
+msgstr "Statistiky se nepodařilo odeslat"

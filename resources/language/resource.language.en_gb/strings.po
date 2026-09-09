@@ -461,3 +461,31 @@ msgstr ""
 msgctxt "#30150"
 msgid "Search"
 msgstr "Search"
+
+msgctxt "#30160"
+msgid "Statistics"
+msgstr "Statistics"
+
+msgctxt "#30161"
+msgid "Send anonymous usage statistics"
+msgstr "Send anonymous usage statistics"
+
+msgctxt "#30162"
+msgid "Collector address"
+msgstr "Collector address"
+
+msgctxt "#30163"
+msgid "Send statistics now"
+msgstr "Send statistics now"
+
+msgctxt "#30164"
+msgid "Sends a random installation id, add-on version, platform, last use and per-title play counts. Nothing else leaves the device."
+msgstr "Sends a random installation id, add-on version, platform, last use and per-title play counts. Nothing else leaves the device."
+
+msgctxt "#30165"
+msgid "Statistics sent"
+msgstr "Statistics sent"
+
+msgctxt "#30166"
+msgid "Statistics could not be sent"
+msgstr "Statistics could not be sent"

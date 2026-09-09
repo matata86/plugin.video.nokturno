@@ -51,6 +51,7 @@ QUALITY_COLORS = {4: "FFFFC94D", 3: "FF7FE07F", 2: "FF7FC8FF", 1: "FFA0A0A0"}
 LANG_COLORS = {"CZ": "FF7FE07F", "SK": "FF7FE07F", "EN": "FFE0E0E0"}
 GREY = "FF9A9A9A"
 PLAYING_PROP = "nokturno.playing"
+USED_PROP = "nokturno.used"    # služba si odsud bere „doplněk byl otevřen“ pro statistiky
 PREF_LANGS = ("", "CZ", "SK", "EN")
 STREAM_ORDERS = ("source", "quality", "size_desc", "size_asc")
 
@@ -592,13 +593,29 @@ def stream_label(s):
     return "  ".join(parts)
 
 
-def mark_playing(key, title=""):
-    xbmcgui.Window(10000).setProperty(PLAYING_PROP, json.dumps({"id": key, "title": title}))
+def mark_playing(key, title="", year=None, kind="movie"):
+    xbmcgui.Window(10000).setProperty(PLAYING_PROP, json.dumps(
+        {"id": key, "title": title, "year": year, "kind": kind}))
+
+
+def mark_used():
+    """Otevření doplňku – službě to stačí pro „naposledy použito“ ve statistikách."""
+    xbmcgui.Window(10000).setProperty(USED_PROP, str(int(time.time())))
+
+
+def stats_send():
+    """Ruční odeslání statistik z nastavení – jinak je posílá služba na pozadí."""
+    from stats import Stats
+    ok, why = Stats(PROFILE).send(setting("stats_url", "").strip(),
+                                  version=ADDON.getAddonInfo("version"))
+    notify(L(30165) if ok else f"{L(30166)}: {why}",
+           xbmcgui.NOTIFICATION_INFO if ok else xbmcgui.NOTIFICATION_ERROR, 5000)
 
 
 # --- obrazovky --------------------------------------------------------------------
 
 def main_menu(apis):
+    mark_used()
     if not any(apis.values()):
         # bez modálního dialogu: ten by při volání z widgetu/JSON-RPC čekal na OK a zablokoval i vypínání Kodi
         notify(L(30104), xbmcgui.NOTIFICATION_WARNING, 6000)
@@ -1044,7 +1061,8 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs=""):
     if subtitles:
         li.setSubtitles(subtitles)
     STORE.remember_item(item_id, snapshot(meta, ctype, video, series_id, alt))
-    mark_playing(item_id, title)
+    year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
+    mark_playing(item_id, title, year if year.isdigit() else None, "series" if video else ctype)
     xbmcplugin.setResolvedUrl(HANDLE, True, li)
 
 
@@ -1061,7 +1079,7 @@ def play_ws(apis, ident, name=""):
     li = xbmcgui.ListItem(label=name or ident, path=link)
     li.getVideoInfoTag().setTitle(name or ident)
     STORE.remember_item("ws:" + ident, {"type": "ws", "id": "ws:" + ident, "title": name or ident, "art": {}})
-    mark_playing("ws:" + ident, name)
+    mark_playing("ws:" + ident, name, kind="ws")
     xbmcplugin.setResolvedUrl(HANDLE, True, li)
 
 
@@ -1233,6 +1251,7 @@ def router(query):
         "sosac_link": sosac_link_account,
         "trakt_logout": trakt_logout,
         "clear_cache": lambda: (STORE.clear_cache(), notify(L(30099))),
+        "stats_send": stats_send,
         "settings": lambda: (xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False), ADDON.openSettings()),
     }
     if action in simple:

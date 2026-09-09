@@ -7,6 +7,9 @@
 2. Trakt scrobble (start/stop) pro tituly s IMDb/TMDB id, je-li Trakt zapnutý.
 3. Stahování: fronta v `downloads.json`, jeden soubor po druhém, průběh se
    zapisuje zpět, zrušení se pozná podle stavu „cancel“.
+4. Anonymní statistiky: čítače přehrání a poslední použití (`stats.json`),
+   jednou za čas odeslané na adresu z nastavení. Zapisuje je jen služba, plugin
+   jí události předává vlastnostmi okna.
 """
 import json
 import os
@@ -23,10 +26,12 @@ import xbmcvfs
 
 ADDON = xbmcaddon.Addon()
 sys.path.insert(0, os.path.join(xbmcvfs.translatePath(ADDON.getAddonInfo("path")), "resources", "lib"))
+from stats import Stats  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
 
 PROP = "nokturno.playing"
+USED_PROP = "nokturno.used"
 WATCHED_PCT = 0.90
 MIN_RESUME = 60  # s – kratší kousek nemá cenu pamatovat
 POLL = 5
@@ -72,9 +77,10 @@ def get_trakt(store):
 # --- přehrávání ---------------------------------------------------------------------
 
 class Player(xbmc.Player):
-    def __init__(self, store):
+    def __init__(self, store, stats):
         super().__init__()
         self.store = store
+        self.stats = stats
         self.item = None
         self.position = 0.0
         self.total = 0.0
@@ -92,6 +98,8 @@ class Player(xbmc.Player):
         xbmcgui.Window(10000).clearProperty(PROP)
         self.position, self.total = 0.0, 0.0
         log(f"sleduji {self.item.get('id')}")
+        self.stats.note_play(self.item.get("id"), self.item.get("title") or "",
+                             self.item.get("year"), self.item.get("kind") or "movie")
         self.trakt_scrobble("start", 0)
 
     def tick(self):
@@ -207,6 +215,40 @@ class Downloader(threading.Thread):
                 xbmcgui.Dialog().notification(L(30000), Lf(30075, job.get("name", "")), xbmcgui.NOTIFICATION_ERROR, 5000)
 
 
+# --- statistiky ---------------------------------------------------------------------
+
+def stats_context():
+    """Verze doplňku, platforma a Kodi – kontext k odeslaným čítačům."""
+    addon = xbmcaddon.Addon()
+    platform = next((name for name, cond in (
+        ("Android", "System.Platform.Android"), ("Linux", "System.Platform.Linux"),
+        ("Windows", "System.Platform.Windows"), ("macOS", "System.Platform.OSX"),
+        ("iOS", "System.Platform.IOS"), ("tvOS", "System.Platform.TVOS"),
+    ) if xbmc.getCondVisibility(cond)), "?")
+    return {
+        "version": addon.getAddonInfo("version"),
+        "platform": platform,
+        "kodi": xbmc.getInfoLabel("System.BuildVersionShort"),
+        "lang": xbmc.getLanguage(xbmc.ISO_639_1) or "",
+    }
+
+
+def stats_tick(stats, force=False):
+    """Sebere „doplněk byl otevřen“ a jednou za čas odešle čítače."""
+    used = xbmcgui.Window(10000).getProperty(USED_PROP)
+    if used:
+        xbmcgui.Window(10000).clearProperty(USED_PROP)
+        stats.note_use(int(used) if used.isdigit() else None)
+    addon = xbmcaddon.Addon()  # čerstvá nastavení
+    if addon.getSetting("stats_enabled") != "true":
+        return
+    if not force and not stats.due():
+        return
+    ok, why = stats.send(addon.getSetting("stats_url").strip(), **stats_context())
+    log("statistiky odeslány" if ok else f"statistiky neodeslány: {why}",
+        xbmc.LOGINFO if ok else xbmc.LOGWARNING)
+
+
 # --- hlavní smyčka ------------------------------------------------------------------
 
 def main():
@@ -217,11 +259,13 @@ def main():
     for d in store.downloads():
         if d.get("status") in ("running", "cancel"):
             store.update_download(d["id"], status="queued", done=0)
-    player = Player(store)
+    stats = Stats(PROFILE)
+    player = Player(store, stats)
     Downloader(store, monitor).start()
     log("start")
     while not monitor.abortRequested():
         player.tick()
+        stats_tick(stats)
         if monitor.waitForAbort(POLL):
             break
     player.finish()

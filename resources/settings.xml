@@ -42,6 +42,12 @@
     <setting label="30100" type="action" action="RunPlugin(plugin://plugin.video.nokturno/?action=trakt_auth)" enable="eq(-3,true)"/>
     <setting label="30098" type="action" action="RunPlugin(plugin://plugin.video.nokturno/?action=trakt_logout)" enable="eq(-4,true)"/>
   </category>
+  <category label="30160">
+    <setting id="stats_enabled" type="bool" label="30161" default="true"/>
+    <setting id="stats_url" type="text" label="30162" default="https://nokturno.full-met.cz/collect.php" enable="eq(-1,true)"/>
+    <setting label="30163" type="action" action="RunPlugin(plugin://plugin.video.nokturno/?action=stats_send)" enable="eq(-2,true)"/>
+    <setting label="30164" type="lsep"/>
+  </category>
   <category label="30105">
     <setting label="30106" type="action" action="RunPlugin(plugin://plugin.video.nokturno/?action=clear_cache)"/>
     <setting label="30140" type="lsep"/>
