@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
-<addon id="plugin.video.nokturno" name="Nokturno" version="1.5.9" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="1.5.10" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -22,7 +22,8 @@
       <icon>resources/icon.png</icon>
       <fanart>resources/fanart.jpg</fanart>
     </assets>
-    <news>1.5.9 – výpadek Sosáče/streamuj už nespadne jako chyba doplňku (SosacError byl ve dvou třídách)
+    <news>1.5.10 – rok napsaný do hledání funguje jako filtr („Pět švestek 2026“ vrátí jen film z roku 2026)
+1.5.9 – výpadek Sosáče/streamuj už nespadne jako chyba doplňku (SosacError byl ve dvou třídách)
 1.5.8 – plakáty a popis titulů Sosáče bez IMDb id se dohledají z TMDB podle názvu a roku
 1.5.7 – oprava chyby „items.json.tmp“ při procházení katalogů (souběžný zápis cache)
 1.5.6 – náhledy titulů ze Sosáče se berou z TMDB (movies.sosac.tv je vrací jako 404)

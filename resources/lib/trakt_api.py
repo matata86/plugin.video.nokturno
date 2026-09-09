@@ -103,6 +103,31 @@ class TraktApi:
         return bool(self.tokens.get("access_token"))
 
     # --- scrobble --------------------------------------------------------------------
+
+    # --- seznam k zhlédnutí -------------------------------------------------------
+    def watchlist(self, kind="movies"):
+        """Seznam „k zhlédnutí" z Traktu: `movies` nebo `shows`.
+
+        Vrací zjednodušené položky s IMDb id, které umí Nokturno hledat.
+        """
+        items = self._request(f"/sync/watchlist/{kind}?extended=full") or []
+        out = []
+        for entry in items:
+            node = entry.get("movie") or entry.get("show") or {}
+            ids = node.get("ids") or {}
+            imdb = ids.get("imdb")
+            if not imdb:
+                continue
+            out.append({
+                "id": imdb,
+                "type": "movie" if kind == "movies" else "series",
+                "title": node.get("title") or "",
+                "year": node.get("year"),
+                "listed_at": entry.get("listed_at") or "",
+                "trakt": ids.get("trakt"),
+            })
+        return out
+
     @staticmethod
     def _payload(item_id, season=None, episode=None):
         ids = ids_for(item_id)

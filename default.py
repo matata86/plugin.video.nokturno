@@ -11,6 +11,7 @@ Do profilu doplňku se ukládá historie hledání, zhlédnuto/rozkoukáno (zapi
 """
 import json
 import os
+import re
 import sys
 import time
 import urllib.parse
@@ -709,11 +710,37 @@ def merge_results(luna_metas, sosac_metas):
     return merged
 
 
+YEAR_RE = re.compile(r"\b(19\d{2}|20\d{2})\b")
+
+
+def split_year(query):
+    """„Pět švestek 2026“ → („Pět švestek“, „2026“). Zdroje hledají jen v názvu,
+    rok v dotazu je zmate — odřízneme ho a profiltrujeme jím výsledky."""
+    query = (query or "").strip()
+    m = YEAR_RE.search(query)
+    if not m:
+        return query, ""
+    base = (query[: m.start()] + " " + query[m.end():]).strip()
+    # „2012“ nebo „Blade Runner 2049“ — číslo je součást názvu, ne rok vydání
+    if not base or int(m.group(1)) > time.localtime().tm_year + 2:
+        return query, ""
+    return base, m.group(1)
+
+
+def filter_year(merged, year):
+    """Rok v dotazu je filtr: projdou jen tituly z toho roku (a ty, kde ho zdroj neuvádí)."""
+    if not year:
+        return merged
+    return [(m, a) for m, a in merged
+            if str(m.get("year") or m.get("releaseInfo") or "")[:4] in (year, "")]
+
+
 def search_run(apis, kind, query, offset=0):
     STORE.add_history(kind, query)
     if kind == "ws":
         list_ws_results(apis, query, offset)
         return
+    query, want_year = split_year(query)
     ctype = kind
     xbmcplugin.setContent(HANDLE, "tvshows" if ctype == "series" else "movies")
     errors, luna_metas, sosac_metas = [], [], []
@@ -730,7 +757,7 @@ def search_run(apis, kind, query, offset=0):
             errors.append(e)
     # stejný titul z obou zdrojů jen jednou – zdroj se ukáže až u streamů
     mixed = bool(luna_metas) and bool(sosac_metas)
-    merged = merge_results(luna_metas, sosac_metas)
+    merged = filter_year(merge_results(luna_metas, sosac_metas), want_year)
     enrich([m for m, _alt in merged if is_sosac_id(m.get("id"))], apis["luna"], STORE, ctype)
     for meta, alt in merged:
         add_meta_item(meta, ctype, alt=alt, tag_source=mixed)
