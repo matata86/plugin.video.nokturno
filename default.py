@@ -12,6 +12,7 @@ Do profilu doplňku se ukládá historie hledání, zhlédnuto/rozkoukáno (zapi
 import json
 import os
 import re
+from concurrent.futures import ThreadPoolExecutor
 import sys
 import time
 import urllib.parse
@@ -780,9 +781,18 @@ def search_run(apis, kind, query, offset=0):
     query, want_year = split_year(query)
     errors = []
     if kind == "any":
-        # jedno hledání pro obojí; volba se nabídne, jen když dotaz sedí na filmy i seriály
-        movies, _m = search_source(apis, "movie", query, want_year, errors)
-        series, _s = search_source(apis, "series", query, want_year, errors)
+        # jedno hledání pro obojí; volba se nabídne, jen když dotaz sedí na filmy i seriály.
+        # Oba dotazy běží souběžně — jinak by procházení čekalo na součet obou (7 s místo 4 s).
+        progress = xbmcgui.DialogProgressBG()
+        progress.create("Nokturno", L(30150, "Hledat"))
+        try:
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                task_movies = pool.submit(search_source, apis, "movie", query, want_year, errors)
+                task_series = pool.submit(search_source, apis, "series", query, want_year, errors)
+                movies, _m = task_movies.result()
+                series, _s = task_series.result()
+        finally:
+            progress.close()
         if movies and series:
             xbmcplugin.setContent(HANDLE, "files")
             folder_item(f"{L(30012)} ({len(movies)})", build_url(action="search_run", type="movie", q=raw_query))
