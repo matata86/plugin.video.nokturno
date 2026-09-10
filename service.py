@@ -28,11 +28,14 @@ ADDON = xbmcaddon.Addon()
 sys.path.insert(0, os.path.join(xbmcvfs.translatePath(ADDON.getAddonInfo("path")), "resources", "lib"))
 from stats import COLLECT_URL, Stats  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
+from sync import sync_once  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
 
 PROP = "nokturno.playing"
 VIEWED_PROP = "nokturno.viewed"
 USED_PROP = "nokturno.used"
+SYNC_PROP = "nokturno.sync"
+SYNC_EVERY = 5 * 60   # výměna s HA; změny (dokoukáno, Můj seznam) ji vyvolají hned
 WATCHED_PCT = 0.90
 MIN_RESUME = 60  # s – kratší kousek nemá cenu pamatovat
 POLL = 5
@@ -153,6 +156,7 @@ class Player(xbmc.Player):
         self.trakt_scrobble("stop", self.progress())
         if split_key(item_id)[1] is not None:
             prefetch_next_later()
+        xbmcgui.Window(10000).setProperty(SYNC_PROP, "1")   # zhlédnuto/pozice → do HA hned
         self.item = None
 
     def onPlayBackStopped(self):
@@ -231,6 +235,42 @@ class Downloader(threading.Thread):
                 self.store.update_download(dl_id, status="error", error=str(e)[:200])
                 log(f"stahování selhalo {dest}: {e}", xbmc.LOGERROR)
                 xbmcgui.Dialog().notification(L(30000), Lf(30075, job.get("name", "")), xbmcgui.NOTIFICATION_ERROR, 5000)
+
+
+# --- synchronizace přes Home Assistant ----------------------------------------------
+
+class Syncer:
+    """Jednou za SYNC_EVERY, nebo hned když si plugin/přehrávač řekne (vlastnost okna).
+    Síť běží ve vlastním vlákně, aby nezdržela sledování pozice přehrávání."""
+
+    def __init__(self, store):
+        self.store = store
+        self.next = time.time() + 60          # první výměna minutu po startu
+        self.lock = threading.Lock()
+
+    def tick(self, force=False):
+        addon = fresh_addon()
+        if addon is None or addon.getSetting("sync_enabled") != "true":
+            return
+        url, key = addon.getSetting("sync_url").strip(), addon.getSetting("sync_key").strip()
+        if not url or not key:
+            return
+        asked = xbmcgui.Window(10000).getProperty(SYNC_PROP)
+        if not force and not asked and time.time() < self.next:
+            return
+        xbmcgui.Window(10000).clearProperty(SYNC_PROP)
+        self.next = time.time() + SYNC_EVERY
+        if not self.lock.acquire(blocking=False):
+            return
+
+        def run():
+            try:
+                ok, pushed, pulled, why = sync_once(self.store, url, key, xbmc.getInfoLabel("System.FriendlyName"))
+                log(f"sync: odesláno {pushed}, přijato {pulled}" if ok else f"sync neproběhl: {why}",
+                    xbmc.LOGINFO if ok else xbmc.LOGWARNING)
+            finally:
+                self.lock.release()
+        threading.Thread(target=run, daemon=True).start()
 
 
 # --- zahřívání cache -----------------------------------------------------------------
@@ -354,10 +394,12 @@ def main():
     player = Player(store, stats)
     Downloader(store, monitor).start()
     threading.Thread(target=warmer, args=(monitor,), daemon=True).start()
+    syncer = Syncer(store)
     log("start")
     while not monitor.abortRequested():
         player.tick()
         stats_tick(stats)
+        syncer.tick()
         if monitor.waitForAbort(POLL):
             break
     player.finish()

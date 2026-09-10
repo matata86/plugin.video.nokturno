@@ -42,6 +42,13 @@
     <setting label="30100" type="action" action="RunPlugin(plugin://plugin.video.nokturno/?action=trakt_auth)" enable="eq(-3,true)"/>
     <setting label="30098" type="action" action="RunPlugin(plugin://plugin.video.nokturno/?action=trakt_logout)" enable="eq(-4,true)"/>
   </category>
+  <category label="30180">
+    <setting id="sync_enabled" type="bool" label="30181" default="false"/>
+    <setting id="sync_url" type="text" label="30182" default="http://homeassistant.local:8123" enable="eq(-1,true)"/>
+    <setting id="sync_key" type="text" label="30183" default="" enable="eq(-2,true)"/>
+    <setting label="30184" type="action" action="RunPlugin(plugin://plugin.video.nokturno/?action=sync_now)" enable="eq(-3,true)"/>
+    <setting label="30185" type="lsep"/>
+  </category>
   <category label="30160">
     <setting id="stats_enabled" type="bool" label="30161" default="true"/>
     <setting label="30163" type="action" action="RunPlugin(plugin://plugin.video.nokturno/?action=stats_send)" enable="eq(-1,true)"/>

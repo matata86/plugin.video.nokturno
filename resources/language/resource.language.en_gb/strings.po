@@ -505,3 +505,39 @@ msgstr "not set up"
 msgctxt "#30170"
 msgid "Sources check"
 msgstr "Sources check"
+
+msgctxt "#30180"
+msgid "Sync"
+msgstr "Sync"
+
+msgctxt "#30181"
+msgid "Sync via Home Assistant"
+msgstr "Sync via Home Assistant"
+
+msgctxt "#30182"
+msgid "Home Assistant address"
+msgstr "Home Assistant address"
+
+msgctxt "#30183"
+msgid "Key (from the Nokturno integration settings)"
+msgstr "Key (from the Nokturno integration settings)"
+
+msgctxt "#30184"
+msgid "Sync now"
+msgstr "Sync now"
+
+msgctxt "#30185"
+msgid "Watched, in-progress and My list are shared across every Kodi through the Nokturno HA integration"
+msgstr "Watched, in-progress and My list are shared across every Kodi through the Nokturno HA integration"
+
+msgctxt "#30186"
+msgid "Sync is off or the address and key are missing"
+msgstr "Sync is off or the address and key are missing"
+
+msgctxt "#30187"
+msgid "Synced: sent %d, received %d"
+msgstr "Synced: sent %d, received %d"
+
+msgctxt "#30188"
+msgid "Sync failed"
+msgstr "Sync failed"

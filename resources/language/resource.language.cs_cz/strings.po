@@ -505,3 +505,39 @@ msgstr "není nastaveno"
 msgctxt "#30170"
 msgid "Sources check"
 msgstr "Kontrola zdrojů"
+
+msgctxt "#30180"
+msgid "Sync"
+msgstr "Synchronizace"
+
+msgctxt "#30181"
+msgid "Sync via Home Assistant"
+msgstr "Synchronizovat přes Home Assistant"
+
+msgctxt "#30182"
+msgid "Home Assistant address"
+msgstr "Adresa Home Assistantu"
+
+msgctxt "#30183"
+msgid "Key (from the Nokturno integration settings)"
+msgstr "Klíč (z nastavení integrace Nokturno)"
+
+msgctxt "#30184"
+msgid "Sync now"
+msgstr "Synchronizovat teď"
+
+msgctxt "#30185"
+msgid "Watched, in-progress and My list are shared across every Kodi through the Nokturno HA integration"
+msgstr "Zhlédnuto, rozkoukané a Můj seznam se sdílí mezi všemi Kodi s integrací Nokturno v HA"
+
+msgctxt "#30186"
+msgid "Sync is off or the address and key are missing"
+msgstr "Synchronizace není zapnutá nebo chybí adresa a klíč"
+
+msgctxt "#30187"
+msgid "Synced: sent %d, received %d"
+msgstr "Synchronizováno: odesláno %d, přijato %d"
+
+msgctxt "#30188"
+msgid "Sync failed"
+msgstr "Synchronizace selhala"
