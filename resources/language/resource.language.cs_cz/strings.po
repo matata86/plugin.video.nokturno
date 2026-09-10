@@ -479,8 +479,8 @@ msgid "Send statistics now"
 msgstr "Odeslat statistiky nyní"
 
 msgctxt "#30164"
-msgid "Sends a random installation id, add-on version, platform, last use and per-title play counts. Nothing else leaves the device."
-msgstr "Posílá se náhodné id instalace, verze doplňku, platforma, poslední použití a počty přehrání jednotlivých titulů. Nic dalšího zařízení neopouští."
+msgid "Sends a random installation id, add-on version, platform, last use and per-title stream view counts. Nothing else leaves the device."
+msgstr "Posílá se náhodné id instalace, verze doplňku, platforma, poslední použití a počty zobrazení streamů jednotlivých titulů. Nic dalšího zařízení neopouští."
 
 msgctxt "#30165"
 msgid "Statistics sent"

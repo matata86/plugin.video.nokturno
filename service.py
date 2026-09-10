@@ -31,6 +31,7 @@ from store import Store, migrate_profile  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
 
 PROP = "nokturno.playing"
+VIEWED_PROP = "nokturno.viewed"
 USED_PROP = "nokturno.used"
 WATCHED_PCT = 0.90
 MIN_RESUME = 60  # s – kratší kousek nemá cenu pamatovat
@@ -98,8 +99,6 @@ class Player(xbmc.Player):
         xbmcgui.Window(10000).clearProperty(PROP)
         self.position, self.total = 0.0, 0.0
         log(f"sleduji {self.item.get('id')}")
-        self.stats.note_play(self.item.get("id"), self.item.get("title") or "",
-                             self.item.get("year"), self.item.get("kind") or "movie")
         self.trakt_scrobble("start", 0)
 
     def tick(self):
@@ -234,11 +233,21 @@ def stats_context():
 
 
 def stats_tick(stats, force=False):
-    """Sebere „doplněk byl otevřen“ a jednou za čas odešle čítače."""
+    """Sebere „doplněk byl otevřen“ a „u titulu se zobrazily streamy“, jednou za čas odešle čítače."""
     used = xbmcgui.Window(10000).getProperty(USED_PROP)
     if used:
         xbmcgui.Window(10000).clearProperty(USED_PROP)
         stats.note_use(int(used) if used.isdigit() else None)
+    raw_viewed = xbmcgui.Window(10000).getProperty(VIEWED_PROP)
+    if raw_viewed:
+        xbmcgui.Window(10000).clearProperty(VIEWED_PROP)
+        try:
+            viewed = json.loads(raw_viewed)
+        except ValueError:
+            viewed = None
+        if viewed and viewed.get("id"):
+            stats.note_play(viewed["id"], viewed.get("title") or "",
+                            viewed.get("year"), viewed.get("kind") or "movie")
     addon = xbmcaddon.Addon()  # čerstvá nastavení
     if addon.getSetting("stats_enabled") != "true":
         return

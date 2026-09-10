@@ -3,11 +3,13 @@
 stats.json v profilu drží:
   id          náhodný identifikátor instalace (nic z něj nejde odvodit)
   installed   kdy se čítače založily
-  last_used   poslední otevření doplňku nebo přehrání
+  last_used   poslední otevření doplňku nebo zobrazení streamů titulu
   last_sent   poslední úspěšné odeslání
   next_try    kdy má smysl zkusit odeslání znovu
-  plays       {klíč titulu: {"t" název, "y" rok, "k" typ, "c" počet, "l" naposledy}}
-  plays_total součet přehrání
+  plays       {klíč titulu: {"t" název, "y" rok, "k" typ, "c" počet, "l" naposledy}} — počítá se,
+              kolikrát se u titulu zobrazily streamy, ne kolikrát se skutečně přehrálo (spousta
+              streamů nejde přehrát vůbec a to nic neříká o tom, jak je titul žádaný)
+  plays_total součet zobrazení streamů přes všechny tituly
 
 Posílá se kumulativní stav, ne přírůstky — server dělá upsert, takže výpadek
 sítě ani ztracená odpověď nic nerozhodí. Zapisuje jen služba na pozadí
