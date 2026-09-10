@@ -269,6 +269,11 @@ def main():
         if monitor.waitForAbort(POLL):
             break
     player.finish()
+    # Vypnutí Kodi, restart doplňku po změně nastavení nebo jeho zakázání v
+    # nastavení Kodi — tohle spolehlivě proběhne, skutečná odinstalace (smazání
+    # složky) ne. I tak zpřesní čas posledního vidění o hodiny až šest.
+    stats_tick(stats, force=True)
+    log("stop")
 
 
 if __name__ == "__main__":
