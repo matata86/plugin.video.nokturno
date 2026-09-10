@@ -843,8 +843,10 @@ def search_run(apis, kind, query, offset=0):
     enrich([m for m, _alt in merged if is_sosac_id(m.get("id"))], apis["luna"], STORE, ctype)
     for meta, alt in merged:
         add_meta_item(meta, ctype, alt=alt, tag_source=mixed)
-    # bez Luny nabídneme rovnou soubory z WebShare (jinak je má Luna: Search u titulu)
-    if apis["ws"] and not apis["luna"]:
+    # bez Luny (nebo když zrovna neodpovídá) nabídneme rovnou soubory z WebShare
+    # (jinak je má Luna: Search u titulu — tam by šlo o duplicitu)
+    luna_down = any(isinstance(e, LunaError) for e in errors)
+    if apis["ws"] and (not apis["luna"] or luna_down):
         try:
             files, _total = apis["ws"].search(query, sort=SORTS[int(setting("ws_sort", "0"))], limit=WS_PAGE)
             remember_ws_token(apis["ws"])
