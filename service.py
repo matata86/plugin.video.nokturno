@@ -26,7 +26,7 @@ import xbmcvfs
 
 ADDON = xbmcaddon.Addon()
 sys.path.insert(0, os.path.join(xbmcvfs.translatePath(ADDON.getAddonInfo("path")), "resources", "lib"))
-from stats import Stats  # noqa: E402
+from stats import COLLECT_URL, Stats  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
 
@@ -266,7 +266,7 @@ def stats_tick(stats, force=False):
         return
     if not force and not stats.due():
         return
-    ok, why = stats.send(addon.getSetting("stats_url").strip(), **stats_context(addon))
+    ok, why = stats.send(COLLECT_URL, **stats_context(addon))
     log("statistiky odeslány" if ok else f"statistiky neodeslány: {why}",
         xbmc.LOGINFO if ok else xbmc.LOGWARNING)
 

@@ -23,6 +23,10 @@ import urllib.error
 import urllib.request
 import uuid
 
+# Sběrný bod je natvrdo v kódu, ne v nastavení — je to detail implementace,
+# ne něco, co by měl kdokoli přepínat. Změna adresy = nová verze.
+COLLECT_URL = "https://nokturno.full-net.cz/collect"
+
 SEND_EVERY = 6 * 3600     # nejčastěji jednou za 6 hodin
 RETRY_EVERY = 30 * 60     # po neúspěchu (server neběží, není síť) nezkoušet hned znovu
 PLAYS_MAX = 500           # v souboru i v odeslané dávce jen tolik titulů
@@ -98,14 +102,18 @@ class Stats:
             "plays": [dict(key=k, **v) for k, v in plays[:PLAYS_MAX]],
         }
 
-    def send(self, url, version="", platform="", kodi="", lang=""):
-        """Odešle stav. Vrací (True, "") nebo (False, důvod) — nikdy nevyhodí výjimku."""
+    def send(self, url, version="", platform="", kodi="", lang="", agent="Kodi plugin.video.nokturno"):
+        """Odešle stav. Vrací (True, "") nebo (False, důvod) — nikdy nevyhodí výjimku.
+
+        `agent` odlišuje odesílatele v přístupovém logu serveru; tentýž modul
+        používá i integrace pro Home Assistant (viz `lib/stats.py` v nokturno-ha).
+        """
         if not url:
             return False, "chybí adresa"
         body = json.dumps(self.payload(version, platform, kodi, lang)).encode("utf-8")
         req = urllib.request.Request(url, data=body, headers={
             "Content-Type": "application/json",
-            "User-Agent": "Kodi plugin.video.nokturno/" + (version or "?"),
+            "User-Agent": f"{agent}/" + (version or "?"),
         })
         try:
             with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:

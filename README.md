@@ -122,9 +122,9 @@ odinstalaci (smazání složky doplňku) tohle zachytit nemůže, protože při 
 žádný kód doplňku neběží. Server proto instalaci, která se dlouho neozvala,
 sám počítá jako mrtvou (`dead_after` v konfiguraci sběrného bodu).
 
-Data chodí na `https://nokturno.full-net.cz/collect`. Adresa je v nastavení —
-kdo chce statistiky posílat jinam nebo nikam, přepíše ji. Hlášení je jeden POST s tímto tělem, takže si vlastní
-sběrač napíše kdokoli:
+Data chodí na `https://nokturno.full-net.cz/collect`. Odesílání se vypíná
+přepínačem v nastavení. Hlášení je jeden POST s tímto tělem, takže je vidět
+přesně, co odchází:
 
 ```json
 {

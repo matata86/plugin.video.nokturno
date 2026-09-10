@@ -626,9 +626,8 @@ def mark_used():
 
 def stats_send():
     """Ruční odeslání statistik z nastavení – jinak je posílá služba na pozadí."""
-    from stats import Stats
-    ok, why = Stats(PROFILE).send(setting("stats_url", "").strip(),
-                                  version=ADDON.getAddonInfo("version"))
+    from stats import COLLECT_URL, Stats
+    ok, why = Stats(PROFILE).send(COLLECT_URL, version=ADDON.getAddonInfo("version"))
     notify(L(30165) if ok else f"{L(30166)}: {why}",
            xbmcgui.NOTIFICATION_INFO if ok else xbmcgui.NOTIFICATION_ERROR, 5000)
 
