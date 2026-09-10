@@ -31,7 +31,7 @@ from sosac_api import is_sosac_id as _is_stremio_sosac_id  # noqa: E402
 from sosac_direct import SosacDirect, is_direct_id  # noqa: E402
 from enrich import enrich, enrich_one  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
-from streams import arrange, langs_from_name, parse_stream  # noqa: E402
+from streams import arrange, langs_from_name, parse_stream, subs_from_name  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
 from webshare_api import SORTS, WebshareApi, WebshareError, human_size  # noqa: E402
 
@@ -595,8 +595,11 @@ def stream_label(s):
         parts.append(tag)
     if rest and quality:
         parts.append(f"[COLOR {GREY}]{rest}[/COLOR]")
-    if s.get("subs"):
-        parts.append(f"[COLOR {GREY}]tit. {' '.join(sorted(s['subs']))}[/COLOR]")
+    # WebShare fulltext nedává strukturovaný údaj o titulcích (jen Luna/Sosáč) —
+    # značka „CZtit“ v názvu souboru se doplní stejně jako jazyk zvuku výše
+    subs = set(s.get("subs") or []) | subs_from_name(raw)
+    if subs:
+        parts.append(f"[COLOR {GREY}]tit. {' '.join(sorted(subs))}[/COLOR]")
     if s.get("bitrate"):
         parts.append(f"[COLOR {GREY}]{s['bitrate']:g} Mb/s[/COLOR]")
     return "  ".join(parts)
