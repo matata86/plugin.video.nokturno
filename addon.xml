@@ -21,7 +21,7 @@
       <icon>resources/icon.png</icon>
       <fanart>resources/fanart.jpg</fanart>
     </assets>
-    <news>1.5.20 – statistiky posílají poslední hlášení i při vypnutí Kodi nebo doplňku, přesnější odhad odinstalace
+    <news>1.5.20 – drobné vylepšení služby na pozadí
 1.5.19 – výchozí adresa sběrného bodu statistik
 1.5.18 – anonymní statistiky používání (v nastavení jdou vypnout)
 1.5.17 – položky nesou hodnocení i v procentech (vlastnost RatingPercent)
