@@ -24,6 +24,7 @@ Přihlašovací údaje zůstávají v Kodi — doplněk je posílá jen službě
 - **Trakt.tv** scrobble (vlastní client id/secret), IMDb id pro doplňky titulků, cesty pro widgety skinu
 - **hodnocení v procentech** — položky nesou vlastnost `RatingPercent` („58 %“) vedle běžného ratingu, takže ji skin může ukázat místo hvězdiček
 - **anonymní statistiky** používání, které jdou v nastavení vypnout (viz níže)
+- **Up Next** — je-li nainstalovaná služba [Up Next](https://kodi.tv/addons/omega/service.upnext), dostane u seriálů informaci o dalším dílu a ke konci epizody nabídne jeho přehrání
 
 ## Předpoklady
 
