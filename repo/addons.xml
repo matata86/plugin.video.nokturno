@@ -1,5 +1,77 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
+<addon id="plugin.video.nokturno" name="Nokturno" version="1.5.35" provider-name="matata86">
+  <requires>
+    <import addon="xbmc.python" version="3.0.0"/>
+  </requires>
+  <extension point="xbmc.python.pluginsource" library="default.py">
+    <provides>video</provides>
+  </extension>
+  <extension point="xbmc.service" library="service.py"/>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en_GB">Movies and series from WebShare, Sosáč and Luna: Absolute Cinema — one add-on, search across sources</summary>
+    <summary lang="cs_CZ">Filmy a seriály z WebShare, Sosáče a Luny v jednom doplňku, hledání napříč</summary>
+    <description lang="en_GB">Three sources, each optional: WebShare directly (your account – file search and playback), Sosáč directly (its catalogues, series with episodes, Czech dubbing and subtitles – only a Streamuj.tv account) and a Luna: Absolute Cinema server, reachable on your LAN or running locally on the same device (TMDB catalogues, WebShare streams with detected quality and languages). Search across sources, streams from several sources for one title, continue watching, my list, downloads, Trakt. Support the author: https://ko-fi.com/matata86</description>
+    <description lang="cs_CZ">Tři zdroje, každý volitelný: WebShare přímo (tvůj účet – hledání souborů a přehrávání), Sosáč napřímo (jeho katalogy, seriály s epizodami, český dabing a titulky – stačí účet Streamuj.tv) a server Luna: Absolute Cinema, dostupný v LAN nebo běžící lokálně na stejném zařízení (TMDB katalogy, streamy z WebShare s rozpoznanou kvalitou a jazyky). Hledání napříč zdroji, streamy z více zdrojů u jednoho titulu, pokračovat ve sledování, můj seznam, stahování, Trakt. Podpoř autora: https://ko-fi.com/matata86</description>
+    <platform>all</platform>
+    <license>MIT</license>
+    <source>https://github.com/matata86/plugin.video.nokturno</source>
+    <website>https://github.com/matata86/plugin.video.nokturno</website>
+    <forum>https://ko-fi.com/matata86</forum>
+    <assets>
+      <icon>resources/icon.png</icon>
+      <fanart>resources/fanart.jpg</fanart>
+    </assets>
+    <news>1.5.35 – titulky u streamů z WebShare hledání se poznají i podle názvu souboru ("CZtit"), ne jen z popisu Luny/Sosáče
+1.5.34 – Up Next: u seriálů se službě Up Next posílá další díl, takže ke konci epizody nabídne „Další díl“ a pustí ho
+1.5.33 – vlastní ikony i pro zbylé položky (katalogy, žánry, historie hledání, další strana, volba Filmy/Seriály) — dřív je mělo jen hlavní menu
+1.5.32 – streamy sdílely zobrazení s výsledky hledání (typ obsahu "movies" byl stejný) — teď mají "episodes", kolize je jen s obrazovkou Epizody
+1.5.31 – oprava: streamy pořád nabízely jen "Seznam základní" (typ obsahu "videos" nestačil, teď je stejný jako u fungujících obrazovek)
+1.5.30 – vlastní ikony pro položky hlavního menu (dřív měly všechny stejnou ikonu doplňku)
+1.5.29 – oprava: obrazovka se streamy neuměla přepnout na bohatší zobrazení (jen "Seznam základní") — chyběl typ obsahu pro skin
+1.5.28 – cache hledání prodloužena na 12 hodin (streamy zůstávají 72 h); jde ji vymazat i z kontextového menu tlačítka Hledat, ne jen z Nastavení
+1.5.27 – opakované hledání teď skutečně rychlé i s tituly ze Sosáče (dřív se pokaždé znovu dotahoval popis, i když katalog byl už z cache)
+1.5.26 – hledání se kešuje 5 minut (Luna, WebShare), nalezené streamy 72 hodin — prázdný výsledek se nepamatuje, aby další pokus zkusil znovu
+1.5.25 – oprava zdvojeného roku ve statistikách ("Matrix (1999) (1999)")
+1.5.24 – oprava pádu při hledání napříč typy (Store nebyl bezpečný pro souběžný přístup ze dvou vláken, hlásilo se "dictionary changed size during iteration")
+1.5.23 – ukazatel průběhu při hledání napříč typy se skutečně hýbe (dřív zůstával na 0 %, dokud nedoběhlo úplně vše)
+1.5.22 – hledání napříč typy (film/seriál) neopakuje dotaz, když najde jen jeden typ — dřív to po krátkém průběhu dlouho tiše čekalo a pak najednou ukázalo výsledky
+1.5.21 – Luna může běžet i lokálně na stejném zařízení jako Kodi (ne jen v LAN); když Luna neodpovídá, hledání automaticky přejde na přímý fulltext WebShare
+1.5.20 – drobné vylepšení služby na pozadí
+1.5.19 – výchozí adresa sběrného bodu statistik
+1.5.18 – anonymní statistiky používání (v nastavení jdou vypnout)
+1.5.17 – položky nesou hodnocení i v procentech (vlastnost RatingPercent)
+1.5.16 – u „Trendy“ se časové okno TMDB zobrazuje česky (Za den / Za týden)
+1.5.15 – oprava: chyba importu v sosac_direct (relativní import z HA verze shazoval doplněk „attempted relative import")
+1.5.14 – tituly s podtitulem se v Sosáči najdou i podle části názvu před pomlčkou
+1.5.13 – hledání pro filmy i seriály běží souběžně a ukazuje průběh (dřív to vypadalo jako zaseknutí)
+1.5.12 – jazyk zvuku se bere i z názvu souboru (metadata zdroje občas hlásí EN u českého souboru)
+1.5.11 – jedno hledání pro filmy i seriály; volba typu se nabídne, jen když dotaz najde obojí
+1.5.10 – rok napsaný do hledání funguje jako filtr („Pět švestek 2026“ vrátí jen film z roku 2026)
+1.5.9 – výpadek Sosáče/streamuj už nespadne jako chyba doplňku (SosacError byl ve dvou třídách)
+1.5.8 – plakáty a popis titulů Sosáče bez IMDb id se dohledají z TMDB podle názvu a roku
+1.5.7 – oprava chyby „items.json.tmp“ při procházení katalogů (souběžný zápis cache)
+1.5.6 – náhledy titulů ze Sosáče se berou z TMDB (movies.sosac.tv je vrací jako 404)
+1.5.5 – popis streamu čitelný i v úzkém sloupci seznamu (Arctic Fuse): nejdřív jazyk s počtem kanálů (5.1 a víc tučně), velikost a kvalita, pak zdroj a zbytek; preferovaný jazyk je první; stopáž a hodnocení filmu se v seznamu streamů už nevyplňují, braly šířku popisku
+1.5.4 – popis, stopáž a obsazení u titulů Sosáče (exporty Sosáče popis nemají; dotahuje se podle IMDb id z Luny, bez Luny z Cinemety, cache 30 dní)
+1.5.3 – oprava: „Přidat do Mého seznamu“ v kontextovém menu (přepisovalo ho „Označit jako zhlédnuté“)
+1.5.2 – volba „Preferovat prostorový zvuk (5.1 a víc)“, kanály zvuku v popisku streamu
+1.5.1 – nové logo (monogram N), řazení podle kvality má přednost před jazykem
+1.5.0 – nové logo; seznam streamů: zdroj (Luna / WebShare / Sosáč), barevná kvalita, jazyky zvuku a titulků, velikost; štítek Sosáč jen ve smíšeném hledání
+1.4.1 – odkaz na podporu autora (Ko-fi) v popisu a nastavení
+1.4.0 – Sosáč napřímo: katalogy z tv.sosac.to a streamy ze streamuj.tv (stačí účet Streamuj, bez Stremia a bez loginu k Sosáči), CZ titulky ze streamuj
+1.3.3 – popisy a pořadí nastavení: WebShare, Sosáč, Luna jako rovnocenné zdroje
+1.3.2 – bez modálních dialogů při chybějícím nastavení (blokovaly Kodi při volání z widgetu)
+1.3.1 – nové ID doplňku plugin.video.nokturno (nastavení a historie se přenesou automaticky)
+1.3.0 – Pokračovat ve sledování a další díl, Můj seznam, Naposledy zhlédnuté, filtr a řazení streamů (jazyk, SD, velikost), stahování do složky, Trakt.tv, cache API, widgety
+1.2.1 – stejný titul z Luny a Sosáče je ve výsledcích hledání jen jednou, zdroj je vidět až u streamů
+1.2.0 – WebShare přímo (účet v nastavení, bez serveru Luna), Luna jde vypnout; historie hledání; zhlédnuto/rozkoukáno
+1.1.1 – nový název Nokturno a logo
+1.1.0 – Sosáč jako druhý zdroj: vlastní katalogy, hledání napříč oběma zdroji, dohledání streamů titulu v druhém zdroji; název filmu v OSD přehrávače
+1.0.1 – streamy i z fulltextu WebShare (Luna: Search), sloučené s hlavním zdrojem
+1.0.0 – první vydání</news>
+  </extension>
+</addon>
 <addon id="plugin.video.nokturno" name="Nokturno" version="1.5.36" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
