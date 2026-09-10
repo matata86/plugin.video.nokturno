@@ -639,27 +639,29 @@ def main_menu(apis):
         folder_item(L(30107), build_url(action="settings"))
         xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
         return
+    # vlastní ikony místo jedné a té samé ikony doplňku u každé položky — jména
+    # standardní sady Kodi (dodává je aktivní skin, žádný soubor navíc v doplňku)
     if STORE.in_progress() or STORE.recently_watched(1):
-        folder_item(L(30063), build_url(action="continue"))
+        folder_item(L(30063), build_url(action="continue"), icon="DefaultInProgressShows.png")
     if apis["luna"] or apis["sosac"]:
         # jedno hledání pro filmy i seriály — když dotaz najde obojí, nabídne se volba
         # v kontextovém menu (podržet/kliknout pravým) jde cache hledání vymazat i odsud,
         # ne jen z Nastavení — vynutí to čerstvá data, když se něco změnilo na zdroji
         folder_item(L(30150, "Hledat"), build_url(action="search", type="any"),
-                   context=[(L(30106), runplugin(action="clear_cache"))])
+                   icon="DefaultAddonsSearch.png", context=[(L(30106), runplugin(action="clear_cache"))])
     if apis["ws"]:
-        folder_item(L(30045), build_url(action="search", type="ws"))
+        folder_item(L(30045), build_url(action="search", type="ws"), icon="DefaultAddonsSearch.png")
     if apis["luna"]:
-        folder_item(L(30012), build_url(action="catalogs", type="movie", src="luna"))
-        folder_item(L(30013), build_url(action="catalogs", type="series", src="luna"))
+        folder_item(L(30012), build_url(action="catalogs", type="movie", src="luna"), icon="DefaultMovies.png")
+        folder_item(L(30013), build_url(action="catalogs", type="series", src="luna"), icon="DefaultTVShows.png")
     if apis["sosac"]:
-        folder_item(L(30035), build_url(action="catalogs", type="movie", src="sosac"))
-        folder_item(L(30036), build_url(action="catalogs", type="series", src="sosac"))
-    folder_item(L(30060), build_url(action="favourites"))
-    folder_item(L(30064), build_url(action="recent"))
+        folder_item(L(30035), build_url(action="catalogs", type="movie", src="sosac"), icon="DefaultMovies.png")
+        folder_item(L(30036), build_url(action="catalogs", type="series", src="sosac"), icon="DefaultTVShows.png")
+    folder_item(L(30060), build_url(action="favourites"), icon="DefaultFavourites.png")
+    folder_item(L(30064), build_url(action="recent"), icon="DefaultRecentlyAddedMovies.png")
     if setting("download_dir"):
-        folder_item(L(30071), build_url(action="downloads"))
-    folder_item(L(30106), build_url(action="clear_cache"))
+        folder_item(L(30071), build_url(action="downloads"), icon="DefaultNetwork.png")
+    folder_item(L(30106), build_url(action="clear_cache"), icon="DefaultAddonsUpdates.png")
     xbmcplugin.endOfDirectory(HANDLE)
 
 
