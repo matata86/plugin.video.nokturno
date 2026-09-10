@@ -44,6 +44,20 @@ def log(msg, level=xbmc.LOGINFO):
     xbmc.log(f"[plugin.video.nokturno/service] {msg}", level)
 
 
+def fresh_addon():
+    """Doplněk s čerstvě načteným nastavením, nebo None.
+
+    Při aktualizaci doplňku ho Kodi na chvíli odregistruje dřív, než se služba
+    stihne ukončit — `xbmcaddon.Addon()` v tu chvíli hodí RuntimeError („Unknown
+    addon id"), Kodi to ukáže jako „Chyba, více v protokolu" a teprve pak dopíše
+    „Aktualizováno". Pro nás to není chyba, jen konec života téhle instance.
+    """
+    try:
+        return xbmcaddon.Addon()
+    except RuntimeError:
+        return None
+
+
 def L(sid):
     return ADDON.getLocalizedString(sid)
 
@@ -67,8 +81,8 @@ def split_key(key):
 # --- Trakt ------------------------------------------------------------------------
 
 def get_trakt(store):
-    addon = xbmcaddon.Addon()  # čerstvá nastavení
-    if addon.getSetting("trakt_enabled") != "true":
+    addon = fresh_addon()
+    if addon is None or addon.getSetting("trakt_enabled") != "true":
         return None
     api = TraktApi(addon.getSetting("trakt_client_id"), addon.getSetting("trakt_client_secret"),
                    tokens=store.trakt(), on_tokens=store.set_trakt)
@@ -216,9 +230,8 @@ class Downloader(threading.Thread):
 
 # --- statistiky ---------------------------------------------------------------------
 
-def stats_context():
+def stats_context(addon):
     """Verze doplňku, platforma a Kodi – kontext k odeslaným čítačům."""
-    addon = xbmcaddon.Addon()
     platform = next((name for name, cond in (
         ("Android", "System.Platform.Android"), ("Linux", "System.Platform.Linux"),
         ("Windows", "System.Platform.Windows"), ("macOS", "System.Platform.OSX"),
@@ -248,12 +261,12 @@ def stats_tick(stats, force=False):
         if viewed and viewed.get("id"):
             stats.note_play(viewed["id"], viewed.get("title") or "",
                             viewed.get("year"), viewed.get("kind") or "movie")
-    addon = xbmcaddon.Addon()  # čerstvá nastavení
-    if addon.getSetting("stats_enabled") != "true":
+    addon = fresh_addon()
+    if addon is None or addon.getSetting("stats_enabled") != "true":
         return
     if not force and not stats.due():
         return
-    ok, why = stats.send(addon.getSetting("stats_url").strip(), **stats_context())
+    ok, why = stats.send(addon.getSetting("stats_url").strip(), **stats_context(addon))
     log("statistiky odeslány" if ok else f"statistiky neodeslány: {why}",
         xbmc.LOGINFO if ok else xbmc.LOGWARNING)
 
