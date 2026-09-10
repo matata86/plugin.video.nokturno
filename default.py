@@ -659,6 +659,7 @@ def main_menu(apis):
     folder_item(L(30064), build_url(action="recent"))
     if setting("download_dir"):
         folder_item(L(30071), build_url(action="downloads"))
+    folder_item(L(30106), build_url(action="clear_cache"))
     xbmcplugin.endOfDirectory(HANDLE)
 
 
@@ -1310,7 +1311,10 @@ def router(query):
         "trakt_auth": trakt_auth,
         "sosac_link": sosac_link_account,
         "trakt_logout": trakt_logout,
-        "clear_cache": lambda: (STORE.clear_cache(), notify(L(30099))),
+        # succeeded=False jako u "settings" — jinak by Kodi navigoval do prázdné složky
+        # a musel by se dát Zpět, i když jde jen o akci, ne o výpis
+        "clear_cache": lambda: (STORE.clear_cache(), notify(L(30099)),
+                                xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
         "stats_send": stats_send,
         "settings": lambda: (xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False), ADDON.openSettings()),
     }

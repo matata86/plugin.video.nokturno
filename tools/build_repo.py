@@ -26,6 +26,22 @@ def addon_version(path):
     return ET.parse(os.path.join(path, "addon.xml")).getroot().get("version")
 
 
+def addon_assets(path):
+    """Cesty k ikoně/fanartu přesně tak, jak je addon.xml deklaruje (relativně
+    ke kořeni doplňku) — Kodi je při náhledu v repozitáři hledá na
+    `<datadir>/<addon_id>/<tahle cesta>`, ne vedle zipu na pevném místě."""
+    root = ET.parse(os.path.join(path, "addon.xml")).getroot()
+    assets = root.find(".//assets")
+    if assets is None:
+        return {}
+    out = {}
+    for tag in ("icon", "fanart"):
+        el = assets.find(tag)
+        if el is not None and el.text:
+            out[tag] = el.text.strip()
+    return out
+
+
 def zip_addon(addon_id, src, version):
     out_dir = os.path.join(REPO, addon_id)
     os.makedirs(out_dir, exist_ok=True)
@@ -44,12 +60,18 @@ def zip_addon(addon_id, src, version):
     if addon_id.startswith("repository."):
         # stabilní název pro odkaz v README (verzovaný zip zůstává pro Kodi)
         shutil.copy(out, os.path.join(out_dir, f"{addon_id}.zip"))
-    # ikona/fanart vedle zipu – Kodi je ukazuje v obchodě ještě před instalací
-    for asset in ("icon.png", "fanart.jpg"):
-        for cand in (os.path.join(src, "resources", asset), os.path.join(src, asset)):
-            if os.path.exists(cand):
-                shutil.copy(cand, os.path.join(out_dir, asset))
-                break
+    # Ikona/fanart musí ležet přesně na cestě, kterou addon.xml deklaruje
+    # (u pluginu „resources/icon.png“, u repozitáře jen „icon.png“) — Kodi si
+    # při náhledu v Instalovat ze zdroje stahuje `<datadir>/<addon_id>/<ta cesta>`
+    # rovnou, bez ohledu na to, kde leží uvnitř zipu. Špatné umístění hlásilo
+    # při instalaci chybu (404 na ikonu), i když samotný zip byl v pořádku.
+    for tag, rel in addon_assets(src).items():
+        cand = os.path.join(src, rel)
+        if not os.path.exists(cand):
+            continue
+        dest = os.path.join(out_dir, rel)
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        shutil.copy(cand, dest)
     return out
 
 
