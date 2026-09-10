@@ -77,16 +77,38 @@ def zip_addon(addon_id, src, version):
     return out
 
 
+def version_key(text):
+    """'1.5.36' → (1, 5, 36); nečíselné části jdou dozadu."""
+    return tuple(int(p) if p.isdigit() else -1 for p in re.split(r"[.\-+]", text))
+
+
+def all_versions_xml(addon_id, out_dir):
+    """`<addon>` bloky pro všechny verze, které v repu leží jako zip.
+
+    Kodi nabízí v „Vyberte verzi" jen to, co je vypsané v addons.xml — samotná
+    přítomnost starého zipu nestačí. Metadata každé verze se čtou z addon.xml
+    uvnitř jejího zipu, takže se nemusí nikde držet stranou.
+    """
+    blocks = {}
+    for name in os.listdir(out_dir):
+        if not (name.startswith(f"{addon_id}-") and name.endswith(".zip")):
+            continue
+        with zipfile.ZipFile(os.path.join(out_dir, name)) as zf:
+            xml = zf.read(f"{addon_id}/addon.xml").decode("utf-8")
+        xml = re.sub(r"<\?xml[^>]*\?>\s*", "", xml).strip()
+        blocks[ET.fromstring(xml).get("version")] = xml
+    return [blocks[v] for v in sorted(blocks, key=version_key)]
+
+
 def main():
     os.makedirs(REPO, exist_ok=True)
     parts = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>', "<addons>"]
     for addon_id, src in ADDONS.items():
         version = addon_version(src)
         out = zip_addon(addon_id, src, version)
-        xml = open(os.path.join(src, "addon.xml"), encoding="utf-8").read()
-        xml = re.sub(r"<\?xml[^>]*\?>\s*", "", xml).strip()
-        parts.append(xml)
-        print(f"{addon_id} {version} -> {os.path.relpath(out, ROOT)}")
+        blocks = all_versions_xml(addon_id, os.path.dirname(out))
+        parts.extend(blocks)
+        print(f"{addon_id} {version} -> {os.path.relpath(out, ROOT)} ({len(blocks)} verzí v seznamu)")
     parts.append("</addons>")
     addons_xml = "\n".join(parts) + "\n"
     with open(os.path.join(REPO, "addons.xml"), "w", encoding="utf-8") as f:
