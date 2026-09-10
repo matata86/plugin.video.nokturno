@@ -1072,6 +1072,10 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None):
         notify(L(30102))
         xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
         return
+    # bez tohohle skin nezná typ obsahu a nabídne jen holý „Seznam základní“
+    # místo bohatších zobrazení (plakát, popis) — jediné místo v doplňku,
+    # kde to chybělo
+    xbmcplugin.setContent(HANDLE, "videos")
     title = (video or {}).get("title") or display_name(meta)
     year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
     # do statistik jde titul bez roku — ten se posílá zvlášť polem `year`,
