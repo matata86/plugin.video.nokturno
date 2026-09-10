@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
-<addon id="plugin.video.nokturno" name="Nokturno" version="1.5.32" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="1.5.33" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -22,7 +22,8 @@
       <icon>resources/icon.png</icon>
       <fanart>resources/fanart.jpg</fanart>
     </assets>
-    <news>1.5.32 – streamy sdílely zobrazení s výsledky hledání (typ obsahu "movies" byl stejný) — teď mají "episodes", kolize je jen s obrazovkou Epizody
+    <news>1.5.33 – vlastní ikony i pro zbylé položky (katalogy, žánry, historie hledání, další strana, volba Filmy/Seriály) — dřív je mělo jen hlavní menu
+1.5.32 – streamy sdílely zobrazení s výsledky hledání (typ obsahu "movies" byl stejný) — teď mají "episodes", kolize je jen s obrazovkou Epizody
 1.5.31 – oprava: streamy pořád nabízely jen "Seznam základní" (typ obsahu "videos" nestačil, teď je stejný jako u fungujících obrazovek)
 1.5.30 – vlastní ikony pro položky hlavního menu (dřív měly všechny stejnou ikonu doplňku)
 1.5.29 – oprava: obrazovka se streamy neuměla přepnout na bohatší zobrazení (jen "Seznam základní") — chyběl typ obsahu pro skin
