@@ -43,6 +43,7 @@ PROFILE = xbmcvfs.translatePath(ADDON.getAddonInfo("profile"))
 PAGE = 20
 WS_PAGE = 40
 CACHE_TTL = 600
+SEARCH_TTL = 300  # sjednocené s luna_api.SEARCH_TTL / webshare_api.SEARCH_TTL
 SOSAC_TAG = "[COLOR FFE0A040]Sosáč[/COLOR]"
 WS_TAG = "[COLOR FF60B0FF]WebShare[/COLOR]"
 LUNA_TAG = "[COLOR FFB39DFF]Luna[/COLOR]"
@@ -796,21 +797,31 @@ def filter_year(merged, year):
 
 
 def search_source(apis, ctype, query, want_year, errors):
-    """Sloučené výsledky Luny a Sosáče pro jeden typ (film / seriál)."""
-    luna_metas, sosac_metas = [], []
-    if apis["luna"]:
-        try:
-            cid = "search.movie" if ctype == "movie" else "search.series"
-            luna_metas = apis["luna"].catalog(ctype, cid, search=query)
-        except LunaError as e:
-            errors.append(e)
-    if apis["sosac"]:
-        try:
-            sosac_metas = apis["sosac"].search(ctype, query)
-        except SosacError as e:
-            errors.append(e)
-    merged = filter_year(merge_results(luna_metas, sosac_metas), want_year)
-    return merged, bool(luna_metas) and bool(sosac_metas)
+    """Sloučené výsledky Luny a Sosáče pro jeden typ (film / seriál), s doplněnými popisy.
+
+    Celý výsledek (včetně enrich(), který u Sosáče dotahuje popis titulu) se
+    kešuje 5 minut — samotné dotažení katalogu už kešované je, ale bez tohohle
+    by se `enrich()` (dispatch do fronty vláken, čekání na dokončení) pořád
+    opakoval znovu při každém stejném hledání, i když jednotlivé položky uvnitř
+    už dávno mají vlastní 30denní cache."""
+    def load():
+        luna_metas, sosac_metas = [], []
+        if apis["luna"]:
+            try:
+                cid = "search.movie" if ctype == "movie" else "search.series"
+                luna_metas = apis["luna"].catalog(ctype, cid, search=query)
+            except LunaError as e:
+                errors.append(e)
+        if apis["sosac"]:
+            try:
+                sosac_metas = apis["sosac"].search(ctype, query)
+            except SosacError as e:
+                errors.append(e)
+        merged = filter_year(merge_results(luna_metas, sosac_metas), want_year)
+        enrich([m for m, _alt in merged if is_sosac_id(m.get("id"))], apis["luna"], STORE, ctype)
+        return merged, bool(luna_metas) and bool(sosac_metas)
+    key = f"search:{ctype}:{query.strip().lower()}:{want_year or ''}"
+    return STORE.cached(key, SEARCH_TTL, load)
 
 
 def search_run(apis, kind, query, offset=0):
@@ -860,7 +871,6 @@ def search_run(apis, kind, query, offset=0):
     xbmcplugin.setContent(HANDLE, "tvshows" if ctype == "series" else "movies")
     if merged is None:
         merged, mixed = search_source(apis, ctype, query, want_year, errors)
-    enrich([m for m, _alt in merged if is_sosac_id(m.get("id"))], apis["luna"], STORE, ctype)
     for meta, alt in merged:
         add_meta_item(meta, ctype, alt=alt, tag_source=mixed)
     # bez Luny (nebo když zrovna neodpovídá) nabídneme rovnou soubory z WebShare
