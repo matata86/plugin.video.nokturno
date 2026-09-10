@@ -815,6 +815,7 @@ def search_run(apis, kind, query, offset=0):
     raw_query = query
     query, want_year = split_year(query)
     errors = []
+    merged = mixed = None
     if kind == "any":
         # jedno hledání pro obojí; volba se nabídne, jen když dotaz sedí na filmy i seriály.
         # Oba dotazy běží souběžně — jinak by procházení čekalo na součet obou (7 s místo 4 s).
@@ -824,8 +825,8 @@ def search_run(apis, kind, query, offset=0):
             with ThreadPoolExecutor(max_workers=2) as pool:
                 task_movies = pool.submit(search_source, apis, "movie", query, want_year, errors)
                 task_series = pool.submit(search_source, apis, "series", query, want_year, errors)
-                movies, _m = task_movies.result()
-                series, _s = task_series.result()
+                movies, movies_mixed = task_movies.result()
+                series, series_mixed = task_series.result()
         finally:
             progress.close()
         if movies and series:
@@ -836,10 +837,14 @@ def search_run(apis, kind, query, offset=0):
                 log_error(e)
             xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
             return
+        # jen jeden typ něco našel — použije se rovnou, druhé hledání (bez indikace
+        # průběhu) by dotaz jen zbytečně zopakovalo a hlavně by dlouho tiše čekalo
         kind = "series" if series else "movie"
+        merged, mixed = (series, series_mixed) if series else (movies, movies_mixed)
     ctype = kind
     xbmcplugin.setContent(HANDLE, "tvshows" if ctype == "series" else "movies")
-    merged, mixed = search_source(apis, ctype, query, want_year, errors)
+    if merged is None:
+        merged, mixed = search_source(apis, ctype, query, want_year, errors)
     enrich([m for m, _alt in merged if is_sosac_id(m.get("id"))], apis["luna"], STORE, ctype)
     for meta, alt in merged:
         add_meta_item(meta, ctype, alt=alt, tag_source=mixed)
