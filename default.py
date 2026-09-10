@@ -636,7 +636,7 @@ def main_menu(apis):
     if not any(apis.values()):
         # bez modálního dialogu: ten by při volání z widgetu/JSON-RPC čekal na OK a zablokoval i vypínání Kodi
         notify(L(30104), xbmcgui.NOTIFICATION_WARNING, 6000)
-        folder_item(L(30107), build_url(action="settings"))
+        folder_item(L(30107), build_url(action="settings"), icon="DefaultAddonProgram.png")
         xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
         return
     # vlastní ikony místo jedné a té samé ikony doplňku u každé položky — jména
@@ -673,7 +673,8 @@ def list_catalogs(apis, ctype, src):
         if c["search"]:
             continue
         action = "genres" if c["genres"] else "catalog"
-        folder_item(c["name"], build_url(action=action, type=ctype, catalog=c["id"], src=src))
+        folder_item(c["name"], build_url(action=action, type=ctype, catalog=c["id"], src=src),
+                   icon="DefaultVideoPlaylists.png")
     xbmcplugin.endOfDirectory(HANDLE)
 
 
@@ -688,10 +689,12 @@ def list_genres(apis, ctype, cid, src):
         xbmcplugin.endOfDirectory(HANDLE)
         return
     if not cat["genre_required"]:
-        folder_item(L(30020), build_url(action="catalog", type=ctype, catalog=cid, src=src))
+        folder_item(L(30020), build_url(action="catalog", type=ctype, catalog=cid, src=src),
+                   icon="DefaultVideoPlaylists.png")
     for g in cat["genres"]:
         folder_item(GENRE_LABELS.get(g, g),
-                    build_url(action="catalog", type=ctype, catalog=cid, genre=g, src=src))
+                    build_url(action="catalog", type=ctype, catalog=cid, genre=g, src=src),
+                    icon="DefaultGenre.png")
     xbmcplugin.endOfDirectory(HANDLE)
 
 
@@ -706,7 +709,7 @@ def list_catalog(apis, ctype, cid, src, genre=None, search=None, skip=0):
     # Luna vrací stránky po ~20, ale některé katalogy o pár položek méně
     if len(metas) >= PAGE // 2:
         folder_item(L(30021), build_url(action="catalog", type=ctype, catalog=cid, src=src, genre=genre,
-                                        search=search, skip=skip + len(metas)))
+                                        search=search, skip=skip + len(metas)), icon="DefaultFolder.png")
     xbmcplugin.endOfDirectory(HANDLE)
 
 
@@ -732,13 +735,13 @@ def search_history(kind):
 
 def search_menu(kind):
     """Složka hledání: nové hledání + historie dotazů."""
-    folder_item(L(30040), build_url(action="search_new", type=kind))
+    folder_item(L(30040), build_url(action="search_new", type=kind), icon="DefaultAddonsSearch.png")
     history = search_history(kind)
     for q in history:
-        folder_item(q, build_url(action="search_run", type=kind, q=q),
+        folder_item(q, build_url(action="search_run", type=kind, q=q), icon="DefaultAddonsSearch.png",
                     context=[(L(30042), runplugin(action="history_remove", type=kind, q=q))])
     if history:
-        folder_item(L(30041), build_url(action="history_clear", type=kind))
+        folder_item(L(30041), build_url(action="history_clear", type=kind), icon="DefaultAddonsUpdates.png")
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
@@ -873,8 +876,10 @@ def search_run(apis, kind, query, offset=0):
         series, _ = results["series"]
         if movies and series:
             xbmcplugin.setContent(HANDLE, "files")
-            folder_item(f"{L(30012)} ({len(movies)})", build_url(action="search_run", type="movie", q=raw_query))
-            folder_item(f"{L(30013)} ({len(series)})", build_url(action="search_run", type="series", q=raw_query))
+            folder_item(f"{L(30012)} ({len(movies)})", build_url(action="search_run", type="movie", q=raw_query),
+                       icon="DefaultMovies.png")
+            folder_item(f"{L(30013)} ({len(series)})", build_url(action="search_run", type="series", q=raw_query),
+                       icon="DefaultTVShows.png")
             for e in errors:
                 log_error(e)
             xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
@@ -915,7 +920,8 @@ def list_ws_results(apis, query, offset=0):
     for f in files:
         add_ws_file(f)
     if offset + len(files) < total and files:
-        folder_item(L(30021), build_url(action="search_run", type="ws", q=query, offset=offset + len(files)))
+        folder_item(L(30021), build_url(action="search_run", type="ws", q=query, offset=offset + len(files)),
+                   icon="DefaultFolder.png")
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
