@@ -646,7 +646,9 @@ def collect_streams(apis, ctype, item_id, meta, alt=None):
     hlavního zdroje se hlásí dál jako dřív; dohledání v druhém zdroji si chyby
     jen zaloguje (viz `cross_streams`), takže výsledek druhého vlákna nikdy nechybí.
     """
-    direct = on("ws_in_streams", "true") and apis.get("ws") is not None
+    # WebShare se do streamů dohledává vždy, když je účet vyplněný (stejně jako HA) —
+    # není to zdvojení Luny: Luna pošle jeden dotaz, tohle víc variant (rok, originál)
+    direct = apis.get("ws") is not None
     with ThreadPoolExecutor(max_workers=3) as pool:
         main = pool.submit(all_streams, apis, ctype, item_id)
         cross = pool.submit(cross_streams, apis, ctype, item_id, meta, alt)
