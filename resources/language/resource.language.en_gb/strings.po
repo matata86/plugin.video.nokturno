@@ -489,3 +489,19 @@ msgstr "Statistics sent"
 msgctxt "#30166"
 msgid "Statistics could not be sent"
 msgstr "Statistics could not be sent"
+
+msgctxt "#30167"
+msgid "Test sources"
+msgstr "Test sources"
+
+msgctxt "#30168"
+msgid "OK"
+msgstr "OK"
+
+msgctxt "#30169"
+msgid "not set up"
+msgstr "not set up"
+
+msgctxt "#30170"
+msgid "Sources check"
+msgstr "Sources check"

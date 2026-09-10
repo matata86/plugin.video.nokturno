@@ -489,3 +489,19 @@ msgstr "Statistiky odeslány"
 msgctxt "#30166"
 msgid "Statistics could not be sent"
 msgstr "Statistiky se nepodařilo odeslat"
+
+msgctxt "#30167"
+msgid "Test sources"
+msgstr "Otestovat zdroje"
+
+msgctxt "#30168"
+msgid "OK"
+msgstr "v pořádku"
+
+msgctxt "#30169"
+msgid "not set up"
+msgstr "není nastaveno"
+
+msgctxt "#30170"
+msgid "Sources check"
+msgstr "Kontrola zdrojů"
