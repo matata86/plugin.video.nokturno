@@ -12,7 +12,7 @@ Do profilu doplňku se ukládá historie hledání, zhlédnuto/rozkoukáno (zapi
 import json
 import os
 import re
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import sys
 import time
 import urllib.parse
@@ -821,14 +821,23 @@ def search_run(apis, kind, query, offset=0):
         # Oba dotazy běží souběžně — jinak by procházení čekalo na součet obou (7 s místo 4 s).
         progress = xbmcgui.DialogProgressBG()
         progress.create("Nokturno", L(30150, "Hledat"))
+        progress.update(0)
+        results = {}
         try:
             with ThreadPoolExecutor(max_workers=2) as pool:
-                task_movies = pool.submit(search_source, apis, "movie", query, want_year, errors)
-                task_series = pool.submit(search_source, apis, "series", query, want_year, errors)
-                movies, movies_mixed = task_movies.result()
-                series, series_mixed = task_series.result()
+                futures = {pool.submit(search_source, apis, "movie", query, want_year, errors): "movie",
+                          pool.submit(search_source, apis, "series", query, want_year, errors): "series"}
+                # aktualizace v pořadí, jak doopravdy dobíhají — zůstat na pevném
+                # pořadí (nejdřív film) by procento drželo na 0 %, dokud nedoběhnou oba
+                done = 0
+                for future in as_completed(futures):
+                    results[futures[future]] = future.result()
+                    done += 1
+                    progress.update(int(done / len(futures) * 100))
         finally:
             progress.close()
+        movies, movies_mixed = results["movie"]
+        series, series_mixed = results["series"]
         if movies and series:
             xbmcplugin.setContent(HANDLE, "files")
             folder_item(f"{L(30012)} ({len(movies)})", build_url(action="search_run", type="movie", q=raw_query))
