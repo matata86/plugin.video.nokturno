@@ -12,7 +12,7 @@ import urllib.request
 
 TOKEN_RE = re.compile(r"(e1\.[A-Za-z0-9_\-]+)")
 TIMEOUT = 40
-SEARCH_TTL = 300         # hledání se mění rychle (nový titul, jiná dostupnost)
+SEARCH_TTL = 12 * 3600   # cache hledání jde smazat ručně — akce „Vymazat cache API“
 STREAM_TTL = 72 * 3600   # ale co je za soubory na WebShare/Sosáči, se skoro nemění —
                          # jen když se streamy skutečně našly, viz Store.cached_if
 
@@ -127,8 +127,8 @@ class LunaApi:
         else:
             url = self._meta_url("catalog", ctype, cid + ".json")
         loader = lambda: self._get(url).get("metas") or []  # noqa: E731
-        # hledání (search=…) se kešuje krátce — výsledky se mění (nové tituly,
-        # dostupnost); procházení katalogu bez hledání necháváme jak bylo
+        # hledání (search=…) se kešuje — výsledky se mění (nové tituly, dostupnost),
+        # ale ne rychle; procházení katalogu bez hledání necháváme jak bylo
         if search and self.cache is not None:
             return self.cache.cached(url, SEARCH_TTL, loader)
         return loader()
