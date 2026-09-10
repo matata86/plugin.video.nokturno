@@ -206,7 +206,7 @@ class SosacDirect:
     # --- hledání -------------------------------------------------------------
     def search(self, ctype, query):
         if ctype == "movie":
-            data = self._get(BASE + "/jsonsearchapi.php?q=" + urllib.parse.quote_plus(query), ttl=300)
+            data = self._get(BASE + "/jsonsearchapi.php?q=" + urllib.parse.quote_plus(query), ttl=12 * 3600)
             return [self.movie_meta(v) for v in data if v.get("l")]
         # seriály nemají vyhledávací endpoint → projít písmena (cache 1 den) a filtrovat podle názvu
         q = normalize(query)

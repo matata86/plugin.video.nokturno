@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="1.5.27" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="1.5.28" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -21,7 +21,8 @@
       <icon>resources/icon.png</icon>
       <fanart>resources/fanart.jpg</fanart>
     </assets>
-    <news>1.5.27 – opakované hledání teď skutečně rychlé i s tituly ze Sosáče (dřív se pokaždé znovu dotahoval popis, i když katalog byl už z cache)
+    <news>1.5.28 – cache hledání prodloužena na 12 hodin (streamy zůstávají 72 h); jde ji vymazat i z kontextového menu tlačítka Hledat, ne jen z Nastavení
+1.5.27 – opakované hledání teď skutečně rychlé i s tituly ze Sosáče (dřív se pokaždé znovu dotahoval popis, i když katalog byl už z cache)
 1.5.26 – hledání se kešuje 5 minut (Luna, WebShare), nalezené streamy 72 hodin — prázdný výsledek se nepamatuje, aby další pokus zkusil znovu
 1.5.25 – oprava zdvojeného roku ve statistikách ("Matrix (1999) (1999)")
 1.5.24 – oprava pádu při hledání napříč typy (Store nebyl bezpečný pro souběžný přístup ze dvou vláken, hlásilo se "dictionary changed size during iteration")

@@ -43,7 +43,7 @@ PROFILE = xbmcvfs.translatePath(ADDON.getAddonInfo("profile"))
 PAGE = 20
 WS_PAGE = 40
 CACHE_TTL = 600
-SEARCH_TTL = 300  # sjednocené s luna_api.SEARCH_TTL / webshare_api.SEARCH_TTL
+SEARCH_TTL = 12 * 3600  # sjednocené s luna_api.SEARCH_TTL / webshare_api.SEARCH_TTL
 SOSAC_TAG = "[COLOR FFE0A040]Sosáč[/COLOR]"
 WS_TAG = "[COLOR FF60B0FF]WebShare[/COLOR]"
 LUNA_TAG = "[COLOR FFB39DFF]Luna[/COLOR]"
@@ -643,7 +643,10 @@ def main_menu(apis):
         folder_item(L(30063), build_url(action="continue"))
     if apis["luna"] or apis["sosac"]:
         # jedno hledání pro filmy i seriály — když dotaz najde obojí, nabídne se volba
-        folder_item(L(30150, "Hledat"), build_url(action="search", type="any"))
+        # v kontextovém menu (podržet/kliknout pravým) jde cache hledání vymazat i odsud,
+        # ne jen z Nastavení — vynutí to čerstvá data, když se něco změnilo na zdroji
+        folder_item(L(30150, "Hledat"), build_url(action="search", type="any"),
+                   context=[(L(30106), runplugin(action="clear_cache"))])
     if apis["ws"]:
         folder_item(L(30045), build_url(action="search", type="ws"))
     if apis["luna"]:
@@ -796,14 +799,9 @@ def filter_year(merged, year):
             if str(m.get("year") or m.get("releaseInfo") or "")[:4] in (year, "")]
 
 
-def search_source(apis, ctype, query, want_year, errors):
-    """Sloučené výsledky Luny a Sosáče pro jeden typ (film / seriál), s doplněnými popisy.
-
-    Celý výsledek (včetně enrich(), který u Sosáče dotahuje popis titulu) se
-    kešuje 5 minut — samotné dotažení katalogu už kešované je, ale bez tohohle
-    by se `enrich()` (dispatch do fronty vláken, čekání na dokončení) pořád
-    opakoval znovu při každém stejném hledání, i když jednotlivé položky uvnitř
-    už dávno mají vlastní 30denní cache."""
+def _search_merge(apis, ctype, query, want_year, errors):
+    """Sloučené výsledky Luny a Sosáče pro jeden typ (film / seriál), BEZ popisů —
+    stačí na počty pro volbu Filmy/Seriály. Kešuje se 5 minut."""
     def load():
         luna_metas, sosac_metas = [], []
         if apis["luna"]:
@@ -818,9 +816,23 @@ def search_source(apis, ctype, query, want_year, errors):
             except SosacError as e:
                 errors.append(e)
         merged = filter_year(merge_results(luna_metas, sosac_metas), want_year)
-        enrich([m for m, _alt in merged if is_sosac_id(m.get("id"))], apis["luna"], STORE, ctype)
         return merged, bool(luna_metas) and bool(sosac_metas)
     key = f"search:{ctype}:{query.strip().lower()}:{want_year or ''}"
+    return STORE.cached(key, SEARCH_TTL, load)
+
+
+def search_source(apis, ctype, query, want_year, errors):
+    """`_search_merge()` + doplněné popisy — pro skutečné zobrazení seznamu.
+
+    Enrich (u Sosáče dotažení popisu, fronta vláken, čekání na dokončení) se
+    kešuje zvlášť od holého katalogu: volba Filmy/Seriály potřebuje jen počty,
+    ne popisy, a nesmí na ně čekat — ty se dotáhnou až tady, těsně předtím,
+    než se seznam skutečně vypisuje."""
+    def load():
+        merged, mixed = _search_merge(apis, ctype, query, want_year, errors)
+        enrich([m for m, _alt in merged if is_sosac_id(m.get("id"))], apis["luna"], STORE, ctype)
+        return merged, mixed
+    key = f"searchfull:{ctype}:{query.strip().lower()}:{want_year or ''}"
     return STORE.cached(key, SEARCH_TTL, load)
 
 
@@ -832,18 +844,19 @@ def search_run(apis, kind, query, offset=0):
     raw_query = query
     query, want_year = split_year(query)
     errors = []
-    merged = mixed = None
     if kind == "any":
         # jedno hledání pro obojí; volba se nabídne, jen když dotaz sedí na filmy i seriály.
         # Oba dotazy běží souběžně — jinak by procházení čekalo na součet obou (7 s místo 4 s).
+        # Jen holý katalog (_search_merge), bez popisů — na volbu Filmy/Seriály
+        # stačí počty a čekání na enrich by ji zbytečně zdrželo.
         progress = xbmcgui.DialogProgressBG()
         progress.create("Nokturno", L(30150, "Hledat"))
         progress.update(0)
         results = {}
         try:
             with ThreadPoolExecutor(max_workers=2) as pool:
-                futures = {pool.submit(search_source, apis, "movie", query, want_year, errors): "movie",
-                          pool.submit(search_source, apis, "series", query, want_year, errors): "series"}
+                futures = {pool.submit(_search_merge, apis, "movie", query, want_year, errors): "movie",
+                          pool.submit(_search_merge, apis, "series", query, want_year, errors): "series"}
                 # aktualizace v pořadí, jak doopravdy dobíhají — zůstat na pevném
                 # pořadí (nejdřív film) by procento drželo na 0 %, dokud nedoběhnou oba
                 done = 0
@@ -853,8 +866,8 @@ def search_run(apis, kind, query, offset=0):
                     progress.update(int(done / len(futures) * 100))
         finally:
             progress.close()
-        movies, movies_mixed = results["movie"]
-        series, series_mixed = results["series"]
+        movies, _ = results["movie"]
+        series, _ = results["series"]
         if movies and series:
             xbmcplugin.setContent(HANDLE, "files")
             folder_item(f"{L(30012)} ({len(movies)})", build_url(action="search_run", type="movie", q=raw_query))
@@ -863,14 +876,12 @@ def search_run(apis, kind, query, offset=0):
                 log_error(e)
             xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
             return
-        # jen jeden typ něco našel — použije se rovnou, druhé hledání (bez indikace
-        # průběhu) by dotaz jen zbytečně zopakovalo a hlavně by dlouho tiše čekalo
         kind = "series" if series else "movie"
-        merged, mixed = (series, series_mixed) if series else (movies, movies_mixed)
     ctype = kind
     xbmcplugin.setContent(HANDLE, "tvshows" if ctype == "series" else "movies")
-    if merged is None:
-        merged, mixed = search_source(apis, ctype, query, want_year, errors)
+    # vždy přes search_source() — i po volbě z Filmy/Seriály; holý katalog výše
+    # je z vlastní cache (_search_merge) skoro zadarmo, teprve tady se čeká na popisy
+    merged, mixed = search_source(apis, ctype, query, want_year, errors)
     for meta, alt in merged:
         add_meta_item(meta, ctype, alt=alt, tag_source=mixed)
     # bez Luny (nebo když zrovna neodpovídá) nabídneme rovnou soubory z WebShare

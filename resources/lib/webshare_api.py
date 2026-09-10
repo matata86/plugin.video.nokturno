@@ -16,7 +16,7 @@ API = "https://webshare.cz/api/"
 TIMEOUT = 40
 ITOA64 = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 SORTS = ("", "recent", "rating", "largest", "smallest")
-SEARCH_TTL = 300  # hledání se mění rychle — nový soubor, jiná dostupnost
+SEARCH_TTL = 12 * 3600  # cache hledání jde smazat ručně — akce „Vymazat cache API“
 
 
 def _to64(v, n):
