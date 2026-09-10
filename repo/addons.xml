@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
-<addon id="plugin.video.nokturno" name="Nokturno" version="1.5.21" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="1.5.22" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -22,7 +22,8 @@
       <icon>resources/icon.png</icon>
       <fanart>resources/fanart.jpg</fanart>
     </assets>
-    <news>1.5.21 – Luna může běžet i lokálně na stejném zařízení jako Kodi (ne jen v LAN); když Luna neodpovídá, hledání automaticky přejde na přímý fulltext WebShare
+    <news>1.5.22 – hledání napříč typy (film/seriál) neopakuje dotaz, když najde jen jeden typ — dřív to po krátkém průběhu dlouho tiše čekalo a pak najednou ukázalo výsledky
+1.5.21 – Luna může běžet i lokálně na stejném zařízení jako Kodi (ne jen v LAN); když Luna neodpovídá, hledání automaticky přejde na přímý fulltext WebShare
 1.5.20 – drobné vylepšení služby na pozadí
 1.5.19 – výchozí adresa sběrného bodu statistik
 1.5.18 – anonymní statistiky používání (v nastavení jdou vypnout)
