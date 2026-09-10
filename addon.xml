@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="1.5.39" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="1.5.40" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -21,7 +21,8 @@
       <icon>resources/icon.png</icon>
       <fanart>resources/fanart.jpg</fanart>
     </assets>
-    <news>1.5.39 – repozitář jde nově nainstalovat přímo v Kodi: stačí přidat zdroj https://nokturno.full-net.cz/repo/ a nainstalovat z něj ZIP, bez stahování v prohlížeči a přenášení do zařízení
+    <news>1.5.40 – v nastavení ubyla adresa sběrného bodu; zůstává jen přepínač
+1.5.39 – repozitář jde nově nainstalovat přímo v Kodi: stačí přidat zdroj https://nokturno.full-net.cz/repo/ a nainstalovat z něj ZIP, bez stahování v prohlížeči a přenášení do zařízení
 1.5.38 – drobné opravy
 1.5.37 – při aktualizaci doplňku už nevyskočí hláška o chybě (služba na pozadí se ukončovala ve chvíli, kdy Kodi doplněk na okamžik odregistruje)
 1.5.36 – drobné opravy
