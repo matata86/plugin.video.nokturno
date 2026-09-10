@@ -73,7 +73,7 @@ Test klientů bez Kodi: `python3 resources/lib/luna_api.py http://IP:7126 e1.XXX
 ## Anonymní statistiky
 
 Doplněk umí hlásit, jak se používá. Slouží to k jedinému: vědět, kolik lidí ho
-má, na čem běží a co se pouští. Sběr je ve výchozím stavu zapnutý a vypíná se
+má, na čem běží a o co je zájem. Sběr je ve výchozím stavu zapnutý a vypíná se
 jedním přepínačem v *Nastavení → Statistiky*.
 
 **Co se posílá**
@@ -83,7 +83,11 @@ jedním přepínačem v *Nastavení → Statistiky*.
 | náhodné id instalace | odlišení zařízení, negeneruje se z ničeho, co by šlo zpětně přiřadit |
 | verze doplňku, verze Kodi, platforma, jazyk | na čem doplněk běží |
 | kdy se čítače založily a poslední použití | kolik instalací je živých |
-| název, rok, typ a počet přehrání jednotlivých titulů | co se nejvíc pouští |
+| název, rok, typ a počet, kolikrát se u titulu zobrazily streamy | co je nejvíc žádané |
+
+Počítá se zobrazení streamů, ne přehrání. Spousta streamů nejde přehrát vůbec
+(mrtvý odkaz, region, chybějící titulky), a to nic nevypovídá o tom, jak moc
+je titul žádaný — jen o kvalitě zrovna toho jednoho odkazu.
 
 **Co se neposílá:** žádné přihlašovací údaje ke zdrojům, žádná IP adresa,
 žádný obsah hledání, nic z Traktu, nic ze stahování.

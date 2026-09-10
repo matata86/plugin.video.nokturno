@@ -51,6 +51,7 @@ QUALITY_COLORS = {4: "FFFFC94D", 3: "FF7FE07F", 2: "FF7FC8FF", 1: "FFA0A0A0"}
 LANG_COLORS = {"CZ": "FF7FE07F", "SK": "FF7FE07F", "EN": "FFE0E0E0"}
 GREY = "FF9A9A9A"
 PLAYING_PROP = "nokturno.playing"
+VIEWED_PROP = "nokturno.viewed"   # služba si odsud bere „u titulu se zobrazily streamy“ pro statistiky
 USED_PROP = "nokturno.used"    # služba si odsud bere „doplněk byl otevřen“ pro statistiky
 PREF_LANGS = ("", "CZ", "SK", "EN")
 STREAM_ORDERS = ("source", "quality", "size_desc", "size_asc")
@@ -598,6 +599,15 @@ def mark_playing(key, title="", year=None, kind="movie"):
         {"id": key, "title": title, "year": year, "kind": kind}))
 
 
+def mark_viewed(key, title="", year=None, kind="movie"):
+    """Titul, u kterého se právě zobrazily streamy — nezávisle na tom, jestli si
+    uživatel nějaký pustí. Vypovídá o zájmu líp než počítání přehrání: spousta
+    streamů nejde přehrát vůbec (mrtvý odkaz, region, žádná titulková stopa)
+    a to není chyba diváka."""
+    xbmcgui.Window(10000).setProperty(VIEWED_PROP, json.dumps(
+        {"id": key, "title": title, "year": year, "kind": kind}))
+
+
 def mark_used():
     """Otevření doplňku – službě to stačí pro „naposledy použito“ ve statistikách."""
     xbmcgui.Window(10000).setProperty(USED_PROP, str(int(time.time())))
@@ -1019,6 +1029,8 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None):
         xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
         return
     title = (video or {}).get("title") or display_name(meta)
+    year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
+    mark_viewed(item_id, title, year if year.isdigit() else None, "series" if video else ctype)
     for s in streams:
         li = xbmcgui.ListItem(label=stream_label(s))
         li.setArt(art_for(meta, video))
