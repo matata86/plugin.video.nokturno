@@ -18,7 +18,7 @@ import threading
 import time
 
 OLD_ADDON_ID = "plugin.video.luna"  # do 1.3.0 se doplněk jmenoval takhle
-DATA_FILES = ("history", "watched", "items", "favourites", "downloads", "trakt")
+DATA_FILES = ("history", "watched", "items", "favourites", "downloads", "trakt", "streampref")
 HISTORY_MAX = 30
 WATCHED_MAX = 5000
 ITEMS_MAX = 2000
@@ -188,6 +188,20 @@ class Store:
         if len(data) > limit:
             for key in sorted(data, key=lambda k: data[k].get("ts", 0))[: len(data) - limit]:
                 del data[key]
+
+    # --- zapamatovaná volba streamu u seriálu ----------------------------------------
+    # {id seriálu: {"source", "quality", "langs", "ts"}} — jakou kombinaci si uživatel
+    # vybral naposledy; další díly se pak pustí bez dialogu, když ji mají k dispozici.
+    def stream_pref(self, series_id):
+        with self._lock:
+            return self.load("streampref", {}).get(str(series_id))
+
+    def set_stream_pref(self, series_id, pref):
+        with self._lock:
+            data = self.load("streampref", {})
+            data[str(series_id)] = dict(pref, ts=int(time.time()))
+            self._trim(data, 300)
+            self.save("streampref", data)
 
     # --- snímky titulů (pro seznamy bez dotazu na API) --------------------------------
     def remember_item(self, key, info):

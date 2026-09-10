@@ -36,6 +36,9 @@ USED_PROP = "nokturno.used"
 WATCHED_PCT = 0.90
 MIN_RESUME = 60  # s – kratší kousek nemá cenu pamatovat
 POLL = 5
+WARM_DELAY = 180          # po startu Kodi nechat nejdřív doběhnout skin a widgety
+WARM_EVERY = 3 * 3600     # žebříčky Sosáče mají TTL 3 h, Luna 12 h
+WARM_RETRY = 10 * 60      # když se zrovna přehrává, zahřívání počká
 CHUNK = 1024 * 1024
 PROFILE = xbmcvfs.translatePath(ADDON.getAddonInfo("profile"))
 
@@ -148,6 +151,8 @@ class Player(xbmc.Player):
             self.store.set_resume(item_id, self.position, self.total)
             log(f"rozkoukáno {item_id} @ {int(self.position)} s")
         self.trakt_scrobble("stop", self.progress())
+        if split_key(item_id)[1] is not None:
+            prefetch_next_later()
         self.item = None
 
     def onPlayBackStopped(self):
@@ -228,6 +233,70 @@ class Downloader(threading.Thread):
                 xbmcgui.Dialog().notification(L(30000), Lf(30075, job.get("name", "")), xbmcgui.NOTIFICATION_ERROR, 5000)
 
 
+# --- zahřívání cache -----------------------------------------------------------------
+# Domovská obrazovka (widgety) i hlavní menu čtou katalogy z cache doplňku. Když ji
+# služba potichu obnoví dřív, než vyprší, uživatel čeká na síť jen výjimečně.
+# Jde to přes běžný výpis pluginu (Files.GetDirectory), ne přes API napřímo — projde
+# tím i doplnění popisů u Sosáče a nic se nepočítá do statistik (to dělá jen
+# hlavní menu a seznam streamů). Streamy dalšího dílu má vlastní akci `prefetch`.
+
+def warm_urls():
+    """Katalogy, ze kterých žijí widgety a hlavní menu — jen pro zapnuté zdroje."""
+    base = "plugin://plugin.video.nokturno/?action=catalog&src={src}&type={t}&catalog={c}"
+    urls = []
+    if ADDON.getSetting("luna_enabled") != "false":
+        for t, c in (("movie", "tmdb.trending_movie"), ("series", "tmdb.trending_series")):
+            urls.append(base.format(src="luna", t=t, c=c) + "&genre=Week")
+        for t, c in (("movie", "tmdb.top_movie"), ("series", "tmdb.top_series")):
+            urls.append(base.format(src="luna", t=t, c=c))
+    if ADDON.getSetting("sosac_enabled") != "false":
+        for t, c in (("movie", "moviesmostpopular"), ("movie", "moviesrecentlyadded"),
+                     ("series", "tvshowsmostpopular"), ("series", "tvshowsrecentlyadded")):
+            urls.append(base.format(src="sosac", t=t, c=c))
+    return urls
+
+
+def rpc_directory(url):
+    xbmc.executeJSONRPC(json.dumps({"jsonrpc": "2.0", "id": 1, "method": "Files.GetDirectory",
+                                    "params": {"directory": url, "media": "video"}}))
+
+
+def warm_caches(monitor, what="all"):
+    try:
+        if what in ("all", "catalogs"):
+            for url in warm_urls():
+                if monitor.abortRequested():
+                    return
+                rpc_directory(url)
+        if what in ("all", "next"):
+            rpc_directory("plugin://plugin.video.nokturno/?action=prefetch&kind=next")
+        log(f"cache zahřáta ({what})")
+    except Exception as e:  # noqa: BLE001 – zahřívání nesmí nikdy nic shodit
+        log(f"zahřívání cache: {e}", xbmc.LOGWARNING)
+
+
+def warmer(monitor):
+    """Vlákno: první zahřátí chvíli po startu, pak každé tři hodiny; ne během přehrávání."""
+    if monitor.waitForAbort(WARM_DELAY):
+        return
+    while not monitor.abortRequested():
+        if xbmc.Player().isPlaying():
+            if monitor.waitForAbort(WARM_RETRY):
+                return
+            continue
+        warm_caches(monitor)
+        if monitor.waitForAbort(WARM_EVERY):
+            return
+
+
+def prefetch_next_later():
+    """Po dokoukání dílu předstáhnout streamy toho dalšího — Up Next se pak neptá sítě."""
+    def run():
+        xbmc.sleep(15000)
+        warm_caches(xbmc.Monitor(), "next")
+    threading.Thread(target=run, daemon=True).start()
+
+
 # --- statistiky ---------------------------------------------------------------------
 
 def stats_context(addon):
@@ -284,6 +353,7 @@ def main():
     stats = Stats(PROFILE)
     player = Player(store, stats)
     Downloader(store, monitor).start()
+    threading.Thread(target=warmer, args=(monitor,), daemon=True).start()
     log("start")
     while not monitor.abortRequested():
         player.tick()

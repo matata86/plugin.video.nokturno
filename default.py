@@ -28,7 +28,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "res
 from luna_api import LunaApi, LunaError, parse_base_url, parse_token  # noqa: E402
 from sosac_api import SosacApi, SosacError, names_match, register as sosac_register  # noqa: E402
 from sosac_api import is_sosac_id as _is_stremio_sosac_id  # noqa: E402
-from sosac_direct import SosacDirect, is_direct_id  # noqa: E402
+from sosac_direct import EXPORT as SOSAC_EXPORT, SosacDirect, is_direct_id  # noqa: E402
 from enrich import enrich, enrich_one  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
 from streams import arrange, langs_from_name, parse_stream, subs_from_name  # noqa: E402
@@ -536,8 +536,16 @@ def all_streams(apis, ctype, item_id):
 
 
 def collect_streams(apis, ctype, item_id, meta, alt=None):
-    """Streamy ze zdroje titulu + z druhého zdroje, vyfiltrované a seřazené podle nastavení."""
-    streams = all_streams(apis, ctype, item_id) + cross_streams(apis, ctype, item_id, meta, alt)
+    """Streamy ze zdroje titulu + z druhého zdroje, vyfiltrované a seřazené podle nastavení.
+
+    Oba dotazy běží souběžně — dřív šly za sebou a čas byl jejich součet. Chyba
+    hlavního zdroje se hlásí dál jako dřív; dohledání v druhém zdroji si chyby
+    jen zaloguje (viz `cross_streams`), takže výsledek druhého vlákna nikdy nechybí.
+    """
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        main = pool.submit(all_streams, apis, ctype, item_id)
+        extra = pool.submit(cross_streams, apis, ctype, item_id, meta, alt).result()
+        streams = main.result() + extra
     try:
         max_gb = float(setting("max_size_gb", "0").replace(",", ".") or 0)
     except ValueError:
@@ -550,6 +558,46 @@ def collect_streams(apis, ctype, item_id, meta, alt=None):
         order=STREAM_ORDERS[int(setting("sort_streams", "0"))],
         pref_surround=on("pref_surround", "false"),
     )
+
+
+def stream_signature(s):
+    """Co si z vybraného streamu pamatovat: zdroj, kvalita a jazyky zvuku."""
+    parse_stream(s)
+    return {"source": s.get("source") or "", "quality": int(s.get("quality_rank") or 0),
+            "langs": sorted(s.get("langs") or [])}
+
+
+def preferred_stream(streams, pref):
+    """Stream odpovídající zapamatované volbě, nebo None (→ dialog / nejlepší).
+
+    Nejdřív přesná shoda (zdroj, kvalita, všechny jazyky), pak aspoň zdroj a
+    kvalita — u dalšího dílu bývá zvuk stejný, ale ne vždy jsou stejné značky.
+    """
+    if not pref:
+        return None
+    want = set(pref.get("langs") or [])
+    for strict in (True, False):
+        for st in streams:
+            parse_stream(st)
+            if (st.get("source") or "") != pref.get("source") or int(st.get("quality_rank") or 0) != int(pref.get("quality") or 0):
+                continue
+            if strict and not want <= set(st.get("langs") or []):
+                continue
+            return st
+    return None
+
+
+def pref_param(s):
+    sig = stream_signature(s)
+    return f"{sig['source']}|{sig['quality']}|{','.join(sig['langs'])}"
+
+
+def pref_from_param(value):
+    try:
+        source, quality, langs = (value or "").split("|", 2)
+    except ValueError:
+        return None
+    return {"source": source, "quality": int(quality or 0), "langs": [x for x in langs.split(",") if x]}
 
 
 def stream_label(s):
@@ -622,6 +670,64 @@ def mark_viewed(key, title="", year=None, kind="movie"):
 def mark_used():
     """Otevření doplňku – službě to stačí pro „naposledy použito“ ve statistikách."""
     xbmcgui.Window(10000).setProperty(USED_PROP, str(int(time.time())))
+
+
+def test_sources():
+    """Tlačítko v nastavení: během pár vteřin řekne, který zdroj nefunguje a proč.
+
+    Dřív se to poznalo až z prázdného seznamu streamů. Volá se mimo cache, aby
+    zelená nebyla jen ozvěna včerejší odpovědi.
+    """
+    luna, sosac, ws = get_luna(), get_sosac(), get_webshare()
+    checks = {
+        "Luna": (lambda: len((luna._get(luna._meta_url("manifest.json")) or {}).get("catalogs", []))) if luna else None,
+        "Sosáč": (lambda: len(sosac._get(SOSAC_EXPORT + "souboryzanry.json", ttl=0) or {}))
+        if isinstance(sosac, SosacDirect) else None,
+        "WebShare": (lambda: bool(ws.login())) if ws else None,
+    }
+    lines = []
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        futures = {name: pool.submit(fn) for name, fn in checks.items() if fn}
+        for name in checks:
+            if name not in futures:
+                lines.append(f"{name}: {L(30169)}")
+                continue
+            try:
+                result = futures[name].result(timeout=20)
+                lines.append(f"{name}: {L(30168)}" + (f" ({result})" if isinstance(result, int) else ""))
+            except Exception as e:  # noqa: BLE001 – přesně tohle chceme uživateli ukázat
+                lines.append(f"{name}: {str(e)[:90]}")
+    if ws:
+        remember_ws_token(ws)
+    xbmcgui.Dialog().ok(L(30170), "\n".join(lines))
+
+
+def prefetch(apis, kind):
+    """Zahřátí cache — volá služba na pozadí, nic se nevypisuje ani nepočítá.
+
+    Katalogy zahřívá služba přes běžný výpis (Files.GetDirectory), protože ten
+    projde i doplněním popisů; tohle je jen pro streamy dalších dílů, kde by
+    běžná cesta (`list_streams`) započítala zobrazení do statistik.
+    """
+    if kind == "next":
+        seen = set()
+        for key, _entry in STORE.recently_watched(15):
+            snap = STORE.item(key)
+            if not snap or snap.get("season") is None or snap.get("series") in seen:
+                continue
+            seen.add(snap.get("series"))
+            found = next_episode(apis, snap)
+            if not found:
+                continue
+            video, meta = found
+            ep_id = video.get("id") or f"{snap['series']}:{video.get('season')}:{video.get('episode')}"
+            if STORE.playcount(ep_id):
+                continue
+            try:
+                collect_streams(apis, "series", ep_id, meta, snap.get("alt"))
+            except Errors as e:
+                log_error(f"prefetch {ep_id}: {e}")
+    xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
 
 
 def stats_send():
@@ -1063,12 +1169,22 @@ def list_episodes(apis, series_id, season, alt=None):
     xbmcplugin.setContent(HANDLE, "episodes")
     videos = [v for v in meta.get("videos") or [] if int(v.get("season") or 0) == season]
     videos.sort(key=lambda v: int(v.get("episode") or 0))
-    for v in videos:
+    ep_ids = [v.get("id") or f"{series_id}:{season}:{v.get('episode')}" for v in videos]
+    # „další na řadě" = první nezhlédnutý díl za posledním zhlédnutým v téhle sezóně;
+    # dokud v ní nic zhlédnuté není, neoznačuje se nic (nemá co navazovat)
+    watched = [bool(STORE.playcount(ep_id)) for ep_id in ep_ids]
+    next_up = next((i for i in range(max((i for i, w in enumerate(watched) if w), default=-1) + 1, len(videos))
+                    if not watched[i]), None) if any(watched) else None
+    for i, v in enumerate(videos):
         label = "%d. %s" % (int(v.get("episode") or 0), v.get("title") or "")
+        if i == next_up:
+            label = f"[COLOR {LANG_COLORS.get('CZ', 'FFFFC94D')}]»[/COLOR] {label}"
         li = xbmcgui.ListItem(label=label)
+        if i == next_up:
+            li.setProperty("nokturno.next", "true")
         li.setArt(art_for(meta, v))
         fill_info(li, meta, "series", video=v)
-        ep_id = v.get("id") or f"{series_id}:{season}:{v.get('episode')}"
+        ep_id = ep_ids[i]
         apply_watched(li, ep_id, [fav_context(ep_id, "series", series_id, alt)])
         add_playable(li, "series", ep_id, series_id=series_id, alt=alt)
     xbmcplugin.endOfDirectory(HANDLE)
@@ -1111,7 +1227,7 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None):
         li.setProperty("IsPlayable", "true")
         # přehrání jde přes plugin (ne přímo URL), aby služba věděla, co se hraje
         url = build_url(action="play", type=ctype, id=item_id, series=series_id, url=s["url"],
-                        subs="|".join(s.get("subtitles") or []))
+                        subs="|".join(s.get("subtitles") or []), pref=pref_param(s))
         xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=False)
     xbmcplugin.endOfDirectory(HANDLE)
 
@@ -1173,23 +1289,31 @@ def upnext_notify(meta, video, series_id, alt=None):
         "sender": f"{ADDON_ID}.SIGNAL", "message": "upnext_data", "data": [encoded]}}))
 
 
-def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs=""):
+def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref=""):
     meta, video = load_meta(apis, ctype, item_id, series_id)
+    # u seriálu si pamatujeme, jaký stream si uživatel vybral — další díl (Up Next,
+    # Pokračovat, widget) pak jede stejně bez ptaní; klíč je seriál, ne díl
+    pref_key = (series_id or split_episode_id(item_id)[0]) if video else None
     if url:
         chosen = {"url": url, "subtitles": [s for s in subs.split("|") if s]}
+        if pref_key and pref_from_param(pref):
+            STORE.set_stream_pref(pref_key, pref_from_param(pref))
     else:
         streams = collect_streams(apis, ctype, item_id, meta, alt)
         if not streams:
             notify(L(30102))
             xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
             return
-        chosen = streams[0]
-        if setting("stream_mode", "1") == "2":
+        remembered = preferred_stream(streams, STORE.stream_pref(pref_key)) if pref_key else None
+        chosen = remembered or streams[0]
+        if setting("stream_mode", "1") == "2" and remembered is None:
             idx = xbmcgui.Dialog().select(L(30024), [stream_label(s) for s in streams])
             if idx < 0:
                 xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
                 return
             chosen = streams[idx]
+            if pref_key:
+                STORE.set_stream_pref(pref_key, stream_signature(chosen))
     title = (video or {}).get("title") or display_name(meta)
     # label i InfoTag: při přímém otevření (JSON-RPC, widgety) nemá Kodi původní položku seznamu
     li = xbmcgui.ListItem(label=title, path=resolve_url(apis, chosen["url"]))
@@ -1397,6 +1521,7 @@ def router(query):
         "clear_cache": lambda: (STORE.clear_cache(), notify(L(30099)),
                                 xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
         "stats_send": stats_send,
+        "test_sources": test_sources,
         "settings": lambda: (xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False), ADDON.openSettings()),
     }
     if action in simple:
@@ -1419,6 +1544,8 @@ def router(query):
             search_run(apis, p["type"], p.get("q", ""), offset=int(p.get("offset") or 0))
         elif action == "continue":
             list_continue(apis)
+        elif action == "prefetch":
+            prefetch(apis, p.get("kind", "next"))
         elif action == "toggle_fav":
             toggle_fav(apis, p["id"], p.get("type", "movie"), p.get("series"), p.get("alt"))
         elif action == "seasons":
@@ -1428,7 +1555,8 @@ def router(query):
         elif action == "streams":
             list_streams(apis, p["type"], p["id"], p.get("series"), alt=p.get("alt"))
         elif action == "play":
-            play(apis, p["type"], p["id"], p.get("series"), url=p.get("url"), alt=p.get("alt"), subs=p.get("subs", ""))
+            play(apis, p["type"], p["id"], p.get("series"), url=p.get("url"), alt=p.get("alt"), subs=p.get("subs", ""),
+                 pref=p.get("pref", ""))
         elif action == "play_ws":
             play_ws(apis, p["ident"], p.get("name", ""))
         elif action == "download":

@@ -21,6 +21,7 @@ from sosac_api import SosacError, names_match, normalize  # Kodi načítá lib p
 BASE = "http://tv.sosac.to"
 EXPORT = BASE + "/vystupy5981/"
 STREAMUJ_API = "https://www.streamuj.tv/json_api_player.php?"
+LIST_TTL = 3 * 3600   # žebříčky (nejpopulárnější, nově přidané)
 IMAGE_MOVIE = "https://movies.sosac.tv/images/75x109/movie-"
 IMAGE_MOVIE_BIG = "https://movies.sosac.tv/images/558x313/movie-"
 IMAGE_SERIES = "https://movies.sosac.tv/images/558x313/serial-"
@@ -172,12 +173,14 @@ class SosacDirect:
             items = [self.movie_meta(v) for v in self._get(EXPORT + f"souboryaz/{(genre or 'a').lower()}.json")]
         elif cid == "tvaz":
             items = [self.series_meta(v) for v in self._get(EXPORT + f"tvpismena/{(genre or 'a').lower()}.json")]
+        # žebříčky se mění pomalu a služba je na pozadí zahřívá po třech hodinách —
+        # kratší TTL by znamenalo, že uživatel stejně trefí studenou cache
         elif cid == "tvshowsrecentlyadded":
-            items = [self.episode_meta(v) for v in self._get(EXPORT + cid + ".json")]
+            items = [self.episode_meta(v) for v in self._get(EXPORT + cid + ".json", ttl=LIST_TTL)]
         elif ctype == "series":
-            items = [self.series_meta(v) for v in self._get(EXPORT + cid + ".json")]
+            items = [self.series_meta(v) for v in self._get(EXPORT + cid + ".json", ttl=LIST_TTL)]
         else:
-            items = [self.movie_meta(v) for v in self._get(EXPORT + cid + ".json")]
+            items = [self.movie_meta(v) for v in self._get(EXPORT + cid + ".json", ttl=LIST_TTL)]
         items = [m for m in items if m]
         return items[skip:skip + page]
 
