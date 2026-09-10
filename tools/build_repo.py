@@ -42,9 +42,6 @@ def addon_assets(path):
     return out
 
 
-KEEP_VERSIONS = 2  # aktuální zip + předchozí — viz komentář u úklidu níže
-
-
 def zip_addon(addon_id, src, version):
     out_dir = os.path.join(REPO, addon_id)
     os.makedirs(out_dir, exist_ok=True)
@@ -60,19 +57,11 @@ def zip_addon(addon_id, src, version):
     if addon_id.startswith("repository."):
         # stabilní název pro odkaz v README (verzovaný zip zůstává pro Kodi)
         shutil.copy(out, os.path.join(out_dir, f"{addon_id}.zip"))
-    # Smazat verzované zipy až na pár posledních — hned po vydání může mít
-    # klient ještě starou addons.xml (GitHub raw content se propaguje na
-    # všechny servery pár minut) a stáhl by si podle ní starší verzi.
-    # Bez tohohle na ni narazí na 404, i když z pohledu repozitáře je
-    # všechno v pořádku (viz past 2026-09-10 — Office s tím mělo problém).
-    prefix = f"{addon_id}-"
-    versioned = sorted(
-        (f for f in os.listdir(out_dir) if f.startswith(prefix) and f.endswith(".zip")),
-        key=lambda f: os.path.getmtime(os.path.join(out_dir, f)),
-        reverse=True,
-    )
-    for old in versioned[KEEP_VERSIONS:]:
-        os.remove(os.path.join(out_dir, old))
+    # Staré verzované zipy se nemažou — zůstávají v repu všechny (jde se k nim
+    # vrátit ruční instalací ze ZIPu, kdyby nová verze něco pokazila) a navíc
+    # to řeší i past 2026-09-10: klient s čerstvě staženou addons.xml, co ještě
+    # ukazuje na starou verzi (GitHub raw content se propaguje pár minut),
+    # by jinak po starém zipu sáhl a dostal 404.
     # Ikona/fanart musí ležet přesně na cestě, kterou addon.xml deklaruje
     # (u pluginu „resources/icon.png“, u repozitáře jen „icon.png“) — Kodi si
     # při náhledu v Instalovat ze zdroje stahuje `<datadir>/<addon_id>/<ta cesta>`
