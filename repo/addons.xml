@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
-<addon id="plugin.video.nokturno" name="Nokturno" version="1.5.25" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="1.5.26" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -22,7 +22,8 @@
       <icon>resources/icon.png</icon>
       <fanart>resources/fanart.jpg</fanart>
     </assets>
-    <news>1.5.25 – oprava zdvojeného roku ve statistikách ("Matrix (1999) (1999)")
+    <news>1.5.26 – hledání se kešuje 5 minut (Luna, WebShare), nalezené streamy 72 hodin — prázdný výsledek se nepamatuje, aby další pokus zkusil znovu
+1.5.25 – oprava zdvojeného roku ve statistikách ("Matrix (1999) (1999)")
 1.5.24 – oprava pádu při hledání napříč typy (Store nebyl bezpečný pro souběžný přístup ze dvou vláken, hlásilo se "dictionary changed size during iteration")
 1.5.23 – ukazatel průběhu při hledání napříč typy se skutečně hýbe (dřív zůstával na 0 %, dokud nedoběhlo úplně vše)
 1.5.22 – hledání napříč typy (film/seriál) neopakuje dotaz, když najde jen jeden typ — dřív to po krátkém průběhu dlouho tiše čekalo a pak najednou ukázalo výsledky

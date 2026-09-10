@@ -179,7 +179,7 @@ def get_webshare():
     if not user or not pw:
         return None
     # token WebShare přežije mezi voláními pluginu – šetří login
-    return WebshareApi(user, pw, token=xbmcgui.Window(10000).getProperty("nokturno.ws_token"))
+    return WebshareApi(user, pw, token=xbmcgui.Window(10000).getProperty("nokturno.ws_token"), cache=STORE)
 
 
 def remember_ws_token(api):
