@@ -18,14 +18,18 @@ Přihlašovací údaje zůstávají v Kodi — doplněk je posílá jen službě
 - **rok v dotazu je filtr** — „Pět švestek 2026“ vrátí jen film z roku 2026; číslo, které patří k názvu („2012“, „Blade Runner 2049“), se jako rok nebere
 - **Hledat na WebShare** — soubory přímo z WebShare API (řazení: relevance / nejnovější / hodnocení / velikost)
 - **katalogy** Luny (TMDB) i Sosáče; seriály → série → epizody s plakáty, popisy, hodnocením, obsazením
-- **streamy z více zdrojů u jednoho titulu** (WebShare přes Lunu, fulltext WebShare, Sosáč) s popisem kvality, bitrate, velikosti, jazyků zvuku a titulků; filtr (preferovaný jazyk, skrýt SD, max. velikost) a řazení, nebo automaticky nejlepší
+- **streamy z více zdrojů u jednoho titulu** — Luna, přímý fulltext WebShare i Sosáč se prohledají **souběžně** a stejný soubor nalezený víc cestami se ukáže jen jednou; u každého streamu je zdroj, kvalita (u souborů bez kvality v názvu odhad podle velikosti se značkou `~`), bitrate, velikost a jazyky zvuku i titulků; filtr (preferovaný jazyk, prostorový zvuk, skrýt SD, max. velikost) a řazení, nebo se pustí automaticky nejlepší
 - **Pokračovat ve sledování** (rozkoukané + další díl), **Můj seznam**, **Naposledy zhlédnuté**, historie hledání, zhlédnuto/rozkoukáno (i bez Kodi knihovny)
+- **Zapamatovaný stream u seriálu** — jakmile si u seriálu jednou vybereš stream (zdroj, kvalitu, jazyk), další díly se pustí stejně bez ptaní; výběr se nabídne, jen když u dílu ta kombinace chybí
+- **Značka dalšího dílu** — v seznamu epizod je `»` u prvního nezhlédnutého dílu, který navazuje na poslední zhlédnutý
+- **Otestovat zdroje** — tlačítko v *Nastavení → Pokročilé* ověří Lunu, Sosáč i přihlášení k WebShare a řekne, co nefunguje, bez čekání na prázdný seznam streamů
+- **Rychlejší procházení** — služba na pozadí drží načtené katalogy pro domovskou obrazovku a předstahuje streamy dalšího dílu rozkoukaných seriálů, takže se otevírají hned
 - **Stahování** streamů i souborů na pozadí do zvolené složky
 - **Trakt.tv** scrobble (vlastní client id/secret), IMDb id pro doplňky titulků, cesty pro widgety skinu
 - **hodnocení v procentech** — položky nesou vlastnost `RatingPercent` („58 %“) vedle běžného ratingu, takže ji skin může ukázat místo hvězdiček
 - **anonymní statistiky** používání, které jdou v nastavení vypnout (viz níže)
 - **Synchronizace mezi více Kodi** — zhlédnuto, rozkoukané (i pozice) a Můj seznam se sdílí přes integraci [Nokturno pro Home Assistant](https://github.com/matata86/nokturno-ha): v HA si v nastavení integrace opiš klíč, v Kodi zapni *Nastavení → Synchronizace*, vyplň adresu HA a klíč. Běží na pozadí, ručně přes „Synchronizovat teď" v menu
-- **Up Next** — je-li nainstalovaná služba [Up Next](https://kodi.tv/addons/omega/service.upnext), dostane u seriálů informaci o dalším dílu a ke konci epizody nabídne jeho přehrání
+- **Up Next** — je-li nainstalovaná služba [Up Next](https://kodi.tv/addons/omega/service.upnext), dostane u seriálů informaci o dalším dílu a ke konci epizody nabídne jeho přehrání (a s zapamatovaným streamem ho pustí rovnou)
 
 ## Předpoklady
 
