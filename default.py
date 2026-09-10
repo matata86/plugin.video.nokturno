@@ -1076,9 +1076,15 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None):
         return
     # Bez tohohle skin nezná typ obsahu a nabídne jen holý „Seznam základní“
     # (jediné místo v doplňku, kde to chybělo). "videos" nestačí — bohatší
-    # zobrazení (plakát, popis) skin zjevně váže na konkrétní typ, stejný,
-    # jaký mají fungující obrazovky (list_catalog, list_episodes).
-    xbmcplugin.setContent(HANDLE, "episodes" if video else "movies")
+    # zobrazení (Seznam médií) skin nabízí jen pro konkrétní typy.
+    #
+    # Past: Kodi/skin si zvolené zobrazení pamatuje podle TYPU OBSAHU okna,
+    # ne podle konkrétní obrazovky pluginu — použití "movies" tady (stejně
+    # jako u výsledků hledání) svázalo obě obrazovky do jednoho nastavení,
+    # takže změna zobrazení na jedné přepnula i tu druhou. "episodes" sdílí
+    # identitu jen s obrazovkou Epizody, na kterou se z hledání chodí přes
+    # mezikrok — kolize je tam mnohem méně nápadná než přímo s hledáním.
+    xbmcplugin.setContent(HANDLE, "episodes")
     title = (video or {}).get("title") or display_name(meta)
     year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
     # do statistik jde titul bez roku — ten se posílá zvlášť polem `year`,
