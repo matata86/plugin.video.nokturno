@@ -32,14 +32,32 @@ Aspoň jeden zdroj z tabulky výše — účet WebShare, účet Sosáče, nebo s
 
 ## Instalace
 
-**Doporučeno – přes repozitář (automatické aktualizace):**
+**Doporučeno – přes repozitář (automatické aktualizace).** Nejdřív je potřeba
+povolit Nastavení → Systém → Doplňky → **Neznámé zdroje**.
 
-1. Stáhni **[repository.nokturno.zip](https://github.com/matata86/plugin.video.nokturno/raw/main/repo/repository.nokturno/repository.nokturno.zip)** (vždy aktuální verze repozitáře).
-2. Kodi → Doplňky → Instalovat ze souboru ZIP (musí být povoleno „Neznámé zdroje“) → vyber ten zip.
-3. Doplňky → Instalovat z repozitáře → **Nokturno repozitář** → Video doplňky → **Nokturno** → Instalovat.
-4. Od té doby Kodi nové verze stahuje samo (nebo je nabídne, podle nastavení aktualizací).
+*Přímo v Kodi, bez prohlížeče (vhodné pro TV a set-top boxy):*
 
-**Ručně:** stáhni `plugin.video.nokturno-x.y.z.zip` z [Releases](https://github.com/matata86/plugin.video.nokturno/releases) → Kodi → Doplňky → Instalovat ze souboru ZIP.
+1. Nastavení → Správce souborů → **Přidat zdroj** → jako adresu zadej
+   `https://nokturno.full-net.cz/repo/` a pojmenuj ji třeba `Nokturno`.
+2. Doplňky → **Instalovat ze souboru ZIP** → `Nokturno` → `repository.nokturno`
+   → `repository.nokturno.zip`.
+3. Doplňky → Instalovat z repozitáře → **Nokturno repozitář** → Video doplňky →
+   **Nokturno** → Instalovat.
+
+*Nebo se ZIPem staženým v prohlížeči:* stáhni
+**[repository.nokturno.zip](https://github.com/matata86/plugin.video.nokturno/raw/main/repo/repository.nokturno/repository.nokturno.zip)**,
+přenes ho do zařízení s Kodi a pokračuj od kroku 2.
+
+Od té doby Kodi nové verze stahuje samo (nebo je nabídne, podle nastavení
+aktualizací). Kontrola běží jednou denně; hned si ji vyžádáš místní nabídkou na
+**Nokturno repozitář** → *Zkontrolovat aktualizace*.
+
+**Ručně, bez repozitáře:** stáhni `plugin.video.nokturno-x.y.z.zip` z
+[Releases](https://github.com/matata86/plugin.video.nokturno/releases) → Kodi →
+Doplňky → Instalovat ze souboru ZIP.
+
+**Návrat na starší verzi:** místní nabídka na doplňku → *Informace* → **Verze**;
+repozitář nabízí i předchozí vydání.
 
 ## Nastavení zdrojů
 
