@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="1.5.20" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="1.5.21" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -10,8 +10,8 @@
   <extension point="xbmc.addon.metadata">
     <summary lang="en_GB">Movies and series from WebShare, Sosáč and Luna: Absolute Cinema — one add-on, search across sources</summary>
     <summary lang="cs_CZ">Filmy a seriály z WebShare, Sosáče a Luny v jednom doplňku, hledání napříč</summary>
-    <description lang="en_GB">Three sources, each optional: WebShare directly (your account – file search and playback), Sosáč directly (its catalogues, series with episodes, Czech dubbing and subtitles – only a Streamuj.tv account) and a Luna: Absolute Cinema server on your LAN (TMDB catalogues, WebShare streams with detected quality and languages). Search across sources, streams from several sources for one title, continue watching, my list, downloads, Trakt. Support the author: https://ko-fi.com/matata86</description>
-    <description lang="cs_CZ">Tři zdroje, každý volitelný: WebShare přímo (tvůj účet – hledání souborů a přehrávání), Sosáč napřímo (jeho katalogy, seriály s epizodami, český dabing a titulky – stačí účet Streamuj.tv) a server Luna: Absolute Cinema v LAN (TMDB katalogy, streamy z WebShare s rozpoznanou kvalitou a jazyky). Hledání napříč zdroji, streamy z více zdrojů u jednoho titulu, pokračovat ve sledování, můj seznam, stahování, Trakt. Podpoř autora: https://ko-fi.com/matata86</description>
+    <description lang="en_GB">Three sources, each optional: WebShare directly (your account – file search and playback), Sosáč directly (its catalogues, series with episodes, Czech dubbing and subtitles – only a Streamuj.tv account) and a Luna: Absolute Cinema server, reachable on your LAN or running locally on the same device (TMDB catalogues, WebShare streams with detected quality and languages). Search across sources, streams from several sources for one title, continue watching, my list, downloads, Trakt. Support the author: https://ko-fi.com/matata86</description>
+    <description lang="cs_CZ">Tři zdroje, každý volitelný: WebShare přímo (tvůj účet – hledání souborů a přehrávání), Sosáč napřímo (jeho katalogy, seriály s epizodami, český dabing a titulky – stačí účet Streamuj.tv) a server Luna: Absolute Cinema, dostupný v LAN nebo běžící lokálně na stejném zařízení (TMDB katalogy, streamy z WebShare s rozpoznanou kvalitou a jazyky). Hledání napříč zdroji, streamy z více zdrojů u jednoho titulu, pokračovat ve sledování, můj seznam, stahování, Trakt. Podpoř autora: https://ko-fi.com/matata86</description>
     <platform>all</platform>
     <license>MIT</license>
     <source>https://github.com/matata86/plugin.video.nokturno</source>
@@ -21,7 +21,8 @@
       <icon>resources/icon.png</icon>
       <fanart>resources/fanart.jpg</fanart>
     </assets>
-    <news>1.5.20 – drobné vylepšení služby na pozadí
+    <news>1.5.21 – Luna může běžet i lokálně na stejném zařízení jako Kodi (ne jen v LAN); když Luna neodpovídá, hledání automaticky přejde na přímý fulltext WebShare
+1.5.20 – drobné vylepšení služby na pozadí
 1.5.19 – výchozí adresa sběrného bodu statistik
 1.5.18 – anonymní statistiky používání (v nastavení jdou vypnout)
 1.5.17 – položky nesou hodnocení i v procentech (vlastnost RatingPercent)
