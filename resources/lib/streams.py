@@ -76,6 +76,23 @@ def langs_from_name(name):
     return out
 
 
+def subs_from_name(name):
+    """Jazyk titulků podle názvu souboru — „…_CZtit_…“ (jedno slovo) i „…_cz_tit_…“
+    (rozdělené podpomlčkou/tečkou) → CZ. Doplňuje langs_from_name, která tahle
+    slova z audio jazyků naopak vylučuje."""
+    words = [w for w in NAME_SPLIT_RE.split(name or "") if w]
+    out = set()
+    for index, word in enumerate(words):
+        m = NAME_SUB_RE.match(word)
+        if not m:
+            continue
+        if m.group(1):
+            out.add(NAME_LANG_MAP[m.group(1).lower()])
+        elif index > 0 and NAME_LANG_RE.match(words[index - 1]):
+            out.add(NAME_LANG_MAP[words[index - 1].lower()])
+    return out
+
+
 def parse_stream(s):
     """Doplní do streamu klíče quality, size_gb, bitrate, langs, subs (idempotentní)."""
     if "quality_rank" in s:
