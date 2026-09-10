@@ -545,3 +545,7 @@ msgstr "Sync failed"
 msgctxt "#30189"
 msgid "Also offer files found directly on WebShare for titles"
 msgstr "Also offer files found directly on WebShare for titles"
+
+msgctxt "#30190"
+msgid "Downloaded in HA"
+msgstr "Downloaded in HA"

@@ -796,6 +796,35 @@ def request_sync():
     xbmcgui.Window(10000).setProperty(SYNC_PROP, "1")
 
 
+def list_ha_files():
+    """Soubory stažené integrací do HA — přehratelné z tohohle Kodi přes adresu HA
+    (může být i Nabu Casa, pak hraje i mimo síť). Podepsané odkazy dává HA."""
+    cfg = sync_settings()
+    if not cfg:
+        notify(L(30186, "Synchronizace není zapnutá nebo chybí adresa a klíč"), xbmcgui.NOTIFICATION_WARNING, 5000)
+        xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
+        return
+    base, key = cfg
+    try:
+        req = urllib.request.Request(base.rstrip("/") + "/api/nokturno/files", headers={"X-Nokturno-Key": key})
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            files = json.loads(resp.read().decode("utf-8")).get("files") or []
+    except Exception as e:  # noqa: BLE001 – HA nedostupná, špatný klíč
+        notify(f"{L(30188, 'Synchronizace selhala')}: {str(e)[:80]}", xbmcgui.NOTIFICATION_ERROR, 5000)
+        xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
+        return
+    xbmcplugin.setContent(HANDLE, "movies")
+    for f in files:
+        size = human_size(f.get("size") or 0)
+        subs = f"  [COLOR {GREY}]tit.[/COLOR]" if f.get("subtitles") else ""
+        li = xbmcgui.ListItem(label=f"{f.get('name', '')}  [COLOR {GREY}]{size}[/COLOR]{subs}")
+        li.setProperty("IsPlayable", "true")
+        li.getVideoInfoTag().setTitle(f.get("name", ""))
+        url = base.rstrip("/") + f.get("path", "")   # podepsaná relativní cesta z HA
+        xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=False)
+    xbmcplugin.endOfDirectory(HANDLE)
+
+
 def sync_now():
     """Ruční synchronizace — z hlavního menu i z nastavení."""
     cfg = sync_settings()
@@ -909,6 +938,7 @@ def main_menu(apis):
         folder_item(L(30071), build_url(action="downloads"), icon="DefaultNetwork.png")
     folder_item(L(30106), build_url(action="clear_cache"), icon="DefaultAddonsUpdates.png")
     if sync_settings():
+        folder_item(L(30190, "Staženo v HA"), build_url(action="ha_files"), icon="DefaultNetwork.png")
         folder_item(L(30184, "Synchronizovat teď"), build_url(action="sync_now"), icon="DefaultAddonService.png")
     xbmcplugin.endOfDirectory(HANDLE)
 
@@ -1664,6 +1694,7 @@ def router(query):
         "stats_send": stats_send,
         "test_sources": test_sources,
         "sync_now": sync_now,
+        "ha_files": list_ha_files,
         "settings": lambda: (xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False), ADDON.openSettings()),
     }
     if action in simple:
