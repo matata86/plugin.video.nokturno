@@ -228,13 +228,19 @@ def folder_item(label, url, icon=None, context=None):
     xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
 
 
+def bare_title(meta):
+    """Titul bez roku – u Sosáče jen titul bez jazyků a originálu."""
+    if is_sosac_id(meta.get("id")):
+        return meta.get("_title") or meta.get("name") or ""
+    return meta.get("name") or meta.get("id") or ""
+
+
 def display_name(meta):
     """Název s rokem – „Matrix (1999)“; u Sosáče jen titul bez jazyků a originálu."""
+    title = bare_title(meta)
     if is_sosac_id(meta.get("id")):
-        title = meta.get("_title") or meta.get("name") or ""
         year = str(meta.get("year") or "")[:4]
     else:
-        title = meta.get("name") or meta.get("id") or ""
         year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
     return f"{title} ({year})" if year.isdigit() else title
 
@@ -1046,7 +1052,10 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None):
         return
     title = (video or {}).get("title") or display_name(meta)
     year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
-    mark_viewed(item_id, title, year if year.isdigit() else None, "series" if video else ctype)
+    # do statistik jde titul bez roku — ten se posílá zvlášť polem `year`,
+    # display_name() ho baká přímo do řetězce a v dashboardu by se zdvojil
+    stats_title = (video or {}).get("title") or bare_title(meta)
+    mark_viewed(item_id, stats_title, year if year.isdigit() else None, "series" if video else ctype)
     for s in streams:
         li = xbmcgui.ListItem(label=stream_label(s))
         li.setArt(art_for(meta, video))
@@ -1090,7 +1099,9 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs=""):
         li.setSubtitles(subtitles)
     STORE.remember_item(item_id, snapshot(meta, ctype, video, series_id, alt))
     year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
-    mark_playing(item_id, title, year if year.isdigit() else None, "series" if video else ctype)
+    # do statistik titul bez roku, viz komentář u mark_viewed v list_streams
+    stats_title = (video or {}).get("title") or bare_title(meta)
+    mark_playing(item_id, stats_title, year if year.isdigit() else None, "series" if video else ctype)
     xbmcplugin.setResolvedUrl(HANDLE, True, li)
 
 
