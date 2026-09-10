@@ -21,7 +21,7 @@
       <icon>resources/icon.png</icon>
       <fanart>resources/fanart.jpg</fanart>
     </assets>
-    <news>1.7.0 – synchronizace zhlédnuto, rozkoukané a Mého seznamu mezi více Kodi přes integraci Nokturno v Home Assistantu (Nastavení → Synchronizace; položka „Synchronizovat teď" v menu)
+    <news>1.7.0 – synchronizace zhlédnuto, rozkoukané a Mého seznamu mezi více Kodi přes integraci Nokturno v Home Assistantu (Nastavení → Synchronizace; položka „Synchronizovat teď" v menu); k titulům se přidávají i soubory nalezené přímo na WebShare (stejně jako v kartě pro HA)
 1.6.0 – rychlejší seznam streamů (oba zdroje se prohledávají souběžně); u seriálu si doplněk pamatuje vybraný stream a další díly pouští bez ptaní; v seznamu epizod je označený díl, který je na řadě; tlačítko „Otestovat zdroje" v Pokročilém nastavení; katalogy a další díl rozkoukaného seriálu se na pozadí předstahují
 1.5.40 – v nastavení ubyla adresa sběrného bodu; zůstává jen přepínač
 1.5.39 – repozitář jde nově nainstalovat přímo v Kodi: stačí přidat zdroj https://nokturno.full-net.cz/repo/ a nainstalovat z něj ZIP, bez stahování v prohlížeči a přenášení do zařízení

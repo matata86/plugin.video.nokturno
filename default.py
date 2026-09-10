@@ -17,6 +17,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import sys
 import time
 import urllib.parse
+import unicodedata
 
 import xbmc
 import xbmcaddon
@@ -32,7 +33,7 @@ from sosac_direct import EXPORT as SOSAC_EXPORT, SosacDirect, is_direct_id  # no
 from enrich import enrich, enrich_one  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
 from sync import sync_once  # noqa: E402
-from streams import arrange, langs_from_name, parse_stream, subs_from_name  # noqa: E402
+from streams import arrange, estimate_rank, langs_from_name, parse_stream, subs_from_name  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
 from webshare_api import SORTS, WebshareApi, WebshareError, human_size  # noqa: E402
 
@@ -146,7 +147,15 @@ def get_sosac():
 
 
 def resolve_url(apis, url):
-    """'streamuj:…' odkazy Sosáče napřímo se mění na finální mp4 až při přehrání."""
+    """'streamuj:…' (Sosáč) a 'ws:<ident>' (soubor přímo z WebShare) se mění na
+    finální odkaz až při přehrání — odkazy WebShare vyprší po pár hodinách."""
+    if url and url.startswith("ws:"):
+        api = apis.get("ws")
+        if api is None:
+            raise WebshareError(L(30104))
+        link = api.file_link(url[3:])
+        remember_ws_token(api)
+        return link
     if url and url.startswith("streamuj:"):
         api = apis.get("sosac")
         if not isinstance(api, SosacDirect):
@@ -530,6 +539,99 @@ def cross_streams(apis, ctype, item_id, meta, alt=None):
     return []
 
 
+WS_LIMIT = 25
+YEAR_RE = re.compile(r"\b(19\d{2}|20\d{2})\b")
+
+
+def _fold(text):
+    """Bez diakritiky, malá písmena — pro porovnávání názvů souborů."""
+    return unicodedata.normalize("NFKD", text or "").encode("ascii", "ignore").decode().lower()
+
+
+def webshare_streams(apis, meta, video, ctype, alt=None):
+    """Tytéž soubory přímo z WebShare, navíc k tomu, co našla Luna.
+
+    Luna se WebShare ptá jedním dotazem a část souborů jí uteče (jiný přepis
+    názvu, rok v názvu, originál). Tady se hledá ve víc variantách, stejně jako
+    to dělá integrace pro HA — proto karta v HA ukazovala víc streamů než Kodi.
+    Fulltext vrací i soubory se společnou částí slov, proto se bere jen to, co
+    má všechna slova názvu (nebo originálu), správný rok a u dílu jeho číslo.
+    """
+    ws = apis.get("ws")
+    if ws is None:
+        return []
+    title = meta.get("_title") or meta.get("name") or ""
+    origs = [o for o in [meta.get("_orig") or ""] if o]
+    if alt and apis.get("sosac"):
+        try:
+            alt_meta = apis["sosac"].meta(ctype, alt)
+            origs += [o for o in (alt_meta.get("_orig") or "", alt_meta.get("_title") or "") if o]
+        except Errors:
+            pass
+    origs = [o for o in dict.fromkeys(origs) if _fold(o) != _fold(title)]
+    year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
+    year = int(year) if year.isdigit() else None
+    if video:
+        se, ep = int(video.get("season") or 0), int(video.get("episode") or 0)
+        tag = f"S{se:02d}E{ep:02d}"
+        queries = [f"{title} {tag}"] + [f"{o} {tag}" for o in origs]
+        episode_re = re.compile(rf"s{se:02d}e{ep:02d}|(?<!\d){se:02d}?x{ep:02d}(?!\d)|(?<!\d){se}x{ep:02d}(?!\d)")
+        want_year = None
+    else:
+        queries = [f"{title} {year}" if year else title, title] + [f"{o} {year}" if year else o for o in origs]
+        episode_re, want_year = None, year
+
+    def words(text):
+        return [w for w in re.split(r"[^a-z0-9]+", _fold(text)) if len(w) > 2]
+    wanted = [w for w in [words(title)] + [words(o) for o in origs] if w]
+    title_years = {int(y) for y in YEAR_RE.findall(_fold(title) + " " + " ".join(_fold(o) for o in origs))}
+
+    def relevant(name):
+        folded = _fold(name)
+        if wanted and not any(all(w in folded for w in group) for group in wanted):
+            return False
+        if want_year:
+            years = {int(y) for y in YEAR_RE.findall(folded)} - (title_years - {want_year})
+            if years and not any(abs(y - want_year) <= 1 for y in years):
+                return False
+        return not episode_re or bool(episode_re.search(folded))
+
+    out, seen = [], set()
+    for query in dict.fromkeys(q.strip() for q in queries if q.strip()):
+        try:
+            files, _total = ws.search(query, limit=WS_LIMIT)
+        except WebshareError as e:
+            log_error(f"WebShare „{query}“: {e}")
+            continue
+        for f in files:
+            if f["ident"] in seen or not relevant(f.get("name") or ""):
+                continue
+            seen.add(f["ident"])
+            # velikost do `detail` — odtud ji parse_stream čte; stejné jednotky jako u Luny
+            out.append({"url": "ws:" + f["ident"], "label": f.get("name") or "",
+                        "detail": f.get("size_h") or human_size(f.get("size") or 0), "source": "ws"})
+    remember_ws_token(ws)
+    return out
+
+
+def drop_duplicates(streams):
+    """Soubor nalezený přes Lunu i napřímo je jeden soubor — dvakrát ho neukazovat.
+    Odkaz je pokaždé jiný (Luna vs. CDN), proto se dvojice pozná podle názvu a velikosti."""
+    for s in streams:
+        parse_stream(s)
+    known = {(_fold(s.get("label")), round(s.get("size_gb") or 0, 1)) for s in streams if s.get("source") != "ws"}
+    return [s for s in streams if s.get("source") != "ws" or (_fold(s.get("label")), round(s.get("size_gb") or 0, 1)) not in known]
+
+
+def load_meta_video(meta, item_id):
+    """Díl z meta seriálu podle id epizody, u filmu None (pro hledání na WebShare)."""
+    _base, season, episode = split_episode_id(item_id)
+    if season is None:
+        return None
+    return next((v for v in meta.get("videos") or []
+                 if int(v.get("season") or 0) == season and int(v.get("episode") or 0) == episode), None)
+
+
 def all_streams(apis, ctype, item_id):
     api = api_for(apis, split_episode_id(item_id)[0])
     if isinstance(api, LunaApi):
@@ -544,10 +646,13 @@ def collect_streams(apis, ctype, item_id, meta, alt=None):
     hlavního zdroje se hlásí dál jako dřív; dohledání v druhém zdroji si chyby
     jen zaloguje (viz `cross_streams`), takže výsledek druhého vlákna nikdy nechybí.
     """
-    with ThreadPoolExecutor(max_workers=2) as pool:
+    direct = on("ws_in_streams", "true") and apis.get("ws") is not None
+    with ThreadPoolExecutor(max_workers=3) as pool:
         main = pool.submit(all_streams, apis, ctype, item_id)
-        extra = pool.submit(cross_streams, apis, ctype, item_id, meta, alt).result()
-        streams = main.result() + extra
+        cross = pool.submit(cross_streams, apis, ctype, item_id, meta, alt)
+        ws = pool.submit(webshare_streams, apis, meta, load_meta_video(meta, item_id), ctype, alt) if direct else None
+        extra = cross.result() + (ws.result() if ws else [])
+        streams = drop_duplicates(main.result() + extra)
     try:
         max_gb = float(setting("max_size_gb", "0").replace(",", ".") or 0)
     except ValueError:
@@ -619,6 +724,9 @@ def stream_label(s):
     raw = raw.strip()
     # kvalita = tučně a barevně, zbytek názvu (HDR, DV, 60 %) normálně
     quality = {4: "4K", 3: "Full HD", 2: "HD", 1: "SD"}.get(s.get("quality_rank", 0), "")
+    if not quality and s.get("size_gb"):
+        # soubor bez kvality v názvu (typicky přímo z WebShare): odhad podle velikosti, s vlnovkou
+        quality = "~" + {4: "4K", 3: "Full HD", 2: "HD", 1: "SD"}.get(estimate_rank(s["size_gb"]), "")
     import re as _re
     rest = _re.sub(r"\b(4K|Full HD|UHD|FHD|HD|SD)\b", "", raw)   # \b → „HDR“ zůstane celé
     rest = " ".join(rest.replace(" - ", " ").split())
