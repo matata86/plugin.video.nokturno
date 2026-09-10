@@ -9,6 +9,7 @@ Hledání prochází zapnuté zdroje; stejný titul z Luny a Sosáče je jen jed
 Do profilu doplňku se ukládá historie hledání, zhlédnuto/rozkoukáno (zapisuje
 `service.py`), Můj seznam, snímky titulů pro Pokračovat a fronta stahování.
 """
+import base64
 import json
 import os
 import re
@@ -1113,6 +1114,63 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None):
     xbmcplugin.endOfDirectory(HANDLE)
 
 
+def upnext_episode(meta, v, series_id):
+    """Popis dílu ve tvaru, jaký čeká služba Up Next (service.upnext)."""
+    art = art_for(meta, v)
+    ep_id = v.get("id") or f"{series_id}:{int(v.get('season') or 0)}:{int(v.get('episode') or 0)}"
+    runtime = "".join(ch for ch in str(v.get("runtime") or meta.get("runtime") or "") if ch.isdigit())
+    return {
+        "episodeid": ep_id,
+        "tvshowid": series_id,
+        "title": v.get("title") or "",
+        "art": {
+            "thumb": art.get("thumb", ""),
+            "tvshow.poster": art.get("poster", ""),
+            "tvshow.fanart": art.get("fanart", ""),
+            "tvshow.landscape": art.get("landscape", ""),
+            "tvshow.clearlogo": art.get("clearlogo", ""),
+            "tvshow.clearart": "",
+        },
+        "season": int(v.get("season") or 0),
+        "episode": int(v.get("episode") or 0),
+        "showtitle": meta.get("_title") or meta.get("name") or "",
+        "plot": v.get("overview") or "",
+        "playcount": 1 if STORE.playcount(ep_id) else 0,
+        "rating": str(meta.get("imdbRating") or ""),
+        "firstaired": str(v.get("released") or "")[:10],
+        "runtime": int(runtime) * 60 if runtime else 0,
+    }, ep_id
+
+
+def upnext_notify(meta, video, series_id, alt=None):
+    """Oznámí službě Up Next (je-li nainstalovaná) následující díl, aby ke konci
+    epizody nabídla „Další díl“ a uměla ho pustit zase přes tenhle plugin.
+
+    Up Next čeká signál `upnext_data` (JSONRPC.NotifyAll, payload base64 JSON) —
+    stejný formát posílá i modul AddonSignals, ten ale kvůli jednomu volání netaháme.
+    """
+    if not xbmc.getCondVisibility("System.HasAddon(service.upnext)"):
+        return
+    videos = [v for v in meta.get("videos") or [] if v.get("episode") is not None]
+    # speciály (sezóna 0) až na konec, jinak podle sezóny a čísla dílu
+    videos.sort(key=lambda v: (int(v.get("season") or 0) == 0, int(v.get("season") or 0), int(v.get("episode") or 0)))
+    cur = (int(video.get("season") or 0), int(video.get("episode") or 0))
+    idx = next((i for i, v in enumerate(videos)
+                if (int(v.get("season") or 0), int(v.get("episode") or 0)) == cur), None)
+    if idx is None or idx + 1 >= len(videos):
+        return
+    current, _ = upnext_episode(meta, video, series_id)
+    following, next_id = upnext_episode(meta, videos[idx + 1], series_id)
+    payload = {
+        "current_episode": current,
+        "next_episode": following,
+        "play_url": build_url(action="play", type="series", id=next_id, series=series_id, alt=alt),
+    }
+    encoded = base64.b64encode(json.dumps(payload).encode("utf-8")).decode("ascii")
+    xbmc.executeJSONRPC(json.dumps({"jsonrpc": "2.0", "id": 1, "method": "JSONRPC.NotifyAll", "params": {
+        "sender": f"{ADDON_ID}.SIGNAL", "message": "upnext_data", "data": [encoded]}}))
+
+
 def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs=""):
     meta, video = load_meta(apis, ctype, item_id, series_id)
     if url:
@@ -1144,6 +1202,8 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs=""):
     stats_title = (video or {}).get("title") or bare_title(meta)
     mark_playing(item_id, stats_title, year if year.isdigit() else None, "series" if video else ctype)
     xbmcplugin.setResolvedUrl(HANDLE, True, li)
+    if video:
+        upnext_notify(meta, video, series_id or split_episode_id(item_id)[0], alt)
 
 
 def play_ws(apis, ident, name=""):
