@@ -545,3 +545,7 @@ msgstr "Synchronizace selhala"
 msgctxt "#30189"
 msgid "Also offer files found directly on WebShare for titles"
 msgstr "U titulů nabízet i soubory nalezené přímo na WebShare"
+
+msgctxt "#30190"
+msgid "Downloaded in HA"
+msgstr "Staženo v HA"
