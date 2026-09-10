@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="1.5.30" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="1.5.31" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -21,7 +21,8 @@
       <icon>resources/icon.png</icon>
       <fanart>resources/fanart.jpg</fanart>
     </assets>
-    <news>1.5.30 – vlastní ikony pro položky hlavního menu (dřív měly všechny stejnou ikonu doplňku)
+    <news>1.5.31 – oprava: streamy pořád nabízely jen "Seznam základní" (typ obsahu "videos" nestačil, teď je stejný jako u fungujících obrazovek)
+1.5.30 – vlastní ikony pro položky hlavního menu (dřív měly všechny stejnou ikonu doplňku)
 1.5.29 – oprava: obrazovka se streamy neuměla přepnout na bohatší zobrazení (jen "Seznam základní") — chyběl typ obsahu pro skin
 1.5.28 – cache hledání prodloužena na 12 hodin (streamy zůstávají 72 h); jde ji vymazat i z kontextového menu tlačítka Hledat, ne jen z Nastavení
 1.5.27 – opakované hledání teď skutečně rychlé i s tituly ze Sosáče (dřív se pokaždé znovu dotahoval popis, i když katalog byl už z cache)
