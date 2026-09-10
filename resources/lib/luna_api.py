@@ -12,6 +12,9 @@ import urllib.request
 
 TOKEN_RE = re.compile(r"(e1\.[A-Za-z0-9_\-]+)")
 TIMEOUT = 40
+SEARCH_TTL = 300         # hledání se mění rychle (nový titul, jiná dostupnost)
+STREAM_TTL = 72 * 3600   # ale co je za soubory na WebShare/Sosáči, se skoro nemění —
+                         # jen když se streamy skutečně našly, viz Store.cached_if
 
 # Luna používá emoji, které fonty Kodi skinů většinou neumí – nahradíme textem.
 EMOJI_MAP = {
@@ -123,14 +126,25 @@ class LunaApi:
             url = self._meta_url("catalog", ctype, cid, "&".join(extra) + ".json")
         else:
             url = self._meta_url("catalog", ctype, cid + ".json")
-        return self._get(url).get("metas") or []
+        loader = lambda: self._get(url).get("metas") or []  # noqa: E731
+        # hledání (search=…) se kešuje krátce — výsledky se mění (nové tituly,
+        # dostupnost); procházení katalogu bez hledání necháváme jak bylo
+        if search and self.cache is not None:
+            return self.cache.cached(url, SEARCH_TTL, loader)
+        return loader()
 
     def meta(self, ctype, item_id):
         return self._get_cached(self._meta_url("meta", ctype, item_id + ".json")).get("meta") or {}
 
     def _stream_source(self, prefix, ctype, item_id):
         parts = [self.base] + ([prefix] if prefix else []) + [self.token, "stream", ctype, item_id + ".json"]
-        return self._get("/".join(parts)).get("streams") or []
+        url = "/".join(parts)
+        loader = lambda: self._get(url).get("streams") or []  # noqa: E731
+        # dlouhá cache, ale jen když se něco našlo — prázdný výsledek se
+        # nepamatuje, ať další pokus (třeba za pár minut) zkusí znovu
+        if self.cache is not None:
+            return self.cache.cached_if(url, STREAM_TTL, loader)
+        return loader()
 
     def streams(self, ctype, item_id, include_search=True):
         """Streamy z hlavního zdroje Luny + z „Luna: Search“ (fulltext WebShare).

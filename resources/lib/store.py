@@ -266,6 +266,12 @@ class Store:
 
     # --- cache odpovědí API -------------------------------------------------------------
     def cached(self, key, ttl, loader):
+        return self.cached_if(key, ttl, loader)
+
+    def cached_if(self, key, ttl, loader, ok=bool):
+        """Jako `cached()`, ale na disk zapíše jen když `ok(data)` je pravda — pro
+        věci, co se mají zapamatovat jen při úspěchu (např. nalezené streamy),
+        ne prázdný/neúspěšný výsledek, který má jít zkusit znovu hned příště."""
         # nezávislé na self._cache (soubor per hash klíče) — nepotřebuje self._lock,
         # nejhorší případ při souběhu je zbytečné dvojí stažení, ne pád
         path = os.path.join(self.dir, "cache", hashlib.md5(key.encode("utf-8")).hexdigest() + ".json")
@@ -276,6 +282,8 @@ class Store:
         except (OSError, ValueError):
             pass
         data = loader()
+        if not ok(data):
+            return data
         tmp = self._tmp(path)
         try:
             with open(tmp, "w", encoding="utf-8") as f:

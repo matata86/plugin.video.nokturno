@@ -16,6 +16,7 @@ API = "https://webshare.cz/api/"
 TIMEOUT = 40
 ITOA64 = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 SORTS = ("", "recent", "rating", "largest", "smallest")
+SEARCH_TTL = 300  # hledání se mění rychle — nový soubor, jiná dostupnost
 
 
 def _to64(v, n):
@@ -82,10 +83,12 @@ class WebshareError(Exception):
 
 
 class WebshareApi:
-    def __init__(self, username, password, token=None):
+    def __init__(self, username, password, token=None, cache=None, cache_ttl=SEARCH_TTL):
         self.username = (username or "").strip()
         self.password = (password or "").strip()
         self.token = token or ""
+        self.cache = cache
+        self.cache_ttl = cache_ttl
 
     # --- HTTP -------------------------------------------------------------
     def _call(self, endpoint, **data):
@@ -131,21 +134,28 @@ class WebshareApi:
 
     # --- soubory ----------------------------------------------------------
     def search(self, what, sort="", limit=40, offset=0):
-        root = self._with_token("search", what=what, category="video", sort=sort, limit=limit, offset=offset)
-        files = []
-        for f in root.findall("file"):
-            files.append({
-                "ident": f.findtext("ident"),
-                "name": f.findtext("name") or "",
-                "type": f.findtext("type") or "",
-                "img": f.findtext("img") or "",
-                "size": int(f.findtext("size") or 0),
-                "size_h": human_size(f.findtext("size")),
-                "positive": int(f.findtext("positive_votes") or 0),
-                "negative": int(f.findtext("negative_votes") or 0),
-                "password": f.findtext("password") == "1",
-            })
-        return files, int(root.findtext("total") or 0)
+        def load():
+            root = self._with_token("search", what=what, category="video", sort=sort, limit=limit, offset=offset)
+            files = []
+            for f in root.findall("file"):
+                files.append({
+                    "ident": f.findtext("ident"),
+                    "name": f.findtext("name") or "",
+                    "type": f.findtext("type") or "",
+                    "img": f.findtext("img") or "",
+                    "size": int(f.findtext("size") or 0),
+                    "size_h": human_size(f.findtext("size")),
+                    "positive": int(f.findtext("positive_votes") or 0),
+                    "negative": int(f.findtext("negative_votes") or 0),
+                    "password": f.findtext("password") == "1",
+                })
+            return files, int(root.findtext("total") or 0)
+        if self.cache is None:
+            return load()
+        # klíč jen z parametrů dotazu — token se obnovuje při přihlášení, ale
+        # stejný dotaz má vracet totéž bez ohledu na to, kterým tokenem se ptal
+        key = f"ws:search:{what}:{sort}:{limit}:{offset}"
+        return self.cache.cached(key, self.cache_ttl, load)
 
     def file_link(self, ident, password=None):
         data = {"ident": ident, "download_type": "video_stream"}
