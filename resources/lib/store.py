@@ -18,7 +18,7 @@ import threading
 import time
 
 OLD_ADDON_ID = "plugin.video.luna"  # do 1.3.0 se doplněk jmenoval takhle
-DATA_FILES = ("history", "watched", "items", "favourites", "downloads", "trakt", "streampref")
+DATA_FILES = ("history", "watched", "items", "favourites", "downloads", "trakt", "streampref", "favlog")
 HISTORY_MAX = 30
 WATCHED_MAX = 5000
 ITEMS_MAX = 2000
@@ -239,6 +239,12 @@ class Store:
                 if info:
                     self.remember_item(key, info)
             self.save("favourites", favs)
+            # deník pro synchronizaci (viz sync.py): samotný seznam neumí říct,
+            # kdy z něj co ubylo, a bez času by se odebrání nedalo přenést jinam
+            log = self.load("favlog", {})
+            log[key] = {"on": added, "ts": int(time.time())}
+            self._trim(log, 1000)
+            self.save("favlog", log)
             return added
 
     # --- stahování ------------------------------------------------------------------

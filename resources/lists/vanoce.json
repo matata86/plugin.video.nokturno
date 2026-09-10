@@ -1,0 +1,591 @@
+{
+  "id": "vanoce",
+  "name": "Vánoce",
+  "note": "Ručně vybraný seznam pro adventní vydání. `imdb` se doplňuje skriptem tools/resolve_list.py (dohledá se přes Lunu podle názvu a roku); dokud je prázdné, položka se v katalogu přeskočí.",
+  "sections": [
+    {
+      "name": "České a slovenské pohádky",
+      "items": [
+        {
+          "title": "Tři oříšky pro Popelku",
+          "year": 1973,
+          "imdb": ""
+        },
+        {
+          "title": "Pyšná princezna",
+          "year": 1952,
+          "imdb": ""
+        },
+        {
+          "title": "Byl jednou jeden král…",
+          "year": 1955,
+          "imdb": ""
+        },
+        {
+          "title": "Princezna se zlatou hvězdou",
+          "year": 1959,
+          "imdb": ""
+        },
+        {
+          "title": "Šíleně smutná princezna",
+          "year": 1968,
+          "imdb": ""
+        },
+        {
+          "title": "Sůl nad zlato",
+          "year": 1983,
+          "imdb": ""
+        },
+        {
+          "title": "S čerty nejsou žerty",
+          "year": 1984,
+          "imdb": ""
+        },
+        {
+          "title": "Třetí princ",
+          "year": 1982,
+          "imdb": ""
+        },
+        {
+          "title": "Jak se budí princezny",
+          "year": 1977,
+          "imdb": ""
+        },
+        {
+          "title": "Princ a Večernice",
+          "year": 1978,
+          "imdb": ""
+        },
+        {
+          "title": "Zlatovláska",
+          "year": 1973,
+          "imdb": ""
+        },
+        {
+          "title": "Malá mořská víla",
+          "year": 1976,
+          "imdb": ""
+        },
+        {
+          "title": "Perinbaba",
+          "year": 1985,
+          "imdb": ""
+        },
+        {
+          "title": "O princezně Jasněnce a létajícím ševci",
+          "year": 1987,
+          "imdb": ""
+        },
+        {
+          "title": "Nesmrtelná teta",
+          "year": 1993,
+          "imdb": ""
+        },
+        {
+          "title": "Princezna ze mlejna",
+          "year": 1994,
+          "imdb": ""
+        },
+        {
+          "title": "Lotrando a Zubejda",
+          "year": 1997,
+          "imdb": ""
+        },
+        {
+          "title": "Z pekla štěstí",
+          "year": 1999,
+          "imdb": ""
+        },
+        {
+          "title": "Kouzelný měšec",
+          "year": 1996,
+          "imdb": ""
+        },
+        {
+          "title": "Peklo s princeznou",
+          "year": 2009,
+          "imdb": ""
+        },
+        {
+          "title": "Nejkrásnější hádanka",
+          "year": 2008,
+          "imdb": ""
+        },
+        {
+          "title": "Tajemství staré bambitky",
+          "year": 2011,
+          "imdb": ""
+        },
+        {
+          "title": "Čertova nevěsta",
+          "year": 2011,
+          "imdb": ""
+        },
+        {
+          "title": "Anděl Páně",
+          "year": 2005,
+          "imdb": ""
+        },
+        {
+          "title": "Anděl Páně 2",
+          "year": 2016,
+          "imdb": ""
+        },
+        {
+          "title": "Mrazík",
+          "year": 1964,
+          "imdb": ""
+        },
+        {
+          "title": "Tři veteráni",
+          "year": 1983,
+          "imdb": ""
+        },
+        {
+          "title": "Císařův pekař – Pekařův císař",
+          "year": 1951,
+          "imdb": ""
+        },
+        {
+          "title": "Ať žijí duchové!",
+          "year": 1977,
+          "imdb": ""
+        },
+        {
+          "title": "Přání k mání",
+          "year": 2017,
+          "imdb": ""
+        }
+      ]
+    },
+    {
+      "name": "České vánoční a zimní filmy",
+      "items": [
+        {
+          "title": "Pelíšky",
+          "year": 1999,
+          "imdb": ""
+        },
+        {
+          "title": "S tebou mě baví svět",
+          "year": 1982,
+          "imdb": ""
+        },
+        {
+          "title": "Sněženky a machři",
+          "year": 1983,
+          "imdb": ""
+        },
+        {
+          "title": "Vrchní, prchni!",
+          "year": 1981,
+          "imdb": ""
+        },
+        {
+          "title": "Jak dostat tatínka do polepšovny",
+          "year": 1978,
+          "imdb": ""
+        },
+        {
+          "title": "Vánoční kameňák",
+          "year": 2015,
+          "imdb": ""
+        },
+        {
+          "title": "Anděl na horách",
+          "year": 1955,
+          "imdb": ""
+        },
+        {
+          "title": "Jak utopit doktora Mráčka",
+          "year": 1974,
+          "imdb": ""
+        },
+        {
+          "title": "Hotel Modrá hvězda",
+          "year": 1941,
+          "imdb": ""
+        },
+        {
+          "title": "Dařbuján a Pandrhola",
+          "year": 1959,
+          "imdb": ""
+        }
+      ]
+    },
+    {
+      "name": "Zahraniční klasika",
+      "items": [
+        {
+          "title": "Sám doma",
+          "original": "Home Alone",
+          "year": 1990,
+          "imdb": ""
+        },
+        {
+          "title": "Sám doma 2: Ztracen v New Yorku",
+          "original": "Home Alone 2",
+          "year": 1992,
+          "imdb": ""
+        },
+        {
+          "title": "Život je krásný",
+          "original": "It's a Wonderful Life",
+          "year": 1946,
+          "imdb": ""
+        },
+        {
+          "title": "Zázrak v New Yorku",
+          "original": "Miracle on 34th Street",
+          "year": 1947,
+          "imdb": ""
+        },
+        {
+          "title": "Zázrak v New Yorku",
+          "original": "Miracle on 34th Street",
+          "year": 1994,
+          "imdb": ""
+        },
+        {
+          "title": "Bílé Vánoce",
+          "original": "White Christmas",
+          "year": 1954,
+          "imdb": ""
+        },
+        {
+          "title": "Vánoční prázdniny",
+          "original": "National Lampoon's Christmas Vacation",
+          "year": 1989,
+          "imdb": ""
+        },
+        {
+          "title": "Vánoční příběh",
+          "original": "A Christmas Story",
+          "year": 1983,
+          "imdb": ""
+        },
+        {
+          "title": "Vánoční koleda",
+          "original": "The Muppet Christmas Carol",
+          "year": 1992,
+          "imdb": ""
+        },
+        {
+          "title": "Vánoční koleda",
+          "original": "A Christmas Carol",
+          "year": 2009,
+          "imdb": ""
+        },
+        {
+          "title": "Vánoční koleda",
+          "original": "Scrooged",
+          "year": 1988,
+          "imdb": ""
+        },
+        {
+          "title": "Láska nebeská",
+          "original": "Love Actually",
+          "year": 2003,
+          "imdb": ""
+        },
+        {
+          "title": "Prázdniny",
+          "original": "The Holiday",
+          "year": 2006,
+          "imdb": ""
+        },
+        {
+          "title": "Elf",
+          "original": "Elf",
+          "year": 2003,
+          "imdb": ""
+        },
+        {
+          "title": "Santa Claus",
+          "original": "The Santa Clause",
+          "year": 1994,
+          "imdb": ""
+        },
+        {
+          "title": "Santa Claus 2",
+          "original": "The Santa Clause 2",
+          "year": 2002,
+          "imdb": ""
+        },
+        {
+          "title": "Vánoční sen",
+          "original": "Jingle All the Way",
+          "year": 1996,
+          "imdb": ""
+        },
+        {
+          "title": "Grinch",
+          "original": "How the Grinch Stole Christmas",
+          "year": 2000,
+          "imdb": ""
+        },
+        {
+          "title": "Grinch",
+          "original": "The Grinch",
+          "year": 2018,
+          "imdb": ""
+        },
+        {
+          "title": "Kouzelný dům",
+          "original": "Deck the Halls",
+          "year": 2006,
+          "imdb": ""
+        },
+        {
+          "title": "Vánoce naruby",
+          "original": "Christmas with the Kranks",
+          "year": 2004,
+          "imdb": ""
+        },
+        {
+          "title": "Čtvery Vánoce",
+          "original": "Four Christmases",
+          "year": 2008,
+          "imdb": ""
+        },
+        {
+          "title": "Fred Claus, bratr Santy",
+          "original": "Fred Claus",
+          "year": 2007,
+          "imdb": ""
+        },
+        {
+          "title": "Last Christmas",
+          "original": "Last Christmas",
+          "year": 2019,
+          "imdb": ""
+        },
+        {
+          "title": "Skoro dokonalé Vánoce",
+          "original": "The Family Stone",
+          "year": 2005,
+          "imdb": ""
+        }
+      ]
+    },
+    {
+      "name": "Animované a rodinné",
+      "items": [
+        {
+          "title": "Polární expres",
+          "original": "The Polar Express",
+          "year": 2004,
+          "imdb": ""
+        },
+        {
+          "title": "Ukradené Vánoce",
+          "original": "The Nightmare Before Christmas",
+          "year": 1993,
+          "imdb": ""
+        },
+        {
+          "title": "Klaus",
+          "original": "Klaus",
+          "year": 2019,
+          "imdb": ""
+        },
+        {
+          "title": "Artur Vánoce",
+          "original": "Arthur Christmas",
+          "year": 2011,
+          "imdb": ""
+        },
+        {
+          "title": "Kroniky Vánoc",
+          "original": "The Christmas Chronicles",
+          "year": 2018,
+          "imdb": ""
+        },
+        {
+          "title": "Kroniky Vánoc 2",
+          "original": "The Christmas Chronicles 2",
+          "year": 2020,
+          "imdb": ""
+        },
+        {
+          "title": "Sněhulák",
+          "original": "The Snowman",
+          "year": 1982,
+          "imdb": ""
+        },
+        {
+          "title": "Rudolph, sob s červeným nosem",
+          "original": "Rudolph the Red-Nosed Reindeer",
+          "year": 1964,
+          "imdb": ""
+        },
+        {
+          "title": "Frosty the Snowman",
+          "original": "Frosty the Snowman",
+          "year": 1969,
+          "imdb": ""
+        },
+        {
+          "title": "Vánoce Charlieho Browna",
+          "original": "A Charlie Brown Christmas",
+          "year": 1965,
+          "imdb": ""
+        },
+        {
+          "title": "Shrekovy Vánoce",
+          "original": "Shrek the Halls",
+          "year": 2007,
+          "imdb": ""
+        },
+        {
+          "title": "Madagaskar: Vánoční úlet",
+          "original": "Merry Madagascar",
+          "year": 2009,
+          "imdb": ""
+        },
+        {
+          "title": "Doba ledová: Mamutí Vánoce",
+          "original": "Ice Age: A Mammoth Christmas",
+          "year": 2011,
+          "imdb": ""
+        },
+        {
+          "title": "Ledové království: Vánoce s Olafem",
+          "original": "Olaf's Frozen Adventure",
+          "year": 2017,
+          "imdb": ""
+        },
+        {
+          "title": "Louskáček a čtyři říše",
+          "original": "The Nutcracker and the Four Realms",
+          "year": 2018,
+          "imdb": ""
+        },
+        {
+          "title": "Jak Grinch ukradl Vánoce",
+          "original": "How the Grinch Stole Christmas!",
+          "year": 1966,
+          "imdb": ""
+        },
+        {
+          "title": "Sněhová královna",
+          "original": "The Snow Queen",
+          "year": 2012,
+          "imdb": ""
+        },
+        {
+          "title": "Tři bratři",
+          "year": 2014,
+          "imdb": ""
+        },
+        {
+          "title": "Tři přání pro Popelku",
+          "original": "Tre nøtter til Askepott",
+          "year": 2021,
+          "imdb": ""
+        }
+      ]
+    },
+    {
+      "name": "Netradiční Vánoce",
+      "items": [
+        {
+          "title": "Smrtonosná past",
+          "original": "Die Hard",
+          "year": 1988,
+          "imdb": ""
+        },
+        {
+          "title": "Smrtonosná past 2",
+          "original": "Die Hard 2",
+          "year": 1990,
+          "imdb": ""
+        },
+        {
+          "title": "Gremlins",
+          "original": "Gremlins",
+          "year": 1984,
+          "imdb": ""
+        },
+        {
+          "title": "Batman se vrací",
+          "original": "Batman Returns",
+          "year": 1992,
+          "imdb": ""
+        },
+        {
+          "title": "Střihoruký Edward",
+          "original": "Edward Scissorhands",
+          "year": 1990,
+          "imdb": ""
+        },
+        {
+          "title": "Špatný Santa",
+          "original": "Bad Santa",
+          "year": 2003,
+          "imdb": ""
+        },
+        {
+          "title": "Krampus: Táhni k čertu",
+          "original": "Krampus",
+          "year": 2015,
+          "imdb": ""
+        },
+        {
+          "title": "Rare Exports",
+          "original": "Rare Exports: A Christmas Tale",
+          "year": 2010,
+          "imdb": ""
+        },
+        {
+          "title": "Anna a apokalypsa",
+          "original": "Anna and the Apocalypse",
+          "year": 2017,
+          "imdb": ""
+        },
+        {
+          "title": "Tokijští kmotři",
+          "original": "Tokyo Godfathers",
+          "year": 2003,
+          "imdb": ""
+        },
+        {
+          "title": "Kiss Kiss Bang Bang",
+          "original": "Kiss Kiss Bang Bang",
+          "year": 2005,
+          "imdb": ""
+        },
+        {
+          "title": "Iron Man 3",
+          "original": "Iron Man 3",
+          "year": 2013,
+          "imdb": ""
+        },
+        {
+          "title": "Záměna",
+          "original": "Trading Places",
+          "year": 1983,
+          "imdb": ""
+        },
+        {
+          "title": "Smrtonosná zbraň",
+          "original": "Lethal Weapon",
+          "year": 1987,
+          "imdb": ""
+        },
+        {
+          "title": "Carol",
+          "original": "Carol",
+          "year": 2015,
+          "imdb": ""
+        },
+        {
+          "title": "Malé ženy",
+          "original": "Little Women",
+          "year": 2019,
+          "imdb": ""
+        }
+      ]
+    }
+  ]
+}

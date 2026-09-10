@@ -31,6 +31,7 @@ from sosac_api import is_sosac_id as _is_stremio_sosac_id  # noqa: E402
 from sosac_direct import EXPORT as SOSAC_EXPORT, SosacDirect, is_direct_id  # noqa: E402
 from enrich import enrich, enrich_one  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
+from sync import sync_once  # noqa: E402
 from streams import arrange, langs_from_name, parse_stream, subs_from_name  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
 from webshare_api import SORTS, WebshareApi, WebshareError, human_size  # noqa: E402
@@ -54,6 +55,7 @@ LANG_COLORS = {"CZ": "FF7FE07F", "SK": "FF7FE07F", "EN": "FFE0E0E0"}
 GREY = "FF9A9A9A"
 PLAYING_PROP = "nokturno.playing"
 VIEWED_PROP = "nokturno.viewed"   # služba si odsud bere „u titulu se zobrazily streamy“ pro statistiky
+SYNC_PROP = "nokturno.sync"      # plugin → služba: synchronizuj hned, ne až za pět minut
 USED_PROP = "nokturno.used"    # služba si odsud bere „doplněk byl otevřen“ pro statistiky
 PREF_LANGS = ("", "CZ", "SK", "EN")
 STREAM_ORDERS = ("source", "quality", "size_desc", "size_asc")
@@ -672,6 +674,31 @@ def mark_used():
     xbmcgui.Window(10000).setProperty(USED_PROP, str(int(time.time())))
 
 
+def sync_settings():
+    """(adresa HA, klíč) nebo None, když synchronizace není zapnutá či vyplněná."""
+    if not on("sync_enabled", "false"):
+        return None
+    url, key = setting("sync_url").strip(), setting("sync_key").strip()
+    return (url, key) if url and key else None
+
+
+def request_sync():
+    xbmcgui.Window(10000).setProperty(SYNC_PROP, "1")
+
+
+def sync_now():
+    """Ruční synchronizace — z hlavního menu i z nastavení."""
+    cfg = sync_settings()
+    if not cfg:
+        notify(L(30186, "Synchronizace není zapnutá nebo chybí adresa a klíč"), xbmcgui.NOTIFICATION_WARNING, 5000)
+    else:
+        ok, pushed, pulled, why = sync_once(STORE, cfg[0], cfg[1], xbmc.getInfoLabel("System.FriendlyName"))
+        notify((L(30187, "Synchronizováno: odesláno %d, přijato %d") % (pushed, pulled)) if ok
+               else f"{L(30188, 'Synchronizace selhala')}: {why}",
+               xbmcgui.NOTIFICATION_INFO if ok else xbmcgui.NOTIFICATION_ERROR, 5000)
+    xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
+
+
 def test_sources():
     """Tlačítko v nastavení: během pár vteřin řekne, který zdroj nefunguje a proč.
 
@@ -771,6 +798,8 @@ def main_menu(apis):
     if setting("download_dir"):
         folder_item(L(30071), build_url(action="downloads"), icon="DefaultNetwork.png")
     folder_item(L(30106), build_url(action="clear_cache"), icon="DefaultAddonsUpdates.png")
+    if sync_settings():
+        folder_item(L(30184, "Synchronizovat teď"), build_url(action="sync_now"), icon="DefaultAddonService.png")
     xbmcplugin.endOfDirectory(HANDLE)
 
 
@@ -1050,6 +1079,7 @@ def history_clear(kind):
 def toggle_watched(key):
     watched = not STORE.playcount(key)
     STORE.set_watched(key, watched)
+    request_sync()
     trakt = get_trakt()
     if trakt and trakt.logged_in():
         base, season, episode = split_episode_id(key)
@@ -1071,6 +1101,7 @@ def toggle_fav(apis, key, ctype, series_id=None, alt=None):
             info = {"type": ctype, "id": key, "title": key, "series": series_id, "alt": alt, "art": {}}
     added = STORE.toggle_favourite(key, info)
     notify(L(30065) if added else L(30066))
+    request_sync()
     xbmc.executebuiltin("Container.Refresh")
 
 
@@ -1522,6 +1553,7 @@ def router(query):
                                 xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
         "stats_send": stats_send,
         "test_sources": test_sources,
+        "sync_now": sync_now,
         "settings": lambda: (xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False), ADDON.openSettings()),
     }
     if action in simple:
