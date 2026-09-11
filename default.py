@@ -43,6 +43,7 @@ HANDLE = int(sys.argv[1])
 BASE_URL = sys.argv[0]
 ICON = ADDON.getAddonInfo("icon")
 PROFILE = xbmcvfs.translatePath(ADDON.getAddonInfo("profile"))
+ADDON_PATH = xbmcvfs.translatePath(ADDON.getAddonInfo("path"))
 PAGE = 20
 WS_PAGE = 40
 CACHE_TTL = 600
@@ -904,6 +905,63 @@ def stats_send():
            xbmcgui.NOTIFICATION_INFO if ok else xbmcgui.NOTIFICATION_ERROR, 5000)
 
 
+# --- novinky ve verzi -------------------------------------------------------------
+
+SEEN = "seen"   # seen.json v profilu: {"version": naposledy odbavená verze}
+
+
+def _vkey(text):
+    return tuple(int(x) if x.isdigit() else -1 for x in re.split(r"[.\-+]", text))
+
+
+def changelog_lines(since=None):
+    """Řádky <news> z addon.xml novější než `since`, od nejnovější.
+
+    Changelog se nedrží zvlášť — <news> v addon.xml je ten, který Kodi ukazuje
+    v informacích o doplňku, takže druhý seznam by se rozešel. Každý řádek
+    začíná verzí, podle ní se i filtruje.
+    """
+    try:
+        import xml.etree.ElementTree as ET
+        news = ET.parse(os.path.join(ADDON_PATH, "addon.xml")).getroot().find(".//news")
+        text = (news.text or "") if news is not None else ""
+    except Exception:  # noqa: BLE001 – bez changelogu se nic neděje
+        return []
+    out = []
+    for line in text.splitlines():
+        line = line.strip()
+        m = re.match(r"^(\d+(?:\.\d+)*)\s*[–-]\s*(.+)$", line)
+        if not m:
+            continue
+        if since and _vkey(m.group(1)) <= _vkey(since):
+            continue
+        out.append((m.group(1), m.group(2)))
+    return out
+
+
+def unseen_changelog():
+    """Co uživatel po aktualizaci ještě neviděl. Při první instalaci nic —
+    jinak by novinky vyskočily hned každému novému uživateli."""
+    version = ADDON.getAddonInfo("version")
+    seen = (STORE.load(SEEN, {}) or {}).get("version")
+    if not seen:
+        STORE.save(SEEN, {"version": version})
+        return []
+    return changelog_lines(seen)
+
+
+def whats_new():
+    """Stručný changelog po aktualizaci. Modální okno je tu v pořádku — jde
+    o reakci na kliknutí, ne o něco, co se otevře samo (to by při volání
+    z widgetu nebo JSON-RPC čekalo na OK a zablokovalo i vypínání Kodi)."""
+    lines = unseen_changelog() or changelog_lines()[:5]
+    body = "\n\n".join(f"[B]{v}[/B]\n{t}" for v, t in lines) or L(30193, "Žádné novinky")
+    STORE.save(SEEN, {"version": ADDON.getAddonInfo("version")})
+    xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
+    xbmcgui.Dialog().textviewer(L(30191, "Novinky"), body)
+    xbmc.executebuiltin("Container.Refresh")
+
+
 # --- obrazovky --------------------------------------------------------------------
 
 def main_menu(apis):
@@ -914,6 +972,10 @@ def main_menu(apis):
         folder_item(L(30107), build_url(action="settings"), icon="DefaultAddonProgram.png")
         xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
         return
+    fresh = unseen_changelog()
+    if fresh:
+        folder_item(f"{L(30192, 'Novinky ve verzi')} {fresh[0][0]}",
+                    build_url(action="whats_new"), icon="DefaultAddonsUpdates.png")
     # vlastní ikony místo jedné a té samé ikony doplňku u každé položky — jména
     # standardní sady Kodi (dodává je aktivní skin, žádný soubor navíc v doplňku)
     if STORE.in_progress() or STORE.recently_watched(1):
@@ -1706,6 +1768,7 @@ def router(query):
         "stats_send": stats_send,
         "test_sources": test_sources,
         "sync_now": sync_now,
+        "whats_new": whats_new,
         "ha_files": list_ha_files,
         "settings": lambda: (xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False), ADDON.openSettings()),
     }
