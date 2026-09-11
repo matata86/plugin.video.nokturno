@@ -374,9 +374,6 @@ msgctxt "#30115"
 msgid "Hide SD streams"
 msgstr ""
 
-msgctxt "#30116"
-msgid "Max stream size in GB, fallback without a known speed (0 = unlimited)"
-msgstr "Max stream size in GB, fallback without a known speed (0 = unlimited)"
 
 msgctxt "#30117"
 msgid "Sort streams"
@@ -635,9 +632,9 @@ msgid "Speed %s Mb/s -> allowed %s Mb/s (e.g. %s GB for a 2-hour movie)"
 msgstr "Speed %s Mb/s → allowed %s Mb/s (e.g. %s GB for a 2-hour movie)"
 
 msgctxt "#30224"
-msgid "Max. bitrate from measured speed (Mb/s, 0 = use GB above)"
-msgstr "Max. bitrate from measured speed (Mb/s, 0 = use GB above)"
+msgid "Max. bitrate (Mb/s, 0 = unlimited)"
+msgstr "Max. bitrate (Mb/s, 0 = unlimited)"
 
 msgctxt "#30225"
-msgid "The bitrate, if set, takes priority and is converted to GB using the current title's runtime; without a known runtime (typically fulltext) it assumes a 2-hour movie."
-msgstr "The bitrate, if set, takes priority and is converted to GB using the current title's runtime; without a known runtime (typically fulltext) it assumes a 2-hour movie."
+msgid "Converted to GB using the current title's runtime; without a known runtime (typically fulltext) it assumes a 2-hour movie."
+msgstr "Converted to GB using the current title's runtime; without a known runtime (typically fulltext) it assumes a 2-hour movie."

@@ -27,7 +27,6 @@
     <setting id="pref_lang" type="enum" label="30110" lvalues="30111|30112|30113|30114" default="1"/>
     <setting id="pref_surround" type="bool" label="30131" default="false"/>
     <setting id="hide_sd" type="bool" label="30115" default="false"/>
-    <setting id="max_size_gb" type="text" label="30116" default="0"/>
     <setting id="max_bitrate_mbps" type="text" label="30224" default="0"/>
     <setting label="30220" type="action" action="RunPlugin(plugin://plugin.video.nokturno/?action=speedtest)"/>
     <setting label="30225" type="lsep"/>
