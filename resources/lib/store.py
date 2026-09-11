@@ -112,7 +112,13 @@ class Store:
     # --- historie hledání -------------------------------------------------------
     def history(self, kind):
         with self._lock:
-            return list(self.load("history", {}).get(kind, []))
+            return list(self._hist_map().get(kind, []))
+
+    def _hist_map(self):
+        """Historie jako {kind: [dotazy]}. Starší HA verze ji ukládala jako plochý
+        seznam — ten se bere jako přihrádka "any" (hlavní hledání, sdílené s doplňkem)."""
+        h = self.load("history", {})
+        return {"any": list(h)} if isinstance(h, list) else h
 
     # historie se vede i jako časovaný deník `histlog` (klíč "kind\tdotaz"),
     # aby šla synchronizovat mezi Kodi vč. mazání — zobrazený seznam `history`
@@ -143,7 +149,7 @@ class Store:
         if not query:
             return
         with self._lock:
-            data = self.load("history", {})
+            data = self._hist_map()
             items = [q for q in data.get(kind, []) if q.lower() != query.lower()]
             data[kind] = ([query] + items)[:HISTORY_MAX]
             self.save("history", data)
@@ -151,14 +157,14 @@ class Store:
 
     def remove_history(self, kind, query):
         with self._lock:
-            data = self.load("history", {})
+            data = self._hist_map()
             data[kind] = [q for q in data.get(kind, []) if q != query]
             self.save("history", data)
             self._log_history(kind, query, False)
 
     def clear_history(self, kind):
         with self._lock:
-            data = self.load("history", {})
+            data = self._hist_map()
             data[kind] = []
             self.save("history", data)
             now = int(time.time())
