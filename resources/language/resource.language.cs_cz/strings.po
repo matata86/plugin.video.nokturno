@@ -609,3 +609,11 @@ msgstr "Filtr streamů"
 msgctxt "#30214"
 msgid "Filter left nothing, showing all streams"
 msgstr "Filtr nic nenechal, zobrazeny všechny streamy"
+
+msgctxt "#30215"
+msgid "Channels"
+msgstr "Kanály"
+
+msgctxt "#30216"
+msgid "Codec"
+msgstr "Kodek"

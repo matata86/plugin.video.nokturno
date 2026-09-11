@@ -609,3 +609,11 @@ msgstr "Filter streams"
 msgctxt "#30214"
 msgid "Filter left nothing, showing all streams"
 msgstr "Filter left nothing, showing all streams"
+
+msgctxt "#30215"
+msgid "Channels"
+msgstr "Channels"
+
+msgctxt "#30216"
+msgid "Codec"
+msgstr "Codec"

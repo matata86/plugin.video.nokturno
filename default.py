@@ -890,9 +890,12 @@ SOURCE_GROUP = {"main": "Luna", "search": "WebShare", "ws": "WebShare",
 
 
 def stream_facets(s):
-    """Kvalita, jazyky zvuku, titulky a zdroj — přesně to, co vidí uživatel
-    v `stream_label`, jen bez barev a řádkování. Používá to i filtr streamů,
-    aby nabízel a párovat přesně to, co je v řádku vidět.
+    """Kvalita, zvuk (jazyk/kanály/kodek), titulky a zdroj — přesně to, co vidí
+    uživatel v `stream_label`, jen bez barev a řádkování. Používá to i filtr
+    streamů, aby nabízel a pároval přesně to, co je v řádku vidět.
+
+    Kodek zná jen stream, u kterého se přečetla hlavička souboru (`_tracks`) —
+    zdroje samy o kodeku nic neříkají, proto se u ostatních prostě nenabídne.
     """
     parse_stream(s)
     raw = s["label"]
@@ -902,24 +905,32 @@ def stream_facets(s):
     tracks = s.get("_tracks") or []
     if tracks:
         langs = {t.get("lang") for t in tracks if t.get("lang")}
+        channels = {t.get("channels") for t in tracks if t.get("channels")}
+        codecs = {t.get("codec") for t in tracks if t.get("codec")}
     else:
         langs = set(s.get("langs") or []) | langs_from_name(raw)
+        channels = {f"{v:.1f}" for v in (s.get("channels") or {}).values()}
+        codecs = set()
     subs = set(s.get("subs") or []) | subs_from_name(raw)
     return {
         "quality_rank": s.get("quality_rank") or 0,
         "langs": langs,
+        "channels": channels,
+        "codecs": codecs,
         "subs": subs,
         "source": SOURCE_GROUP.get(s.get("source"), s.get("source") or ""),
     }
 
 
-def apply_stream_filter(streams, fq="", flang="", fsub="", fsrc=""):
+def apply_stream_filter(streams, fq="", flang="", fch="", fcodec="", fsub="", fsrc=""):
     """Streamy, které vyhovují filtru z `streams_filter`. Prázdný filtr = beze změny."""
     want_q = {x for x in fq.split(",") if x}
     want_lang = {x for x in flang.split(",") if x}
+    want_ch = {x for x in fch.split(",") if x}
+    want_codec = {x for x in fcodec.split(",") if x}
     want_sub = {x for x in fsub.split(",") if x}
     want_src = {x for x in fsrc.split(",") if x}
-    if not (want_q or want_lang or want_sub or want_src):
+    if not (want_q or want_lang or want_ch or want_codec or want_sub or want_src):
         return list(streams)
     out = []
     for st in streams:
@@ -927,6 +938,10 @@ def apply_stream_filter(streams, fq="", flang="", fsub="", fsrc=""):
         if want_q and str(f["quality_rank"]) not in want_q:
             continue
         if want_lang and not (f["langs"] & want_lang):
+            continue
+        if want_ch and not (f["channels"] & want_ch):
+            continue
+        if want_codec and not (f["codecs"] & want_codec):
             continue
         if want_sub and not (f["subs"] & want_sub):
             continue
@@ -936,7 +951,7 @@ def apply_stream_filter(streams, fq="", flang="", fsub="", fsrc=""):
     return out
 
 
-def streams_filter(apis, ctype, item_id, series_id, alt, fq, flang, fsub, fsrc):
+def streams_filter(apis, ctype, item_id, series_id, alt, fq, flang, fch, fcodec, fsub, fsrc):
     """Dialog s nabídkou filtrů podle toho, co se u titulu doopravdy našlo.
 
     Nejde o samostatnou obrazovku — je to stejné volání GetDirectory jako
@@ -949,6 +964,9 @@ def streams_filter(apis, ctype, item_id, series_id, alt, fq, flang, fsub, fsrc):
     facets = [stream_facets(st) for st in streams]
     qualities = sorted({f["quality_rank"] for f in facets if f["quality_rank"]}, reverse=True)
     langs = sorted({c for f in facets for c in f["langs"]})
+    # kanály sestupně (7.1 → 1.0), ne abecedně — "5.1" by jinak stálo za "7.1"
+    channels = sorted({c for f in facets for c in f["channels"]}, key=lambda c: -float(c))
+    codecs = sorted({c for f in facets for c in f["codecs"]})
     subs = sorted({c for f in facets for c in f["subs"]})
     sources = sorted({f["source"] for f in facets if f["source"]})
 
@@ -959,6 +977,12 @@ def streams_filter(apis, ctype, item_id, series_id, alt, fq, flang, fsub, fsrc):
     for code in langs:
         options.append(f"{L(30209, 'Zvuk')}: {code}")
         kinds.append(("lang", code))
+    for ch in channels:
+        options.append(f"{L(30215, 'Kanály')}: {ch}")
+        kinds.append(("ch", ch))
+    for codec in codecs:
+        options.append(f"{L(30216, 'Kodek')}: {codec}")
+        kinds.append(("codec", codec))
     for code in subs:
         options.append(f"{L(30210, 'Titulky')}: {code}")
         kinds.append(("sub", code))
@@ -968,22 +992,24 @@ def streams_filter(apis, ctype, item_id, series_id, alt, fq, flang, fsub, fsrc):
 
     if not options:
         notify(L(30212, "Není podle čeho filtrovat"))
-        list_streams(apis, ctype, item_id, series_id, alt, fq, flang, fsub, fsrc)
+        list_streams(apis, ctype, item_id, series_id, alt, fq, flang, fch, fcodec, fsub, fsrc)
         return
 
     active = {"q": set(x for x in fq.split(",") if x), "lang": set(x for x in flang.split(",") if x),
+             "ch": set(x for x in fch.split(",") if x), "codec": set(x for x in fcodec.split(",") if x),
              "sub": set(x for x in fsub.split(",") if x), "src": set(x for x in fsrc.split(",") if x)}
     preselect = [i for i, (kind, val) in enumerate(kinds) if val in active[kind]]
 
     chosen = xbmcgui.Dialog().multiselect(L(30213, "Filtr streamů"), options, preselect=preselect)
     if chosen is None:
-        list_streams(apis, ctype, item_id, series_id, alt, fq, flang, fsub, fsrc)
+        list_streams(apis, ctype, item_id, series_id, alt, fq, flang, fch, fcodec, fsub, fsrc)
         return
-    new = {"q": [], "lang": [], "sub": [], "src": []}
+    new = {"q": [], "lang": [], "ch": [], "codec": [], "sub": [], "src": []}
     for i in chosen:
         kind, val = kinds[i]
         new[kind].append(val)
     list_streams(apis, ctype, item_id, series_id, alt, fq=",".join(new["q"]), flang=",".join(new["lang"]),
+                fch=",".join(new["ch"]), fcodec=",".join(new["codec"]),
                 fsub=",".join(new["sub"]), fsrc=",".join(new["src"]))
 
 
@@ -1791,18 +1817,18 @@ def list_episodes(apis, series_id, season, alt=None):
 
 # --- přehrávání ------------------------------------------------------------------
 
-def list_streams(apis, ctype, item_id, series_id=None, alt=None, fq="", flang="", fsub="", fsrc=""):
+def list_streams(apis, ctype, item_id, series_id=None, alt=None, fq="", flang="", fch="", fcodec="", fsub="", fsrc=""):
     meta, video = load_meta(apis, ctype, item_id, series_id)
     streams = collect_streams(apis, ctype, item_id, meta, alt)
     if not streams:
         notify(L(30102))
         xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
         return
-    filtered = apply_stream_filter(streams, fq, flang, fsub, fsrc)
+    filtered = apply_stream_filter(streams, fq, flang, fch, fcodec, fsub, fsrc)
     if not filtered:
         # filtr nic nenechal — spíš zmatek než prázdný seznam, ukázat radši vše
         notify(L(30214, "Filtr nic nenechal, zobrazeny všechny streamy"), xbmcgui.NOTIFICATION_WARNING)
-        filtered, fq, flang, fsub, fsrc = streams, "", "", "", ""
+        filtered, fq, flang, fch, fcodec, fsub, fsrc = streams, "", "", "", "", "", ""
     # Bez tohohle skin nezná typ obsahu a nabídne jen holý „Seznam základní“
     # (jediné místo v doplňku, kde to chybělo). "videos" nestačí — bohatší
     # zobrazení (Seznam médií) skin nabízí jen pro konkrétní typy.
@@ -1821,12 +1847,12 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None, fq="", flang=""
     stats_title = (video or {}).get("title") or bare_title(meta)
     mark_viewed(item_id, stats_title, year if year.isdigit() else None, "series" if video else ctype)
     if len(streams) > 1:
-        active = bool(fq or flang or fsub or fsrc)
+        active = bool(fq or flang or fch or fcodec or fsub or fsrc)
         label = L(30213, "Filtr streamů")
         if active:
             label += f"  ({len(filtered)}/{len(streams)})"
         folder_item(label, build_url(action="streams_filter", type=ctype, id=item_id, series=series_id, alt=alt,
-                                     fq=fq, flang=flang, fsub=fsub, fsrc=fsrc),
+                                     fq=fq, flang=flang, fch=fch, fcodec=fcodec, fsub=fsub, fsrc=fsrc),
                    icon="DefaultAddonsUpdates.png" if active else "DefaultAddonsSearch.png")
     for s in filtered:
         li = xbmcgui.ListItem(label=stream_label(s))
@@ -2193,10 +2219,12 @@ def router(query):
             list_episodes(apis, p["id"], int(p.get("season") or 0), alt=p.get("alt"))
         elif action == "streams":
             list_streams(apis, p["type"], p["id"], p.get("series"), alt=p.get("alt"),
-                        fq=p.get("fq", ""), flang=p.get("flang", ""), fsub=p.get("fsub", ""), fsrc=p.get("fsrc", ""))
+                        fq=p.get("fq", ""), flang=p.get("flang", ""), fch=p.get("fch", ""),
+                        fcodec=p.get("fcodec", ""), fsub=p.get("fsub", ""), fsrc=p.get("fsrc", ""))
         elif action == "streams_filter":
             streams_filter(apis, p["type"], p["id"], p.get("series"), p.get("alt"),
-                          p.get("fq", ""), p.get("flang", ""), p.get("fsub", ""), p.get("fsrc", ""))
+                          p.get("fq", ""), p.get("flang", ""), p.get("fch", ""), p.get("fcodec", ""),
+                          p.get("fsub", ""), p.get("fsrc", ""))
         elif action == "play":
             play(apis, p["type"], p["id"], p.get("series"), url=p.get("url"), alt=p.get("alt"), subs=p.get("subs", ""),
                  pref=p.get("pref", ""))
