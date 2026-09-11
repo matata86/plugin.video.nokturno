@@ -1199,31 +1199,24 @@ SPEEDTEST_MOVIE_S = 7200    # dvouhodinový film — odhad stopáže, jen když 
 
 
 def effective_max_gb(meta_or_video):
-    """Max. velikost streamu pro TENHLE titul.
+    """Max. velikost streamu pro TENHLE titul, spočtená z nastaveného datového toku.
 
-    Naměřená rychlost (`max_bitrate_mbps`) je datový tok, ne velikost — kolik
-    smí stream vážit, závisí na tom, jak dlouhý je. Devadesátiminutová pohádka
-    a tříhodinový epos se stejným tokem vyjdou na docela jinou velikost, takže
-    se to nedá spočítat jednou v Nastavení a uložit jako pevné GB. Když titul
-    stopáž neřekne (typicky holé hledání na WebShare bez metadat), použije se
-    dvouhodinový odhad — přesně to, s čím počítalo i samotné měření.
-
-    Ruční „Max. velikost (GB)" zůstává jako jednodušší alternativa pro
-    někoho, kdo si rychlost měřit nechce — platí, jen když datový tok
-    nastavený není.
+    Velikost souboru sama o sobě neříká, jestli přehrávání poteče plynule —
+    rozhoduje datový tok, tedy velikost dělená stopáží. Pevné GB v Nastavení
+    proto nedávaly smysl: devadesátiminutová pohádka a tříhodinový epos se
+    stejným tokem vyjdou na docela jinou velikost. Když titul stopáž neřekne
+    (typicky holé hledání na WebShare bez metadat), použije se dvouhodinový
+    odhad — přesně to, s čím počítalo i samotné měření.
     """
     try:
         mbps = float(setting("max_bitrate_mbps", "0").replace(",", ".") or 0)
     except ValueError:
         mbps = 0.0
-    if mbps > 0:
-        minutes = runtime_minutes((meta_or_video or {}).get("runtime"))
-        seconds = minutes * 60 if minutes else SPEEDTEST_MOVIE_S
-        return mbps * 1_000_000 * seconds / 8 / 2 ** 30
-    try:
-        return float(setting("max_size_gb", "0").replace(",", ".") or 0)
-    except ValueError:
+    if not mbps:
         return 0.0
+    minutes = runtime_minutes((meta_or_video or {}).get("runtime"))
+    seconds = minutes * 60 if minutes else SPEEDTEST_MOVIE_S
+    return mbps * 1_000_000 * seconds / 8 / 2 ** 30
 
 
 def speedtest():
