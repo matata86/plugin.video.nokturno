@@ -15,6 +15,7 @@ import os
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import sys
+import threading
 import time
 import urllib.parse
 import unicodedata
@@ -852,7 +853,10 @@ def stream_label(s):
     for code in sorted(codes, key=lambda c: (c != pref, c)):   # preferovaný jazyk první
         txt = f"[COLOR {LANG_COLORS.get(code, 'FFE0E0E0')}]{code}[/COLOR]"
         if code in channels:
-            txt += f" [B]{channels[code]:g}[/B]" if channels[code] >= 5.1 else f" {channels[code]:g}"
+            # vždy s desetinnou částí: Luna posílá „2" a „1", ale v seznamu se to
+            # čte hůř než „2.0" a „1.0" vedle „5.1"
+            ch = f"{channels[code]:.1f}"
+            txt += f" [B]{ch}[/B]" if channels[code] >= 5.1 else f" {ch}"
         langs.append(txt)
     if langs:
         parts.append(" ".join(langs))
@@ -1252,9 +1256,41 @@ def filter_year(merged, year):
             if str(m.get("year") or m.get("releaseInfo") or "")[:4] in (year, "")]
 
 
-def _search_merge(apis, ctype, query, want_year, errors):
+class SearchProgress:
+    """Ukazatel průběhu hledání.
+
+    Kroků je tolik, kolik je doopravdy dotazů na zdroje, tedy dva typy krát
+    zapnuté zdroje. Dokud se počítaly jen typy, uměl ukazatel skočit z nuly na
+    polovinu a rovnou na konec. Ze dvou vláken se do něj sahá zároveň, proto zámek.
+    """
+
+    def __init__(self, bar, total):
+        self.bar, self.total, self.done = bar, max(1, total), 0
+        self.lock = threading.Lock()
+
+    def _show(self):
+        self.bar.update(int(self.done / self.total * 100))
+
+    def tick(self):
+        with self.lock:
+            self.done = min(self.done + 1, self.total)
+            self._show()
+
+    def reach(self, value):
+        """Dorovná ukazatel — z cache se výsledek vrátí rovnou a kroky neproběhnou."""
+        with self.lock:
+            if value > self.done:
+                self.done = min(value, self.total)
+                self._show()
+
+
+def _search_merge(apis, ctype, query, want_year, errors, tick=None):
     """Sloučené výsledky Luny a Sosáče pro jeden typ (film / seriál), BEZ popisů —
     stačí na počty pro volbu Filmy/Seriály. Kešuje se 5 minut."""
+    def step():
+        if tick:
+            tick()
+
     def load():
         luna_metas, sosac_metas = [], []
         if apis["luna"]:
@@ -1263,11 +1299,13 @@ def _search_merge(apis, ctype, query, want_year, errors):
                 luna_metas = apis["luna"].catalog(ctype, cid, search=query)
             except LunaError as e:
                 errors.append(e)
+            step()
         if apis["sosac"]:
             try:
                 sosac_metas = apis["sosac"].search(ctype, query)
             except SosacError as e:
                 errors.append(e)
+            step()
         merged = filter_year(merge_results(luna_metas, sosac_metas), want_year)
         return merged, bool(luna_metas) and bool(sosac_metas)
     key = f"search:{ctype}:{query.strip().lower()}:{want_year or ''}"
@@ -1302,23 +1340,27 @@ def search_run(apis, kind, query, offset=0):
         # Oba dotazy běží souběžně — jinak by procházení čekalo na součet obou (7 s místo 4 s).
         # Jen holý katalog (_search_merge), bez popisů — na volbu Filmy/Seriály
         # stačí počty a čekání na enrich by ji zbytečně zdrželo.
-        progress = xbmcgui.DialogProgressBG()
-        progress.create("Nokturno", L(30150, "Hledat"))
-        progress.update(0)
+        bar = xbmcgui.DialogProgressBG()
+        bar.create("Nokturno", L(30150, "Hledat"))
+        bar.update(0)
+        sources = sum(1 for key in ("luna", "sosac") if apis.get(key))
+        progress = SearchProgress(bar, 2 * sources)
         results = {}
         try:
             with ThreadPoolExecutor(max_workers=2) as pool:
-                futures = {pool.submit(_search_merge, apis, "movie", query, want_year, errors): "movie",
-                          pool.submit(_search_merge, apis, "series", query, want_year, errors): "series"}
+                futures = {pool.submit(_search_merge, apis, "movie", query, want_year, errors,
+                                       progress.tick): "movie",
+                          pool.submit(_search_merge, apis, "series", query, want_year, errors,
+                                      progress.tick): "series"}
                 # aktualizace v pořadí, jak doopravdy dobíhají — zůstat na pevném
                 # pořadí (nejdřív film) by procento drželo na 0 %, dokud nedoběhnou oba
-                done = 0
+                finished = 0
                 for future in as_completed(futures):
                     results[futures[future]] = future.result()
-                    done += 1
-                    progress.update(int(done / len(futures) * 100))
+                    finished += 1
+                    progress.reach(finished * sources)
         finally:
-            progress.close()
+            bar.close()
         movies, _ = results["movie"]
         series, _ = results["series"]
         if movies and series:
