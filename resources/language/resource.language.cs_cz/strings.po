@@ -375,8 +375,8 @@ msgid "Hide SD streams"
 msgstr "Skrýt SD streamy"
 
 msgctxt "#30116"
-msgid "Max stream size in GB (0 = unlimited)"
-msgstr "Max. velikost streamu v GB (0 = bez omezení)"
+msgid "Max stream size in GB, fallback without a known speed (0 = unlimited)"
+msgstr "Max. velikost streamu v GB, náhrada bez naměřené rychlosti (0 = bez omezení)"
 
 msgctxt "#30117"
 msgid "Sort streams"
@@ -620,7 +620,7 @@ msgstr "Kodek"
 
 msgctxt "#30220"
 msgid "Measure speed and set the limit"
-msgstr "Změřit rychlost a nastavit hranici"
+msgstr "Změřit rychlost a nastavit datový tok"
 
 msgctxt "#30221"
 msgid "Speed measurement failed"
@@ -631,5 +631,13 @@ msgid "Too little data downloaded, try again"
 msgstr "Stáhlo se moc málo dat, zkus to znovu"
 
 msgctxt "#30223"
-msgid "Speed %s Mb/s → max. size set to %s GB"
-msgstr "Rychlost %s Mb/s → max. velikost nastavena na %s GB"
+msgid "Speed %s Mb/s -> allowed %s Mb/s (e.g. %s GB for a 2-hour movie)"
+msgstr "Rychlost %s Mb/s → dovoleno %s Mb/s (např. %s GB u dvouhodinového filmu)"
+
+msgctxt "#30224"
+msgid "Max. bitrate from measured speed (Mb/s, 0 = use GB above)"
+msgstr "Max. datový tok z naměřené rychlosti (Mb/s, 0 = použije se GB výše)"
+
+msgctxt "#30225"
+msgid "The bitrate, if set, takes priority and is converted to GB using the current title's runtime; without a known runtime (typically fulltext) it assumes a 2-hour movie."
+msgstr "Datový tok, je-li nastavený, má přednost a přepočítá se na GB podle stopáže aktuálního titulu; bez známé stopáže (typicky fulltext) se počítá s dvouhodinovým filmem."
