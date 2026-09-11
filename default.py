@@ -1101,11 +1101,9 @@ def format_duration(seconds):
 
 
 def stream_label(s):
-    """Popisek streamu na jeden řádek.
-
-    Arctic Fuse v seznamu druhý řádek nevykreslí, takže všechno musí do jednoho
-    a záleží na pořadí: co skin ořízne, je konec. Napřed tedy zvukové stopy
-    a velikost, pak teprve datový tok, titulky, zdroj a název souboru.
+    """Popisek streamu na dva řádky: nahoře kvalita a zvuk, pod tím (za
+    vloženým \\n) zbytek — stejná technika jako u doplňku OnePlay (`epg.py`:
+    `title = f"{title}\\n{subtitle}"`), ne přes label2 a skinové nastavení.
 
     Jazyk bez vlnovky přišel od zdroje nebo z hlavičky souboru, s vlnovkou je
     jen odhad z názvu souboru — stejně jako „~4K" u odhadnuté kvality.
@@ -1126,18 +1124,18 @@ def stream_label(s):
     if s.get("source") == "sosac":
         rest = ""   # u Sosáče je zbytek jen jazyk, ten je už ve zvuku
 
-    # Kvalita je první — na ni se v seznamu kouká nejdřív. Vše, co nemá vlastní
-    # barvu (žádný [COLOR] okolo), Kodi vykreslí bílou textovou barvou skinu;
-    # na vybrané položce s bílým podkladem to pak úplně zmizí. Proto má i
-    # velikost výslovnou barvu (GREY se na bílém podkladu čte jako tmavý text).
-    parts = [f"[COLOR {QUALITY_COLORS.get(s.get('quality_rank', 0), GREY)}][B]{quality or raw}[/B][/COLOR]"]
+    # Horní řádek: kvalita a zvuk — to hlavní, co se v seznamu čte nejdřív.
+    # Vše, co nemá vlastní barvu (žádný [COLOR] okolo), Kodi vykreslí bílou
+    # textovou barvou skinu; na vybrané položce s bílým podkladem to pak
+    # úplně zmizí, proto má výslovnou barvu i to, co by jinak zůstalo bílé.
+    top = [f"[COLOR {QUALITY_COLORS.get(s.get('quality_rank', 0), GREY)}][B]{quality or raw}[/B][/COLOR]"]
     tracks = s.get("_tracks") or []
     if tracks:
         # přečteno z hlavičky souboru: každá stopa zvlášť i s kodekem
         for t in tracks:
             inside = " ".join(x for x in (t.get("codec"), t.get("channels"), t.get("lang")) if x)
             if inside:
-                parts.append(f"[COLOR {LANG_COLORS.get(t.get('lang'), GREY)}][{inside}][/COLOR]")
+                top.append(f"[COLOR {LANG_COLORS.get(t.get('lang'), GREY)}][{inside}][/COLOR]")
     else:
         # zdroj o stopách mlčí — poskládá se z toho, co je po ruce
         channels = s.get("channels") or {}
@@ -1148,23 +1146,33 @@ def stream_label(s):
             txt = f"{mark}{code}"
             if code in channels:
                 txt += f" {channels[code]:.1f}"
-            parts.append(f"[COLOR {LANG_COLORS.get(code, GREY)}][{txt}][/COLOR]")
+            top.append(f"[COLOR {LANG_COLORS.get(code, GREY)}][{txt}][/COLOR]")
+    # Spodní řádek: zbytek — velikost, délka, datový tok, titulky, zdroj, název souboru.
+    # Arctic Fuse ho ukáže jen s "Text labels: Detailed" v nastavení skinu; bez toho
+    # zůstane vidět jen horní řádek, stejně jako doteď.
+    bottom = []
     if s.get("size_gb") and on("show_size", "true"):
-        parts.append(f"[COLOR {GREY}][B]{s['size_gb']:.1f} GB[/B][/COLOR]")
+        bottom.append(f"[COLOR {GREY}][B]{s['size_gb']:.1f} GB[/B][/COLOR]")
     if s.get("_length_s") and on("show_length", "true"):
         mark = "~" if s.get("_length_est") else ""
-        parts.append(f"[COLOR {GREY}]{mark}{format_duration(s['_length_s'])}[/COLOR]")
+        bottom.append(f"[COLOR {GREY}]{mark}{format_duration(s['_length_s'])}[/COLOR]")
     if s.get("bitrate") and on("show_bitrate", "true"):
         mark = "~" if s.get("_bitrate_est") else ""
-        parts.append(f"[COLOR {GREY}]{mark}{s['bitrate']:g} Mb/s[/COLOR]")
+        bottom.append(f"[COLOR {GREY}]{mark}{s['bitrate']:g} Mb/s[/COLOR]")
     subs = set(s.get("subs") or []) | subs_from_name(raw)
     if subs and on("show_subs", "true"):
-        parts.append(f"[COLOR {GREY}]Tit.: {' '.join(sorted(subs))}[/COLOR]")
+        bottom.append(f"[COLOR {GREY}]Tit.: {' '.join(sorted(subs))}[/COLOR]")
     if tag and on("show_source", "true"):
-        parts.append(tag)
+        bottom.append(tag)
     if rest and quality and on("show_file", "true"):
-        parts.append(f"[COLOR {GREY}]{rest}[/COLOR]")
-    return "  ".join(parts)
+        bottom.append(f"[COLOR {GREY}]{rest}[/COLOR]")
+    # OnePlay dělá druhý řádek stejně — obyčejné \n přímo v labelu (viz jeho
+    # epg.py: "title = f'{title}\\n{subtitle}'"), ne přes label2 a skinové
+    # nastavení. Kodi ho v seznamu vykreslí jako druhý řádek samo.
+    label = "  ".join(top)
+    if bottom:
+        label += "\n" + "  ".join(bottom)
+    return label
 
 
 def mark_playing(key, title="", year=None, kind="movie"):
@@ -2130,7 +2138,8 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
         remembered = preferred_stream(streams, STORE.stream_pref(pref_key)) if pref_key else None
         chosen = remembered or streams[0]
         if setting("stream_mode", "1") == "2" and remembered is None:
-            idx = xbmcgui.Dialog().select(L(30024), [stream_label(st) for st in streams])
+            # dialog umí jen jeden vizuální řádek na položku — nahradit \n mezerami
+            idx = xbmcgui.Dialog().select(L(30024), [stream_label(st).replace("\n", "  ") for st in streams])
             if idx < 0:
                 xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
                 return
