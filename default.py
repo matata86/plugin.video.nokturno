@@ -1160,8 +1160,6 @@ def main_menu(apis):
         # ne jen z Nastavení — vynutí to čerstvá data, když se něco změnilo na zdroji
         folder_item(L(30150, "Hledat"), build_url(action="search", type="any"),
                    icon="DefaultAddonsSearch.png", context=[(L(30106), runplugin(action="clear_cache"))])
-    if apis["ws"]:
-        folder_item(L(30045), build_url(action="search", type="ws"), icon="DefaultAddonsSearch.png")
     if apis["luna"]:
         folder_item(L(30012), build_url(action="catalogs", type="movie", src="luna"), icon="DefaultMovies.png")
         folder_item(L(30013), build_url(action="catalogs", type="series", src="luna"), icon="DefaultTVShows.png")
@@ -1462,12 +1460,17 @@ def search_run(apis, kind, query, offset=0):
                 add_ws_file(f)
         except WebshareError as e:
             errors.append(e)
-    if not merged and apis.get("hs"):
-        # v katalozích nic. HellSpy je úložiště souborů, takže titul nezná, ale
-        # soubor pojmenovaný stejně tam být může — starší a okrajové věci bývají
-        # jen tam. Nabídne se až tady, aby to nezdržovalo běžné hledání.
-        folder_item(L(30197, "Hledat na HellSpy"), build_url(action="search_run", type="hs", q=query),
-                   icon="DefaultAddonsSearch.png")
+    if not merged:
+        # V katalozích nic. WebShare ani HellSpy tituly neznají, jsou to úložiště
+        # souborů — soubor pojmenovaný stejně tam ale být může a starší nebo
+        # okrajové věci bývají jen tam. Nabídne se to až tady, do rozcestníku
+        # fulltext nepatří a běžné hledání by jen zdržoval.
+        if apis.get("ws"):
+            folder_item(L(30045), build_url(action="search_run", type="ws", q=query),
+                       icon="DefaultAddonsSearch.png")
+        if apis.get("hs"):
+            folder_item(L(30197, "Hledat na HellSpy"), build_url(action="search_run", type="hs", q=query),
+                       icon="DefaultAddonsSearch.png")
     for e in errors:
         log_error(e)
     if errors:
