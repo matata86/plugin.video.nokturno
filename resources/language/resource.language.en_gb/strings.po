@@ -573,3 +573,7 @@ msgstr "Search HellSpy for titles"
 msgctxt "#30196"
 msgid "HellSpy needs no account. It offers the original files, same as WebShare."
 msgstr "HellSpy needs no account. It offers the original files, same as WebShare."
+
+msgctxt "#30197"
+msgid "Search HellSpy"
+msgstr "Search HellSpy"

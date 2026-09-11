@@ -269,7 +269,33 @@ class SosacDirect:
         snap = self.index.item("idx:" + item_id) if self.index is not None else None
         if snap:
             return dict(snap)
+        shot = self.index.item(item_id) if self.index is not None else None
+        if shot and item_id.startswith(ID_PREFIX + "m_"):
+            return self._meta_from_snapshot(item_id, shot)
         raise SosacError(f"neznámý titul {item_id}")
+
+    @staticmethod
+    def _meta_from_snapshot(item_id, shot):
+        """Titul, o kterém rejstřík Sosáče neví, poskládaný ze snímku.
+
+        Rejstřík se plní procházením katalogů, kdežto synchronizací z jiného
+        Kodi přijde jen snímek titulu — a ten se ukládá pod holý klíč, ne pod
+        „idx:". Rozkoukaný film ze druhého boxu tak šel v seznamu vidět, ale
+        nešel otevřít. Odkaz na stream se nemusí nikde dohledávat, je to id
+        bez předpony.
+        """
+        title = str(shot.get("title") or "")
+        year = str(shot.get("year") or "")
+        if year and title.endswith(f"({year})"):
+            title = title[: -len(f"({year})")].strip()
+        art = shot.get("art") or {}
+        return {
+            "id": item_id, "type": "movie", "name": title, "_title": title, "_orig": "",
+            "year": year, "poster": art.get("poster") or "", "background": art.get("fanart") or "",
+            "description": shot.get("plot") or "", "genres": [],
+            "_dub": [], "_subs": [], "_quality": "",
+            "_link": item_id[len(ID_PREFIX) + 2:],
+        }
 
     def episodes(self, sid):
         data = self._get(EXPORT + f"serialy/{sid}.json")
