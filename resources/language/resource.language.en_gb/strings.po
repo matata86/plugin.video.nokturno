@@ -794,3 +794,7 @@ msgstr ""
 msgctxt "#30329"
 msgid "Support the author: https://ko-fi.com/matata86"
 msgstr ""
+
+msgctxt "#30238"
+msgid "Loading streams…"
+msgstr ""
