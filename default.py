@@ -64,6 +64,15 @@ LANG_COLORS = {"CZ": "FF7FE07F", "SK": "FF7FE07F", "EN": "FF9A9A9A"}
 # EN a jazyky bez vlastní barvy dostanou stejný odstín jako GREY (níž) —
 # FFE0E0E0 (skoro bílá) na vybrané položce s bílým podkladem úplně mizelo
 GREY = "FF9A9A9A"
+# databáze filmů (Luna/Cinemeta) vrací žánry anglicky, Sosáč rovnou česky —
+# do popisu titulu patří vždy česky, neznámý žánr necháme, jak přišel
+GENRES_CS = {
+    "Action": "Akční", "Adventure": "Dobrodružný", "Animation": "Animovaný", "Biography": "Životopisný",
+    "Comedy": "Komedie", "Crime": "Krimi", "Documentary": "Dokument", "Drama": "Drama", "Family": "Rodinný",
+    "Fantasy": "Fantasy", "History": "Historický", "Horror": "Horor", "Music": "Hudební", "Musical": "Muzikál",
+    "Mystery": "Mysteriózní", "Romance": "Romantický", "Sci-Fi": "Sci-fi", "Short": "Krátkometrážní",
+    "Sport": "Sportovní", "Thriller": "Thriller", "War": "Válečný", "Western": "Western",
+}
 PLAYING_PROP = "nokturno.playing"
 VIEWED_PROP = "nokturno.viewed"   # služba si odsud bere „u titulu se zobrazily streamy“ pro statistiky
 SYNC_PROP = "nokturno.sync"      # plugin → služba: synchronizuj hned, ne až za pět minut
@@ -312,7 +321,11 @@ def fill_info(li, meta, ctype="movie", video=None, tech=True):
         tag.setOriginalTitle(meta["_orig"])
     if ctype == "series":
         tag.setTvShowTitle(meta.get("_title") or meta.get("name") or "")
-    tag.setPlot((video or {}).get("overview") or meta.get("description") or "")
+    plot = (video or {}).get("overview") or meta.get("description") or ""
+    genres = ", ".join(GENRES_CS.get(str(g), str(g)) for g in (meta.get("genres") or []))
+    if genres:
+        plot = f"[B]{genres}[/B]\n\n{plot}" if plot else genres
+    tag.setPlot(plot)
     year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
     if tech and year.isdigit():
         tag.setYear(int(year))
