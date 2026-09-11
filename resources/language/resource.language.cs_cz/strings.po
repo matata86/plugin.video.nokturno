@@ -573,3 +573,7 @@ msgstr "U titulů hledat i na HellSpy"
 msgctxt "#30196"
 msgid "HellSpy needs no account. It offers the original files, same as WebShare."
 msgstr "HellSpy nepotřebuje účet. Nabízí původní soubory, stejně jako WebShare."
+
+msgctxt "#30197"
+msgid "Search HellSpy"
+msgstr "Hledat na HellSpy"
