@@ -32,6 +32,7 @@ from sosac_api import is_sosac_id as _is_stremio_sosac_id  # noqa: E402
 from sosac_direct import EXPORT as SOSAC_EXPORT, SosacDirect, is_direct_id  # noqa: E402
 from enrich import enrich, enrich_one  # noqa: E402
 from hellspy_api import HellspyApi, HellspyError  # noqa: E402
+from mediainfo import audio_tracks, describe as describe_audio  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
 from sync import sync_once  # noqa: E402
 from streams import arrange, estimate_rank, langs_from_name, parse_stream, subs_from_name  # noqa: E402
@@ -555,6 +556,8 @@ def cross_streams(apis, ctype, item_id, meta, alt=None):
 
 WS_LIMIT = 25
 HS_LIMIT = 25
+AUDIO_PROBE_MAX = 12          # u kolika streamů se ještě vyplatí číst hlavičku souboru
+AUDIO_TTL = 30 * 24 * 3600    # obsah souboru se nemění, stačí zjistit jednou
 YEAR_RE = re.compile(r"\b(19\d{2}|20\d{2})\b")
 
 
@@ -666,6 +669,43 @@ def hellspy_streams(apis, meta, video, ctype, alt=None):
 DIRECT_SOURCES = ("ws", "hs")   # fulltextové zdroje, kde bývá tentýž soubor jako u Luny
 
 
+def audio_from_file(apis, url):
+    """„Zvuk: CZ 5.1" přečtené z hlavičky souboru. Prázdné, když to nejde."""
+    def load():
+        try:
+            link = resolve_url(apis, url)
+        except Errors as e:
+            log_error(f"zvuk {url[:28]}: {e}")
+            return ""
+        return describe_audio(audio_tracks(link))
+    return STORE.cached(f"audio:{url}", AUDIO_TTL, load)
+
+
+def fill_audio(apis, streams):
+    """Doplní zvuk tam, kde ho zdroj neřekl.
+
+    HellSpy o zvuku nemá ve svém rozhraní vůbec nic a u souborů z fulltextu je
+    jen to, co si někdo napsal do názvu. Údaj přitom leží v hlavičce souboru
+    a servery umí vydat jen její výřez, takže se přečte pár desítek kB. Běží to
+    souběžně a výsledek se pamatuje, takže se za soubor platí jednou.
+    """
+    todo = [s for s in streams if not s.get("langs")
+            and str(s.get("url") or "").startswith(("hs:", "ws:", "streamuj:"))][:AUDIO_PROBE_MAX]
+    if not todo:
+        return streams
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        found = list(pool.map(lambda s: audio_from_file(apis, s["url"]), todo))
+    for stream, text in zip(todo, found):
+        if not text:
+            continue
+        stream["detail"] = f"{stream['detail']} | {text}" if stream.get("detail") else text
+        # parse_stream je idempotentní podle `quality_rank`; po změně popisku
+        # se musí přepočítat, jinak by jazyky a kanály zůstaly prázdné
+        stream.pop("quality_rank", None)
+        parse_stream(stream)
+    return streams
+
+
 def drop_duplicates(streams):
     """Soubor nalezený přes Lunu i napřímo je jeden soubor — dvakrát ho neukazovat.
     Odkaz je pokaždé jiný (Luna vs. CDN), proto se dvojice pozná podle názvu a velikosti.
@@ -722,7 +762,7 @@ def collect_streams(apis, ctype, item_id, meta, alt=None):
         ws = pool.submit(webshare_streams, apis, meta, video, ctype, alt) if direct else None
         hs = pool.submit(hellspy_streams, apis, meta, video, ctype, alt) if apis.get("hs") else None
         extra = cross.result() + (ws.result() if ws else []) + (hs.result() if hs else [])
-        streams = drop_duplicates(main.result() + extra)
+        streams = fill_audio(apis, drop_duplicates(main.result() + extra))
     try:
         max_gb = float(setting("max_size_gb", "0").replace(",", ".") or 0)
     except ValueError:
