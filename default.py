@@ -576,7 +576,9 @@ def cross_streams(apis, ctype, item_id, meta, alt=None):
 
 WS_LIMIT = 25
 HS_LIMIT = 25
-AUDIO_PROBE_MAX = 12          # u kolika streamů se ještě vyplatí číst hlavičku souboru
+# značka dílu v názvu souboru: „S01E03", „s1 e3", „1x03"
+EPISODE_ANY_RE = re.compile(r"(?<![a-z0-9])s\d{1,2}\s?e\d{1,2}(?!\d)|(?<!\d)\d{1,2}x\d{2}(?!\d)", re.I)
+AUDIO_PROBE_MAX = 24          # u kolika streamů se ještě vyplatí číst hlavičku souboru
 AUDIO_TTL = 30 * 24 * 3600    # obsah souboru se nemění, stačí zjistit jednou
 YEAR_RE = re.compile(r"\b(19\d{2}|20\d{2})\b")
 
@@ -623,6 +625,11 @@ def title_queries(apis, meta, video, ctype, alt=None):
     def relevant(name):
         folded = _fold(name)
         if wanted and not any(all(w in folded for w in group) for group in wanted):
+            return False
+        if not video and EPISODE_ANY_RE.search(folded):
+            # u filmu nemá soubor se značkou dílu co dělat. Jednoslovný název
+            # („Avatar") projde kontrolou slov a díly seriálu rok v názvu nemají,
+            # takže by se do seznamu streamů filmu nasypal celý seriál.
             return False
         if want_year:
             years = {int(y) for y in YEAR_RE.findall(folded)} - (title_years - {want_year})
@@ -709,11 +716,13 @@ def fill_audio(apis, streams):
     a servery umí vydat jen její výřez, takže se přečte pár desítek kB. Běží to
     souběžně a výsledek se pamatuje, takže se za soubor platí jednou.
     """
-    todo = [s for s in streams if not s.get("langs")
+    # rozhoduje neznámý počet kanálů, ne neznámý jazyk: ten se často přečte
+    # z názvu („CZ Dabing"), ale kolik má stopa kanálů, z názvu nepozná nikdo
+    todo = [s for s in streams if not s.get("channels")
             and str(s.get("url") or "").startswith(("hs:", "ws:", "streamuj:"))][:AUDIO_PROBE_MAX]
     if not todo:
         return streams
-    with ThreadPoolExecutor(max_workers=6) as pool:
+    with ThreadPoolExecutor(max_workers=8) as pool:
         found = list(pool.map(lambda s: audio_from_file(apis, s["url"]), todo))
     for stream, text in zip(todo, found):
         if not text:
@@ -782,19 +791,27 @@ def collect_streams(apis, ctype, item_id, meta, alt=None):
         ws = pool.submit(webshare_streams, apis, meta, video, ctype, alt) if direct else None
         hs = pool.submit(hellspy_streams, apis, meta, video, ctype, alt) if apis.get("hs") else None
         extra = cross.result() + (ws.result() if ws else []) + (hs.result() if hs else [])
-        streams = fill_audio(apis, drop_duplicates(main.result() + extra))
+        streams = drop_duplicates(main.result() + extra)
     try:
         max_gb = float(setting("max_size_gb", "0").replace(",", ".") or 0)
     except ValueError:
         max_gb = 0.0
-    return arrange(
-        streams,
-        pref_lang=PREF_LANGS[int(setting("pref_lang", "0"))],
-        hide_sd=on("hide_sd", "false"),
-        max_size_gb=max_gb,
-        order=STREAM_ORDERS[int(setting("sort_streams", "0"))],
-        pref_surround=on("pref_surround", "false"),
-    )
+
+    def order(items):
+        return arrange(
+            items,
+            pref_lang=PREF_LANGS[int(setting("pref_lang", "0"))],
+            hide_sd=on("hide_sd", "false"),
+            max_size_gb=max_gb,
+            order=STREAM_ORDERS[int(setting("sort_streams", "0"))],
+            pref_surround=on("pref_surround", "false"),
+        )
+
+    # Hlavičky se čtou až po seřazení. Kandidátů bývá víc, než se vyplatí číst,
+    # a před seřazením se rozpočet utratil za řádky, které skončí dole; teď padne
+    # na začátek seznamu, tedy na to, co má uživatel před očima. Po doplnění
+    # kanálů se řadí znovu, protože 5.1 může pořadím pohnout.
+    return order(fill_audio(apis, order(streams)))
 
 
 def stream_signature(s):
