@@ -753,7 +753,7 @@ def media_from_file(apis, url):
 
 
 def fill_audio(apis, streams):
-    """Doplní zvuk tam, kde ho zdroj neřekl.
+    """Doplní zvuk tam, kde ho zdroj neřekl, a ověří ho tam, kde řekl jen název souboru.
 
     HellSpy o zvuku nemá ve svém rozhraní vůbec nic a u souborů z fulltextu je
     jen to, co si někdo napsal do názvu. Údaj přitom leží v hlavičce souboru
@@ -766,10 +766,13 @@ def fill_audio(apis, streams):
         limit = AUDIO_PROBE_MAX
     if limit <= 0:
         return streams
-    # rozhoduje neznámý počet kanálů, ne neznámý jazyk: ten se často přečte
-    # z názvu („CZ Dabing"), ale kolik má stopa kanálů, z názvu nepozná nikdo
-    todo = [s for s in streams if not s.get("channels")
-            and str(s.get("url") or "").startswith(("hs:", "ws:", "streamuj:"))][:limit]
+    # streamy bez počtu kanálů v názvu jdou první — tam chybí úplně všechno.
+    # Streamy, které už jazyk podle názvu mají („CZ Dabing"), se ale taky ověří:
+    # uploader se může splést nebo zkopírovat popisek z jiného souboru, takže
+    # název sám o sobě není důkaz — jen se čeká, až na ně dojde řada v limitu.
+    candidates = [s for s in streams if not s.get("_tracks")
+                  and str(s.get("url") or "").startswith(("hs:", "ws:", "streamuj:"))]
+    todo = sorted(candidates, key=lambda s: bool(s.get("channels")))[:limit]
     if not todo:
         return streams
     with ThreadPoolExecutor(max_workers=8) as pool:
@@ -1429,7 +1432,14 @@ def whats_new():
     o reakci na kliknutí, ne o něco, co se otevře samo (to by při volání
     z widgetu nebo JSON-RPC čekalo na OK a zablokovalo i vypínání Kodi)."""
     lines = unseen_changelog() or changelog_lines()[:5]
-    body = "\n\n".join(f"[B]{v}[/B]\n{t}" for v, t in lines) or L(30193, "Žádné novinky")
+    groups = []
+    for v, text in lines:
+        if groups and groups[-1][0] == v:
+            groups[-1][1].append(text)
+        else:
+            groups.append((v, [text]))
+    body = "\n\n".join(f"[B]{v}[/B]\n" + "\n".join(f"• {t}" for t in texts) for v, texts in groups) \
+        or L(30193, "Žádné novinky")
     STORE.save(SEEN, {"version": ADDON.getAddonInfo("version")})
     xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
     xbmcgui.Dialog().textviewer(L(30191, "Novinky"), body)
