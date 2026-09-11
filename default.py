@@ -1900,9 +1900,10 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None, fq="", flang=""
     mark_viewed(item_id, stats_title, year if year.isdigit() else None, "series" if video else ctype)
     if len(streams) > 1:
         active = bool(fq or flang or fch or fcodec or fsub or fsrc)
-        label = L(30213, "Filtr streamů")
-        if active:
-            label += f"  ({len(filtered)}/{len(streams)})"
+        # počet vždy — beze filtru aspoň řekne, z kolika streamů se vybírá,
+        # s filtrem navíc kolik z nich filtru vyhovělo
+        count = f"({len(filtered)}/{len(streams)})" if active else f"({len(streams)})"
+        label = f"{L(30213, 'Filtr streamů')}  {count}"
         folder_item(label, build_url(action="streams_filter", type=ctype, id=item_id, series=series_id, alt=alt,
                                      fq=fq, flang=flang, fch=fch, fcodec=fcodec, fsub=fsub, fsrc=fsrc),
                    icon="DefaultAddonsUpdates.png" if active else "DefaultAddonsSearch.png")
