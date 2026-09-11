@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="repository.nokturno" name="Nokturno repozitář" version="1.0.1" provider-name="matata86">
+<addon id="repository.nokturno" name="Nokturno repozitář" version="1.0.2" provider-name="matata86">
   <extension point="xbmc.addon.repository" name="Nokturno repozitář">
     <dir>
       <info compressed="false">https://raw.githubusercontent.com/matata86/plugin.video.nokturno/main/repo/addons.xml</info>
