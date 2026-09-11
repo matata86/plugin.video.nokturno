@@ -617,3 +617,19 @@ msgstr "Channels"
 msgctxt "#30216"
 msgid "Codec"
 msgstr "Codec"
+
+msgctxt "#30220"
+msgid "Measure speed and set the limit"
+msgstr "Measure speed and set the limit"
+
+msgctxt "#30221"
+msgid "Speed measurement failed"
+msgstr "Speed measurement failed"
+
+msgctxt "#30222"
+msgid "Too little data downloaded, try again"
+msgstr "Too little data downloaded, try again"
+
+msgctxt "#30223"
+msgid "Speed %s Mb/s → max. size set to %s GB"
+msgstr "Speed %s Mb/s → max. size set to %s GB"

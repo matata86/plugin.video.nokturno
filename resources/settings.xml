@@ -28,6 +28,7 @@
     <setting id="pref_surround" type="bool" label="30131" default="false"/>
     <setting id="hide_sd" type="bool" label="30115" default="false"/>
     <setting id="max_size_gb" type="text" label="30116" default="0"/>
+    <setting label="30220" type="action" action="RunPlugin(plugin://plugin.video.nokturno/?action=speedtest)"/>
     <setting id="sort_streams" type="enum" label="30117" lvalues="30118|30119|30120|30121" default="0"/>
     <setting id="audio_probe" type="slider" label="30198" default="24" range="0,4,60" option="int"/>
     <setting label="30199" type="lsep"/>
