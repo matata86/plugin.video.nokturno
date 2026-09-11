@@ -820,7 +820,16 @@ def drop_duplicates(streams):
 
     known = {key(s) for s in streams if s.get("source") not in DIRECT_SOURCES}
     out = []
+    # Lunino vlastní "Search" (source "search") umí tentýž soubor vrátit i víckrát —
+    # všechny kopie mají generický popisek beze jména ("(WS) Full HD"), takže mají
+    # stejný `key()` navzájem, ne jen proti přímému nálezu výše
+    seen_search = set()
     for s in streams:
+        if s.get("source") == "search":
+            k = key(s)
+            if k in seen_search:
+                continue
+            seen_search.add(k)
         if s.get("source") not in DIRECT_SOURCES:
             out.append(s)
             continue
