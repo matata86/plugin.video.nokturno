@@ -18,7 +18,7 @@ import threading
 import time
 
 OLD_ADDON_ID = "plugin.video.luna"  # do 1.3.0 se doplněk jmenoval takhle
-DATA_FILES = ("history", "watched", "items", "favourites", "downloads", "trakt", "streampref", "favlog")
+DATA_FILES = ("history", "watched", "items", "favourites", "downloads", "trakt", "streampref", "favlog", "histlog")
 HISTORY_MAX = 30
 WATCHED_MAX = 5000
 ITEMS_MAX = 2000
@@ -114,6 +114,30 @@ class Store:
         with self._lock:
             return list(self.load("history", {}).get(kind, []))
 
+    # historie se vede i jako časovaný deník `histlog` (klíč "kind\tdotaz"),
+    # aby šla synchronizovat mezi Kodi vč. mazání — zobrazený seznam `history`
+    # se z něj přepočítá (novější dotaz výš), viz rebuild_history / sync.py
+    @staticmethod
+    def _hkey(kind, query):
+        return f"{kind}\t{query.strip().lower()}"
+
+    def _log_history(self, kind, query, on):
+        log = self.load("histlog", {})
+        log[self._hkey(kind, query)] = {"kind": kind, "q": query.strip(), "on": on, "ts": int(time.time())}
+        self._trim(log, 500)
+        self.save("histlog", log)
+
+    def rebuild_history(self):
+        """Zobrazený seznam `history` podle deníku: aktivní dotazy, novější výš, na kind."""
+        log = self.load("histlog", {})
+        by_kind = {}
+        for rec in log.values():
+            if rec.get("on") and rec.get("q"):
+                by_kind.setdefault(rec.get("kind"), []).append(rec)
+        data = {k: [r["q"] for r in sorted(v, key=lambda r: -(r.get("ts") or 0))][:HISTORY_MAX]
+                for k, v in by_kind.items()}
+        self.save("history", data)
+
     def add_history(self, kind, query):
         query = (query or "").strip()
         if not query:
@@ -123,18 +147,26 @@ class Store:
             items = [q for q in data.get(kind, []) if q.lower() != query.lower()]
             data[kind] = ([query] + items)[:HISTORY_MAX]
             self.save("history", data)
+            self._log_history(kind, query, True)
 
     def remove_history(self, kind, query):
         with self._lock:
             data = self.load("history", {})
             data[kind] = [q for q in data.get(kind, []) if q != query]
             self.save("history", data)
+            self._log_history(kind, query, False)
 
     def clear_history(self, kind):
         with self._lock:
             data = self.load("history", {})
             data[kind] = []
             self.save("history", data)
+            now = int(time.time())
+            log = self.load("histlog", {})
+            for key, rec in log.items():
+                if rec.get("kind") == kind and rec.get("on"):
+                    log[key] = {**rec, "on": False, "ts": now}
+            self.save("histlog", log)
 
     # --- zhlédnuto / rozkoukáno ---------------------------------------------------
     def watched(self, item_id):
