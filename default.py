@@ -702,6 +702,32 @@ def hellspy_streams(apis, meta, video, ctype, alt=None):
 DIRECT_SOURCES = ("ws", "hs")   # fulltextové zdroje, kde bývá tentýž soubor jako u Luny
 
 
+BADGES = os.path.join(ADDON_PATH, "resources", "media", "badges")
+BADGE_NAMES = {4: "4k", 3: "fullhd", 2: "hd", 1: "sd"}
+HDR_RE = re.compile(r"\b(dolby\s*vision|dv|hdr10\+?|hdr)\b", re.I)
+
+
+def stream_badge(s):
+    """Obrázek kvality pro řádek streamu.
+
+    Technické údaje o stopách sice Kodi dostane (`fill_streamdetails`) a skin
+    z nich čte rozlišení, jenže Arctic Fuse je kreslí jen v informačním pruhu
+    u vybrané položky — v samotném seznamu na ně nesahá. Odznak proto musí
+    dodat doplněk jako obrázek položky. Plakát tím nepřijdeme o nic: v seznamu
+    streamů je u všech řádků stejný, takže neříká nic, kdežto kvalita ano.
+    """
+    name = BADGE_NAMES.get(s.get("quality_rank") or 0)
+    if not name:
+        return ""
+    found = HDR_RE.search(s.get("label") or "")
+    flag = ""
+    if found:
+        word = found.group(1).lower().replace(" ", "")
+        flag = "-dv" if word in ("dv", "dolbyvision") else "-hdr"
+    path = os.path.join(BADGES, f"{name}{flag}.png")
+    return path if os.path.exists(path) else os.path.join(BADGES, f"{name}.png")
+
+
 def media_from_file(apis, url):
     """Co se o souboru dá přečíst z jeho hlavičky. Prázdné, když to nejde."""
     def load():
@@ -1706,8 +1732,9 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None):
     stats_title = (video or {}).get("title") or bare_title(meta)
     mark_viewed(item_id, stats_title, year if year.isdigit() else None, "series" if video else ctype)
     for s in streams:
-        li = xbmcgui.ListItem(label=stream_label(s, badge=True))
-        li.setArt(art_for(meta, video))
+        badge = stream_badge(s)
+        li = xbmcgui.ListItem(label=stream_label(s, badge=bool(badge)))
+        li.setArt({"icon": badge, "thumb": badge} if badge else art_for(meta, video))
         # název titulu do InfoTagu → v OSD přehrávače je jméno filmu/epizody, ne popis streamu;
         # stopáž a hodnocení ne — skin by z nich udělal sloupce a ukrojil šířku popisku streamu
         fill_info(li, meta, "series" if video else ctype, video=video, tech=False)
