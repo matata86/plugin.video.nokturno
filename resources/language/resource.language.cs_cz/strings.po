@@ -674,3 +674,119 @@ msgstr "Předplatné WebShare vyprší za %s dní."
 msgctxt "#30237"
 msgid "WebShare subscription has run out."
 msgstr "WebShare předplatné vypršelo."
+
+msgctxt "#30300"
+msgid "Works without a Luna server — logs into WebShare directly with your own account and searches full-text by title."
+msgstr "Funguje bez serveru Luna – doplněk se přihlásí přímo na WebShare tvým účtem a hledá fulltextem podle názvu."
+
+msgctxt "#30301"
+msgid "E-mail or user name you log into webshare.cz with."
+msgstr "E-mail nebo uživatelské jméno, kterým se přihlašuješ na webshare.cz."
+
+msgctxt "#30302"
+msgid "Password from webshare.cz, or a 40-character salted hash if you'd rather not type it in plain text."
+msgstr "Heslo z webshare.cz, nebo 40znakový salted hash, pokud ho nechceš zadávat v čitelné podobě."
+
+msgctxt "#30303"
+msgid "Order of WebShare full-text results, before they get matched with Luna or Sosáč."
+msgstr "Řazení výsledků fulltextového hledání na WebShare, než se spárují s Lunou nebo Sosáčem."
+
+msgctxt "#30304"
+msgid "Catalogues and descriptions come from tv.sosac.to's public exports; playback itself goes through your Streamuj.tv account."
+msgstr "Katalogy a popisy titulů se berou z veřejných exportů tv.sosac.to, samotné přehrání jde přes tvůj účet Streamuj.tv."
+
+msgctxt "#30305"
+msgid "Streamuj.tv user name — needed to play streams found on Sosáč."
+msgstr "Uživatelské jméno pro streamuj.tv – potřeba k přehrání streamů ze Sosáče."
+
+msgctxt "#30306"
+msgid "Streamuj.tv password. It's stored as a one-way hash, not in plain text, so it can't be used to log into the streamuj.tv website itself."
+msgstr "Heslo pro streamuj.tv. Ukládá se jako jednosměrný otisk, ne v čitelné podobě, takže se s ním nejde přihlásit na web streamuj.tv."
+
+msgctxt "#30307"
+msgid "When a title has streams in only one of the two sources, also look it up in the other. Slower search, but more streams."
+msgstr "Když má titul streamy jen v jednom ze dvou zdrojů, dohledá se i ve druhém. Hledání je pomalejší, ale streamů je víc."
+
+msgctxt "#30308"
+msgid "Luna supplies catalogues, posters and Czech descriptions. Without it, only WebShare and Sosáč work."
+msgstr "Luna dodává katalogy, plakáty a české popisy titulů. Bez ní fungují jen WebShare a Sosáč."
+
+msgctxt "#30309"
+msgid "Address of your Luna server on the local network, e.g. http://192.168.1.10:7126."
+msgstr "Adresa tvého serveru Luna v místní síti, např. http://192.168.1.10:7126."
+
+msgctxt "#30310"
+msgid "Paste the whole add-on URL from Luna's setup page (…/setup), or just the token itself starting with 'e1.'."
+msgstr "Vlož celou adresu doplňku ze setup stránky Luny (…/setup), nebo jen samotný token začínající na 'e1.'."
+
+msgctxt "#30311"
+msgid "Luna can also full-text search WebShare (its own Search feature) — finds more, but takes longer."
+msgstr "Luna umí i fulltext přes WebShare (vlastní funkce Search) – najde víc, ale hledání trvá déle."
+
+msgctxt "#30312"
+msgid "What happens after you pick a title: auto-play the best quality, browse a list, or choose in a dialog."
+msgstr "Co se stane po výběru titulu: automaticky se přehraje nejlepší kvalita, zobrazí se seznam k procházení, nebo se zeptá dialog."
+
+msgctxt "#30313"
+msgid "Streams with this audio language are sorted higher up. Nothing gets hidden, just reordered."
+msgstr "Streamy s tímhle jazykem zvuku jdou v seznamu nahoru. Nic se neschovává, jen se to přeřadí."
+
+msgctxt "#30314"
+msgid "At equal quality, a stream with surround sound (5.1 and up) is sorted higher."
+msgstr "Při stejné kvalitě jde nahoru stream s prostorovým zvukem (5.1 a víc)."
+
+msgctxt "#30315"
+msgid "Streams below 720p are removed from the list entirely — the filter can't bring them back either."
+msgstr "Streamy pod 720p se ze seznamu úplně vyhodí, nejdou zobrazit ani přes filtr."
+
+msgctxt "#30316"
+msgid "'As provided' keeps the source's own order; the other options sort by quality or file size."
+msgstr "„Jak přišly“ nechá pořadí ze zdroje, ostatní volby řadí podle kvality nebo velikosti souboru."
+
+msgctxt "#30317"
+msgid "Adds the file size in GB to the stream line."
+msgstr "Přidá do řádku streamu velikost souboru v GB."
+
+msgctxt "#30318"
+msgid "Adds the video length (h:mm) to the stream line. A tilde means it's estimated from the title's runtime, not read from the file."
+msgstr "Přidá do řádku streamu délku videa (h:mm). Vlnovka znamená odhad podle stopáže titulu, ne přesnou hodnotu ze souboru."
+
+msgctxt "#30319"
+msgid "Adds where the stream comes from (WebShare, Sosáč, Luna, HellSpy) to the stream line."
+msgstr "Přidá do řádku streamu, odkud pochází (WebShare, Sosáč, Luna, HellSpy)."
+
+msgctxt "#30320"
+msgid "Adds the file name to the stream line — useful for telling similar streams apart."
+msgstr "Přidá do řádku streamu název souboru – užitečné pro rozlišení podobných streamů."
+
+msgctxt "#30321"
+msgid "Adds whether (and which) subtitles the stream has to the stream line."
+msgstr "Přidá do řádku streamu, jestli a jaké má titulky."
+
+msgctxt "#30322"
+msgid "Adds the bitrate (Mb/s) to the stream line. A tilde means it's estimated, not measured."
+msgstr "Přidá do řádku streamu datový tok (Mb/s). Vlnovka znamená odhad, ne změřenou hodnotu."
+
+msgctxt "#30323"
+msgid "Where downloaded videos and their subtitles are saved on the device."
+msgstr "Kam se na zařízení ukládají stažená videa a jejich titulky."
+
+msgctxt "#30324"
+msgid "Needs a Trakt.tv app (client id and secret) filled in below, then a one-time sign-in via the device code button."
+msgstr "Potřebuje níže vyplněnou aplikaci Trakt.tv (client id a secret), pak jedno přihlášení tlačítkem s kódem zařízení."
+
+msgctxt "#30325"
+msgid "From an app you create at trakt.tv/oauth/applications."
+msgstr "Z aplikace, kterou si vytvoříš na trakt.tv/oauth/applications."
+
+msgctxt "#30326"
+msgid "The secret that belongs to the same Trakt.tv app as the client id above."
+msgstr "Tajný klíč patřící ke stejné aplikaci Trakt.tv jako client id výše."
+
+msgctxt "#30327"
+msgid "Address of the Home Assistant instance running the Nokturno integration."
+msgstr "Adresa Home Assistantu, na kterém běží integrace Nokturno."
+
+msgctxt "#30328"
+msgid "Must match the sync key shown in the Nokturno integration's settings in Home Assistant."
+msgstr "Musí sedět se synchronizačním klíčem z nastavení integrace Nokturno v Home Assistantu."

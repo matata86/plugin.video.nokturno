@@ -1,70 +1,70 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <settings>
   <category label="30050">
-    <setting id="ws_enabled" type="bool" label="30051" default="false"/>
-    <setting id="ws_username" type="text" label="30052" default="" enable="eq(-1,true)"/>
-    <setting id="ws_password" type="text" option="hidden" label="30053" default="" enable="eq(-2,true)"/>
-    <setting id="ws_sort" type="enum" label="30054" lvalues="30055|30056|30057|30058|30059" default="0" enable="eq(-3,true)"/>
+    <setting id="ws_enabled" help="30300" type="bool" label="30051" default="false"/>
+    <setting id="ws_username" help="30301" type="text" label="30052" default="" enable="eq(-1,true)"/>
+    <setting id="ws_password" help="30302" type="text" option="hidden" label="30053" default="" enable="eq(-2,true)"/>
+    <setting id="ws_sort" help="30303" type="enum" label="30054" lvalues="30055|30056|30057|30058|30059" default="0" enable="eq(-3,true)"/>
     <setting label="30233" type="lsep" enable="eq(-4,true)"/>
     <setting label="30229" type="action" action="RunPlugin(plugin://plugin.video.nokturno/?action=sub_status)" enable="eq(-5,true)"/>
-    <setting id="sub_warn_days" type="slider" label="30234" default="5" range="0,1,14" option="int" enable="eq(-6,true)"/>
+    <setting id="sub_warn_days" help="30233" type="slider" label="30234" default="5" range="0,1,14" option="int" enable="eq(-6,true)"/>
   </category>
   <category label="30194">
-    <setting id="hs_enabled" type="bool" label="30195" default="false"/>
+    <setting id="hs_enabled" help="30196" type="bool" label="30195" default="false"/>
     <setting label="30196" type="lsep"/>
   </category>
   <category label="30030">
-    <setting id="sosac_enabled" type="bool" label="30031" default="true"/>
-    <setting id="streamuj_username" type="text" label="30128" default="" enable="eq(-1,true)"/>
-    <setting id="streamuj_password" type="text" option="hidden" label="30129" default="" enable="eq(-2,true)"/>
-    <setting id="cross_search" type="bool" label="30034" default="true" enable="eq(-3,true)"/>
+    <setting id="sosac_enabled" help="30304" type="bool" label="30031" default="true"/>
+    <setting id="streamuj_username" help="30305" type="text" label="30128" default="" enable="eq(-1,true)"/>
+    <setting id="streamuj_password" help="30306" type="text" option="hidden" label="30129" default="" enable="eq(-2,true)"/>
+    <setting id="cross_search" help="30307" type="bool" label="30034" default="true" enable="eq(-3,true)"/>
   </category>
   <category label="30001">
-    <setting id="luna_enabled" type="bool" label="30014" default="true"/>
-    <setting id="luna_url" type="text" label="30002" default="http://192.168.1.10:7126" enable="eq(-1,true)"/>
-    <setting id="token" type="text" label="30003" default="" enable="eq(-2,true)"/>
-    <setting id="search_streams" type="bool" label="30009" default="true" enable="eq(-3,true)"/>
+    <setting id="luna_enabled" help="30308" type="bool" label="30014" default="true"/>
+    <setting id="luna_url" type="text" label="30002" help="30309" default="http://192.168.1.10:7126" enable="eq(-1,true)"/>
+    <setting id="token" help="30310" type="text" label="30003" default="" enable="eq(-2,true)"/>
+    <setting id="search_streams" help="30311" type="bool" label="30009" default="true" enable="eq(-3,true)"/>
   </category>
   <category label="30004">
-    <setting id="stream_mode" type="enum" label="30005" lvalues="30006|30007|30008" default="1"/>
-    <setting id="pref_lang" type="enum" label="30110" lvalues="30111|30112|30113|30114" default="1"/>
-    <setting id="pref_surround" type="bool" label="30131" default="false"/>
-    <setting id="hide_sd" type="bool" label="30115" default="false"/>
-    <setting id="max_bitrate_mbps" type="text" label="30224" default="0"/>
+    <setting id="stream_mode" help="30312" type="enum" label="30005" lvalues="30006|30007|30008" default="1"/>
+    <setting id="pref_lang" help="30313" type="enum" label="30110" lvalues="30111|30112|30113|30114" default="1"/>
+    <setting id="pref_surround" help="30314" type="bool" label="30131" default="false"/>
+    <setting id="hide_sd" help="30315" type="bool" label="30115" default="false"/>
+    <setting id="max_bitrate_mbps" help="30225" type="text" label="30224" default="0"/>
     <setting label="30220" type="action" action="RunPlugin(plugin://plugin.video.nokturno/?action=speedtest)"/>
     <setting label="30225" type="lsep"/>
-    <setting id="sort_streams" type="enum" label="30117" lvalues="30118|30119|30120|30121" default="0"/>
-    <setting id="audio_probe" type="slider" label="30198" default="24" range="0,4,60" option="int"/>
+    <setting id="sort_streams" help="30316" type="enum" label="30117" lvalues="30118|30119|30120|30121" default="0"/>
+    <setting id="audio_probe" help="30199" type="slider" label="30198" default="24" range="0,4,60" option="int"/>
     <setting label="30199" type="lsep"/>
   </category>
   <category label="30201">
-    <setting id="show_size" type="bool" label="30202" default="true"/>
-    <setting id="show_length" type="bool" label="30226" default="true"/>
-    <setting id="show_source" type="bool" label="30203" default="true"/>
-    <setting id="show_file" type="bool" label="30204" default="true"/>
-    <setting id="show_subs" type="bool" label="30205" default="true"/>
-    <setting id="show_bitrate" type="bool" label="30206" default="true"/>
+    <setting id="show_size" help="30317" type="bool" label="30202" default="true"/>
+    <setting id="show_length" help="30318" type="bool" label="30226" default="true"/>
+    <setting id="show_source" help="30319" type="bool" label="30203" default="true"/>
+    <setting id="show_file" help="30320" type="bool" label="30204" default="true"/>
+    <setting id="show_subs" help="30321" type="bool" label="30205" default="true"/>
+    <setting id="show_bitrate" help="30322" type="bool" label="30206" default="true"/>
     <setting label="30207" type="lsep"/>
   </category>
   <category label="30071">
-    <setting id="download_dir" type="folder" label="30087" default="" source="files" option="writeable"/>
+    <setting id="download_dir" help="30323" type="folder" label="30087" default="" source="files" option="writeable"/>
   </category>
   <category label="30090">
-    <setting id="trakt_enabled" type="bool" label="30091" default="false"/>
-    <setting id="trakt_client_id" type="text" label="30092" default="" enable="eq(-1,true)"/>
-    <setting id="trakt_client_secret" type="text" option="hidden" label="30093" default="" enable="eq(-2,true)"/>
+    <setting id="trakt_enabled" help="30324" type="bool" label="30091" default="false"/>
+    <setting id="trakt_client_id" help="30325" type="text" label="30092" default="" enable="eq(-1,true)"/>
+    <setting id="trakt_client_secret" help="30326" type="text" option="hidden" label="30093" default="" enable="eq(-2,true)"/>
     <setting label="30100" type="action" action="RunPlugin(plugin://plugin.video.nokturno/?action=trakt_auth)" enable="eq(-3,true)"/>
     <setting label="30098" type="action" action="RunPlugin(plugin://plugin.video.nokturno/?action=trakt_logout)" enable="eq(-4,true)"/>
   </category>
   <category label="30180">
-    <setting id="sync_enabled" type="bool" label="30181" default="false"/>
-    <setting id="sync_url" type="text" label="30182" default="http://homeassistant.local:8123" enable="eq(-1,true)"/>
-    <setting id="sync_key" type="text" label="30183" default="" enable="eq(-2,true)"/>
+    <setting id="sync_enabled" help="30185" type="bool" label="30181" default="false"/>
+    <setting id="sync_url" type="text" label="30182" help="30327" default="http://homeassistant.local:8123" enable="eq(-1,true)"/>
+    <setting id="sync_key" help="30328" type="text" label="30183" default="" enable="eq(-2,true)"/>
     <setting label="30184" type="action" action="RunPlugin(plugin://plugin.video.nokturno/?action=sync_now)" enable="eq(-3,true)"/>
     <setting label="30185" type="lsep"/>
   </category>
   <category label="30160">
-    <setting id="stats_enabled" type="bool" label="30161" default="true"/>
+    <setting id="stats_enabled" help="30164" type="bool" label="30161" default="true"/>
     <setting label="30163" type="action" action="RunPlugin(plugin://plugin.video.nokturno/?action=stats_send)" enable="eq(-1,true)"/>
     <setting label="30164" type="lsep"/>
   </category>
