@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="1.8.7" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="2.0.0" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -8,10 +8,10 @@
   </extension>
   <extension point="xbmc.service" library="service.py"/>
   <extension point="xbmc.addon.metadata">
-    <summary lang="en_GB">Movies and series from WebShare, Sosáč and Luna: Absolute Cinema — one add-on, search across sources</summary>
-    <summary lang="cs_CZ">Filmy a seriály z WebShare, Sosáče a Luny v jednom doplňku, hledání napříč</summary>
-    <description lang="en_GB">Three sources, each optional: WebShare directly (your account – file search and playback), Sosáč directly (its catalogues, series with episodes, Czech dubbing and subtitles – only a Streamuj.tv account) and a Luna: Absolute Cinema server, reachable on your LAN or running locally on the same device (TMDB catalogues, WebShare streams with detected quality and languages). Search across sources, streams from several sources for one title, continue watching, my list, downloads, Trakt. Support the author: https://ko-fi.com/matata86</description>
-    <description lang="cs_CZ">Tři zdroje, každý volitelný: WebShare přímo (tvůj účet – hledání souborů a přehrávání), Sosáč napřímo (jeho katalogy, seriály s epizodami, český dabing a titulky – stačí účet Streamuj.tv) a server Luna: Absolute Cinema, dostupný v LAN nebo běžící lokálně na stejném zařízení (TMDB katalogy, streamy z WebShare s rozpoznanou kvalitou a jazyky). Hledání napříč zdroji, streamy z více zdrojů u jednoho titulu, pokračovat ve sledování, můj seznam, stahování, Trakt. Podpoř autora: https://ko-fi.com/matata86</description>
+    <summary lang="en_GB">Movies and series from WebShare, Sosáč, Luna: Absolute Cinema and HellSpy — one add-on, search across sources</summary>
+    <summary lang="cs_CZ">Filmy a seriály z WebShare, Sosáče, Luny a HellSpy v jednom doplňku, hledání napříč</summary>
+    <description lang="en_GB">Four sources, each optional: WebShare directly (your account – file search and playback), Sosáč directly (its catalogues, series with episodes, Czech dubbing and subtitles – only a Streamuj.tv account), a Luna: Absolute Cinema server, reachable on your LAN or running locally on the same device (TMDB catalogues, WebShare streams with detected quality and languages), and HellSpy (public, no account needed). Search across sources, streams from several sources for one title with a quality/audio/subtitle filter, bitrate and length on every stream, continue watching, my list, downloads, Trakt, WebShare subscription tracking. Support the author: https://ko-fi.com/matata86</description>
+    <description lang="cs_CZ">Čtyři zdroje, každý volitelný: WebShare přímo (tvůj účet – hledání souborů a přehrávání), Sosáč napřímo (jeho katalogy, seriály s epizodami, český dabing a titulky – stačí účet Streamuj.tv), server Luna: Absolute Cinema, dostupný v LAN nebo běžící lokálně na stejném zařízení (TMDB katalogy, streamy z WebShare s rozpoznanou kvalitou a jazyky), a HellSpy (veřejný, bez účtu). Hledání napříč zdroji, streamy z více zdrojů u jednoho titulu s filtrem podle kvality/zvuku/titulků, datový tok a délka u každého streamu, pokračovat ve sledování, můj seznam, stahování, Trakt, sledování předplatného WebShare. Podpoř autora: https://ko-fi.com/matata86</description>
     <platform>all</platform>
     <license>MIT</license>
     <source>https://github.com/matata86/plugin.video.nokturno</source>
@@ -21,7 +21,19 @@
       <icon>resources/media/icon.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>1.8.7 – po aktualizaci se v menu nahoře objeví „Novinky ve verzi“ se stručným přehledem změn
+    <news>2.0.0 – HellSpy jako čtvrtý zdroj streamů (veřejný, bez účtu) – hledá se automaticky spolu s ostatními
+2.0.0 – Filtr streamů podle kvality, zvuku, kanálů, kodeku, titulků i zdroje, s počtem nalezeného vždy v závorce
+2.0.0 – Datový tok a délka u úplně každého streamu, ne jen u toho, co si to sám řekl – z hlavičky souboru nebo odhadem podle stopáže titulu
+2.0.0 – Max. velikost streamu (GB) nahrazena datovým tokem (Mb/s) – přepočítá se podle stopáže právě otevřeného titulu; rychlost internetu jde rovnou v nastavení změřit
+2.0.0 – Sledování předplatného WebShare – upozornění pár dní před koncem a pak každý den po vypršení, dny do konce i v nastavení
+2.0.0 – Jazyk zvuku se ověřuje z hlavičky souboru i tam, kde ho tvrdí jen název – uploader se může splést nebo zkopírovat popisek odjinud
+2.0.0 – Žánr titulu tučně na začátku popisu (přeložený do češtiny, i u anglických zdrojů)
+2.0.0 – Nápověda ke všem položkám nastavení – dole v dialogu se teď zobrazí, co která volba dělá
+2.0.0 – Oprava: „Zeptat se v dialogu“ u výběru streamu konečně funguje (od prvních verzí doplňku se místo dialogu vždy zobrazil seznam)
+2.0.0 – Kvalita zpátky jako barevný text (4K/FHD/HD/SD), konec neviditelného textu na vybrané položce s bílým podkladem
+2.0.0 – Fulltext WebShare zmizel z hlavního menu – nabídne se až u titulu, který katalogy nenajdou
+2.0.0 – Ochrana proti lživým hlavičkám AVI souborů (chybná délka po přemuxování už nezkreslí datový tok)
+1.8.7 – po aktualizaci se v menu nahoře objeví „Novinky ve verzi“ se stručným přehledem změn
 1.8.6 – ikona zpět na původní, tenčí kresbu
 1.8.5 – silnější kresba ikony, aby se v seznamu doplňků nerozpadala; u Pokračovat ve sledování, Můj seznam, Naposledy zhlédnuté a Hledat na WebShare jde nastavit zobrazení jako u Filmů
 1.8.4 – nová ikona se propíše i tam, kde Kodi držel v paměti tu starou

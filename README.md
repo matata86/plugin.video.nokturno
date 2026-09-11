@@ -1,6 +1,6 @@
 ![Nokturno](resources/media/fanart.jpg)
 
-# Nokturno — filmy a seriály z WebShare, Sosáče a Luny pro Kodi
+# Nokturno — filmy a seriály z WebShare, Sosáče, Luny a HellSpy pro Kodi
 
 [![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/matata86)
 
@@ -21,7 +21,9 @@ Přihlašovací údaje zůstávají v Kodi — doplněk je posílá jen službě
 - **rok v dotazu je filtr** — „Pět švestek 2026“ vrátí jen film z roku 2026; číslo, které patří k názvu („2012“, „Blade Runner 2049“), se jako rok nebere
 - **Hledat na WebShare** — soubory přímo z WebShare API (řazení: relevance / nejnovější / hodnocení / velikost)
 - **katalogy** Luny (TMDB) i Sosáče; seriály → série → epizody s plakáty, popisy, hodnocením, obsazením
-- **streamy z více zdrojů u jednoho titulu** — Luna, přímý fulltext WebShare i Sosáč se prohledají **souběžně** a stejný soubor nalezený víc cestami se ukáže jen jednou; u každého streamu je zdroj, kvalita (u souborů bez kvality v názvu odhad podle velikosti se značkou `~`), bitrate, velikost a jazyky zvuku i titulků; filtr (preferovaný jazyk, prostorový zvuk, skrýt SD, max. velikost) a řazení, nebo se pustí automaticky nejlepší
+- **streamy z více zdrojů u jednoho titulu** — Luna, přímý fulltext WebShare, Sosáč i HellSpy se prohledají **souběžně** a stejný soubor nalezený víc cestami se ukáže jen jednou; u každého streamu je zdroj, kvalita (u souborů bez kvality v názvu odhad podle velikosti se značkou `~`), datový tok, délka, velikost a jazyky zvuku i titulků — zjištěné ze zdroje, nebo dočtené z hlavičky souboru a označené `~`, když jde jen o odhad. Řazení podle nastavení, nebo se pustí automaticky nejlepší
+- **Filtr streamů** přímo v seznamu — podle kvality, jazyka zvuku, počtu kanálů (5.1 a víc), kodeku, titulků i zdroje; nabízí jen to, co se v aktuálním seznamu skutečně vyskytuje, s počtem nalezeného v závorce
+- **Max. datový tok** místo pevné velikosti v GB — nastavení umí i změřit rychlost internetu a spočítat dovolený tok s 25% rezervou; skutečná velikost se pak dopočítá podle stopáže právě otevřeného titulu, ne podle jednoho čísla pro všechno
 - **Pokračovat ve sledování** (rozkoukané + další díl), **Můj seznam**, **Naposledy zhlédnuté**, historie hledání, zhlédnuto/rozkoukáno (i bez Kodi knihovny)
 - **Zapamatovaný stream u seriálu** — jakmile si u seriálu jednou vybereš stream (zdroj, kvalitu, jazyk), další díly se pustí stejně bez ptaní; výběr se nabídne, jen když u dílu ta kombinace chybí
 - **Značka dalšího dílu** — v seznamu epizod je `»` u prvního nezhlédnutého dílu, který navazuje na poslední zhlédnutý
@@ -33,6 +35,9 @@ Přihlašovací údaje zůstávají v Kodi — doplněk je posílá jen službě
 - **anonymní statistiky** používání, které jdou v nastavení vypnout (viz níže)
 - **Synchronizace mezi více Kodi** — zhlédnuto, rozkoukané (i pozice) a Můj seznam se sdílí přes integraci [Nokturno pro Home Assistant](https://github.com/matata86/nokturno-ha): v HA si v nastavení integrace opiš klíč, v Kodi zapni *Nastavení → Synchronizace*, vyplň adresu HA a klíč. Běží na pozadí, ručně přes „Synchronizovat teď" v menu
 - **Up Next** — je-li nainstalovaná služba [Up Next](https://kodi.tv/addons/omega/service.upnext), dostane u seriálů informaci o dalším dílu a ke konci epizody nabídne jeho přehrání (a s zapamatovaným streamem ho pustí rovnou)
+- **Sledování předplatného WebShare** — tlačítko v nastavení ukáže, kolik dní zbývá; upozornění pár dní před koncem a pak každý den, dokud předplatné nevyprší
+- **Žánr v popisu titulu** — tučně na začátku, přeložený do češtiny i u titulů z anglicky mluvících zdrojů
+- **Nápověda ke každé volbě v nastavení** — dole v dialogu se zobrazí, co položka dělá, ne jen její název
 
 ## Předpoklady
 
@@ -69,11 +74,12 @@ repozitář nabízí i předchozí vydání.
 
 ## Nastavení zdrojů
 
-Zapni, co máš — jeden, dva nebo všechny tři:
+Zapni, co máš — jeden, víc, nebo všechny čtyři:
 
 - **WebShare (přímo)** — jméno + heslo k WebShare (nebo 40znakový salted hash, který používá WebShare doplněk pro Stremio).
 - **Sosáč** — jméno + heslo ke **Streamuj.tv** (přehrávač Sosáče). Katalogy a hledání jdou z veřejných JSON exportů `tv.sosac.to`, streamy ze `streamuj.tv` — stejně jako oficiální Kodi doplněk Sosáče. Starší režim přes Stremio doplněk Sosáče (`userId`) zůstává v nastavení jako záloha.
 - **Luna** — otevři setup stránku Luny (`http://IP-Luny:7126/setup`), zkopíruj **adresu doplňku** (`…/e1.XXXX/manifest.json`) a vlož ji do pole *Adresa doplňku nebo token*; adresa serveru se z ní vezme sama.
+- **HellSpy** — jen přepínač v nastavení, rozhraní je veřejné a účet nepotřebuje.
 
 ## Struktura
 
