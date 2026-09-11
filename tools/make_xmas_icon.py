@@ -81,10 +81,10 @@ def build():
 
     img.alpha_composite(snow_caps(size))
 
-    # levý dřík „N" začíná na x 0.24–0.36 a jeho horní hrana je na y 0.30 —
+    # levý dřík „N" začíná na x 0.32–0.40 a jeho horní hrana je na y 0.33 —
     # čepice musí dosednout přesně tam, jinak se vznáší nebo zakrývá písmeno
-    hat = santa_hat(int(size * 0.32)).rotate(-12, resample=Image.BICUBIC, expand=True)
-    img.alpha_composite(hat, (int(size * 0.175), int(size * 0.060)))
+    hat = santa_hat(int(size * 0.26)).rotate(-12, resample=Image.BICUBIC, expand=True)
+    img.alpha_composite(hat, (int(size * 0.250), int(size * 0.098)))
 
     flakes = snowflakes(size, 46)
     img.alpha_composite(flakes.filter(ImageFilter.GaussianBlur(size * 0.0015)))
