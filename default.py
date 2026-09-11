@@ -18,6 +18,7 @@ import sys
 import threading
 import time
 import urllib.parse
+import urllib.request
 import unicodedata
 
 import xbmc
@@ -1179,6 +1180,57 @@ def test_sources():
     xbmcgui.Dialog().ok(L(30170), "\n".join(lines))
 
 
+SPEEDTEST_URL = "https://speed.cloudflare.com/__down?bytes=52428800"  # 50 MB, i na rychlém připojení stačí pár vteřin
+SPEEDTEST_SECONDS = 8       # déle nemá smysl čekat, průměr se stejně ustálí dřív
+SPEEDTEST_RESERVE = 0.25    # rezerva, aby přehrávání nezasekávalo při kolísání rychlosti
+SPEEDTEST_MOVIE_S = 7200    # dvouhodinový film jako typický odhad stopáže
+
+
+def speedtest():
+    """Tlačítko v nastavení u max. velikosti streamu.
+
+    Velikost souboru sama o sobě neříká, jestli přehrávání poteče plynule —
+    rozhoduje datový tok, tedy velikost dělená stopáží. Bez stopáže
+    konkrétního titulu se počítá s dvouhodinovým filmem jako typickým
+    odhadem, takže u výrazně kratších nebo delších věcí sedí hranice jen
+    přibližně. Rezerva 25 % je proti kolísání rychlosti v čase, ne proti
+    tomuhle odhadu.
+    """
+    dialog = xbmcgui.DialogProgress()
+    dialog.create(L(30000), L(30220, "Měřím rychlost stahování…"))
+    got, t0 = 0, time.time()
+    try:
+        req = urllib.request.Request(SPEEDTEST_URL, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            while True:
+                if dialog.iscanceled():
+                    dialog.close()
+                    return
+                chunk = resp.read(262144)
+                if not chunk:
+                    break
+                got += len(chunk)
+                elapsed = time.time() - t0
+                dialog.update(min(99, int(elapsed / SPEEDTEST_SECONDS * 100)), f"{got / 2**20:.0f} MB")
+                if elapsed >= SPEEDTEST_SECONDS:
+                    break
+    except Exception as e:  # noqa: BLE001 – síť, DNS, vypršelý čas
+        dialog.close()
+        notify(f"{L(30221, 'Měření rychlosti selhalo')}: {str(e)[:80]}", xbmcgui.NOTIFICATION_ERROR, 5000)
+        return
+    dialog.close()
+    elapsed = max(time.time() - t0, 0.5)
+    if got < 512 * 1024:
+        # míň než půl megabajtu je jen šum (pomalé DNS, krátké přerušení) — s tím se nepočítá
+        notify(L(30222, "Stáhlo se moc málo dat, zkus to znovu"), xbmcgui.NOTIFICATION_WARNING, 5000)
+        return
+    mbps = got * 8 / elapsed / 1_000_000
+    allowed_mbps = mbps * (1 - SPEEDTEST_RESERVE)
+    max_gb = round(max(0.5, allowed_mbps * 1_000_000 * SPEEDTEST_MOVIE_S / 8 / 2 ** 30), 1)
+    ADDON.setSetting("max_size_gb", str(max_gb))
+    notify(Lf(30223, f"{mbps:.0f}", f"{max_gb:g}"), xbmcgui.NOTIFICATION_INFO, 6000)
+
+
 def prefetch(apis, kind):
     """Zahřátí cache — volá služba na pozadí, nic se nevypisuje ani nepočítá.
 
@@ -2184,6 +2236,7 @@ def router(query):
                                 xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
         "stats_send": stats_send,
         "test_sources": test_sources,
+        "speedtest": speedtest,
         "sync_now": sync_now,
         "whats_new": whats_new,
         "ha_files": list_ha_files,
