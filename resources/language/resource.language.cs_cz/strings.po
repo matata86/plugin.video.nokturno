@@ -581,3 +581,31 @@ msgstr "Ukazovat datový tok"
 msgctxt "#30207"
 msgid "Jazyk se zvukem a kvalita zustavaji vzdy. Vlnovka pred jazykem nebo kvalitou znamena odhad z nazvu souboru, bez ni je udaj od zdroje nebo z hlavicky souboru."
 msgstr "Jazyk se zvukem a kvalita zůstávají vždy. Vlnovka před jazykem nebo kvalitou znamená odhad z názvu souboru, bez ní je údaj od zdroje nebo z hlavičky souboru."
+
+msgctxt "#30208"
+msgid "Quality"
+msgstr "Kvalita"
+
+msgctxt "#30209"
+msgid "Audio"
+msgstr "Zvuk"
+
+msgctxt "#30210"
+msgid "Subtitles"
+msgstr "Titulky"
+
+msgctxt "#30211"
+msgid "Source"
+msgstr "Zdroj"
+
+msgctxt "#30212"
+msgid "Nothing to filter by"
+msgstr "Není podle čeho filtrovat"
+
+msgctxt "#30213"
+msgid "Filter streams"
+msgstr "Filtr streamů"
+
+msgctxt "#30214"
+msgid "Filter left nothing, showing all streams"
+msgstr "Filtr nic nenechal, zobrazeny všechny streamy"

@@ -581,3 +581,31 @@ msgstr "Show bitrate"
 msgctxt "#30207"
 msgid "Jazyk se zvukem a kvalita zustavaji vzdy. Vlnovka pred jazykem nebo kvalitou znamena odhad z nazvu souboru, bez ni je udaj od zdroje nebo z hlavicky souboru."
 msgstr "Jazyk se zvukem a kvalita zustavaji vzdy. Vlnovka pred jazykem nebo kvalitou znamena odhad z nazvu souboru, bez ni je udaj od zdroje nebo z hlavicky souboru."
+
+msgctxt "#30208"
+msgid "Quality"
+msgstr "Quality"
+
+msgctxt "#30209"
+msgid "Audio"
+msgstr "Audio"
+
+msgctxt "#30210"
+msgid "Subtitles"
+msgstr "Subtitles"
+
+msgctxt "#30211"
+msgid "Source"
+msgstr "Source"
+
+msgctxt "#30212"
+msgid "Nothing to filter by"
+msgstr "Nothing to filter by"
+
+msgctxt "#30213"
+msgid "Filter streams"
+msgstr "Filter streams"
+
+msgctxt "#30214"
+msgid "Filter left nothing, showing all streams"
+msgstr "Filter left nothing, showing all streams"
