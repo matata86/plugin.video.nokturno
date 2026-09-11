@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="2.0.1" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="2.0.2" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -21,7 +21,9 @@
       <icon>resources/media/icon.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>2.0.1 – Hledat i na HellSpy je teď zapnuté ve výchozím nastavení (u nových instalací)
+    <news>2.0.2 – Můj seznam přidaný ještě před verzí se synchronizací (1.7.0) se teď taky dosynchronizuje mezi Kodi
+2.0.2 – Sloučení duplicitních streamů z Lunina vlastního fulltextu WebShare, když se vrátí tentýž soubor víckrát
+2.0.1 – Hledat i na HellSpy je teď zapnuté ve výchozím nastavení (u nových instalací)
 2.0.0 – HellSpy jako čtvrtý zdroj streamů (veřejný, bez účtu) – hledá se automaticky spolu s ostatními
 2.0.0 – Filtr streamů podle kvality, zvuku, kanálů, kodeku, titulků i zdroje, s počtem nalezeného vždy v závorce
 2.0.0 – Datový tok a délka u úplně každého streamu, ne jen u toho, co si to sám řekl – z hlavičky souboru nebo odhadem podle stopáže titulu
