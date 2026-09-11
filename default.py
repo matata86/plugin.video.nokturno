@@ -716,10 +716,16 @@ def fill_audio(apis, streams):
     a servery umí vydat jen její výřez, takže se přečte pár desítek kB. Běží to
     souběžně a výsledek se pamatuje, takže se za soubor platí jednou.
     """
+    try:
+        limit = int(setting("audio_probe", str(AUDIO_PROBE_MAX)) or AUDIO_PROBE_MAX)
+    except ValueError:
+        limit = AUDIO_PROBE_MAX
+    if limit <= 0:
+        return streams
     # rozhoduje neznámý počet kanálů, ne neznámý jazyk: ten se často přečte
     # z názvu („CZ Dabing"), ale kolik má stopa kanálů, z názvu nepozná nikdo
     todo = [s for s in streams if not s.get("channels")
-            and str(s.get("url") or "").startswith(("hs:", "ws:", "streamuj:"))][:AUDIO_PROBE_MAX]
+            and str(s.get("url") or "").startswith(("hs:", "ws:", "streamuj:"))][:limit]
     if not todo:
         return streams
     with ThreadPoolExecutor(max_workers=8) as pool:
@@ -728,6 +734,7 @@ def fill_audio(apis, streams):
         if not text:
             continue
         stream["detail"] = f"{stream['detail']} | {text}" if stream.get("detail") else text
+        stream["_audio_from_file"] = True
         # parse_stream je idempotentní podle `quality_rank`; po změně popisku
         # se musí přepočítat, jinak by jazyky a kanály zůstaly prázdné
         stream.pop("quality_rank", None)
@@ -854,14 +861,16 @@ def pref_from_param(value):
     return {"source": source, "quality": int(quality or 0), "langs": [x for x in langs.split(",") if x]}
 
 
-def stream_label(s):
-    """Jeden řádek: zvuk · velikost · kvalita · zdroj · zbytek.
+def stream_lines(s):
+    """Dva řádky streamu: čím se vybírá, a pod tím podrobnosti.
 
-    Pořadí je dané šířkou: skiny s úzkým sloupcem seznamu (Arctic Fuse dává seznamu jen
-    půl obrazovky) konec řádku oříznou, proto jde jazyk s počtem kanálů a velikost dopředu
-    a zdroj až za kvalitu. 5.1 a víc je tučně, ať je surround vidět na první pohled.
+    Nahoře je to, podle čeho se člověk rozhoduje — jazyk s počtem kanálů,
+    velikost, kvalita a zdroj. Dole název souboru, titulky, datový tok a odkud
+    se vzal údaj o zvuku. Dřív to byl jeden dlouhý řádek a skiny s úzkým
+    sloupcem (Arctic Fuse dává seznamu půl obrazovky) ho ořízly v půlce.
 
-    Luna = přesná shoda přes Lunu, WebShare = fulltext WebShare (přes Lunu nebo přímo), Sosáč = streamuj.
+    Jazyk bez vlnovky přišel od zdroje nebo z hlavičky souboru, s vlnovkou je
+    jen odhad z názvu souboru — stejně jako „~4K" u odhadnuté kvality.
     """
     parse_stream(s)
     tag = SOURCE_TAGS.get(s.get("source"), "")
@@ -869,7 +878,6 @@ def stream_label(s):
     for junk in ("(WS)", "Sosáč"):
         raw = raw.replace(junk, "")
     raw = raw.strip()
-    # kvalita = tučně a barevně, zbytek názvu (HDR, DV, 60 %) normálně
     quality = {4: "4K", 3: "Full HD", 2: "HD", 1: "SD"}.get(s.get("quality_rank", 0), "")
     if not quality and s.get("size_gb"):
         # soubor bez kvality v názvu (typicky přímo z WebShare): odhad podle velikosti, s vlnovkou
@@ -880,14 +888,16 @@ def stream_label(s):
     if s.get("source") == "sosac":
         rest = ""   # u Sosáče je zbytek jen jazyk, ten je už ve zvuku
 
-    parts = []
+    top = []
     channels = s.get("channels") or {}
     pref = PREF_LANGS[int(setting("pref_lang", "0"))]
+    known = set(s.get("langs") or [])
     # metadata zdroje nemusí sedět na soubor („EN 5.1“ u souboru „…_cz_…“) — jazyk z názvu se přidá
-    codes = set(s.get("langs") or []) | langs_from_name(raw)
+    codes = known | langs_from_name(raw)
     langs = []
     for code in sorted(codes, key=lambda c: (c != pref, c)):   # preferovaný jazyk první
-        txt = f"[COLOR {LANG_COLORS.get(code, 'FFE0E0E0')}]{code}[/COLOR]"
+        mark = "" if code in known else "~"
+        txt = f"[COLOR {LANG_COLORS.get(code, 'FFE0E0E0')}]{mark}{code}[/COLOR]"
         if code in channels:
             # vždy s desetinnou částí: Luna posílá „2" a „1", ale v seznamu se to
             # čte hůř než „2.0" a „1.0" vedle „5.1"
@@ -895,22 +905,32 @@ def stream_label(s):
             txt += f" [B]{ch}[/B]" if channels[code] >= 5.1 else f" {ch}"
         langs.append(txt)
     if langs:
-        parts.append(" ".join(langs))
+        top.append(" ".join(langs))
     if s.get("size_gb"):
-        parts.append(f"{s['size_gb']:.1f} GB")
-    parts.append(f"[COLOR {QUALITY_COLORS.get(s.get('quality_rank', 0), GREY)}][B]{quality or raw}[/B][/COLOR]")
+        top.append(f"{s['size_gb']:.1f} GB")
+    top.append(f"[COLOR {QUALITY_COLORS.get(s.get('quality_rank', 0), GREY)}][B]{quality or raw}[/B][/COLOR]")
     if tag:
-        parts.append(tag)
+        top.append(tag)
+
+    bottom = []
     if rest and quality:
-        parts.append(f"[COLOR {GREY}]{rest}[/COLOR]")
+        bottom.append(rest)
     # WebShare fulltext nedává strukturovaný údaj o titulcích (jen Luna/Sosáč) —
     # značka „CZtit“ v názvu souboru se doplní stejně jako jazyk zvuku výše
     subs = set(s.get("subs") or []) | subs_from_name(raw)
     if subs:
-        parts.append(f"[COLOR {GREY}]tit. {' '.join(sorted(subs))}[/COLOR]")
+        bottom.append(f"tit. {' '.join(sorted(subs))}")
     if s.get("bitrate"):
-        parts.append(f"[COLOR {GREY}]{s['bitrate']:g} Mb/s[/COLOR]")
-    return "  ".join(parts)
+        bottom.append(f"{s['bitrate']:g} Mb/s")
+    if s.get("_audio_from_file"):
+        bottom.append(L(30200, "zvuk ze souboru"))
+    return "  ".join(top), f"[COLOR {GREY}]{'  ·  '.join(bottom)}[/COLOR]" if bottom else ""
+
+
+def stream_label(s):
+    """Obě řádky v jednom řetězci — pro místa, kde se druhý řádek nevejde."""
+    top, bottom = stream_lines(s)
+    return f"{top}  {bottom}" if bottom else top
 
 
 def mark_playing(key, title="", year=None, kind="movie"):
@@ -1676,7 +1696,8 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None):
     stats_title = (video or {}).get("title") or bare_title(meta)
     mark_viewed(item_id, stats_title, year if year.isdigit() else None, "series" if video else ctype)
     for s in streams:
-        li = xbmcgui.ListItem(label=stream_label(s))
+        top, bottom = stream_lines(s)
+        li = xbmcgui.ListItem(label=top, label2=bottom)
         li.setArt(art_for(meta, video))
         # název titulu do InfoTagu → v OSD přehrávače je jméno filmu/epizody, ne popis streamu;
         # stopáž a hodnocení ne — skin by z nich udělal sloupce a ukrojil šířku popisku streamu
@@ -1766,7 +1787,12 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
         remembered = preferred_stream(streams, STORE.stream_pref(pref_key)) if pref_key else None
         chosen = remembered or streams[0]
         if setting("stream_mode", "1") == "2" and remembered is None:
-            idx = xbmcgui.Dialog().select(L(30024), [stream_label(s) for s in streams])
+            # useDetails → dialog ukáže i druhý řádek; bez něj by se podrobnosti ztratily
+            rows = []
+            for stream in streams:
+                top, bottom = stream_lines(stream)
+                rows.append(xbmcgui.ListItem(label=top, label2=bottom))
+            idx = xbmcgui.Dialog().select(L(30024), rows, useDetails=True)
             if idx < 0:
                 xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
                 return
