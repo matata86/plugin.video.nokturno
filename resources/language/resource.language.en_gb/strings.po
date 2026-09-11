@@ -577,3 +577,15 @@ msgstr "HellSpy needs no account. It offers the original files, same as WebShare
 msgctxt "#30197"
 msgid "Search HellSpy"
 msgstr "Search HellSpy"
+
+msgctxt "#30198"
+msgid "Detect audio from the file (how many streams)"
+msgstr "Detect audio from the file (how many streams)"
+
+msgctxt "#30199"
+msgid "Reads the start of the file to find audio language and channels where the source stays silent. Only for such streams, from the top of the sorted list, result kept for a month. 0 = off."
+msgstr "Reads the start of the file to find audio language and channels where the source stays silent. Only for such streams, from the top of the sorted list, result kept for a month. 0 = off."
+
+msgctxt "#30200"
+msgid "audio read from the file"
+msgstr "audio read from the file"

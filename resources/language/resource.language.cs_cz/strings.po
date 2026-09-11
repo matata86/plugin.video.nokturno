@@ -577,3 +577,15 @@ msgstr "HellSpy nepotřebuje účet. Nabízí původní soubory, stejně jako We
 msgctxt "#30197"
 msgid "Search HellSpy"
 msgstr "Hledat na HellSpy"
+
+msgctxt "#30198"
+msgid "Detect audio from the file (how many streams)"
+msgstr "Zjišťovat zvuk ze souboru (kolik streamů)"
+
+msgctxt "#30199"
+msgid "Reads the start of the file to find audio language and channels where the source stays silent. Only for such streams, from the top of the sorted list, result kept for a month. 0 = off."
+msgstr "Přečte začátek souboru a zjistí z něj jazyk a počet kanálů tam, kde je zdroj neřekl. Týká se jen takových streamů, bere se od začátku seřazeného seznamu a výsledek se pamatuje měsíc. 0 = nezjišťovat."
+
+msgctxt "#30200"
+msgid "audio read from the file"
+msgstr "zvuk ze souboru"
