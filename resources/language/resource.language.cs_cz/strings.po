@@ -638,3 +638,7 @@ msgstr "Max. datový tok (Mb/s, 0 = bez omezení)"
 msgctxt "#30225"
 msgid "Converted to GB using the current title's runtime; without a known runtime (typically fulltext) it assumes a 2-hour movie."
 msgstr "Přepočítá se na GB podle stopáže aktuálního titulu; bez známé stopáže (typicky fulltext) se počítá s dvouhodinovým filmem."
+
+msgctxt "#30226"
+msgid "Show length"
+msgstr "Ukazovat délku"

@@ -869,23 +869,35 @@ def collect_streams(apis, ctype, item_id, meta, alt=None):
 
 
 def ensure_bitrate(streams, meta_or_video):
-    """Datový tok má mít úplně každý stream, ne jen ten, co ho zdroj sám řekl.
+    """Datový tok a délka má mít úplně každý stream, ne jen ten, co je zdroj sám řekl.
 
-    Přesnost podle toho, odkud se vzal: hlavička souboru dala i jeho vlastní
-    délku (`_duration`, z `fill_audio`) — z ní je datový tok stejně přesný
-    jako velikost. Bez ní (mimo rozpočet čtení hlavičky, nebo zdroj s pevným
-    popiskem jako Luna) se počítá se stopáží titulu — to je odhad, stejný,
+    Přesnost podle toho, odkud se vzala délka. Nejlepší je ta, kterou přímo
+    posílá zdroj (`duration`, z popisku Luny). Pak hlavička souboru
+    (`_duration`, z `fill_audio`) — z obojího je datový tok stejně přesný
+    jako velikost. Bez nich (mimo rozpočet čtení hlavičky, nebo zdroj bez
+    vlastního údaje) se počítá se stopáží titulu — to je odhad, stejný,
     se kterým počítá i `effective_max_gb()`, proto se značí vlnovkou stejně
     jako ostatní odhadnuté věci v popisku.
+
+    AVI hlavičky lžou často — `dwTotalFrames` v `avih` je jeden z nejčastěji
+    poškozených nebo neaktualizovaných údajů po přebalení souboru. Soubor pak
+    tvrdí, že devadesátiminutový film má 14 minut, a datový tok vyjde
+    několikanásobně nadsazený. Když je titul znám, přečtená délka ze souboru
+    se proto porovná s jeho stopáží — liší-li se o víc než polovinu,
+    nedůvěřuje se jí a použije se odhad ze stopáže titulu.
     """
     minutes = runtime_minutes((meta_or_video or {}).get("runtime"))
     fallback_s = minutes * 60 if minutes else DEFAULT_RUNTIME_S
     for s in streams:
-        if s.get("bitrate") or not s.get("size_gb"):
-            continue
-        duration = s.get("_duration") or 0
-        s["bitrate"] = round(s["size_gb"] * 2 ** 30 * 8 / (duration or fallback_s) / 1_000_000, 1)
-        s["_bitrate_est"] = not duration
+        duration = s.get("duration") or s.get("_duration") or 0
+        if duration and minutes and not (0.5 <= duration / fallback_s <= 2.0):
+            duration = 0   # hlavička zjevně lže (typicky poškozený avih u AVI)
+        length = duration or fallback_s
+        s["_length_s"] = length
+        s["_length_est"] = not duration
+        if not s.get("bitrate") and s.get("size_gb"):
+            s["bitrate"] = round(s["size_gb"] * 2 ** 30 * 8 / length / 1_000_000, 1)
+            s["_bitrate_est"] = not duration
     return streams
 
 
@@ -1057,6 +1069,12 @@ def streams_filter(apis, ctype, item_id, series_id, alt, fq, flang, fch, fcodec,
                 fsub=",".join(new["sub"]), fsrc=",".join(new["src"]))
 
 
+def format_duration(seconds):
+    """`9722` → `1:39` (h:mm) — kompaktní zápis stopáže do popisku streamu."""
+    h, m = divmod(int(seconds) // 60, 60)
+    return f"{h}:{m:02d}" if h else f"{m} min"
+
+
 def stream_label(s):
     """Popisek streamu na jeden řádek.
 
@@ -1108,6 +1126,9 @@ def stream_label(s):
             parts.append(f"[COLOR {LANG_COLORS.get(code, GREY)}][{txt}][/COLOR]")
     if s.get("size_gb") and on("show_size", "true"):
         parts.append(f"[COLOR {GREY}][B]{s['size_gb']:.1f} GB[/B][/COLOR]")
+    if s.get("_length_s") and on("show_length", "true"):
+        mark = "~" if s.get("_length_est") else ""
+        parts.append(f"[COLOR {GREY}]{mark}{format_duration(s['_length_s'])}[/COLOR]")
     if s.get("bitrate") and on("show_bitrate", "true"):
         mark = "~" if s.get("_bitrate_est") else ""
         parts.append(f"[COLOR {GREY}]{mark}{s['bitrate']:g} Mb/s[/COLOR]")

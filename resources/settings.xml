@@ -36,6 +36,7 @@
   </category>
   <category label="30201">
     <setting id="show_size" type="bool" label="30202" default="true"/>
+    <setting id="show_length" type="bool" label="30226" default="true"/>
     <setting id="show_source" type="bool" label="30203" default="true"/>
     <setting id="show_file" type="bool" label="30204" default="true"/>
     <setting id="show_subs" type="bool" label="30205" default="true"/>
