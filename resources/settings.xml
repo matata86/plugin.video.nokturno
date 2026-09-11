@@ -82,7 +82,7 @@
       <group id="1">
         <setting id="hs_enabled" type="boolean" label="30195" help="30196">
           <level>0</level>
-          <default>false</default>
+          <default>true</default>
           <control type="toggle"/>
         </setting>
       </group>
