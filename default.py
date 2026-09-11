@@ -1192,7 +1192,10 @@ def list_ws_results(apis, query, offset=0):
     api = apis["ws"]
     if api is None:
         raise WebshareError(L(30104))
-    xbmcplugin.setContent(HANDLE, "videos")
+    # „videos" je obecný typ a skiny k němu nabízejí jen základní seznam;
+    # u konkrétního typu je na výběr celá sada zobrazení. Kodi si zobrazení
+    # pamatuje podle typu obsahu, takže tyhle seznamy sdílejí nastavení s Filmy.
+    xbmcplugin.setContent(HANDLE, "movies")
     files, total = api.search(query, sort=SORTS[int(setting("ws_sort", "0"))], limit=WS_PAGE, offset=offset)
     remember_ws_token(api)
     for f in files:
@@ -1246,7 +1249,10 @@ def toggle_fav(apis, key, ctype, series_id=None, alt=None):
 
 
 def list_favourites():
-    xbmcplugin.setContent(HANDLE, "videos")
+    # „videos" je obecný typ a skiny k němu nabízejí jen základní seznam;
+    # u konkrétního typu je na výběr celá sada zobrazení. Kodi si zobrazení
+    # pamatuje podle typu obsahu, takže tyhle seznamy sdílejí nastavení s Filmy.
+    xbmcplugin.setContent(HANDLE, "movies")
     for key in STORE.favourites():
         snap = STORE.item(key)
         if snap:
@@ -1255,7 +1261,10 @@ def list_favourites():
 
 
 def list_recent():
-    xbmcplugin.setContent(HANDLE, "videos")
+    # „videos" je obecný typ a skiny k němu nabízejí jen základní seznam;
+    # u konkrétního typu je na výběr celá sada zobrazení. Kodi si zobrazení
+    # pamatuje podle typu obsahu, takže tyhle seznamy sdílejí nastavení s Filmy.
+    xbmcplugin.setContent(HANDLE, "movies")
     for key, _entry in STORE.recently_watched():
         snap = STORE.item(key)
         if snap:
@@ -1282,7 +1291,10 @@ def next_episode(apis, snap):
 
 def list_continue(apis):
     """Rozkoukané tituly + další díly po naposledy zhlédnutých epizodách."""
-    xbmcplugin.setContent(HANDLE, "videos")
+    # „videos" je obecný typ a skiny k němu nabízejí jen základní seznam;
+    # u konkrétního typu je na výběr celá sada zobrazení. Kodi si zobrazení
+    # pamatuje podle typu obsahu, takže tyhle seznamy sdílejí nastavení s Filmy.
+    xbmcplugin.setContent(HANDLE, "movies")
     for key, _entry in STORE.in_progress():
         snap = STORE.item(key)
         if snap:

@@ -48,10 +48,11 @@ DEFS = f'''
 STARS = ''.join(f'<circle cx="{x}" cy="{y}" r="{r}" fill="#FFF" opacity="{o}"/>'
                 for x, y, r, o in [(84, 92, 3.0, .50), (146, 56, 2.0, .30), (436, 316, 2.4, .34),
                                    (62, 214, 1.9, .26), (356, 58, 1.7, .24)])
+# Podklad ikony je záměrně holý. Hvězdy i světelný lem jsou jednopixelové
+# detaily, které Kodi při zmenšení na dlaždici rozseká na šum — na fanartu,
+# kde se nic nezmenšuje, hvězdy zůstávají.
 NIGHT = ('<rect width="512" height="512" rx="112" fill="url(#sky)"/>'
-         '<rect width="512" height="512" rx="112" fill="url(#glow)"/>' + STARS +
-         '<rect x="1.5" y="1.5" width="509" height="509" rx="110.5" fill="none" '
-         'stroke="url(#rim)" stroke-width="3"/>')
+         '<rect width="512" height="512" rx="112" fill="url(#glow)"/>')
 FLAT = f'<rect width="512" height="512" rx="112" fill="{SKY_FLAT}"/>'
 
 
@@ -122,7 +123,9 @@ def play(cx, cy, size):
     return round_poly([(x, cy - h / 2), (x + w, cy), (x, cy + h / 2)], size * 0.13)
 
 
-def perforations(x, y, w, h, t, d, per_stem=4, per_diag=3, hw=15, hh=11):
+def perforations(x, y, w, h, t, d, per_stem=3, per_diag=0, hw=26, hh=19):
+    """Perforace jen na nohou. Na diagonále jsou otočené, a právě ty se při
+    zmenšení rozpily nejvíc a dělaly z písmene třásně."""
     out = ""
     for sx in (x + t / 2, x + w - t / 2):
         for i in range(per_stem):
@@ -144,9 +147,12 @@ def layer(add, sub, fill, scale=SS):
     return mark
 
 
-RING = dict(r=174, w=15)
-NBOX = (162, 170, 178, 188, 42, 48)     # x, y, šířka, výška, tloušťka nohy, šířka diagonály
-MOON = dict(cx=386, cy=126, r=54, gap=15, play=52)
+# Tloušťky jsou dané tím, co přežije zmenšení na dlaždici v seznamu doplňků
+# (~90 px), ne tím, jak kresba vypadá v 512. Kodi zmenšuje bilineárně, takže
+# tenký prstenec vyjde na dva pixely a rozpadne se na přerušovanou čáru.
+RING = dict(r=170, w=32)
+NBOX = (156, 164, 190, 200, 58, 66)     # x, y, šířka, výška, tloušťka nohy, šířka diagonály
+MOON = dict(cx=392, cy=120, r=64, gap=20, play=62)
 
 
 def mark(background, fill, scale=SS):
