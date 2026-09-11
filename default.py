@@ -752,13 +752,16 @@ def media_from_file(apis, url):
     return STORE.cached(f"media:{url}", AUDIO_TTL, load) or {}
 
 
-def fill_audio(apis, streams):
+def fill_audio(apis, streams, progress=None):
     """Doplní zvuk tam, kde ho zdroj neřekl, a ověří ho tam, kde řekl jen název souboru.
 
     HellSpy o zvuku nemá ve svém rozhraní vůbec nic a u souborů z fulltextu je
     jen to, co si někdo napsal do názvu. Údaj přitom leží v hlavičce souboru
     a servery umí vydat jen její výřez, takže se přečte pár desítek kB. Běží to
     souběžně a výsledek se pamatuje, takže se za soubor platí jednou.
+
+    Tahle část trvá nejdýl ze všeho při načítání streamů, proto `progress`
+    (je-li dán) dostane `tick()` za každý dočtený soubor, ne až na konci.
     """
     try:
         limit = int(setting("audio_probe", str(AUDIO_PROBE_MAX)) or AUDIO_PROBE_MAX)
@@ -776,8 +779,13 @@ def fill_audio(apis, streams):
     if not todo:
         return streams
     with ThreadPoolExecutor(max_workers=8) as pool:
-        found = list(pool.map(lambda s: media_from_file(apis, s["url"]), todo))
-    for stream, info in zip(todo, found):
+        futures = {pool.submit(media_from_file, apis, s["url"]): s for s in todo}
+        results = {}
+        for future in as_completed(futures):
+            results[id(futures[future])] = future.result()
+            if progress:
+                progress.tick()
+    for stream, info in ((s, results[id(s)]) for s in todo):
         if not info:
             continue
         text = describe_media(info)
@@ -856,12 +864,16 @@ def all_streams(apis, ctype, item_id):
     return api.streams(ctype, item_id)
 
 
-def collect_streams(apis, ctype, item_id, meta, alt=None):
+def collect_streams(apis, ctype, item_id, meta, alt=None, progress=None):
     """Streamy ze zdroje titulu + z druhého zdroje, vyfiltrované a seřazené podle nastavení.
 
     Oba dotazy běží souběžně — dřív šly za sebou a čas byl jejich součet. Chyba
     hlavního zdroje se hlásí dál jako dřív; dohledání v druhém zdroji si chyby
     jen zaloguje (viz `cross_streams`), takže výsledek druhého vlákna nikdy nechybí.
+
+    `progress`, je-li dán, dostane jeden `tick()` za každý dokončený zdroj —
+    vidět aspoň nějaký pohyb dřív, než začne (mnohem delší) čtení hlaviček
+    v `fill_audio()`.
     """
     # WebShare se do streamů dohledává vždy, když je účet vyplněný (stejně jako HA) —
     # není to zdvojení Luny: Luna pošle jeden dotaz, tohle víc variant (rok, originál)
@@ -872,6 +884,9 @@ def collect_streams(apis, ctype, item_id, meta, alt=None):
         cross = pool.submit(cross_streams, apis, ctype, item_id, meta, alt)
         ws = pool.submit(webshare_streams, apis, meta, video, ctype, alt) if direct else None
         hs = pool.submit(hellspy_streams, apis, meta, video, ctype, alt) if apis.get("hs") else None
+        if progress:
+            for _ in as_completed([f for f in (main, cross, ws, hs) if f is not None]):
+                progress.tick()
         extra = cross.result() + (ws.result() if ws else []) + (hs.result() if hs else [])
         streams = drop_duplicates(main.result() + extra)
     max_gb = effective_max_gb(video or meta)
@@ -890,7 +905,7 @@ def collect_streams(apis, ctype, item_id, meta, alt=None):
     # a před seřazením se rozpočet utratil za řádky, které skončí dole; teď padne
     # na začátek seznamu, tedy na to, co má uživatel před očima. Po doplnění
     # kanálů se řadí znovu, protože 5.1 může pořadím pohnout.
-    return order(ensure_bitrate(fill_audio(apis, order(streams)), video or meta))
+    return order(ensure_bitrate(fill_audio(apis, order(streams), progress), video or meta))
 
 
 def ensure_bitrate(streams, meta_or_video):
@@ -1101,9 +1116,11 @@ def format_duration(seconds):
 
 
 def stream_label(s):
-    """Popisek streamu na dva řádky: nahoře kvalita a zvuk, pod tím (za
-    vloženým \\n) zbytek — stejná technika jako u doplňku OnePlay (`epg.py`:
-    `title = f"{title}\\n{subtitle}"`), ne přes label2 a skinové nastavení.
+    """Popisek streamu na jeden řádek.
+
+    Arctic Fuse v seznamu druhý řádek nevykreslí, takže všechno musí do jednoho
+    a záleží na pořadí: co skin ořízne, je konec. Napřed tedy zvukové stopy
+    a velikost, pak teprve datový tok, titulky, zdroj a název souboru.
 
     Jazyk bez vlnovky přišel od zdroje nebo z hlavičky souboru, s vlnovkou je
     jen odhad z názvu souboru — stejně jako „~4K" u odhadnuté kvality.
@@ -1124,18 +1141,18 @@ def stream_label(s):
     if s.get("source") == "sosac":
         rest = ""   # u Sosáče je zbytek jen jazyk, ten je už ve zvuku
 
-    # Horní řádek: kvalita a zvuk — to hlavní, co se v seznamu čte nejdřív.
-    # Vše, co nemá vlastní barvu (žádný [COLOR] okolo), Kodi vykreslí bílou
-    # textovou barvou skinu; na vybrané položce s bílým podkladem to pak
-    # úplně zmizí, proto má výslovnou barvu i to, co by jinak zůstalo bílé.
-    top = [f"[COLOR {QUALITY_COLORS.get(s.get('quality_rank', 0), GREY)}][B]{quality or raw}[/B][/COLOR]"]
+    # Kvalita je první — na ni se v seznamu kouká nejdřív. Vše, co nemá vlastní
+    # barvu (žádný [COLOR] okolo), Kodi vykreslí bílou textovou barvou skinu;
+    # na vybrané položce s bílým podkladem to pak úplně zmizí. Proto má i
+    # velikost výslovnou barvu (GREY se na bílém podkladu čte jako tmavý text).
+    parts = [f"[COLOR {QUALITY_COLORS.get(s.get('quality_rank', 0), GREY)}][B]{quality or raw}[/B][/COLOR]"]
     tracks = s.get("_tracks") or []
     if tracks:
         # přečteno z hlavičky souboru: každá stopa zvlášť i s kodekem
         for t in tracks:
             inside = " ".join(x for x in (t.get("codec"), t.get("channels"), t.get("lang")) if x)
             if inside:
-                top.append(f"[COLOR {LANG_COLORS.get(t.get('lang'), GREY)}][{inside}][/COLOR]")
+                parts.append(f"[COLOR {LANG_COLORS.get(t.get('lang'), GREY)}][{inside}][/COLOR]")
     else:
         # zdroj o stopách mlčí — poskládá se z toho, co je po ruce
         channels = s.get("channels") or {}
@@ -1146,33 +1163,23 @@ def stream_label(s):
             txt = f"{mark}{code}"
             if code in channels:
                 txt += f" {channels[code]:.1f}"
-            top.append(f"[COLOR {LANG_COLORS.get(code, GREY)}][{txt}][/COLOR]")
-    # Spodní řádek: zbytek — velikost, délka, datový tok, titulky, zdroj, název souboru.
-    # Arctic Fuse ho ukáže jen s "Text labels: Detailed" v nastavení skinu; bez toho
-    # zůstane vidět jen horní řádek, stejně jako doteď.
-    bottom = []
+            parts.append(f"[COLOR {LANG_COLORS.get(code, GREY)}][{txt}][/COLOR]")
     if s.get("size_gb") and on("show_size", "true"):
-        bottom.append(f"[COLOR {GREY}][B]{s['size_gb']:.1f} GB[/B][/COLOR]")
+        parts.append(f"[COLOR {GREY}][B]{s['size_gb']:.1f} GB[/B][/COLOR]")
     if s.get("_length_s") and on("show_length", "true"):
         mark = "~" if s.get("_length_est") else ""
-        bottom.append(f"[COLOR {GREY}]{mark}{format_duration(s['_length_s'])}[/COLOR]")
+        parts.append(f"[COLOR {GREY}]{mark}{format_duration(s['_length_s'])}[/COLOR]")
     if s.get("bitrate") and on("show_bitrate", "true"):
         mark = "~" if s.get("_bitrate_est") else ""
-        bottom.append(f"[COLOR {GREY}]{mark}{s['bitrate']:g} Mb/s[/COLOR]")
+        parts.append(f"[COLOR {GREY}]{mark}{s['bitrate']:g} Mb/s[/COLOR]")
     subs = set(s.get("subs") or []) | subs_from_name(raw)
     if subs and on("show_subs", "true"):
-        bottom.append(f"[COLOR {GREY}]Tit.: {' '.join(sorted(subs))}[/COLOR]")
+        parts.append(f"[COLOR {GREY}]Tit.: {' '.join(sorted(subs))}[/COLOR]")
     if tag and on("show_source", "true"):
-        bottom.append(tag)
+        parts.append(tag)
     if rest and quality and on("show_file", "true"):
-        bottom.append(f"[COLOR {GREY}]{rest}[/COLOR]")
-    # OnePlay dělá druhý řádek stejně — obyčejné \n přímo v labelu (viz jeho
-    # epg.py: "title = f'{title}\\n{subtitle}'"), ne přes label2 a skinové
-    # nastavení. Kodi ho v seznamu vykreslí jako druhý řádek samo.
-    label = "  ".join(top)
-    if bottom:
-        label += "\n" + "  ".join(bottom)
-    return label
+        parts.append(f"[COLOR {GREY}]{rest}[/COLOR]")
+    return "  ".join(parts)
 
 
 def mark_playing(key, title="", year=None, kind="movie"):
@@ -2010,7 +2017,21 @@ def list_episodes(apis, series_id, season, alt=None):
 
 def list_streams(apis, ctype, item_id, series_id=None, alt=None, fq="", flang="", fch="", fcodec="", fsub="", fsrc=""):
     meta, video = load_meta(apis, ctype, item_id, series_id)
-    streams = collect_streams(apis, ctype, item_id, meta, alt)
+    # ukazatel průběhu: pár kroků na dotazy zdrojům, pak (obvykle nejdelší část)
+    # jeden na každý soubor, kterému se čte hlavička v `fill_audio()`
+    try:
+        probe_limit = int(setting("audio_probe", str(AUDIO_PROBE_MAX)) or AUDIO_PROBE_MAX)
+    except ValueError:
+        probe_limit = AUDIO_PROBE_MAX
+    num_sources = 2 + (1 if apis.get("ws") else 0) + (1 if apis.get("hs") else 0)
+    bar = xbmcgui.DialogProgressBG()
+    bar.create("Nokturno", L(30238, "Načítám streamy…"))
+    bar.update(0)
+    progress = SearchProgress(bar, num_sources + max(probe_limit, 0))
+    try:
+        streams = collect_streams(apis, ctype, item_id, meta, alt, progress)
+    finally:
+        bar.close()
     if not streams:
         notify(L(30102))
         xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
@@ -2138,8 +2159,7 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
         remembered = preferred_stream(streams, STORE.stream_pref(pref_key)) if pref_key else None
         chosen = remembered or streams[0]
         if setting("stream_mode", "1") == "2" and remembered is None:
-            # dialog umí jen jeden vizuální řádek na položku — nahradit \n mezerami
-            idx = xbmcgui.Dialog().select(L(30024), [stream_label(st).replace("\n", "  ") for st in streams])
+            idx = xbmcgui.Dialog().select(L(30024), [stream_label(st) for st in streams])
             if idx < 0:
                 xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
                 return
