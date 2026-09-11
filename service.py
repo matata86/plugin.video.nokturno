@@ -30,12 +30,14 @@ from stats import COLLECT_URL, Stats  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
 from sync import sync_once  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
+from webshare_api import WebshareApi, WebshareError  # noqa: E402
 
 PROP = "nokturno.playing"
 VIEWED_PROP = "nokturno.viewed"
 USED_PROP = "nokturno.used"
 SYNC_PROP = "nokturno.sync"
 SYNC_EVERY = 5 * 60   # výměna s HA; změny (dokoukáno, Můj seznam) ji vyvolají hned
+SUB_CHECK_EVERY = 12 * 3600   # jak často se ptát WebShare na stav předplatného
 WATCHED_PCT = 0.90
 MIN_RESUME = 60  # s – kratší kousek nemá cenu pamatovat
 POLL = 5
@@ -239,6 +241,55 @@ class Downloader(threading.Thread):
 
 # --- synchronizace přes Home Assistant ----------------------------------------------
 
+class SubscriptionChecker:
+    """Jednou za den upozorní, že WebShare předplatné brzy vyprší nebo už vypršelo.
+
+    Kontroluje se přes síť jen `SUB_CHECK_EVERY`, ale upozornění samo se ukáže
+    nejvýš jednou za kalendářní den (`last_warned`) — jinak by vyskakovalo při
+    každém startu Kodi i uvnitř jednoho dne.
+    """
+
+    def __init__(self, store):
+        self.store = store
+        self.next = time.time() + 30
+
+    def tick(self):
+        if time.time() < self.next:
+            return
+        self.next = time.time() + SUB_CHECK_EVERY
+        addon = fresh_addon()
+        if addon is None or addon.getSetting("ws_enabled") != "true":
+            return
+        user, pw = addon.getSetting("ws_username").strip(), addon.getSetting("ws_password").strip()
+        if not user or not pw:
+            return
+        try:
+            warn_days = int(addon.getSetting("sub_warn_days") or 5)
+        except ValueError:
+            warn_days = 5
+
+        def run():
+            try:
+                status = WebshareApi(user, pw).account_status()
+            except WebshareError as e:
+                log(f"stav předplatného WebShare: {e}", xbmc.LOGWARNING)
+                return
+            days = status["days"] if status["vip"] else 0
+            if days > warn_days:
+                return   # v pořádku, není co hlásit
+            today = time.strftime("%Y-%m-%d")
+            state = self.store.reload(SUB_STATE, {})
+            if state.get("last_warned") == today:
+                return
+            self.store.save(SUB_STATE, {"last_warned": today})
+            msg = Lf(30236, days) if status["vip"] else L(30237, "WebShare předplatné vypršelo.")
+            xbmcgui.Dialog().notification(L(30000), msg, xbmcgui.NOTIFICATION_WARNING, 8000)
+        threading.Thread(target=run, daemon=True).start()
+
+
+SUB_STATE = "substate"   # substate.json v profilu: {"last_warned": "YYYY-MM-DD"}
+
+
 class Syncer:
     """Jednou za SYNC_EVERY, nebo hned když si plugin/přehrávač řekne (vlastnost okna).
     Síť běží ve vlastním vlákně, aby nezdržela sledování pozice přehrávání."""
@@ -395,11 +446,13 @@ def main():
     Downloader(store, monitor).start()
     threading.Thread(target=warmer, args=(monitor,), daemon=True).start()
     syncer = Syncer(store)
+    sub_checker = SubscriptionChecker(store)
     log("start")
     while not monitor.abortRequested():
         player.tick()
         stats_tick(stats)
         syncer.tick()
+        sub_checker.tick()
         if monitor.waitForAbort(POLL):
             break
     player.finish()
