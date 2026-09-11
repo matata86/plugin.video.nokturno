@@ -561,3 +561,15 @@ msgstr "Novinky ve verzi"
 msgctxt "#30193"
 msgid "No news"
 msgstr "Žádné novinky"
+
+msgctxt "#30194"
+msgid "HellSpy"
+msgstr "HellSpy"
+
+msgctxt "#30195"
+msgid "Search HellSpy for titles"
+msgstr "U titulů hledat i na HellSpy"
+
+msgctxt "#30196"
+msgid "HellSpy needs no account. It offers the original files, same as WebShare."
+msgstr "HellSpy nepotřebuje účet. Nabízí původní soubory, stejně jako WebShare."

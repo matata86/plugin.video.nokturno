@@ -6,6 +6,10 @@
     <setting id="ws_password" type="text" option="hidden" label="30053" default="" enable="eq(-2,true)"/>
     <setting id="ws_sort" type="enum" label="30054" lvalues="30055|30056|30057|30058|30059" default="0" enable="eq(-3,true)"/>
   </category>
+  <category label="30194">
+    <setting id="hs_enabled" type="bool" label="30195" default="false"/>
+    <setting label="30196" type="lsep"/>
+  </category>
   <category label="30030">
     <setting id="sosac_enabled" type="bool" label="30031" default="true"/>
     <setting id="streamuj_username" type="text" label="30128" default="" enable="eq(-1,true)"/>

@@ -561,3 +561,15 @@ msgstr "What's new in version"
 msgctxt "#30193"
 msgid "No news"
 msgstr "No news"
+
+msgctxt "#30194"
+msgid "HellSpy"
+msgstr "HellSpy"
+
+msgctxt "#30195"
+msgid "Search HellSpy for titles"
+msgstr "Search HellSpy for titles"
+
+msgctxt "#30196"
+msgid "HellSpy needs no account. It offers the original files, same as WebShare."
+msgstr "HellSpy needs no account. It offers the original files, same as WebShare."
