@@ -329,10 +329,9 @@ def fill_info(li, meta, ctype="movie", video=None, tech=True):
     # IMDb id: podle něj Kodi (OpenSubtitles apod.) hledá titulky
     if meta.get("imdb_id") or str(meta.get("id", "")).startswith("tt"):
         tag.setIMDBNumber(meta.get("imdb_id") or meta.get("id"))
-    runtime = str((video or meta).get("runtime") or "")
-    digits = "".join(ch for ch in runtime if ch.isdigit())
-    if tech and digits:
-        tag.setDuration(int(digits) * 60)
+    minutes = runtime_minutes((video or meta).get("runtime"))
+    if tech and minutes:
+        tag.setDuration(minutes * 60)
     if video:
         tag.setSeason(int(video.get("season") or 0))
         tag.setEpisode(int(video.get("episode") or 0))
@@ -599,6 +598,22 @@ AUDIO_TTL = 30 * 24 * 3600    # obsah souboru se nemění, stačí zjistit jedno
 YEAR_RE = re.compile(r"\b(19\d{2}|20\d{2})\b")
 
 
+RUNTIME_RE = re.compile(r"(?:(\d+)\s*h)?\s*(?:(\d+)\s*min)?", re.I)
+
+
+def runtime_minutes(text):
+    """Stopáž v minutách. Luna/Cinemeta posílají „2h42min“, epizody bývají
+    holé číslo („42“) — bez rozlišení formátu by prosté vytažení číslic
+    z „2h42min“ dalo „242“ a z dvouapůlhodinového filmu udělalo čtyřhodinový.
+    """
+    text = str(text or "")
+    m = RUNTIME_RE.search(text)
+    if m and (m.group(1) or m.group(2)):
+        return int(m.group(1) or 0) * 60 + int(m.group(2) or 0)
+    digits = "".join(ch for ch in text if ch.isdigit())
+    return int(digits) if digits else 0
+
+
 def _fold(text):
     """Bez diakritiky, malá písmena — pro porovnávání názvů souborů."""
     return unicodedata.normalize("NFKD", text or "").encode("ascii", "ignore").decode().lower()
@@ -824,10 +839,7 @@ def collect_streams(apis, ctype, item_id, meta, alt=None):
         hs = pool.submit(hellspy_streams, apis, meta, video, ctype, alt) if apis.get("hs") else None
         extra = cross.result() + (ws.result() if ws else []) + (hs.result() if hs else [])
         streams = drop_duplicates(main.result() + extra)
-    try:
-        max_gb = float(setting("max_size_gb", "0").replace(",", ".") or 0)
-    except ValueError:
-        max_gb = 0.0
+    max_gb = effective_max_gb(video or meta)
 
     def order(items):
         return arrange(
@@ -1183,18 +1195,41 @@ def test_sources():
 SPEEDTEST_URL = "https://speed.cloudflare.com/__down?bytes=52428800"  # 50 MB, i na rychlém připojení stačí pár vteřin
 SPEEDTEST_SECONDS = 8       # déle nemá smysl čekat, průměr se stejně ustálí dřív
 SPEEDTEST_RESERVE = 0.25    # rezerva, aby přehrávání nezasekávalo při kolísání rychlosti
-SPEEDTEST_MOVIE_S = 7200    # dvouhodinový film jako typický odhad stopáže
+SPEEDTEST_MOVIE_S = 7200    # dvouhodinový film — odhad stopáže, jen když ji titul sám neřekne
+
+
+def effective_max_gb(meta_or_video):
+    """Max. velikost streamu pro TENHLE titul.
+
+    Naměřená rychlost (`max_bitrate_mbps`) je datový tok, ne velikost — kolik
+    smí stream vážit, závisí na tom, jak dlouhý je. Devadesátiminutová pohádka
+    a tříhodinový epos se stejným tokem vyjdou na docela jinou velikost, takže
+    se to nedá spočítat jednou v Nastavení a uložit jako pevné GB. Když titul
+    stopáž neřekne (typicky holé hledání na WebShare bez metadat), použije se
+    dvouhodinový odhad — přesně to, s čím počítalo i samotné měření.
+
+    Ruční „Max. velikost (GB)" zůstává jako jednodušší alternativa pro
+    někoho, kdo si rychlost měřit nechce — platí, jen když datový tok
+    nastavený není.
+    """
+    try:
+        mbps = float(setting("max_bitrate_mbps", "0").replace(",", ".") or 0)
+    except ValueError:
+        mbps = 0.0
+    if mbps > 0:
+        minutes = runtime_minutes((meta_or_video or {}).get("runtime"))
+        seconds = minutes * 60 if minutes else SPEEDTEST_MOVIE_S
+        return mbps * 1_000_000 * seconds / 8 / 2 ** 30
+    try:
+        return float(setting("max_size_gb", "0").replace(",", ".") or 0)
+    except ValueError:
+        return 0.0
 
 
 def speedtest():
-    """Tlačítko v nastavení u max. velikosti streamu.
-
-    Velikost souboru sama o sobě neříká, jestli přehrávání poteče plynule —
-    rozhoduje datový tok, tedy velikost dělená stopáží. Bez stopáže
-    konkrétního titulu se počítá s dvouhodinovým filmem jako typickým
-    odhadem, takže u výrazně kratších nebo delších věcí sedí hranice jen
-    přibližně. Rezerva 25 % je proti kolísání rychlosti v čase, ne proti
-    tomuhle odhadu.
+    """Tlačítko v nastavení: změří rychlost stahování a uloží ji jako
+    dovolený datový tok s 25% rezervou — viz `effective_max_gb`, kde se
+    teprve pro konkrétní titul a jeho stopáž mění na GB.
     """
     dialog = xbmcgui.DialogProgress()
     dialog.create(L(30000), L(30220, "Měřím rychlost stahování…"))
@@ -1225,10 +1260,10 @@ def speedtest():
         notify(L(30222, "Stáhlo se moc málo dat, zkus to znovu"), xbmcgui.NOTIFICATION_WARNING, 5000)
         return
     mbps = got * 8 / elapsed / 1_000_000
-    allowed_mbps = mbps * (1 - SPEEDTEST_RESERVE)
-    max_gb = round(max(0.5, allowed_mbps * 1_000_000 * SPEEDTEST_MOVIE_S / 8 / 2 ** 30), 1)
-    ADDON.setSetting("max_size_gb", str(max_gb))
-    notify(Lf(30223, f"{mbps:.0f}", f"{max_gb:g}"), xbmcgui.NOTIFICATION_INFO, 6000)
+    allowed_mbps = round(mbps * (1 - SPEEDTEST_RESERVE), 1)
+    ADDON.setSetting("max_bitrate_mbps", str(allowed_mbps))
+    example_gb = allowed_mbps * 1_000_000 * SPEEDTEST_MOVIE_S / 8 / 2 ** 30
+    notify(Lf(30223, f"{mbps:.0f}", f"{allowed_mbps:g}", f"{example_gb:.1f}"), xbmcgui.NOTIFICATION_INFO, 7000)
 
 
 def prefetch(apis, kind):
@@ -1928,7 +1963,7 @@ def upnext_episode(meta, v, series_id):
     """Popis dílu ve tvaru, jaký čeká služba Up Next (service.upnext)."""
     art = art_for(meta, v)
     ep_id = v.get("id") or f"{series_id}:{int(v.get('season') or 0)}:{int(v.get('episode') or 0)}"
-    runtime = "".join(ch for ch in str(v.get("runtime") or meta.get("runtime") or "") if ch.isdigit())
+    runtime = runtime_minutes(v.get("runtime") or meta.get("runtime"))
     return {
         "episodeid": ep_id,
         "tvshowid": series_id,
@@ -1948,7 +1983,7 @@ def upnext_episode(meta, v, series_id):
         "playcount": 1 if STORE.playcount(ep_id) else 0,
         "rating": str(meta.get("imdbRating") or ""),
         "firstaired": str(v.get("released") or "")[:10],
-        "runtime": int(runtime) * 60 if runtime else 0,
+        "runtime": runtime * 60,
     }, ep_id
 
 
