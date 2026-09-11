@@ -49,7 +49,6 @@ PROFILE = xbmcvfs.translatePath(ADDON.getAddonInfo("profile"))
 ADDON_PATH = xbmcvfs.translatePath(ADDON.getAddonInfo("path"))
 PAGE = 20
 WS_PAGE = 40
-HS_PAGE = 40
 CACHE_TTL = 600
 SEARCH_TTL = 12 * 3600  # sjednocené s luna_api.SEARCH_TTL / webshare_api.SEARCH_TTL
 SOSAC_TAG = "[COLOR FFE0A040]Sosáč[/COLOR]"
@@ -484,24 +483,6 @@ def add_ws_file(f, extra_context=None):
     apply_watched(li, key, ctx)
     li.setProperty("IsPlayable", "true")
     xbmcplugin.addDirectoryItem(HANDLE, build_url(action="play_ws", ident=f["ident"], name=f["name"]), li, isFolder=False)
-
-
-def add_hs_file(f, extra_context=None):
-    """Soubor z HellSpy ve výpisu hledání. Odkaz se dohledává až při přehrání."""
-    key = f"hs:{f['id']}:{f['hash']}"
-    label = f"{f['name']}  [COLOR FF9A9A9A]{f.get('size_h', '')}[/COLOR]"
-    li = xbmcgui.ListItem(label=label)
-    tag = li.getVideoInfoTag()
-    tag.setMediaType("video")
-    tag.setTitle(f["name"])
-    tag.setPlot(f"{HS_TAG}  {f.get('size_h', '')}")
-    if f.get("duration"):
-        tag.setDuration(int(f["duration"]))
-    ctx = [(L(30070), runplugin(action="download_hs", id=f["id"], hash=f["hash"], name=f["name"]))]
-    apply_watched(li, key, ctx + (extra_context or []))
-    li.setProperty("IsPlayable", "true")
-    xbmcplugin.addDirectoryItem(
-        HANDLE, build_url(action="play_hs", id=f["id"], hash=f["hash"], name=f["name"]), li, isFolder=False)
 
 
 # --- meta a streamy -------------------------------------------------------------
@@ -1187,7 +1168,6 @@ def list_catalog(apis, ctype, cid, src, genre=None, search=None, skip=0):
 
 def search_title(kind):
     return {"movie": L(30010), "series": L(30011), "ws": L(30045),
-            "hs": L(30197, "Hledat na HellSpy"),
             "any": L(30150, "Hledat")}.get(kind, L(30150, "Hledat"))
 
 
@@ -1207,12 +1187,6 @@ def search_history(kind):
 def search_menu(kind):
     """Složka hledání: nové hledání + historie dotazů."""
     folder_item(L(30040), build_url(action="search_new", type=kind), icon="DefaultAddonsSearch.png")
-    if kind == "any" and on("hs_enabled", "false"):
-        # HellSpy je úložiště souborů, ne katalog — do hledání titulů nepatří a
-        # do hlavního menu taky ne. Co je ale jen tam a v žádném katalogu chybí,
-        # se jinak nedá najít, tak ať je to aspoň o patro níž.
-        folder_item(L(30197, "Hledat na HellSpy"), build_url(action="search", type="hs"),
-                   icon="DefaultAddonsSearch.png")
     history = search_history(kind)
     for q in history:
         folder_item(q, build_url(action="search_run", type=kind, q=q), icon="DefaultAddonsSearch.png",
@@ -1358,9 +1332,6 @@ def search_run(apis, kind, query, offset=0):
     if kind == "ws":
         list_ws_results(apis, query, offset)
         return
-    if kind == "hs":
-        list_hs_results(apis, query, offset)
-        return
     raw_query = query
     query, want_year = split_year(query)
     errors = []
@@ -1442,22 +1413,6 @@ def list_ws_results(apis, query, offset=0):
         add_ws_file(f)
     if offset + len(files) < total and files:
         folder_item(L(30021), build_url(action="search_run", type="ws", q=query, offset=offset + len(files)),
-                   icon="DefaultFolder.png")
-    xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
-
-
-def list_hs_results(apis, query, offset=0):
-    api = apis.get("hs")
-    if api is None:
-        raise HellspyError(L(30104))
-    xbmcplugin.setContent(HANDLE, "movies")
-    files, _next = api.search(query, limit=HS_PAGE, offset=offset)
-    for f in files:
-        add_hs_file(f)
-    # HellSpy neposílá celkový počet, jen další offset; další strana se nabídne,
-    # dokud chodí plná dávka
-    if len(files) == HS_PAGE:
-        folder_item(L(30021), build_url(action="search_run", type="hs", q=query, offset=offset + len(files)),
                    icon="DefaultFolder.png")
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
@@ -1788,21 +1743,6 @@ def play_ws(apis, ident, name=""):
     xbmcplugin.setResolvedUrl(HANDLE, True, li)
 
 
-def play_hs(apis, file_id, file_hash, name=""):
-    api = apis.get("hs") or HellspyApi(cache=STORE)
-    key = f"hs:{file_id}:{file_hash}"
-    link = api.file_link(file_id, file_hash)
-    if not link:
-        notify(L(30102))
-        xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
-        return
-    li = xbmcgui.ListItem(label=name or key, path=link)
-    li.getVideoInfoTag().setTitle(name or key)
-    STORE.remember_item(key, {"type": "hs", "id": key, "title": name or key, "art": {}})
-    mark_playing(key, name, kind="hs")
-    xbmcplugin.setResolvedUrl(HANDLE, True, li)
-
-
 # --- stahování ---------------------------------------------------------------------
 
 def download_dir():
@@ -1861,15 +1801,6 @@ def download_ws(apis, ident, name):
         notify(L(30102))
         return
     enqueue_download(link, name, f"dl:ws:{ident}", dest_name=name)
-
-
-def download_hs(apis, file_id, file_hash, name):
-    api = apis.get("hs") or HellspyApi(cache=STORE)
-    link = api.file_link(file_id, file_hash)
-    if not link:
-        notify(L(30102))
-        return
-    enqueue_download(link, name, f"dl:hs:{file_id}", dest_name=name)
 
 
 def list_downloads():
@@ -2025,22 +1956,18 @@ def router(query):
                  pref=p.get("pref", ""))
         elif action == "play_ws":
             play_ws(apis, p["ident"], p.get("name", ""))
-        elif action == "play_hs":
-            play_hs(apis, p["id"], p["hash"], p.get("name", ""))
         elif action == "download":
             download_stream(apis, p["url"], p.get("name", ""), p["id"], p.get("type", "movie"), p.get("series"), p.get("alt"))
         elif action == "download_ws":
             download_ws(apis, p["ident"], p.get("name", ""))
-        elif action == "download_hs":
-            download_hs(apis, p["id"], p["hash"], p.get("name", ""))
         else:
             main_menu(apis)
     except Errors as e:
         log_error(e)
         notify(L(30103) if isinstance(e, WebshareError) else L(30101), xbmcgui.NOTIFICATION_ERROR, 5000)
-        if action in ("play", "play_ws", "play_hs"):
+        if action in ("play", "play_ws"):
             xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
-        elif action not in ("download", "download_ws", "download_hs", "toggle_fav"):
+        elif action not in ("download", "download_ws", "toggle_fav"):
             xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
 
 
