@@ -211,13 +211,13 @@ def make_fanart(path):
 
 def main():
     icon = mark(NIGHT, "url(#gold)").resize((ICON, ICON), Image.LANCZOS)
-    icon.save(os.path.join(ROOT, "resources", "icon.png"))
+    icon.save(os.path.join(ROOT, "resources", "media", "icon.png"))
     # Repozitář dostane plochou variantu téže značky — v seznamu doplňků je tak
     # rozeznatelný od samotného doplňku, ale patří zjevně k němu.
     repo = mark(FLAT, GOLD_FLAT).resize((ICON, ICON), Image.LANCZOS)
-    repo.save(os.path.join(ROOT, "repository.nokturno", "icon.png"))
-    make_fanart(os.path.join(ROOT, "resources", "fanart.jpg"))
-    print("resources/icon.png, repository.nokturno/icon.png, resources/fanart.jpg hotovo")
+    repo.save(os.path.join(ROOT, "repository.nokturno", "resources", "icon.png"))
+    make_fanart(os.path.join(ROOT, "resources", "media", "fanart.jpg"))
+    print("resources/media/{icon.png,fanart.jpg} + repository.nokturno/resources/icon.png hotovo")
 
 
 if __name__ == "__main__":
