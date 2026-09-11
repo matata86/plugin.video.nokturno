@@ -642,3 +642,35 @@ msgstr "Converted to GB using the current title's runtime; without a known runti
 msgctxt "#30226"
 msgid "Show length"
 msgstr "Show length"
+
+msgctxt "#30229"
+msgid "WebShare subscription status"
+msgstr "WebShare subscription status"
+
+msgctxt "#30230"
+msgid "WebShare is off or has no account filled in."
+msgstr "WebShare is off or has no account filled in."
+
+msgctxt "#30231"
+msgid "VIP active, %s days left (until %s)"
+msgstr "VIP active, %s days left (until %s)"
+
+msgctxt "#30232"
+msgid "VIP is not active."
+msgstr "VIP is not active."
+
+msgctxt "#30233"
+msgid "Notifies a few days before the subscription runs out and every day after it does."
+msgstr "Notifies a few days before the subscription runs out and every day after it does."
+
+msgctxt "#30234"
+msgid "Warn this many days before expiry (0 = only after expiry)"
+msgstr "Warn this many days before expiry (0 = only after expiry)"
+
+msgctxt "#30236"
+msgid "WebShare subscription runs out in %s day(s)."
+msgstr "WebShare subscription runs out in %s day(s)."
+
+msgctxt "#30237"
+msgid "WebShare subscription has run out."
+msgstr "WebShare subscription has run out."

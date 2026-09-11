@@ -1215,6 +1215,24 @@ def sync_now():
     xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
 
 
+def sub_status():
+    """Tlačítko v nastavení: kolik dní zbývá z předplatného WebShare."""
+    ws = get_webshare()
+    if ws is None:
+        xbmcgui.Dialog().ok(L(30000), L(30230, "WebShare není zapnutý nebo nemá vyplněný účet."))
+        return
+    try:
+        st = ws.account_status()
+    except WebshareError as e:
+        xbmcgui.Dialog().ok(L(30000), f"WebShare: {e}")
+        return
+    if st["vip"]:
+        msg = Lf(30231, st["days"], st["until"][:10])
+    else:
+        msg = L(30232, "VIP není aktivní.")
+    xbmcgui.Dialog().ok(L(30000), msg)
+
+
 def test_sources():
     """Tlačítko v nastavení: během pár vteřin řekne, který zdroj nefunguje a proč.
 
@@ -2318,6 +2336,7 @@ def router(query):
                                 xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
         "stats_send": stats_send,
         "test_sources": test_sources,
+        "sub_status": sub_status,
         "speedtest": speedtest,
         "sync_now": sync_now,
         "whats_new": whats_new,

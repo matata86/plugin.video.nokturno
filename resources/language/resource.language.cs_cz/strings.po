@@ -642,3 +642,35 @@ msgstr "Přepočítá se na GB podle stopáže aktuálního titulu; bez známé 
 msgctxt "#30226"
 msgid "Show length"
 msgstr "Ukazovat délku"
+
+msgctxt "#30229"
+msgid "WebShare subscription status"
+msgstr "Stav předplatného WebShare"
+
+msgctxt "#30230"
+msgid "WebShare is off or has no account filled in."
+msgstr "WebShare není zapnutý nebo nemá vyplněný účet."
+
+msgctxt "#30231"
+msgid "VIP active, %s days left (until %s)"
+msgstr "VIP aktivní, zbývá %s dní (do %s)"
+
+msgctxt "#30232"
+msgid "VIP is not active."
+msgstr "VIP není aktivní."
+
+msgctxt "#30233"
+msgid "Notifies a few days before the subscription runs out and every day after it does."
+msgstr "Upozorní pár dní před koncem předplatného a pak každý den, dokud nevyprší."
+
+msgctxt "#30234"
+msgid "Warn this many days before expiry (0 = only after expiry)"
+msgstr "Upozornit tolik dní před koncem (0 = jen po vypršení)"
+
+msgctxt "#30236"
+msgid "WebShare subscription runs out in %s day(s)."
+msgstr "Předplatné WebShare vyprší za %s dní."
+
+msgctxt "#30237"
+msgid "WebShare subscription has run out."
+msgstr "WebShare předplatné vypršelo."

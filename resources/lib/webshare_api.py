@@ -157,6 +157,21 @@ class WebshareApi:
         key = f"ws:search:{what}:{sort}:{limit}:{offset}"
         return self.cache.cached(key, self.cache_ttl, load)
 
+    def account_status(self):
+        """VIP stav účtu: {"vip": bool, "days": int, "until": "2026-12-20 16:58:10"}.
+
+        `user_data` je jediné místo, kde WebShare řekne, kolik dní z předplatného
+        zbývá — nemá vlastní endpoint jen pro tohle. `vip_until` je datum a čas
+        v místním čase serveru, ne timestamp, proto se předává jako text a datum
+        z něj počítá volající.
+        """
+        root = self._with_token("user_data")
+        return {
+            "vip": root.findtext("vip") == "1",
+            "days": int(root.findtext("vip_days") or 0),
+            "until": root.findtext("vip_until") or "",
+        }
+
     def file_link(self, ident, password=None):
         data = {"ident": ident, "download_type": "video_stream"}
         if password:

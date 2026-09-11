@@ -5,6 +5,9 @@
     <setting id="ws_username" type="text" label="30052" default="" enable="eq(-1,true)"/>
     <setting id="ws_password" type="text" option="hidden" label="30053" default="" enable="eq(-2,true)"/>
     <setting id="ws_sort" type="enum" label="30054" lvalues="30055|30056|30057|30058|30059" default="0" enable="eq(-3,true)"/>
+    <setting label="30233" type="lsep" enable="eq(-4,true)"/>
+    <setting label="30229" type="action" action="RunPlugin(plugin://plugin.video.nokturno/?action=sub_status)" enable="eq(-5,true)"/>
+    <setting id="sub_warn_days" type="slider" label="30234" default="5" range="0,1,14" option="int" enable="eq(-6,true)"/>
   </category>
   <category label="30194">
     <setting id="hs_enabled" type="bool" label="30195" default="false"/>
