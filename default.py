@@ -56,7 +56,9 @@ HS_TAG = "[COLOR FFFF8A6B]HellSpy[/COLOR]"
 WS_TAG = "[COLOR FF60B0FF]WebShare[/COLOR]"
 LUNA_TAG = "[COLOR FFB39DFF]Luna[/COLOR]"
 SOURCE_TAGS = {"main": LUNA_TAG, "search": WS_TAG, "sosac": SOSAC_TAG, "ws": WS_TAG, "hs": HS_TAG}
-QUALITY_COLORS = {4: "FFFFC94D", 3: "FF7FE07F", 2: "FF7FC8FF", 1: "FFA0A0A0"}
+QUALITY_COLORS = {4: "FFE06A60", 3: "FF6FD18A", 2: "FF6FB6F0", 1: "FFA0A0A0"}
+# krátce, ať zbyde místo na zbytek řádku: „Full HD" se v úzkém sloupci nevyplatí
+QUALITY_NAMES = {4: "4K", 3: "FHD", 2: "HD", 1: "SD"}
 LANG_COLORS = {"CZ": "FF7FE07F", "SK": "FF7FE07F", "EN": "FFE0E0E0"}
 GREY = "FF9A9A9A"
 PLAYING_PROP = "nokturno.playing"
@@ -702,32 +704,6 @@ def hellspy_streams(apis, meta, video, ctype, alt=None):
 DIRECT_SOURCES = ("ws", "hs")   # fulltextové zdroje, kde bývá tentýž soubor jako u Luny
 
 
-BADGES = os.path.join(ADDON_PATH, "resources", "media", "badges")
-BADGE_NAMES = {4: "4k", 3: "fullhd", 2: "hd", 1: "sd"}
-HDR_RE = re.compile(r"\b(dolby\s*vision|dv|hdr10\+?|hdr)\b", re.I)
-
-
-def stream_badge(s):
-    """Obrázek kvality pro řádek streamu.
-
-    Technické údaje o stopách sice Kodi dostane (`fill_streamdetails`) a skin
-    z nich čte rozlišení, jenže Arctic Fuse je kreslí jen v informačním pruhu
-    u vybrané položky — v samotném seznamu na ně nesahá. Odznak proto musí
-    dodat doplněk jako obrázek položky. Plakát tím nepřijdeme o nic: v seznamu
-    streamů je u všech řádků stejný, takže neříká nic, kdežto kvalita ano.
-    """
-    name = BADGE_NAMES.get(s.get("quality_rank") or 0)
-    if not name:
-        return ""
-    found = HDR_RE.search(s.get("label") or "")
-    flag = ""
-    if found:
-        word = found.group(1).lower().replace(" ", "")
-        flag = "-dv" if word in ("dv", "dolbyvision") else "-hdr"
-    path = os.path.join(BADGES, f"{name}{flag}.png")
-    return path if os.path.exists(path) else os.path.join(BADGES, f"{name}.png")
-
-
 def media_from_file(apis, url):
     """Co se o souboru dá přečíst z jeho hlavičky. Prázdné, když to nejde."""
     def load():
@@ -902,15 +878,12 @@ def pref_from_param(value):
     return {"source": source, "quality": int(quality or 0), "langs": [x for x in langs.split(",") if x]}
 
 
-def stream_label(s, badge=False):
+def stream_label(s):
     """Popisek streamu na jeden řádek.
 
     Arctic Fuse v seznamu druhý řádek nevykreslí, takže všechno musí do jednoho
     a záleží na pořadí: co skin ořízne, je konec. Napřed tedy zvukové stopy
     a velikost, pak teprve datový tok, titulky, zdroj a název souboru.
-
-    `badge` = u řádku je obrázek kvality, takže se kvalita nepíše i slovem.
-    Zůstane jen tam, kde obrázek není, tedy u odhadnuté kvality.
 
     Jazyk bez vlnovky přišel od zdroje nebo z hlavičky souboru, s vlnovkou je
     jen odhad z názvu souboru — stejně jako „~4K" u odhadnuté kvality.
@@ -921,10 +894,10 @@ def stream_label(s, badge=False):
     for junk in ("(WS)", "Sosáč"):
         raw = raw.replace(junk, "")
     raw = raw.strip()
-    quality = {4: "4K", 3: "Full HD", 2: "HD", 1: "SD"}.get(s.get("quality_rank", 0), "")
+    quality = QUALITY_NAMES.get(s.get("quality_rank", 0), "")
     if not quality and s.get("size_gb"):
         # soubor bez kvality v názvu (typicky přímo z WebShare): odhad podle velikosti, s vlnovkou
-        quality = "~" + {4: "4K", 3: "Full HD", 2: "HD", 1: "SD"}.get(estimate_rank(s["size_gb"]), "")
+        quality = "~" + QUALITY_NAMES.get(estimate_rank(s["size_gb"]), "")
     import re as _re
     rest = _re.sub(r"\b(4K|Full HD|UHD|FHD|HD|SD)\b", "", raw)   # \b → „HDR“ zůstane celé
     rest = " ".join(rest.replace(" - ", " ").split())
@@ -952,8 +925,7 @@ def stream_label(s, badge=False):
             parts.append(f"[COLOR {LANG_COLORS.get(code, 'FFE0E0E0')}][{txt}][/COLOR]")
     if s.get("size_gb") and on("show_size", "true"):
         parts.append(f"[B]{s['size_gb']:.1f} GB[/B]")
-    if not badge:
-        parts.append(f"[COLOR {QUALITY_COLORS.get(s.get('quality_rank', 0), GREY)}][B]{quality or raw}[/B][/COLOR]")
+    parts.append(f"[COLOR {QUALITY_COLORS.get(s.get('quality_rank', 0), GREY)}][B]{quality or raw}[/B][/COLOR]")
     if s.get("bitrate") and on("show_bitrate", "true"):
         parts.append(f"[COLOR {GREY}]{s['bitrate']:g} Mb/s[/COLOR]")
     subs = set(s.get("subs") or []) | subs_from_name(raw)
@@ -1732,9 +1704,8 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None):
     stats_title = (video or {}).get("title") or bare_title(meta)
     mark_viewed(item_id, stats_title, year if year.isdigit() else None, "series" if video else ctype)
     for s in streams:
-        badge = stream_badge(s)
-        li = xbmcgui.ListItem(label=stream_label(s, badge=bool(badge)))
-        li.setArt({"icon": badge, "thumb": badge} if badge else art_for(meta, video))
+        li = xbmcgui.ListItem(label=stream_label(s))
+        li.setArt(art_for(meta, video))
         # název titulu do InfoTagu → v OSD přehrávače je jméno filmu/epizody, ne popis streamu;
         # stopáž a hodnocení ne — skin by z nich udělal sloupce a ukrojil šířku popisku streamu
         fill_info(li, meta, "series" if video else ctype, video=video, tech=False)
