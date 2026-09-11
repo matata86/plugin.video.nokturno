@@ -1,3 +1,5 @@
+![Nokturno](resources/fanart.jpg)
+
 # Nokturno — filmy a seriály z WebShare, Sosáče a Luny pro Kodi
 
 [![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/matata86)
