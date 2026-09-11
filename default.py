@@ -59,7 +59,9 @@ SOURCE_TAGS = {"main": LUNA_TAG, "search": WS_TAG, "sosac": SOSAC_TAG, "ws": WS_
 QUALITY_COLORS = {4: "FFE06A60", 3: "FF6FD18A", 2: "FF6FB6F0", 1: "FFA0A0A0"}
 # krátce, ať zbyde místo na zbytek řádku: „Full HD" se v úzkém sloupci nevyplatí
 QUALITY_NAMES = {4: "4K", 3: "FHD", 2: "HD", 1: "SD"}
-LANG_COLORS = {"CZ": "FF7FE07F", "SK": "FF7FE07F", "EN": "FFE0E0E0"}
+LANG_COLORS = {"CZ": "FF7FE07F", "SK": "FF7FE07F", "EN": "FF9A9A9A"}
+# EN a jazyky bez vlastní barvy dostanou stejný odstín jako GREY (níž) —
+# FFE0E0E0 (skoro bílá) na vybrané položce s bílým podkladem úplně mizelo
 GREY = "FF9A9A9A"
 PLAYING_PROP = "nokturno.playing"
 VIEWED_PROP = "nokturno.viewed"   # služba si odsud bere „u titulu se zobrazily streamy“ pro statistiky
@@ -904,14 +906,18 @@ def stream_label(s):
     if s.get("source") == "sosac":
         rest = ""   # u Sosáče je zbytek jen jazyk, ten je už ve zvuku
 
-    parts = []
+    # Kvalita je první — na ni se v seznamu kouká nejdřív. Vše, co nemá vlastní
+    # barvu (žádný [COLOR] okolo), Kodi vykreslí bílou textovou barvou skinu;
+    # na vybrané položce s bílým podkladem to pak úplně zmizí. Proto má i
+    # velikost výslovnou barvu (GREY se na bílém podkladu čte jako tmavý text).
+    parts = [f"[COLOR {QUALITY_COLORS.get(s.get('quality_rank', 0), GREY)}][B]{quality or raw}[/B][/COLOR]"]
     tracks = s.get("_tracks") or []
     if tracks:
         # přečteno z hlavičky souboru: každá stopa zvlášť i s kodekem
         for t in tracks:
             inside = " ".join(x for x in (t.get("codec"), t.get("channels"), t.get("lang")) if x)
             if inside:
-                parts.append(f"[COLOR {LANG_COLORS.get(t.get('lang'), 'FFE0E0E0')}][{inside}][/COLOR]")
+                parts.append(f"[COLOR {LANG_COLORS.get(t.get('lang'), GREY)}][{inside}][/COLOR]")
     else:
         # zdroj o stopách mlčí — poskládá se z toho, co je po ruce
         channels = s.get("channels") or {}
@@ -922,10 +928,9 @@ def stream_label(s):
             txt = f"{mark}{code}"
             if code in channels:
                 txt += f" {channels[code]:.1f}"
-            parts.append(f"[COLOR {LANG_COLORS.get(code, 'FFE0E0E0')}][{txt}][/COLOR]")
+            parts.append(f"[COLOR {LANG_COLORS.get(code, GREY)}][{txt}][/COLOR]")
     if s.get("size_gb") and on("show_size", "true"):
-        parts.append(f"[B]{s['size_gb']:.1f} GB[/B]")
-    parts.append(f"[COLOR {QUALITY_COLORS.get(s.get('quality_rank', 0), GREY)}][B]{quality or raw}[/B][/COLOR]")
+        parts.append(f"[COLOR {GREY}][B]{s['size_gb']:.1f} GB[/B][/COLOR]")
     if s.get("bitrate") and on("show_bitrate", "true"):
         parts.append(f"[COLOR {GREY}]{s['bitrate']:g} Mb/s[/COLOR]")
     subs = set(s.get("subs") or []) | subs_from_name(raw)
