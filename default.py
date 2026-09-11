@@ -770,6 +770,10 @@ def fill_audio(apis, streams):
         stream["_from_file"] = True
         stream["_tracks"] = info.get("audio") or []
         stream["_media"] = info
+        if info.get("duration"):
+            # z hlavičky je i skutečná délka streamu, ne jen titulu — přesnější
+            # základ pro datový tok než odhad ze stopáže v `ensure_bitrate()`
+            stream["_duration"] = info["duration"]
         # parse_stream je idempotentní podle `quality_rank`; po změně popisku
         # se musí přepočítat, jinak by jazyky a kanály zůstaly prázdné
         stream.pop("quality_rank", None)
@@ -779,6 +783,12 @@ def fill_audio(apis, streams):
         real = quality_from_size(info.get("width") or 0, info.get("height") or 0)
         if real:
             stream["quality_rank"] = {"4K": 4, "Full HD": 3, "HD": 2, "SD": 1}[real]
+        if not stream.get("size_gb") and info.get("size"):
+            # Sosáč velikost vůbec neříká — server ji ale poslal v hlavičce HTTP
+            # odpovědi (Content-Range), když se sahalo pro zvuk. `parse_stream`
+            # výše by nastavené GB zase přepsalo z (prázdného) popisku, proto
+            # se to dopisuje až tady, po něm.
+            stream["size_gb"] = info["size"] / 2 ** 30
     return streams
 
 
@@ -855,7 +865,28 @@ def collect_streams(apis, ctype, item_id, meta, alt=None):
     # a před seřazením se rozpočet utratil za řádky, které skončí dole; teď padne
     # na začátek seznamu, tedy na to, co má uživatel před očima. Po doplnění
     # kanálů se řadí znovu, protože 5.1 může pořadím pohnout.
-    return order(fill_audio(apis, order(streams)))
+    return order(ensure_bitrate(fill_audio(apis, order(streams)), video or meta))
+
+
+def ensure_bitrate(streams, meta_or_video):
+    """Datový tok má mít úplně každý stream, ne jen ten, co ho zdroj sám řekl.
+
+    Přesnost podle toho, odkud se vzal: hlavička souboru dala i jeho vlastní
+    délku (`_duration`, z `fill_audio`) — z ní je datový tok stejně přesný
+    jako velikost. Bez ní (mimo rozpočet čtení hlavičky, nebo zdroj s pevným
+    popiskem jako Luna) se počítá se stopáží titulu — to je odhad, stejný,
+    se kterým počítá i `effective_max_gb()`, proto se značí vlnovkou stejně
+    jako ostatní odhadnuté věci v popisku.
+    """
+    minutes = runtime_minutes((meta_or_video or {}).get("runtime"))
+    fallback_s = minutes * 60 if minutes else DEFAULT_RUNTIME_S
+    for s in streams:
+        if s.get("bitrate") or not s.get("size_gb"):
+            continue
+        duration = s.get("_duration") or 0
+        s["bitrate"] = round(s["size_gb"] * 2 ** 30 * 8 / (duration or fallback_s) / 1_000_000, 1)
+        s["_bitrate_est"] = not duration
+    return streams
 
 
 def stream_signature(s):
@@ -1078,7 +1109,8 @@ def stream_label(s):
     if s.get("size_gb") and on("show_size", "true"):
         parts.append(f"[COLOR {GREY}][B]{s['size_gb']:.1f} GB[/B][/COLOR]")
     if s.get("bitrate") and on("show_bitrate", "true"):
-        parts.append(f"[COLOR {GREY}]{s['bitrate']:g} Mb/s[/COLOR]")
+        mark = "~" if s.get("_bitrate_est") else ""
+        parts.append(f"[COLOR {GREY}]{mark}{s['bitrate']:g} Mb/s[/COLOR]")
     subs = set(s.get("subs") or []) | subs_from_name(raw)
     if subs and on("show_subs", "true"):
         parts.append(f"[COLOR {GREY}]Tit.: {' '.join(sorted(subs))}[/COLOR]")
@@ -1195,7 +1227,7 @@ def test_sources():
 SPEEDTEST_URL = "https://speed.cloudflare.com/__down?bytes=52428800"  # 50 MB, i na rychlém připojení stačí pár vteřin
 SPEEDTEST_SECONDS = 8       # déle nemá smysl čekat, průměr se stejně ustálí dřív
 SPEEDTEST_RESERVE = 0.25    # rezerva, aby přehrávání nezasekávalo při kolísání rychlosti
-SPEEDTEST_MOVIE_S = 7200    # dvouhodinový film — odhad stopáže, jen když ji titul sám neřekne
+DEFAULT_RUNTIME_S = 7200    # dvouhodinový film — odhad stopáže, jen když ji titul sám neřekne
 
 
 def effective_max_gb(meta_or_video):
@@ -1215,7 +1247,7 @@ def effective_max_gb(meta_or_video):
     if not mbps:
         return 0.0
     minutes = runtime_minutes((meta_or_video or {}).get("runtime"))
-    seconds = minutes * 60 if minutes else SPEEDTEST_MOVIE_S
+    seconds = minutes * 60 if minutes else DEFAULT_RUNTIME_S
     return mbps * 1_000_000 * seconds / 8 / 2 ** 30
 
 
@@ -1255,7 +1287,7 @@ def speedtest():
     mbps = got * 8 / elapsed / 1_000_000
     allowed_mbps = round(mbps * (1 - SPEEDTEST_RESERVE), 1)
     ADDON.setSetting("max_bitrate_mbps", str(allowed_mbps))
-    example_gb = allowed_mbps * 1_000_000 * SPEEDTEST_MOVIE_S / 8 / 2 ** 30
+    example_gb = allowed_mbps * 1_000_000 * DEFAULT_RUNTIME_S / 8 / 2 ** 30
     notify(Lf(30223, f"{mbps:.0f}", f"{allowed_mbps:g}", f"{example_gb:.1f}"), xbmcgui.NOTIFICATION_INFO, 7000)
 
 

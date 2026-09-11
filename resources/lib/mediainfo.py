@@ -46,6 +46,14 @@ ACMOD = {0: 2, 1: 1, 2: 2, 3: 3, 4: 3, 5: 4, 6: 4, 7: 5}
 
 def fetch(url, start=None, end=None, length=HEAD, opener=None):
     """Výřez souboru. Bez `start` se bere začátek, se záporným `start` konec."""
+    data, _total = fetch_sized(url, start, end, length, opener)
+    return data
+
+
+def fetch_sized(url, start=None, end=None, length=HEAD, opener=None):
+    """Jako `fetch`, ale vrátí i celkovou velikost souboru, když ji server
+    poslal v `Content-Range` — u zdrojů bez vlastního údaje o velikosti
+    (Sosáč) je jinak jediný způsob, jak se k ní vůbec dostat."""
     if start is None:
         rng = f"bytes=0-{length - 1}"
     elif start < 0:
@@ -55,7 +63,10 @@ def fetch(url, start=None, end=None, length=HEAD, opener=None):
     req = urllib.request.Request(url, headers={"Range": rng, "User-Agent": UA})
     opened = (opener or urllib.request).urlopen(req, timeout=TIMEOUT)
     with opened as resp:
-        return resp.read()
+        data = resp.read()
+        content_range = resp.headers.get("Content-Range", "")
+    tail = content_range.rsplit("/", 1)[-1] if "/" in content_range else ""
+    return data, (int(tail) if tail.isdigit() else 0)
 
 
 # --- Matroska ---------------------------------------------------------------
@@ -89,7 +100,30 @@ def _ebml_id(buf, i):
 MKV_MASTER = {0x18538067, 0x1654AE6B, 0xAE, 0xE1, 0xE0}   # Segment, Tracks, TrackEntry, Audio, Video
 
 
-def _mkv_walk(buf, i, end, out):
+def _mkv_info_fill(buf, i, end, info):
+    """TimecodeScale a Duration ze Segment>Info — délka souboru v sekundách
+    je `Duration * TimecodeScale / 1e9` (výchozí TimecodeScale je 1 ms)."""
+    while i < end - 2:
+        try:
+            eid, j = _ebml_id(buf, i)
+            size, k, width = _ebml_num(buf, j)
+        except (IndexError, ValueError):
+            return
+        if size == (1 << (7 * width)) - 1:
+            size = end - k
+        stop = min(k + size, end)
+        data = buf[k:stop]
+        if eid == 0x2AD7B1 and data:
+            info["scale"] = int.from_bytes(data, "big") or info["scale"]
+        elif eid == 0x4489:
+            if len(data) == 4:
+                info["duration"] = struct.unpack(">f", data)[0]
+            elif len(data) == 8:
+                info["duration"] = struct.unpack(">d", data)[0]
+        i = stop
+
+
+def _mkv_walk(buf, i, end, out, info=None):
     while i < end - 2:
         try:
             eid, j = _ebml_id(buf, i)
@@ -102,7 +136,9 @@ def _mkv_walk(buf, i, end, out):
         if eid in MKV_MASTER:
             if eid == 0xAE:
                 out.append({})
-            _mkv_walk(buf, k, stop, out)
+            _mkv_walk(buf, k, stop, out, info)
+        elif eid == 0x1549A966 and info is not None:   # Info — mimo strom stop, netýká se aktuální track
+            _mkv_info_fill(buf, k, stop, info)
         elif out:
             data, cur = buf[k:stop], out[-1]
             if eid == 0x83 and data:
@@ -122,28 +158,32 @@ def _mkv_walk(buf, i, end, out):
 
 
 def _from_mkv(head):
-    tracks = []
-    _mkv_walk(head, 0, len(head), tracks)
-    return tracks
+    tracks, info = [], {"scale": 1_000_000, "duration": 0.0}
+    _mkv_walk(head, 0, len(head), tracks, info)
+    return tracks, (info["duration"] * info["scale"] / 1_000_000_000 if info["duration"] else 0)
 
 
 # --- AVI --------------------------------------------------------------------
 
 def _from_avi(head):
-    """RIFF: v `hdrl` je pro každou stopu `strh` (druh) a `strf` (formát).
+    """RIFF: v `hdrl` je pro každou stopu `strh` (druh) a `strf` (formát),
+    délka celého souboru v hlavním `avih` (počet snímků krát jejich délka).
 
     U obrazu je `strf` hlavička BITMAPINFOHEADER, kde za velikostí struktury
     leží šířka a výška; u zvuku WAVEFORMATEX s počtem kanálů.
     """
-    tracks, i, end = [], 12, len(head)
-    stack = [end]
+    tracks, i, end, duration = [], 12, len(head), 0
     while i + 8 <= end:
         tag, size = head[i:i + 4], struct.unpack("<I", head[i + 4:i + 8])[0]
         body = i + 8
         if tag == b"LIST":
             i = body + 4                       # do seznamu se vstupuje
             continue
-        if tag == b"strh" and size >= 8:
+        if tag == b"avih" and size >= 20:
+            micro_per_frame, total_frames = struct.unpack("<II", head[body:body + 4] + head[body + 16:body + 20])
+            if micro_per_frame and total_frames:
+                duration = micro_per_frame * total_frames / 1_000_000
+        elif tag == b"strh" and size >= 8:
             tracks.append({"type": 2 if head[body:body + 4] == b"auds" else 1})
         elif tag == b"strf" and tracks and size >= 4:
             if tracks[-1].get("type") == 2:
@@ -152,8 +192,7 @@ def _from_avi(head):
                 tracks[-1]["width"] = struct.unpack("<i", head[body + 4:body + 8])[0]
                 tracks[-1]["height"] = abs(struct.unpack("<i", head[body + 8:body + 12])[0])
         i = body + size + (size & 1)
-    del stack
-    return tracks
+    return tracks, duration
 
 
 # --- MP4 --------------------------------------------------------------------
@@ -203,8 +242,27 @@ def _mp4_sample_entry(buf, start, end, track):
         break
 
 
+def _mp4_mvhd(buf, body, stop):
+    """`mvhd`: fullbox header (verze+příznaky), pak časy a jako poslední
+    dvojice timescale/duration — u verze 1 jsou pole 8bajtová."""
+    if body >= stop:
+        return 0
+    version = buf[body]
+    try:
+        if version == 0 and body + 20 <= stop:
+            timescale, duration = struct.unpack(">II", buf[body + 12:body + 20])
+        elif version == 1 and body + 32 <= stop:
+            timescale = struct.unpack(">I", buf[body + 20:body + 24])[0]
+            duration = struct.unpack(">Q", buf[body + 24:body + 32])[0]
+        else:
+            return 0
+    except struct.error:
+        return 0
+    return duration / timescale if timescale else 0
+
+
 def _from_mp4(buf):
-    tracks = []
+    tracks, duration = [], [0]   # v seznamu, aby do něj šlo psát z vnořené walk()
 
     def trak(start, end):
         cur = {}
@@ -233,11 +291,13 @@ def _from_mp4(buf):
         for kind, body, stop in _mp4_boxes(buf, start, end):
             if kind == b"moov":
                 walk(body, stop)
+            elif kind == b"mvhd":
+                duration[0] = _mp4_mvhd(buf, body, stop) or duration[0]
             elif kind == b"trak":
                 trak(body, stop)
 
     walk(0, len(buf))
-    return tracks
+    return tracks, duration[0]
 
 
 def _mp4_remote(url, head, opener=None):
@@ -255,10 +315,10 @@ def _mp4_remote(url, head, opener=None):
             try:
                 buf = fetch(url, start=pos, length=4096, opener=opener)
             except Exception:  # noqa: BLE001
-                return []
+                return [], 0
             base = pos
             if len(buf) < 16:
-                return []
+                return [], 0
         i = pos - base
         size = struct.unpack(">I", buf[i:i + 4])[0]
         kind, header = buf[i + 4:i + 8], 8
@@ -266,20 +326,22 @@ def _mp4_remote(url, head, opener=None):
             size = struct.unpack(">Q", buf[i + 8:i + 16])[0]
             header = 16
         if size < header:
-            return []
+            return [], 0
         if kind == b"moov":
             for window in MOOV_WINDOWS:
                 want = min(size, window)
                 try:
                     body = fetch(url, start=pos, end=pos + want - 1, opener=opener)
                 except Exception:  # noqa: BLE001
-                    return []
-                tracks = _from_mp4(body)
+                    return [], 0
+                tracks, duration = _from_mp4(body)
+                # mvhd bývá na začátku moov, takže délku má i první, nejmenší okno —
+                # ta se tedy nezahazuje, i když se pro zvuk musí sáhnout po dalším
                 if any(t.get("type") == 2 for t in tracks) or want >= size:
-                    return tracks
-            return []
+                    return tracks, duration
+            return [], 0
         pos += size
-    return []
+    return [], 0
 
 
 # --- dohromady --------------------------------------------------------------
@@ -309,22 +371,22 @@ def probe(url, opener=None):
     tam, kde se nic zjistit nedá. Nikdy nevyhodí výjimku — když to nejde, vrátí
     prázdno a doplněk se chová jako dřív.
     """
-    empty = {"audio": [], "subs": [], "height": 0}
+    empty = {"audio": [], "subs": [], "width": 0, "height": 0, "duration": 0, "size": 0}
     try:
-        head = fetch(url, length=HEAD, opener=opener)
+        head, total_size = fetch_sized(url, length=HEAD, opener=opener)
     except Exception:  # noqa: BLE001 – síť, server bez Range, vypršelý odkaz
         return empty
     if not head:
         return empty
     try:
         if head[:4] == b"\x1a\x45\xdf\xa3":
-            tracks = _from_mkv(head)
+            tracks, duration = _from_mkv(head)
         elif head[:4] == b"RIFF":
-            tracks = _from_avi(head)
+            tracks, duration = _from_avi(head)
         elif head[4:8] == b"ftyp":
-            tracks = _from_mp4(head)
+            tracks, duration = _from_mp4(head)
             if not any(t.get("type") == 2 for t in tracks):
-                tracks = _mp4_remote(url, head, opener)
+                tracks, duration = _mp4_remote(url, head, opener)
         else:
             return empty
     except Exception:  # noqa: BLE001 – poškozená nebo neúplná hlavička
@@ -342,7 +404,8 @@ def probe(url, opener=None):
     video = [t for t in tracks if t.get("type") == 1]
     width = max((int(t.get("width") or 0) for t in video), default=0)
     height = max((int(t.get("height") or 0) for t in video), default=0)
-    return {"audio": audio, "subs": subs, "width": width, "height": height}
+    return {"audio": audio, "subs": subs, "width": width, "height": height,
+            "duration": duration, "size": total_size}
 
 
 def quality_from_size(width, height=0):
