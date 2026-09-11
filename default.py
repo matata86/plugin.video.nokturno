@@ -31,6 +31,7 @@ from sosac_api import SosacApi, SosacError, names_match, register as sosac_regis
 from sosac_api import is_sosac_id as _is_stremio_sosac_id  # noqa: E402
 from sosac_direct import EXPORT as SOSAC_EXPORT, SosacDirect, is_direct_id  # noqa: E402
 from enrich import enrich, enrich_one  # noqa: E402
+from hellspy_api import HellspyApi, HellspyError  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
 from sync import sync_once  # noqa: E402
 from streams import arrange, estimate_rank, langs_from_name, parse_stream, subs_from_name  # noqa: E402
@@ -49,9 +50,10 @@ WS_PAGE = 40
 CACHE_TTL = 600
 SEARCH_TTL = 12 * 3600  # sjednocené s luna_api.SEARCH_TTL / webshare_api.SEARCH_TTL
 SOSAC_TAG = "[COLOR FFE0A040]Sosáč[/COLOR]"
+HS_TAG = "[COLOR FFFF8A6B]HellSpy[/COLOR]"
 WS_TAG = "[COLOR FF60B0FF]WebShare[/COLOR]"
 LUNA_TAG = "[COLOR FFB39DFF]Luna[/COLOR]"
-SOURCE_TAGS = {"main": LUNA_TAG, "search": WS_TAG, "sosac": SOSAC_TAG, "ws": WS_TAG}
+SOURCE_TAGS = {"main": LUNA_TAG, "search": WS_TAG, "sosac": SOSAC_TAG, "ws": WS_TAG, "hs": HS_TAG}
 QUALITY_COLORS = {4: "FFFFC94D", 3: "FF7FE07F", 2: "FF7FC8FF", 1: "FFA0A0A0"}
 LANG_COLORS = {"CZ": "FF7FE07F", "SK": "FF7FE07F", "EN": "FFE0E0E0"}
 GREY = "FF9A9A9A"
@@ -73,7 +75,7 @@ if _old_settings:
     except Exception as _e:  # noqa: BLE001
         xbmc.log(f"[{ADDON_ID}] migrace nastavení: {_e}", xbmc.LOGWARNING)
 STORE = Store(PROFILE)
-Errors = (LunaError, SosacError, WebshareError, TraktError)
+Errors = (LunaError, SosacError, WebshareError, HellspyError, TraktError)
 
 
 def is_sosac_id(item_id):
@@ -157,6 +159,10 @@ def resolve_url(apis, url):
         link = api.file_link(url[3:])
         remember_ws_token(api)
         return link
+    if url and url.startswith("hs:"):
+        api = apis.get("hs") or HellspyApi(cache=STORE)
+        file_id, _sep, file_hash = url[3:].partition(":")
+        return api.file_link(file_id, file_hash)
     if url and url.startswith("streamuj:"):
         api = apis.get("sosac")
         if not isinstance(api, SosacDirect):
@@ -196,6 +202,13 @@ def get_webshare():
     return WebshareApi(user, pw, token=xbmcgui.Window(10000).getProperty("nokturno.ws_token"), cache=STORE)
 
 
+def get_hellspy():
+    """HellSpy nemá účet ani token — stačí přepínač v nastavení."""
+    if not on("hs_enabled", "false"):
+        return None
+    return HellspyApi(cache=STORE)
+
+
 def remember_ws_token(api):
     if api and api.token:
         xbmcgui.Window(10000).setProperty("nokturno.ws_token", api.token)
@@ -210,7 +223,7 @@ def get_trakt():
 
 
 def get_apis():
-    return {"luna": get_luna(), "sosac": get_sosac(), "ws": get_webshare()}
+    return {"luna": get_luna(), "sosac": get_sosac(), "ws": get_webshare(), "hs": get_hellspy()}
 
 
 def source_for(item_id):
@@ -541,6 +554,7 @@ def cross_streams(apis, ctype, item_id, meta, alt=None):
 
 
 WS_LIMIT = 25
+HS_LIMIT = 25
 YEAR_RE = re.compile(r"\b(19\d{2}|20\d{2})\b")
 
 
@@ -549,18 +563,14 @@ def _fold(text):
     return unicodedata.normalize("NFKD", text or "").encode("ascii", "ignore").decode().lower()
 
 
-def webshare_streams(apis, meta, video, ctype, alt=None):
-    """Tytéž soubory přímo z WebShare, navíc k tomu, co našla Luna.
+def title_queries(apis, meta, video, ctype, alt=None):
+    """Dotazy pro fulltextové zdroje a filtr, který z výsledku nechá jen ten titul.
 
-    Luna se WebShare ptá jedním dotazem a část souborů jí uteče (jiný přepis
-    názvu, rok v názvu, originál). Tady se hledá ve víc variantách, stejně jako
-    to dělá integrace pro HA — proto karta v HA ukazovala víc streamů než Kodi.
-    Fulltext vrací i soubory se společnou částí slov, proto se bere jen to, co
-    má všechna slova názvu (nebo originálu), správný rok a u dílu jeho číslo.
+    Sdílí to WebShare i HellSpy — oba hledají v názvech souborů, takže potřebují
+    totéž: víc variant názvu (originál, rok, u dílu značku sezóny) a pak zahodit
+    všechno, co se jen podobá. Luna se WebShare ptá jedním dotazem a část souborů
+    jí uteče, proto se tu hledá ve víc variantách, stejně jako v integraci pro HA.
     """
-    ws = apis.get("ws")
-    if ws is None:
-        return []
     title = meta.get("_title") or meta.get("name") or ""
     origs = [o for o in [meta.get("_orig") or ""] if o]
     if alt and apis.get("sosac"):
@@ -597,8 +607,17 @@ def webshare_streams(apis, meta, video, ctype, alt=None):
                 return False
         return not episode_re or bool(episode_re.search(folded))
 
+    return [q.strip() for q in dict.fromkeys(queries) if q.strip()], relevant
+
+
+def webshare_streams(apis, meta, video, ctype, alt=None):
+    """Tytéž soubory přímo z WebShare, navíc k tomu, co našla Luna."""
+    ws = apis.get("ws")
+    if ws is None:
+        return []
+    queries, relevant = title_queries(apis, meta, video, ctype, alt)
     out, seen = [], set()
-    for query in dict.fromkeys(q.strip() for q in queries if q.strip()):
+    for query in queries:
         try:
             files, _total = ws.search(query, limit=WS_LIMIT)
         except WebshareError as e:
@@ -615,13 +634,59 @@ def webshare_streams(apis, meta, video, ctype, alt=None):
     return out
 
 
+def hellspy_streams(apis, meta, video, ctype, alt=None):
+    """Tentýž titul na HellSpy. Nabízí se původní soubor, ne překódování, takže
+    název i velikost popisují to, co se opravdu přehraje — viz `hellspy_api`."""
+    hs = apis.get("hs")
+    if hs is None:
+        return []
+    queries, relevant = title_queries(apis, meta, video, ctype, alt)
+    out, seen = [], set()
+    for query in queries:
+        try:
+            files, _next = hs.search(query, limit=HS_LIMIT)
+        except HellspyError as e:
+            log_error(f"HellSpy „{query}“: {e}")
+            continue
+        for f in files:
+            name = f.get("name") or ""
+            # Táž nahrávka bývá na HellSpy vícekrát pod prakticky stejným názvem.
+            # _fold zahodí cizí písmo úplně, takže se dvě jinak shodná jména liší
+            # jen zbylou mezerou — proto se mezery ještě srovnají.
+            key = (" ".join(_fold(name).split()), f["size"])
+            if f["hash"] in seen or key in seen or not relevant(name):
+                continue
+            seen.add(f["hash"])
+            seen.add(key)
+            out.append({"url": f"hs:{f['id']}:{f['hash']}", "label": name,
+                        "detail": f.get("size_h") or "", "source": "hs"})
+    return out
+
+
+DIRECT_SOURCES = ("ws", "hs")   # fulltextové zdroje, kde bývá tentýž soubor jako u Luny
+
+
 def drop_duplicates(streams):
     """Soubor nalezený přes Lunu i napřímo je jeden soubor — dvakrát ho neukazovat.
-    Odkaz je pokaždé jiný (Luna vs. CDN), proto se dvojice pozná podle názvu a velikosti."""
+    Odkaz je pokaždé jiný (Luna vs. CDN), proto se dvojice pozná podle názvu a velikosti.
+    Stejně se tak srovnají i WebShare s HellSpy mezi sebou, kde bývá táž nahrávka."""
     for s in streams:
         parse_stream(s)
-    known = {(_fold(s.get("label")), round(s.get("size_gb") or 0, 1)) for s in streams if s.get("source") != "ws"}
-    return [s for s in streams if s.get("source") != "ws" or (_fold(s.get("label")), round(s.get("size_gb") or 0, 1)) not in known]
+
+    def key(s):
+        return " ".join(_fold(s.get("label")).split()), round(s.get("size_gb") or 0, 1)
+
+    known = {key(s) for s in streams if s.get("source") not in DIRECT_SOURCES}
+    out = []
+    for s in streams:
+        if s.get("source") not in DIRECT_SOURCES:
+            out.append(s)
+            continue
+        if key(s) in known:
+            continue
+        known.add(key(s))
+        out.append(s)
+    return out
 
 
 def load_meta_video(meta, item_id):
@@ -650,11 +715,13 @@ def collect_streams(apis, ctype, item_id, meta, alt=None):
     # WebShare se do streamů dohledává vždy, když je účet vyplněný (stejně jako HA) —
     # není to zdvojení Luny: Luna pošle jeden dotaz, tohle víc variant (rok, originál)
     direct = apis.get("ws") is not None
-    with ThreadPoolExecutor(max_workers=3) as pool:
+    video = load_meta_video(meta, item_id)
+    with ThreadPoolExecutor(max_workers=4) as pool:
         main = pool.submit(all_streams, apis, ctype, item_id)
         cross = pool.submit(cross_streams, apis, ctype, item_id, meta, alt)
-        ws = pool.submit(webshare_streams, apis, meta, load_meta_video(meta, item_id), ctype, alt) if direct else None
-        extra = cross.result() + (ws.result() if ws else [])
+        ws = pool.submit(webshare_streams, apis, meta, video, ctype, alt) if direct else None
+        hs = pool.submit(hellspy_streams, apis, meta, video, ctype, alt) if apis.get("hs") else None
+        extra = cross.result() + (ws.result() if ws else []) + (hs.result() if hs else [])
         streams = drop_duplicates(main.result() + extra)
     try:
         max_gb = float(setting("max_size_gb", "0").replace(",", ".") or 0)
