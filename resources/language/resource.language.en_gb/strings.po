@@ -549,3 +549,15 @@ msgstr "Also offer files found directly on WebShare for titles"
 msgctxt "#30190"
 msgid "Downloaded in HA"
 msgstr "Downloaded in HA"
+
+msgctxt "#30191"
+msgid "What's new"
+msgstr "What's new"
+
+msgctxt "#30192"
+msgid "What's new in version"
+msgstr "What's new in version"
+
+msgctxt "#30193"
+msgid "No news"
+msgstr "No news"

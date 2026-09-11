@@ -549,3 +549,15 @@ msgstr "U titulů nabízet i soubory nalezené přímo na WebShare"
 msgctxt "#30190"
 msgid "Downloaded in HA"
 msgstr "Staženo v HA"
+
+msgctxt "#30191"
+msgid "What's new"
+msgstr "Novinky"
+
+msgctxt "#30192"
+msgid "What's new in version"
+msgstr "Novinky ve verzi"
+
+msgctxt "#30193"
+msgid "No news"
+msgstr "Žádné novinky"
