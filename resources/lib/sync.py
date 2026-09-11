@@ -34,9 +34,26 @@ def _ts(rec):
         return 0
 
 
+def _backfill_favlog(store):
+    """Oblíbené přidané předtím, než tenhle deník vůbec existoval (staré verze
+    doplňku bez synchronizace), v něm chybí — bez záznamu se nikdy neodešlou,
+    protože `collect_changes` čte jen `favlog`, ne `favourites` samotné.
+    Doplní se jednou s aktuálním časem, ať se při nejbližší výměně pošlou taky."""
+    favs = store.reload("favourites", [])
+    log = store.reload("favlog", {})
+    missing = [k for k in favs if k not in log]
+    if not missing:
+        return
+    now = int(time.time())
+    for k in missing:
+        log[k] = {"on": True, "ts": now}
+    store.save("favlog", log)
+
+
 def collect_changes(store, since):
     """Co se tu změnilo od `since` — ke změněným klíčům i snímky titulů, aby
     druhá strana uměla položku vykreslit bez dotazu na síť."""
+    _backfill_favlog(store)
     # >= schválně: `since` i `ts` jsou celé sekundy, takže změna zapsaná v téže
     # sekundě jako minulá výměna by se s ostrým > už nikdy neposlala. Dvojí
     # poslání nevadí — příjemce bere jen přísně novější záznam.
