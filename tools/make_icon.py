@@ -204,8 +204,16 @@ def make_fanart(path):
     sky.paste(logo, (1150, 230), logo)
 
     dr.text((170, 398), "Nokturno", font=font("InterDisplay-Bold.otf", 152), fill=(243, 196, 118))
-    dr.text((177, 592), "WebShare  ·  Sosáč  ·  Luna  ·  Home Assistant",
-            font=font("InterDisplay-Medium.otf", 44), fill=(163, 176, 218))
+    # Podtitulek se musí vejít vedle značky, proto se písmo zmenšuje, dokud
+    # se řádek nevejde — s přibývajícími zdroji by jinak zajel pod logo.
+    sub = "WebShare  ·  Sosáč  ·  Luna  ·  HellSpy  ·  Home Assistant"
+    size = 44
+    while size > 26:
+        f = font("InterDisplay-Medium.otf", size)
+        if dr.textlength(sub, font=f) <= 950:
+            break
+        size -= 2
+    dr.text((177, 592), sub, font=font("InterDisplay-Medium.otf", size), fill=(163, 176, 218))
     sky.save(path, quality=92, subsampling=0)
 
 
