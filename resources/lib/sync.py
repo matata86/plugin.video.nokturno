@@ -42,9 +42,11 @@ def collect_changes(store, since):
     # poslání nevadí — příjemce bere jen přísně novější záznam.
     watched = {k: v for k, v in store.reload("watched", {}).items() if _ts(v) >= since}
     favlog = {k: v for k, v in store.reload("favlog", {}).items() if _ts(v) >= since}
+    histlog = {k: v for k, v in store.reload("histlog", {}).items() if _ts(v) >= since}
     items = store.reload("items", {})
     keys = set(watched) | set(favlog)
-    return {"watched": watched, "favlog": favlog, "items": {k: items[k] for k in keys if k in items}}
+    return {"watched": watched, "favlog": favlog, "histlog": histlog,
+            "items": {k: items[k] for k in keys if k in items}}
 
 
 def apply_changes(store, changes):
@@ -80,6 +82,17 @@ def apply_changes(store, changes):
             store.save("favlog", favlog)
             store.save("favourites", favs)
 
+        histlog = store.reload("histlog", {})
+        hist_dirty = False
+        for key, rec in (changes.get("histlog") or {}).items():
+            if isinstance(rec, dict) and _ts(rec) > _ts(histlog.get(key)):
+                histlog[key] = rec
+                hist_dirty = True
+                applied += 1
+        if hist_dirty:
+            store._trim(histlog, 500)
+            store.save("histlog", histlog)
+
         items = store.reload("items", {})
         dirty = False
         for key, snap in (changes.get("items") or {}).items():
@@ -89,6 +102,8 @@ def apply_changes(store, changes):
         if dirty:
             store._trim(items, ITEMS_MAX)
             store.save("items", items)
+    if hist_dirty:
+        store.rebuild_history()   # zobrazený seznam podle sloučeného deníku
     return applied
 
 
