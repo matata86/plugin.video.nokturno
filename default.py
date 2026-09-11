@@ -348,6 +348,45 @@ def fill_info(li, meta, ctype="movie", video=None, tech=True):
         tag.setDirectors([str(d) for d in meta["director"]])
 
 
+# rozlišení, které se pošle skinu, když se kvalita jen odhadla z názvu
+TIER_SIZE = {4: (3840, 2160), 3: (1920, 1080), 2: (1280, 720), 1: (720, 576)}
+# „5.1" je šest kanálů — skin chce jejich počet, ne zápis se středem
+CHANNEL_COUNT = {"1.0": 1, "2.0": 2, "2.1": 3, "5.1": 6, "6.1": 7, "7.1": 8}
+
+
+def fill_streamdetails(li, s):
+    """Technické údaje o stopách do položky.
+
+    Odznak kvality si skin kreslí sám, jakmile o položce ví rozlišení — tak to
+    dělají i jiné doplňky a vypadá to jako zbytek rozhraní, na rozdíl od obrázku
+    přibaleného doplňkem. Ze stejných údajů skin bere i ikony zvuku a jazyků.
+
+    Přesné rozlišení je z hlavičky souboru; když se číst nedalo, pošle se
+    typické rozlišení odhadnuté třídy, ať odznak nechybí. Že jde o odhad, je
+    poznat v popisku podle vlnovky.
+    """
+    info = s.get("_media") or {}
+    width, height = info.get("width") or 0, info.get("height") or 0
+    if not height:
+        width, height = TIER_SIZE.get(s.get("quality_rank") or 0, (0, 0))
+    tag = li.getVideoInfoTag()
+    if height:
+        tag.addVideoStream(xbmc.VideoStreamDetail(width=width, height=height))
+    tracks = info.get("audio") or []
+    if tracks:
+        for t in tracks:
+            tag.addAudioStream(xbmc.AudioStreamDetail(
+                channels=CHANNEL_COUNT.get(t.get("channels") or "", 0),
+                codec=(t.get("codec") or "").lower(),
+                language=(t.get("lang") or "").lower()))
+    else:
+        for code, chans in (s.get("channels") or {}).items():
+            tag.addAudioStream(xbmc.AudioStreamDetail(
+                channels=CHANNEL_COUNT.get(f"{chans:.1f}", 0), language=str(code).lower()))
+    for code in sorted(set(s.get("subs") or [])):
+        tag.addSubtitleStream(xbmc.SubtitleStreamDetail(language=str(code).lower()))
+
+
 def fill_info_snapshot(li, snap):
     """Info z uloženého snímku (bez API)."""
     tag = li.getVideoInfoTag()
@@ -663,29 +702,6 @@ def hellspy_streams(apis, meta, video, ctype, alt=None):
 DIRECT_SOURCES = ("ws", "hs")   # fulltextové zdroje, kde bývá tentýž soubor jako u Luny
 
 
-BADGES = os.path.join(ADDON_PATH, "resources", "media", "badges")
-BADGE_NAMES = {4: "4k", 3: "fullhd", 2: "hd", 1: "sd"}
-HDR_RE = re.compile(r"\b(dolby\s*vision|dv|hdr10\+?|hdr)\b", re.I)
-
-
-def stream_badge(s):
-    """Obrázek kvality pro řádek streamu.
-
-    Kodi v popisku barevný rámeček neumí, ale u položky umí obrázek. Plakát je
-    v seznamu streamů u všech řádků stejný, takže neříká nic — kvalita ano.
-    """
-    name = BADGE_NAMES.get(s.get("quality_rank") or 0)
-    if not name:
-        return ""
-    found = HDR_RE.search(s.get("label") or "")
-    flag = ""
-    if found:
-        word = found.group(1).lower().replace(" ", "")
-        flag = "-dv" if word in ("dv", "dolbyvision") else "-hdr"
-    path = os.path.join(BADGES, f"{name}{flag}.png")
-    return path if os.path.exists(path) else os.path.join(BADGES, f"{name}.png")
-
-
 def media_from_file(apis, url):
     """Co se o souboru dá přečíst z jeho hlavičky. Prázdné, když to nejde."""
     def load():
@@ -728,6 +744,7 @@ def fill_audio(apis, streams):
             stream["detail"] = f"{stream['detail']} | {text}" if stream.get("detail") else text
         stream["_from_file"] = True
         stream["_tracks"] = info.get("audio") or []
+        stream["_media"] = info
         # parse_stream je idempotentní podle `quality_rank`; po změně popisku
         # se musí přepočítat, jinak by jazyky a kanály zůstaly prázdné
         stream.pop("quality_rank", None)
@@ -1686,13 +1703,12 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None):
     stats_title = (video or {}).get("title") or bare_title(meta)
     mark_viewed(item_id, stats_title, year if year.isdigit() else None, "series" if video else ctype)
     for s in streams:
-        # odznak kvality místo plakátu: ten je u všech řádků stejný, tenhle ne
-        badge = stream_badge(s)
-        li = xbmcgui.ListItem(label=stream_label(s, badge=bool(badge)))
-        li.setArt({"icon": badge, "thumb": badge} if badge else art_for(meta, video))
+        li = xbmcgui.ListItem(label=stream_label(s, badge=True))
+        li.setArt(art_for(meta, video))
         # název titulu do InfoTagu → v OSD přehrávače je jméno filmu/epizody, ne popis streamu;
         # stopáž a hodnocení ne — skin by z nich udělal sloupce a ukrojil šířku popisku streamu
         fill_info(li, meta, "series" if video else ctype, video=video, tech=False)
+        fill_streamdetails(li, s)
         apply_watched(li, item_id, [(L(30070), runplugin(action="download", url=s["url"], name=f"{title} [{s['label']}]",
                                                          id=item_id, type=ctype, series=series_id, alt=alt))])
         li.setProperty("IsPlayable", "true")
