@@ -790,3 +790,7 @@ msgstr "Adresa Home Assistantu, na kterém běží integrace Nokturno."
 msgctxt "#30328"
 msgid "Must match the sync key shown in the Nokturno integration's settings in Home Assistant."
 msgstr "Musí sedět se synchronizačním klíčem z nastavení integrace Nokturno v Home Assistantu."
+
+msgctxt "#30329"
+msgid "Support the author: https://ko-fi.com/matata86"
+msgstr "Podpoř autora: https://ko-fi.com/matata86"
