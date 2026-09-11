@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="1.8.1" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="1.8.2" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -21,7 +21,8 @@
       <icon>resources/icon.png</icon>
       <fanart>resources/fanart.jpg</fanart>
     </assets>
-    <news>1.8.1 – synchronizace mezi Kodi zahrnuje i historii hledání
+    <news>1.8.2 – historie hledání se sdílí i s kartou v Home Assistantu (hlavní hledání pod společným typem)
+1.8.1 – synchronizace mezi Kodi zahrnuje i historii hledání
 1.8.0 – nová položka „Staženo v HA" (když běží synchronizace) — seznam filmů stažených integrací do Home Assistantu, přehratelných z tohohle Kodi přes adresu HA (i mimo síť, když je to Nabu Casa)
 1.7.1 – soubory z WebShare se k titulům dohledávají vždy, když je účet vyplněný (dřív to byl přepínač) — seznam streamů je stejný jako v kartě pro Home Assistant
 1.7.0 – synchronizace zhlédnuto, rozkoukané a Mého seznamu mezi více Kodi přes integraci Nokturno v Home Assistantu (Nastavení → Synchronizace; položka „Synchronizovat teď" v menu); k titulům se přidávají i soubory nalezené přímo na WebShare (stejně jako v kartě pro HA)
