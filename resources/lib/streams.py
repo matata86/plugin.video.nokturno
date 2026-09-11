@@ -11,6 +11,8 @@ LANG_ALIASES = {"GB": "EN", "US": "EN", "UK": "EN", "CZ": "CZ", "SK": "SK", "EN"
 # „19.8G“ / „4.9 GB“, ale ne „18 Mb/s“ (bitrate)
 SIZE_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*([GMT])(?:B|iB)?(?![A-Za-z/])", re.I)
 BITRATE_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*Mb/s", re.I)
+# délka streamu, jak ji posílá Luna: „2:42:02“ (h:mm:ss) nebo „42:02“ (mm:ss)
+DURATION_RE = re.compile(r"(?<!\d)(?:(\d+):)?(\d{1,2}):(\d{2})(?!\d)")
 LANG_RE = re.compile(r"\b([A-Z]{2})\b")
 AUDIO_RE = re.compile(r"\b([A-Z]{2})\s+(\d(?:\.\d)?)\b")   # „CZ 5.1“, „GB 2.0“
 
@@ -102,6 +104,8 @@ def parse_stream(s):
     s["size_gb"] = parse_size_gb(detail)
     m = BITRATE_RE.search(detail)
     s["bitrate"] = float(m.group(1).replace(",", ".")) if m else 0.0
+    m = DURATION_RE.search(detail)
+    s["duration"] = (int(m.group(1) or 0) * 3600 + int(m.group(2)) * 60 + int(m.group(3))) if m else 0
     audio, subs = "", ""
     for part in detail.split("|"):
         part = part.strip()
