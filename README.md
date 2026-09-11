@@ -1,4 +1,4 @@
-![Nokturno](resources/fanart.jpg)
+![Nokturno](resources/media/fanart.jpg)
 
 # Nokturno — filmy a seriály z WebShare, Sosáče a Luny pro Kodi
 
