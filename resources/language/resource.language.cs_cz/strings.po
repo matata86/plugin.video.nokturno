@@ -106,14 +106,6 @@ msgctxt "#30031"
 msgid "Enable Sosáč (catalogues from tv.sosac.to, streams from streamuj.tv)"
 msgstr "Zapnout Sosáč (katalogy z tv.sosac.to, streamy ze streamuj.tv)"
 
-msgctxt "#30032"
-msgid "userId from the Sosáč Stremio addon URL"
-msgstr "userId ze Stremio adresy Sosáče"
-
-msgctxt "#30033"
-msgid "Sosáč address"
-msgstr "Adresa Sosáče"
-
 msgctxt "#30034"
 msgid "Also look up streams for a title in the other source"
 msgstr "Dohledat streamy titulu i v druhém zdroji"
@@ -406,14 +398,6 @@ msgctxt "#30121"
 msgid "Smallest first"
 msgstr "Nejmenší první"
 
-msgctxt "#30122"
-msgid "Sosáč user name"
-msgstr "Sosáč uživatelské jméno"
-
-msgctxt "#30123"
-msgid "Sosáč password"
-msgstr "Sosáč heslo"
-
 msgctxt "#30128"
 msgid "Streamuj.tv user name"
 msgstr "Streamuj.tv uživatelské jméno"
@@ -422,29 +406,9 @@ msgctxt "#30129"
 msgid "Streamuj.tv password"
 msgstr "Streamuj.tv heslo"
 
-msgctxt "#30124"
-msgid "Link account now (gets userId automatically)"
-msgstr "Propojit účet teď (userId se získá automaticky)"
-
-msgctxt "#30125"
-msgid "Fill in the Sosáč user name and password first."
-msgstr "Nejdřív vyplň jméno a heslo k Sosáči."
-
-msgctxt "#30126"
-msgid "Linking the Sosáč account failed"
-msgstr "Propojení účtu Sosáče se nezdařilo"
-
-msgctxt "#30127"
-msgid "Sosáč account linked"
-msgstr "Účet Sosáče propojen"
-
 msgctxt "#30107"
 msgid "Open settings"
 msgstr "Otevřít nastavení"
-
-msgctxt "#30130"
-msgid "Legacy: via the Sosáč Stremio addon (only if you don't have a Streamuj account filled in)"
-msgstr "Starší režim přes Stremio doplněk Sosáče (jen když nemáš vyplněný účet Streamuj)"
 
 msgctxt "#30140"
 msgid "Support the author (Ko-fi):"
@@ -589,3 +553,31 @@ msgstr "Přečte začátek souboru a zjistí z něj jazyk a počet kanálů tam,
 msgctxt "#30200"
 msgid "audio read from the file"
 msgstr "zvuk ze souboru"
+
+msgctxt "#30201"
+msgid "Stream list"
+msgstr "Seznam streamů"
+
+msgctxt "#30202"
+msgid "Show file size"
+msgstr "Ukazovat velikost"
+
+msgctxt "#30203"
+msgid "Show source"
+msgstr "Ukazovat zdroj"
+
+msgctxt "#30204"
+msgid "Show file name"
+msgstr "Ukazovat název souboru"
+
+msgctxt "#30205"
+msgid "Show subtitles"
+msgstr "Ukazovat titulky"
+
+msgctxt "#30206"
+msgid "Show bitrate"
+msgstr "Ukazovat datový tok"
+
+msgctxt "#30207"
+msgid "Jazyk se zvukem a kvalita zustavaji vzdy. Vlnovka pred jazykem nebo kvalitou znamena odhad z nazvu souboru, bez ni je udaj od zdroje nebo z hlavicky souboru."
+msgstr "Jazyk se zvukem a kvalita zůstávají vždy. Vlnovka před jazykem nebo kvalitou znamená odhad z názvu souboru, bez ní je údaj od zdroje nebo z hlavičky souboru."

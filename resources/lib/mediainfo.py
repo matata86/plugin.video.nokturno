@@ -1,4 +1,4 @@
-"""Zvukové stopy přečtené z hlavičky souboru.
+"""Co se dá vyčíst z hlavičky souboru: zvuk, titulky a rozlišení.
 
 Zdroje často o zvuku nic neřeknou: HellSpy ho v rozhraní vůbec nemá a u souborů
 z fulltextu bývá jen to, co si někdo napsal do názvu. Údaj ale leží přímo
@@ -86,7 +86,7 @@ def _ebml_id(buf, i):
     return val, i + size
 
 
-MKV_MASTER = {0x18538067, 0x1654AE6B, 0xAE, 0xE1}   # Segment, Tracks, TrackEntry, Audio
+MKV_MASTER = {0x18538067, 0x1654AE6B, 0xAE, 0xE1, 0xE0}   # Segment, Tracks, TrackEntry, Audio, Video
 
 
 def _mkv_walk(buf, i, end, out):
@@ -107,10 +107,16 @@ def _mkv_walk(buf, i, end, out):
             data, cur = buf[k:stop], out[-1]
             if eid == 0x83 and data:
                 cur["type"] = data[-1]                       # 2 = zvuk, 17 = titulky
+            elif eid == 0x86:
+                cur["codec"] = data.split(b"\0")[0].decode("ascii", "ignore")
             elif eid == 0x22B59C:
                 cur["lang"] = data.split(b"\0")[0].decode("ascii", "ignore")
             elif eid == 0x9F and data:
                 cur["channels"] = int.from_bytes(data, "big")
+            elif eid == 0xB0 and data:
+                cur["width"] = int.from_bytes(data, "big")
+            elif eid == 0xBA and data:
+                cur["height"] = int.from_bytes(data, "big")
         i = stop
     return
 
@@ -124,7 +130,11 @@ def _from_mkv(head):
 # --- AVI --------------------------------------------------------------------
 
 def _from_avi(head):
-    """RIFF: v `hdrl` je pro každou stopu `strh` (druh) a `strf` (formát)."""
+    """RIFF: v `hdrl` je pro každou stopu `strh` (druh) a `strf` (formát).
+
+    U obrazu je `strf` hlavička BITMAPINFOHEADER, kde za velikostí struktury
+    leží šířka a výška; u zvuku WAVEFORMATEX s počtem kanálů.
+    """
     tracks, i, end = [], 12, len(head)
     stack = [end]
     while i + 8 <= end:
@@ -135,8 +145,12 @@ def _from_avi(head):
             continue
         if tag == b"strh" and size >= 8:
             tracks.append({"type": 2 if head[body:body + 4] == b"auds" else 1})
-        elif tag == b"strf" and tracks and tracks[-1].get("type") == 2 and size >= 4:
-            tracks[-1]["channels"] = struct.unpack("<H", head[body + 2:body + 4])[0]
+        elif tag == b"strf" and tracks and size >= 4:
+            if tracks[-1].get("type") == 2:
+                tracks[-1]["channels"] = struct.unpack("<H", head[body + 2:body + 4])[0]
+            elif size >= 12:
+                tracks[-1]["width"] = struct.unpack("<i", head[body + 4:body + 8])[0]
+                tracks[-1]["height"] = abs(struct.unpack("<i", head[body + 8:body + 12])[0])
         i = body + size + (size & 1)
     del stack
     return tracks
@@ -166,10 +180,19 @@ def _mp4_lang(packed):
     return "".join(chr(((packed >> shift) & 0x1F) + 0x60) for shift in (10, 5, 0))
 
 
-def _mp4_audio_entry(buf, start, end, track):
-    """Zvukový záznam v `stsd`. U AC-3 je pravda až v `dac3`/`dec3`."""
+def _mp4_sample_entry(buf, start, end, track):
+    """Záznam stopy v `stsd`. U zvuku počet kanálů, u obrazu rozlišení.
+
+    Zvuk: počet kanálů leží 24 bajtů za hlavičkou bloku, ale u AC-3 tam bývá 2
+    i u 5.1 — pravda je až v `dac3`/`dec3`. Obraz: šířka a výška na témže místě.
+    """
     for kind, body, stop in _mp4_boxes(buf, start, end):
         track["codec"] = kind.decode("ascii", "ignore")
+        if track.get("type") == 1:
+            if body + 28 <= stop:
+                track["width"] = struct.unpack(">H", buf[body + 24:body + 26])[0]
+                track["height"] = struct.unpack(">H", buf[body + 26:body + 28])[0]
+            break
         if body + 20 <= stop:
             track["channels"] = struct.unpack(">H", buf[body + 16:body + 18])[0]
         for sub, sbody, sstop in _mp4_boxes(buf, body + 28, stop):
@@ -193,14 +216,16 @@ def _from_mp4(buf):
                         if off + 2 <= s2:
                             cur["lang"] = _mp4_lang(struct.unpack(">H", buf[off:off + 2])[0])
                     elif k2 == b"hdlr" and b2 + 12 <= s2:
-                        cur["type"] = 2 if buf[b2 + 8:b2 + 12] == b"soun" else 1
+                        handler = buf[b2 + 8:b2 + 12]
+                        cur["type"] = {b"soun": 2, b"vide": 1}.get(handler, 17
+                                       if handler in (b"sbtl", b"text", b"subt") else 0)
                     elif k2 == b"minf":
                         for k3, b3, s3 in _mp4_boxes(buf, b2, s2):
                             if k3 != b"stbl":
                                 continue
                             for k4, b4, s4 in _mp4_boxes(buf, b3, s3):
                                 if k4 == b"stsd" and b4 + 8 <= s4:
-                                    _mp4_audio_entry(buf, b4 + 8, s4, cur)
+                                    _mp4_sample_entry(buf, b4 + 8, s4, cur)
         if cur:
             tracks.append(cur)
 
@@ -249,8 +274,8 @@ def _mp4_remote(url, head, opener=None):
                     body = fetch(url, start=pos, end=pos + want - 1, opener=opener)
                 except Exception:  # noqa: BLE001
                     return []
-                tracks = [t for t in _from_mp4(body) if t.get("type") == 2]
-                if tracks or want >= size:
+                tracks = _from_mp4(body)
+                if any(t.get("type") == 2 for t in tracks) or want >= size:
                     return tracks
             return []
         pos += size
@@ -259,14 +284,38 @@ def _mp4_remote(url, head, opener=None):
 
 # --- dohromady --------------------------------------------------------------
 
-def audio_tracks(url, opener=None):
-    """Zvukové stopy souboru. Prázdný seznam, když se nedají zjistit."""
+CODECS = {
+    "A_AC3": "AC-3", "AC-3": "AC-3", "ac-3": "AC-3",
+    "A_EAC3": "EAC3", "ec-3": "EAC3",
+    "A_DTS": "DTS", "A_DTS/EXPRESS": "DTS", "A_DTS/LOSSLESS": "DTS-HD",
+    "A_TRUEHD": "TrueHD", "A_MLP": "TrueHD",
+    "A_AAC": "AAC", "mp4a": "AAC", "A_OPUS": "Opus", "A_VORBIS": "Vorbis",
+    "A_FLAC": "FLAC", "A_MP3": "MP3", "A_MPEG/L3": "MP3", "A_PCM/INT/LIT": "PCM",
+}
+
+
+def codec_name(raw):
+    """Zkratka kodeku pro popisek. Neznámý se vrátí, jak přišel, jen bez prefixu."""
+    raw = str(raw or "")
+    if raw in CODECS:
+        return CODECS[raw]
+    return raw.split("/")[0].removeprefix("A_").removeprefix("V_") or ""
+
+
+def probe(url, opener=None):
+    """Co se o souboru dá zjistit z jeho hlavičky.
+
+    Vrací `{"audio": [...], "subs": [jazyky], "height": int}`; prázdné hodnoty
+    tam, kde se nic zjistit nedá. Nikdy nevyhodí výjimku — když to nejde, vrátí
+    prázdno a doplněk se chová jako dřív.
+    """
+    empty = {"audio": [], "subs": [], "height": 0}
     try:
         head = fetch(url, length=HEAD, opener=opener)
     except Exception:  # noqa: BLE001 – síť, server bez Range, vypršelý odkaz
-        return []
+        return empty
     if not head:
-        return []
+        return empty
     try:
         if head[:4] == b"\x1a\x45\xdf\xa3":
             tracks = _from_mkv(head)
@@ -277,24 +326,52 @@ def audio_tracks(url, opener=None):
             if not any(t.get("type") == 2 for t in tracks):
                 tracks = _mp4_remote(url, head, opener)
         else:
-            return []
+            return empty
     except Exception:  # noqa: BLE001 – poškozená nebo neúplná hlavička
-        return []
-    return [t for t in tracks if t.get("type") == 2]
+        return empty
+    audio = [{"lang": LANGS.get((t.get("lang") or "").lower(), ""),
+              "channels": CHANNELS.get(int(t.get("channels") or 0), ""),
+              "codec": codec_name(t.get("codec"))}
+             for t in tracks if t.get("type") == 2]
+    subs, seen = [], set()
+    for t in tracks:
+        code = LANGS.get((t.get("lang") or "").lower(), "")
+        if t.get("type") == 17 and code and code not in seen:
+            seen.add(code)
+            subs.append(code)
+    video = [t for t in tracks if t.get("type") == 1]
+    width = max((int(t.get("width") or 0) for t in video), default=0)
+    height = max((int(t.get("height") or 0) for t in video), default=0)
+    return {"audio": audio, "subs": subs, "width": width, "height": height}
 
 
-def describe(tracks):
-    """`Zvuk: CZ 5.1 EN 2.0` — tvar, ze kterého čte `streams.parse_stream`.
+def quality_from_size(width, height=0):
+    """Rozlišení z hlavičky na označení kvality, jaké používá zbytek doplňku.
+
+    Rozhoduje šířka, ne výška: širokoúhlý film bývá 1920×800 a podle výšky by
+    vyšel jako HD, i když je to plnohodnotné Full HD.
+    """
+    for limit, name in ((3000, "4K"), (1700, "Full HD"), (1200, "HD")):
+        if width >= limit:
+            return name
+    if width:
+        return "SD"
+    for limit, name in ((1700, "4K"), (900, "Full HD"), (600, "HD")):
+        if height >= limit:
+            return name
+    return "SD" if height else ""
+
+
+def describe(info):
+    """`Zvuk: CZ 5.1 EN 7.1 | Tit.: CZ` — tvar, ze kterého čte `streams.parse_stream`.
 
     Stopa bez rozpoznaného jazyka se neztrácí: připíše se jen jejím počtem
     kanálů. Originální zvuk bývá netagovaný a často je to zrovna ta nejlepší
-    stopa v souboru, takže by bylo škoda ji zamlčet. `parse_stream` čte jazyky
-    i kanály dvojicí „XX 5.1", takže osamocené číslo jen zobrazí a nic nerozbije.
+    stopa v souboru, takže by bylo škoda ji zamlčet.
     """
     parts, seen, loose = [], set(), []
-    for t in tracks:
-        code = LANGS.get((t.get("lang") or "").lower())
-        chans = CHANNELS.get(int(t.get("channels") or 0))
+    for t in info.get("audio") or []:
+        code, chans = t.get("lang"), t.get("channels")
         if code:
             if code in seen:
                 continue
@@ -303,4 +380,9 @@ def describe(tracks):
         elif chans and chans not in loose:
             loose.append(chans)
     parts += [c for c in loose if not any(c in p for p in parts)]
-    return "Zvuk: " + " ".join(parts) if parts else ""
+    out = []
+    if parts:
+        out.append("Zvuk: " + " ".join(parts))
+    if info.get("subs"):
+        out.append("Tit.: " + " ".join(info["subs"]))
+    return " | ".join(out)

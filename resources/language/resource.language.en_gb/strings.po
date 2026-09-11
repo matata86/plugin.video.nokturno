@@ -106,14 +106,6 @@ msgctxt "#30031"
 msgid "Enable Sosáč (catalogues from tv.sosac.to, streams from streamuj.tv)"
 msgstr ""
 
-msgctxt "#30032"
-msgid "userId from the Sosáč Stremio addon URL"
-msgstr ""
-
-msgctxt "#30033"
-msgid "Sosáč address"
-msgstr ""
-
 msgctxt "#30034"
 msgid "Also look up streams for a title in the other source"
 msgstr ""
@@ -406,14 +398,6 @@ msgctxt "#30121"
 msgid "Smallest first"
 msgstr ""
 
-msgctxt "#30122"
-msgid "Sosáč user name"
-msgstr ""
-
-msgctxt "#30123"
-msgid "Sosáč password"
-msgstr ""
-
 msgctxt "#30128"
 msgid "Streamuj.tv user name"
 msgstr ""
@@ -422,28 +406,8 @@ msgctxt "#30129"
 msgid "Streamuj.tv password"
 msgstr ""
 
-msgctxt "#30124"
-msgid "Link account now (gets userId automatically)"
-msgstr ""
-
-msgctxt "#30125"
-msgid "Fill in the Sosáč user name and password first."
-msgstr ""
-
-msgctxt "#30126"
-msgid "Linking the Sosáč account failed"
-msgstr ""
-
-msgctxt "#30127"
-msgid "Sosáč account linked"
-msgstr ""
-
 msgctxt "#30107"
 msgid "Open settings"
-msgstr ""
-
-msgctxt "#30130"
-msgid "Legacy: via the Sosáč Stremio addon (only if you don't have a Streamuj account filled in)"
 msgstr ""
 
 msgctxt "#30140"
@@ -589,3 +553,31 @@ msgstr "Reads the start of the file to find audio language and channels where th
 msgctxt "#30200"
 msgid "audio read from the file"
 msgstr "audio read from the file"
+
+msgctxt "#30201"
+msgid "Stream list"
+msgstr "Stream list"
+
+msgctxt "#30202"
+msgid "Show file size"
+msgstr "Show file size"
+
+msgctxt "#30203"
+msgid "Show source"
+msgstr "Show source"
+
+msgctxt "#30204"
+msgid "Show file name"
+msgstr "Show file name"
+
+msgctxt "#30205"
+msgid "Show subtitles"
+msgstr "Show subtitles"
+
+msgctxt "#30206"
+msgid "Show bitrate"
+msgstr "Show bitrate"
+
+msgctxt "#30207"
+msgid "Jazyk se zvukem a kvalita zustavaji vzdy. Vlnovka pred jazykem nebo kvalitou znamena odhad z nazvu souboru, bez ni je udaj od zdroje nebo z hlavicky souboru."
+msgstr "Jazyk se zvukem a kvalita zustavaji vzdy. Vlnovka pred jazykem nebo kvalitou znamena odhad z nazvu souboru, bez ni je udaj od zdroje nebo z hlavicky souboru."

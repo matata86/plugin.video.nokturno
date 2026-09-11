@@ -28,12 +28,11 @@ import xbmcvfs
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "lib"))
 from luna_api import LunaApi, LunaError, parse_base_url, parse_token  # noqa: E402
-from sosac_api import SosacApi, SosacError, names_match, register as sosac_register  # noqa: E402
-from sosac_api import is_sosac_id as _is_stremio_sosac_id  # noqa: E402
+from sosac_api import SosacError, is_sosac_id as _is_stremio_sosac_id, names_match  # noqa: E402
 from sosac_direct import EXPORT as SOSAC_EXPORT, SosacDirect, is_direct_id  # noqa: E402
 from enrich import enrich, enrich_one  # noqa: E402
 from hellspy_api import HellspyApi, HellspyError  # noqa: E402
-from mediainfo import audio_tracks, describe as describe_audio  # noqa: E402
+from mediainfo import describe as describe_media, probe as probe_media, quality_from_size  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
 from sync import sync_once  # noqa: E402
 from streams import arrange, estimate_rank, langs_from_name, parse_stream, subs_from_name  # noqa: E402
@@ -129,26 +128,15 @@ def get_luna():
     return LunaApi(base, token, cache=STORE, cache_ttl=CACHE_TTL)
 
 
-def sosac_user_id():
-    user_id = setting("sosac_user_id").strip()
-    if "userId=" in user_id:
-        user_id = user_id.split("userId=", 1)[1].split("&", 1)[0]
-    return user_id
-
-
 def get_sosac():
     if not on("sosac_enabled"):
         return None
-    # napřímo: veřejné JSONy Sosáče + streamuj.tv s účtem Streamuj (bez Stremia, bez loginu k Sosáči)
+    # veřejné JSONy Sosáče + streamuj.tv s účtem Streamuj. Starší cesta přes
+    # Stremio rozhraní Sosáče (userId, login k Sosáči) je pryč — katalogy jsou
+    # ve veřejných exportech a k přehrání stačí Streamuj.
     su, sp = setting("streamuj_username").strip(), setting("streamuj_password").strip()
     if su and sp:
         return SosacDirect(su, sp, cache=STORE, cache_ttl=CACHE_TTL, index_store=STORE)
-    # starší režim přes Stremio doplněk Sosáče (userId)
-    user_id = sosac_user_id()
-    if not user_id and setting("sosac_username") and setting("sosac_password"):
-        user_id = sosac_link_account(quiet=True)
-    if user_id:
-        return SosacApi(setting("sosac_url", "https://stremio.sosac.tv/cs"), user_id, cache=STORE, cache_ttl=CACHE_TTL)
     return None
 
 
@@ -172,27 +160,6 @@ def resolve_url(apis, url):
             api = SosacDirect(setting("streamuj_username"), setting("streamuj_password"), cache=STORE)
         return api.resolve(url)
     return url
-
-
-def sosac_link_account(quiet=False):
-    """Přiváže účet Sosáče + Streamuj k novému userId a uloží ho do nastavení."""
-    su, sp = setting("sosac_username").strip(), setting("sosac_password").strip()
-    tu, tp = setting("streamuj_username").strip() or su, setting("streamuj_password").strip() or sp
-    if not su or not sp:
-        if not quiet:
-            xbmcgui.Dialog().ok(L(30000), L(30125))
-        return ""
-    try:
-        user_id = sosac_register(setting("sosac_url", "https://stremio.sosac.tv/cs"), su, sp, tu, tp)
-    except SosacError as e:
-        log_error(e)
-        if not quiet:
-            notify(L(30126), xbmcgui.NOTIFICATION_ERROR, 5000)
-        return ""
-    ADDON.setSetting("sosac_user_id", user_id)
-    if not quiet:
-        notify(L(30127))
-    return user_id
 
 
 def get_webshare():
@@ -696,16 +663,39 @@ def hellspy_streams(apis, meta, video, ctype, alt=None):
 DIRECT_SOURCES = ("ws", "hs")   # fulltextové zdroje, kde bývá tentýž soubor jako u Luny
 
 
-def audio_from_file(apis, url):
-    """„Zvuk: CZ 5.1" přečtené z hlavičky souboru. Prázdné, když to nejde."""
+BADGES = os.path.join(ADDON_PATH, "resources", "media", "badges")
+BADGE_NAMES = {4: "4k", 3: "fullhd", 2: "hd", 1: "sd"}
+HDR_RE = re.compile(r"\b(dolby\s*vision|dv|hdr10\+?|hdr)\b", re.I)
+
+
+def stream_badge(s):
+    """Obrázek kvality pro řádek streamu.
+
+    Kodi v popisku barevný rámeček neumí, ale u položky umí obrázek. Plakát je
+    v seznamu streamů u všech řádků stejný, takže neříká nic — kvalita ano.
+    """
+    name = BADGE_NAMES.get(s.get("quality_rank") or 0)
+    if not name:
+        return ""
+    found = HDR_RE.search(s.get("label") or "")
+    flag = ""
+    if found:
+        word = found.group(1).lower().replace(" ", "")
+        flag = "-dv" if word in ("dv", "dolbyvision") else "-hdr"
+    path = os.path.join(BADGES, f"{name}{flag}.png")
+    return path if os.path.exists(path) else os.path.join(BADGES, f"{name}.png")
+
+
+def media_from_file(apis, url):
+    """Co se o souboru dá přečíst z jeho hlavičky. Prázdné, když to nejde."""
     def load():
         try:
             link = resolve_url(apis, url)
         except Errors as e:
-            log_error(f"zvuk {url[:28]}: {e}")
-            return ""
-        return describe_audio(audio_tracks(link))
-    return STORE.cached(f"audio:{url}", AUDIO_TTL, load)
+            log_error(f"hlavička {url[:28]}: {e}")
+            return {}
+        return probe_media(link)
+    return STORE.cached(f"media:{url}", AUDIO_TTL, load) or {}
 
 
 def fill_audio(apis, streams):
@@ -729,16 +719,24 @@ def fill_audio(apis, streams):
     if not todo:
         return streams
     with ThreadPoolExecutor(max_workers=8) as pool:
-        found = list(pool.map(lambda s: audio_from_file(apis, s["url"]), todo))
-    for stream, text in zip(todo, found):
-        if not text:
+        found = list(pool.map(lambda s: media_from_file(apis, s["url"]), todo))
+    for stream, info in zip(todo, found):
+        if not info:
             continue
-        stream["detail"] = f"{stream['detail']} | {text}" if stream.get("detail") else text
-        stream["_audio_from_file"] = True
+        text = describe_media(info)
+        if text:
+            stream["detail"] = f"{stream['detail']} | {text}" if stream.get("detail") else text
+        stream["_from_file"] = True
+        stream["_tracks"] = info.get("audio") or []
         # parse_stream je idempotentní podle `quality_rank`; po změně popisku
         # se musí přepočítat, jinak by jazyky a kanály zůstaly prázdné
         stream.pop("quality_rank", None)
         parse_stream(stream)
+        # rozlišení ze souboru přebíjí název: ten u řady souborů slibuje „4k",
+        # a přitom je uvnitř 1080p
+        real = quality_from_size(info.get("width") or 0, info.get("height") or 0)
+        if real:
+            stream["quality_rank"] = {"4K": 4, "Full HD": 3, "HD": 2, "SD": 1}[real]
     return streams
 
 
@@ -861,13 +859,15 @@ def pref_from_param(value):
     return {"source": source, "quality": int(quality or 0), "langs": [x for x in langs.split(",") if x]}
 
 
-def stream_lines(s):
-    """Dva řádky streamu: čím se vybírá, a pod tím podrobnosti.
+def stream_label(s, badge=False):
+    """Popisek streamu na jeden řádek.
 
-    Nahoře je to, podle čeho se člověk rozhoduje — jazyk s počtem kanálů,
-    velikost, kvalita a zdroj. Dole název souboru, titulky, datový tok a odkud
-    se vzal údaj o zvuku. Dřív to byl jeden dlouhý řádek a skiny s úzkým
-    sloupcem (Arctic Fuse dává seznamu půl obrazovky) ho ořízly v půlce.
+    Arctic Fuse v seznamu druhý řádek nevykreslí, takže všechno musí do jednoho
+    a záleží na pořadí: co skin ořízne, je konec. Napřed tedy zvukové stopy
+    a velikost, pak teprve datový tok, titulky, zdroj a název souboru.
+
+    `badge` = u řádku je obrázek kvality, takže se kvalita nepíše i slovem.
+    Zůstane jen tam, kde obrázek není, tedy u odhadnuté kvality.
 
     Jazyk bez vlnovky přišel od zdroje nebo z hlavičky souboru, s vlnovkou je
     jen odhad z názvu souboru — stejně jako „~4K" u odhadnuté kvality.
@@ -888,49 +888,39 @@ def stream_lines(s):
     if s.get("source") == "sosac":
         rest = ""   # u Sosáče je zbytek jen jazyk, ten je už ve zvuku
 
-    top = []
-    channels = s.get("channels") or {}
-    pref = PREF_LANGS[int(setting("pref_lang", "0"))]
-    known = set(s.get("langs") or [])
-    # metadata zdroje nemusí sedět na soubor („EN 5.1“ u souboru „…_cz_…“) — jazyk z názvu se přidá
-    codes = known | langs_from_name(raw)
-    langs = []
-    for code in sorted(codes, key=lambda c: (c != pref, c)):   # preferovaný jazyk první
-        mark = "" if code in known else "~"
-        txt = f"[COLOR {LANG_COLORS.get(code, 'FFE0E0E0')}]{mark}{code}[/COLOR]"
-        if code in channels:
-            # vždy s desetinnou částí: Luna posílá „2" a „1", ale v seznamu se to
-            # čte hůř než „2.0" a „1.0" vedle „5.1"
-            ch = f"{channels[code]:.1f}"
-            txt += f" [B]{ch}[/B]" if channels[code] >= 5.1 else f" {ch}"
-        langs.append(txt)
-    if langs:
-        top.append(" ".join(langs))
-    if s.get("size_gb"):
-        top.append(f"{s['size_gb']:.1f} GB")
-    top.append(f"[COLOR {QUALITY_COLORS.get(s.get('quality_rank', 0), GREY)}][B]{quality or raw}[/B][/COLOR]")
-    if tag:
-        top.append(tag)
-
-    bottom = []
-    if rest and quality:
-        bottom.append(rest)
-    # WebShare fulltext nedává strukturovaný údaj o titulcích (jen Luna/Sosáč) —
-    # značka „CZtit“ v názvu souboru se doplní stejně jako jazyk zvuku výše
+    parts = []
+    tracks = s.get("_tracks") or []
+    if tracks:
+        # přečteno z hlavičky souboru: každá stopa zvlášť i s kodekem
+        for t in tracks:
+            inside = " ".join(x for x in (t.get("codec"), t.get("channels"), t.get("lang")) if x)
+            if inside:
+                parts.append(f"[COLOR {LANG_COLORS.get(t.get('lang'), 'FFE0E0E0')}][{inside}][/COLOR]")
+    else:
+        # zdroj o stopách mlčí — poskládá se z toho, co je po ruce
+        channels = s.get("channels") or {}
+        pref = PREF_LANGS[int(setting("pref_lang", "0"))]
+        known = set(s.get("langs") or [])
+        for code in sorted(known | langs_from_name(raw), key=lambda c: (c != pref, c)):
+            mark = "" if code in known else "~"
+            txt = f"{mark}{code}"
+            if code in channels:
+                txt += f" {channels[code]:.1f}"
+            parts.append(f"[COLOR {LANG_COLORS.get(code, 'FFE0E0E0')}][{txt}][/COLOR]")
+    if s.get("size_gb") and on("show_size", "true"):
+        parts.append(f"[B]{s['size_gb']:.1f} GB[/B]")
+    if not badge:
+        parts.append(f"[COLOR {QUALITY_COLORS.get(s.get('quality_rank', 0), GREY)}][B]{quality or raw}[/B][/COLOR]")
+    if s.get("bitrate") and on("show_bitrate", "true"):
+        parts.append(f"[COLOR {GREY}]{s['bitrate']:g} Mb/s[/COLOR]")
     subs = set(s.get("subs") or []) | subs_from_name(raw)
-    if subs:
-        bottom.append(f"tit. {' '.join(sorted(subs))}")
-    if s.get("bitrate"):
-        bottom.append(f"{s['bitrate']:g} Mb/s")
-    if s.get("_audio_from_file"):
-        bottom.append(L(30200, "zvuk ze souboru"))
-    return "  ".join(top), f"[COLOR {GREY}]{'  ·  '.join(bottom)}[/COLOR]" if bottom else ""
-
-
-def stream_label(s):
-    """Obě řádky v jednom řetězci — pro místa, kde se druhý řádek nevejde."""
-    top, bottom = stream_lines(s)
-    return f"{top}  {bottom}" if bottom else top
+    if subs and on("show_subs", "true"):
+        parts.append(f"[COLOR {GREY}]Tit.: {' '.join(sorted(subs))}[/COLOR]")
+    if tag and on("show_source", "true"):
+        parts.append(tag)
+    if rest and quality and on("show_file", "true"):
+        parts.append(f"[COLOR {GREY}]{rest}[/COLOR]")
+    return "  ".join(parts)
 
 
 def mark_playing(key, title="", year=None, kind="movie"):
@@ -1696,9 +1686,10 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None):
     stats_title = (video or {}).get("title") or bare_title(meta)
     mark_viewed(item_id, stats_title, year if year.isdigit() else None, "series" if video else ctype)
     for s in streams:
-        top, bottom = stream_lines(s)
-        li = xbmcgui.ListItem(label=top, label2=bottom)
-        li.setArt(art_for(meta, video))
+        # odznak kvality místo plakátu: ten je u všech řádků stejný, tenhle ne
+        badge = stream_badge(s)
+        li = xbmcgui.ListItem(label=stream_label(s, badge=bool(badge)))
+        li.setArt({"icon": badge, "thumb": badge} if badge else art_for(meta, video))
         # název titulu do InfoTagu → v OSD přehrávače je jméno filmu/epizody, ne popis streamu;
         # stopáž a hodnocení ne — skin by z nich udělal sloupce a ukrojil šířku popisku streamu
         fill_info(li, meta, "series" if video else ctype, video=video, tech=False)
@@ -1787,12 +1778,7 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
         remembered = preferred_stream(streams, STORE.stream_pref(pref_key)) if pref_key else None
         chosen = remembered or streams[0]
         if setting("stream_mode", "1") == "2" and remembered is None:
-            # useDetails → dialog ukáže i druhý řádek; bez něj by se podrobnosti ztratily
-            rows = []
-            for stream in streams:
-                top, bottom = stream_lines(stream)
-                rows.append(xbmcgui.ListItem(label=top, label2=bottom))
-            idx = xbmcgui.Dialog().select(L(30024), rows, useDetails=True)
+            idx = xbmcgui.Dialog().select(L(30024), [stream_label(st) for st in streams])
             if idx < 0:
                 xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
                 return
@@ -2023,7 +2009,6 @@ def router(query):
         "download_remove": lambda: download_remove(p["id"]),
         "download_retry": lambda: download_retry(p["id"]),
         "trakt_auth": trakt_auth,
-        "sosac_link": sosac_link_account,
         "trakt_logout": trakt_logout,
         # succeeded=False jako u "settings" — jinak by Kodi navigoval do prázdné složky
         # a musel by se dát Zpět, i když jde jen o akci, ne o výpis

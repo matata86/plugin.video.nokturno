@@ -15,12 +15,6 @@
     <setting id="streamuj_username" type="text" label="30128" default="" enable="eq(-1,true)"/>
     <setting id="streamuj_password" type="text" option="hidden" label="30129" default="" enable="eq(-2,true)"/>
     <setting id="cross_search" type="bool" label="30034" default="true" enable="eq(-3,true)"/>
-    <setting label="30130" type="lsep"/>
-    <setting id="sosac_user_id" type="text" label="30032" default="" enable="eq(-5,true)"/>
-    <setting id="sosac_username" type="text" label="30122" default="" enable="eq(-6,true)"/>
-    <setting id="sosac_password" type="text" option="hidden" label="30123" default="" enable="eq(-7,true)"/>
-    <setting label="30124" type="action" action="RunPlugin(plugin://plugin.video.nokturno/?action=sosac_link)" enable="eq(-8,true)"/>
-    <setting id="sosac_url" type="text" label="30033" default="https://stremio.sosac.tv/cs" enable="eq(-9,true)" visible="false"/>
   </category>
   <category label="30001">
     <setting id="luna_enabled" type="bool" label="30014" default="true"/>
@@ -37,6 +31,14 @@
     <setting id="sort_streams" type="enum" label="30117" lvalues="30118|30119|30120|30121" default="0"/>
     <setting id="audio_probe" type="slider" label="30198" default="24" range="0,4,60" option="int"/>
     <setting label="30199" type="lsep"/>
+  </category>
+  <category label="30201">
+    <setting id="show_size" type="bool" label="30202" default="true"/>
+    <setting id="show_source" type="bool" label="30203" default="true"/>
+    <setting id="show_file" type="bool" label="30204" default="true"/>
+    <setting id="show_subs" type="bool" label="30205" default="true"/>
+    <setting id="show_bitrate" type="bool" label="30206" default="true"/>
+    <setting label="30207" type="lsep"/>
   </category>
   <category label="30071">
     <setting id="download_dir" type="folder" label="30087" default="" source="files" option="writeable"/>
