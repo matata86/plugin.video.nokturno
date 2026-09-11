@@ -1118,11 +1118,6 @@ def main_menu(apis):
                    icon="DefaultAddonsSearch.png", context=[(L(30106), runplugin(action="clear_cache"))])
     if apis["ws"]:
         folder_item(L(30045), build_url(action="search", type="ws"), icon="DefaultAddonsSearch.png")
-    if apis.get("hs"):
-        # HellSpy je úložiště souborů, ne katalog — do hledání titulů nepatří,
-        # ale co je jen tam a v žádném katalogu chybí, se jinak nedá najít
-        folder_item(L(30197, "Hledat na HellSpy"), build_url(action="search", type="hs"),
-                   icon="DefaultAddonsSearch.png")
     if apis["luna"]:
         folder_item(L(30012), build_url(action="catalogs", type="movie", src="luna"), icon="DefaultMovies.png")
         folder_item(L(30013), build_url(action="catalogs", type="series", src="luna"), icon="DefaultTVShows.png")
@@ -1212,6 +1207,12 @@ def search_history(kind):
 def search_menu(kind):
     """Složka hledání: nové hledání + historie dotazů."""
     folder_item(L(30040), build_url(action="search_new", type=kind), icon="DefaultAddonsSearch.png")
+    if kind == "any" and on("hs_enabled", "false"):
+        # HellSpy je úložiště souborů, ne katalog — do hledání titulů nepatří a
+        # do hlavního menu taky ne. Co je ale jen tam a v žádném katalogu chybí,
+        # se jinak nedá najít, tak ať je to aspoň o patro níž.
+        folder_item(L(30197, "Hledat na HellSpy"), build_url(action="search", type="hs"),
+                   icon="DefaultAddonsSearch.png")
     history = search_history(kind)
     for q in history:
         folder_item(q, build_url(action="search_run", type=kind, q=q), icon="DefaultAddonsSearch.png",
