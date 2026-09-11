@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="1.8.4" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="1.8.5" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -21,7 +21,8 @@
       <icon>resources/media/icon.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>1.8.4 – nová ikona se propíše i tam, kde Kodi držel v paměti tu starou
+    <news>1.8.5 – silnější kresba ikony, aby se v seznamu doplňků nerozpadala; u Pokračovat ve sledování, Můj seznam, Naposledy zhlédnuté a Hledat na WebShare jde nastavit zobrazení jako u Filmů
+1.8.4 – nová ikona se propíše i tam, kde Kodi držel v paměti tu starou
 1.8.3 – nová ikona a pozadí doplňku
 1.8.2 – historie hledání se sdílí i s kartou v Home Assistantu (hlavní hledání pod společným typem)
 1.8.1 – synchronizace mezi Kodi zahrnuje i historii hledání
