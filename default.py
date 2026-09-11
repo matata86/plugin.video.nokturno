@@ -448,13 +448,18 @@ def add_playable(li, ctype, item_id, series_id=None, alt=None):
     U epizod se předává i id seriálu — Sosáč dává epizodám vlastní id
     (`sosac2_1877:1:1`), ze kterého se meta seriálu nedá odvodit.
     """
-    if setting("stream_mode", "1") == "0":
+    if setting("stream_mode", "1") == "1":
+        # jediný režim, kde má smysl vlastní složka: seznam streamů k proklikání
+        url = build_url(action="streams", type=ctype, id=item_id, series=series_id, alt=alt)
+        xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
+    else:
+        # „0“ (přehrát nejlepší) i „2“ (zeptat se dialogem) jdou rovnou na play() bez
+        # url — teprve tam se podle stejného nastavení buď vezme streams[0], nebo
+        # otevře Dialog().select(). Dřív oba tyhle režimy místo toho vedly do složky
+        # se seznamem streamů, takže „Zeptat se v dialogu“ se nikdy neukázalo.
         li.setProperty("IsPlayable", "true")
         url = build_url(action="play", type=ctype, id=item_id, series=series_id, alt=alt)
         xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=False)
-    else:
-        url = build_url(action="streams", type=ctype, id=item_id, series=series_id, alt=alt)
-        xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
 
 
 def add_snapshot_item(key, snap, extra_context=None):
