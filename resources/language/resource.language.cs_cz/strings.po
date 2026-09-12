@@ -829,8 +829,7 @@ msgstr "Vítej v Nokturnu"
 
 msgctxt "#30337"
 msgid "Let's set up your sources"
-msgstr "Projdeme spolu základní nastavení zdrojů, zabere to necelou minutu.
-Kdykoli to můžeš přeskočit a doplnit později v Nastavení doplňku."
+msgstr "Projdeme spolu základní nastavení zdrojů, zabere to necelou minutu.\nKdykoli to můžeš přeskočit a doplnit později v Nastavení doplňku."
 
 msgctxt "#30338"
 msgid "Let's go"
@@ -862,8 +861,7 @@ msgstr "Sosáč"
 
 msgctxt "#30345"
 msgid "Do you have a Streamuj.tv account (Sosáč player)?"
-msgstr "Máš účet Streamuj.tv (přehrávač Sosáče)?
-Katalogy Sosáče fungují i bez účtu, jen pro přehrávání je potřeba."
+msgstr "Máš účet Streamuj.tv (přehrávač Sosáče)?\nKatalogy Sosáče fungují i bez účtu, jen pro přehrávání je potřeba."
 
 msgctxt "#30346"
 msgid "Streamuj.tv — username"
@@ -903,8 +901,7 @@ msgstr "Chceš zadat zdarma klíč TMDB, aby popisy a obsazení filmů byly čes
 
 msgctxt "#30355"
 msgid "Get a free key at themoviedb.org"
-msgstr "Klíč se zakládá zdarma na themoviedb.org -> ikona profilu -> Nastavení -> API -> Request an API Key -> Developer -> zkopírovat "API Key (v3 auth)".
-Podrobný návod je i v nápovědě u tohoto nastavení."
+msgstr "Klíč se zakládá zdarma na themoviedb.org -> ikona profilu -> Nastavení -> API -> Request an API Key -> Developer -> zkopírovat "API Key (v3 auth)".\nPodrobný návod je i v nápovědě u tohoto nastavení."
 
 msgctxt "#30356"
 msgid "TMDB API key"
@@ -916,8 +913,7 @@ msgstr "Nastavení uloženo"
 
 msgctxt "#30358"
 msgid "Done! You can change any of this later in the add-on settings."
-msgstr "Hotovo! Cokoli z tohohle můžeš kdykoli změnit v Nastavení doplňku.
-Bez zadaného zdroje budou katalog a hledání fungovat i tak, jen anglicky."
+msgstr "Hotovo! Cokoli z tohohle můžeš kdykoli změnit v Nastavení doplňku.\nBez zadaného zdroje budou katalog a hledání fungovat i tak, jen anglicky."
 
 msgctxt "#30359"
 msgid "Run setup wizard"
