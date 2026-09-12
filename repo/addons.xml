@@ -2478,6 +2478,121 @@
 1.0.0 – první vydání</news>
   </extension>
 </addon>
+<addon id="plugin.video.nokturno" name="Nokturno" version="2.0.14" provider-name="matata86">
+  <requires>
+    <import addon="xbmc.python" version="3.0.0"/>
+  </requires>
+  <extension point="xbmc.python.pluginsource" library="default.py">
+    <provides>video</provides>
+  </extension>
+  <extension point="xbmc.service" library="service.py"/>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en_GB">Movies and series from WebShare, Sosáč, Luna: Absolute Cinema and HellSpy — one add-on, search across sources</summary>
+    <summary lang="cs_CZ">Filmy a seriály z WebShare, Sosáče, Luny a HellSpy v jednom doplňku, hledání napříč</summary>
+    <description lang="en_GB">Four sources, each optional: WebShare directly (your account – file search and playback), Sosáč directly (its catalogues, series with episodes, Czech dubbing and subtitles – only a Streamuj.tv account), a Luna: Absolute Cinema server, reachable on your LAN or running locally on the same device (TMDB catalogues, WebShare streams with detected quality and languages), and HellSpy (public, no account needed). The movie/series catalogue and search always work, even with none of these configured, thanks to a built-in Cinemeta connection. Search across sources, streams from several sources for one title with a quality/audio/subtitle filter, bitrate and length on every stream, continue watching, my list, downloads, Trakt, WebShare subscription tracking. Support the author: https://ko-fi.com/matata86</description>
+    <description lang="cs_CZ">Čtyři zdroje, každý volitelný: WebShare přímo (tvůj účet – hledání souborů a přehrávání), Sosáč napřímo (jeho katalogy, seriály s epizodami, český dabing a titulky – stačí účet Streamuj.tv), server Luna: Absolute Cinema, dostupný v LAN nebo běžící lokálně na stejném zařízení (TMDB katalogy, streamy z WebShare s rozpoznanou kvalitou a jazyky), a HellSpy (veřejný, bez účtu). Katalog filmů a seriálů i hledání fungují vždy, i bez jediného nastaveného zdroje, díky vlastnímu napojení na Cinemetu. Hledání napříč zdroji, streamy z více zdrojů u jednoho titulu s filtrem podle kvality/zvuku/titulků, datový tok a délka u každého streamu, pokračovat ve sledování, můj seznam, stahování, Trakt, sledování předplatného WebShare. Podpoř autora: https://ko-fi.com/matata86</description>
+    <platform>all</platform>
+    <license>MIT</license>
+    <source>https://github.com/matata86/plugin.video.nokturno</source>
+    <website>https://github.com/matata86/plugin.video.nokturno</website>
+    <forum>https://ko-fi.com/matata86</forum>
+    <assets>
+      <icon>resources/media/icon.png</icon>
+      <fanart>resources/media/fanart.jpg</fanart>
+    </assets>
+    <news>2.0.14 – Průvodce nastavením umí i změřit rychlost internetu; hlášení o nedostupném zdroji teď přesně jmenuje, který zdroj selhal (dřív hlásilo natvrdo "Server Luna neodpovídá" i u jiné chyby)
+2.0.13 – Oprava: 4 texty průvodce nastavením se kvůli chybě v překladu zobrazovaly anglicky místo česky
+2.0.12 – Průvodce prvním nastavením – při prvním otevření doplněk sám provede vyplněním zdrojů (WebShare, Sosáč, Luna, HellSpy, TMDB); kdykoli znovu spustitelný z Nastavení → Pokročilé
+2.0.11 – Tlačítko „Zkusit fulltext na WebShare/HellSpy“ u seznamu streamů – uvolněné hledání pro případ, že přísný filtr skutečnou shodu zahodil jako podobný, ale jiný titul
+2.0.10 – Oprava: fulltextové hledání (WebShare/HellSpy) mohlo nabídnout úplně jiný titul, jehož název náhodou obsahoval stejná slova (např. idiom „Seber si svých pět švestek“ místo filmu „Pět švestek“)
+2.0.9 – Cache API se teď po každé aktualizaci doplňku sama smaže, ať se staré odpovědi nezdrží až do vypršení
+2.0.8 – TMDB (má-li uživatel klíč) má teď přednost i před Lunou v katalogu a hledání, s pádem zpátky na Lunu/Sosáč/Cinemetu, když zrovna nejde
+2.0.7 – Historie hledání zkrácena na posledních 10 dotazů (dřív 30)
+2.0.6 – Vlastní klíč TMDB v nastavení (zdarma, návod přímo v nápovědě) – bez Luny teď jde mít i popis a obsazení titulu česky, ne jen název
+2.0.5 – Veřejný katalog Sosáče (české tituly, žádný účet) má teď přednost před Cinemetou jako vlastní databáze – funguje i bez Luny a bez Streamuj účtu
+2.0.4 – Vlastní napojení na databázi filmů a seriálů (Cinemeta) – katalog i hledání teď fungují i bez Luny a Sosáče, třeba jen s HellSpy
+2.0.3 – Ukazatel průběhu při načítání streamů (dřív jen obecné točící se kolečko Kodi)
+2.0.2 – Můj seznam přidaný ještě před verzí se synchronizací (1.7.0) se teď taky dosynchronizuje mezi Kodi
+2.0.2 – Sloučení duplicitních streamů z Lunina vlastního fulltextu WebShare, když se vrátí tentýž soubor víckrát
+2.0.1 – Hledat i na HellSpy je teď zapnuté ve výchozím nastavení (u nových instalací)
+2.0.0 – HellSpy jako čtvrtý zdroj streamů (veřejný, bez účtu) – hledá se automaticky spolu s ostatními
+2.0.0 – Filtr streamů podle kvality, zvuku, kanálů, kodeku, titulků i zdroje, s počtem nalezeného vždy v závorce
+2.0.0 – Datový tok a délka u úplně každého streamu, ne jen u toho, co si to sám řekl – z hlavičky souboru nebo odhadem podle stopáže titulu
+2.0.0 – Max. velikost streamu (GB) nahrazena datovým tokem (Mb/s) – přepočítá se podle stopáže právě otevřeného titulu; rychlost internetu jde rovnou v nastavení změřit
+2.0.0 – Sledování předplatného WebShare – upozornění pár dní před koncem a pak každý den po vypršení, dny do konce i v nastavení
+2.0.0 – Jazyk zvuku se ověřuje z hlavičky souboru i tam, kde ho tvrdí jen název – uploader se může splést nebo zkopírovat popisek odjinud
+2.0.0 – Žánr titulu tučně na začátku popisu (přeložený do češtiny, i u anglických zdrojů)
+2.0.0 – Nápověda ke všem položkám nastavení – dole v dialogu se teď zobrazí, co která volba dělá
+2.0.0 – Oprava: „Zeptat se v dialogu“ u výběru streamu konečně funguje (od prvních verzí doplňku se místo dialogu vždy zobrazil seznam)
+2.0.0 – Kvalita zpátky jako barevný text (4K/FHD/HD/SD), konec neviditelného textu na vybrané položce s bílým podkladem
+2.0.0 – Fulltext WebShare zmizel z hlavního menu – nabídne se až u titulu, který katalogy nenajdou
+2.0.0 – Ochrana proti lživým hlavičkám AVI souborů (chybná délka po přemuxování už nezkreslí datový tok)
+1.8.7 – po aktualizaci se v menu nahoře objeví „Novinky ve verzi“ se stručným přehledem změn
+1.8.6 – ikona zpět na původní, tenčí kresbu
+1.8.5 – silnější kresba ikony, aby se v seznamu doplňků nerozpadala; u Pokračovat ve sledování, Můj seznam, Naposledy zhlédnuté a Hledat na WebShare jde nastavit zobrazení jako u Filmů
+1.8.4 – nová ikona se propíše i tam, kde Kodi držel v paměti tu starou
+1.8.3 – nová ikona a pozadí doplňku
+1.8.2 – historie hledání se sdílí i s kartou v Home Assistantu (hlavní hledání pod společným typem)
+1.8.1 – synchronizace mezi Kodi zahrnuje i historii hledání
+1.8.0 – nová položka „Staženo v HA" (když běží synchronizace) — seznam filmů stažených integrací do Home Assistantu, přehratelných z tohohle Kodi přes adresu HA (i mimo síť, když je to Nabu Casa)
+1.7.1 – soubory z WebShare se k titulům dohledávají vždy, když je účet vyplněný (dřív to byl přepínač) — seznam streamů je stejný jako v kartě pro Home Assistant
+1.7.0 – synchronizace zhlédnuto, rozkoukané a Mého seznamu mezi více Kodi přes integraci Nokturno v Home Assistantu (Nastavení → Synchronizace; položka „Synchronizovat teď" v menu); k titulům se přidávají i soubory nalezené přímo na WebShare (stejně jako v kartě pro HA)
+1.6.0 – rychlejší seznam streamů (oba zdroje se prohledávají souběžně); u seriálu si doplněk pamatuje vybraný stream a další díly pouští bez ptaní; v seznamu epizod je označený díl, který je na řadě; tlačítko „Otestovat zdroje" v Pokročilém nastavení; katalogy a další díl rozkoukaného seriálu se na pozadí předstahují
+1.5.40 – v nastavení ubyla adresa sběrného bodu; zůstává jen přepínač
+1.5.39 – repozitář jde nově nainstalovat přímo v Kodi: stačí přidat zdroj https://nokturno.full-net.cz/repo/ a nainstalovat z něj ZIP, bez stahování v prohlížeči a přenášení do zařízení
+1.5.38 – drobné opravy
+1.5.37 – při aktualizaci doplňku už nevyskočí hláška o chybě (služba na pozadí se ukončovala ve chvíli, kdy Kodi doplněk na okamžik odregistruje)
+1.5.36 – drobné opravy
+1.5.35 – titulky u streamů z WebShare hledání se poznají i podle názvu souboru ("CZtit"), ne jen z popisu Luny/Sosáče
+1.5.34 – Up Next: u seriálů se službě Up Next posílá další díl, takže ke konci epizody nabídne „Další díl“ a pustí ho
+1.5.33 – vlastní ikony i pro zbylé položky (katalogy, žánry, historie hledání, další strana, volba Filmy/Seriály) — dřív je mělo jen hlavní menu
+1.5.32 – streamy sdílely zobrazení s výsledky hledání (typ obsahu "movies" byl stejný) — teď mají "episodes", kolize je jen s obrazovkou Epizody
+1.5.31 – oprava: streamy pořád nabízely jen "Seznam základní" (typ obsahu "videos" nestačil, teď je stejný jako u fungujících obrazovek)
+1.5.30 – vlastní ikony pro položky hlavního menu (dřív měly všechny stejnou ikonu doplňku)
+1.5.29 – oprava: obrazovka se streamy neuměla přepnout na bohatší zobrazení (jen "Seznam základní") — chyběl typ obsahu pro skin
+1.5.28 – cache hledání prodloužena na 12 hodin (streamy zůstávají 72 h); jde ji vymazat i z kontextového menu tlačítka Hledat, ne jen z Nastavení
+1.5.27 – opakované hledání teď skutečně rychlé i s tituly ze Sosáče (dřív se pokaždé znovu dotahoval popis, i když katalog byl už z cache)
+1.5.26 – hledání se kešuje 5 minut (Luna, WebShare), nalezené streamy 72 hodin — prázdný výsledek se nepamatuje, aby další pokus zkusil znovu
+1.5.25 – oprava zdvojeného roku ve statistikách ("Matrix (1999) (1999)")
+1.5.24 – oprava pádu při hledání napříč typy (Store nebyl bezpečný pro souběžný přístup ze dvou vláken, hlásilo se "dictionary changed size during iteration")
+1.5.23 – ukazatel průběhu při hledání napříč typy se skutečně hýbe (dřív zůstával na 0 %, dokud nedoběhlo úplně vše)
+1.5.22 – hledání napříč typy (film/seriál) neopakuje dotaz, když najde jen jeden typ — dřív to po krátkém průběhu dlouho tiše čekalo a pak najednou ukázalo výsledky
+1.5.21 – Luna může běžet i lokálně na stejném zařízení jako Kodi (ne jen v LAN); když Luna neodpovídá, hledání automaticky přejde na přímý fulltext WebShare
+1.5.20 – drobné vylepšení služby na pozadí
+1.5.19 – výchozí adresa sběrného bodu statistik
+1.5.18 – anonymní statistiky používání (v nastavení jdou vypnout)
+1.5.17 – položky nesou hodnocení i v procentech (vlastnost RatingPercent)
+1.5.16 – u „Trendy“ se časové okno TMDB zobrazuje česky (Za den / Za týden)
+1.5.15 – oprava: chyba importu v sosac_direct (relativní import z HA verze shazoval doplněk „attempted relative import")
+1.5.14 – tituly s podtitulem se v Sosáči najdou i podle části názvu před pomlčkou
+1.5.13 – hledání pro filmy i seriály běží souběžně a ukazuje průběh (dřív to vypadalo jako zaseknutí)
+1.5.12 – jazyk zvuku se bere i z názvu souboru (metadata zdroje občas hlásí EN u českého souboru)
+1.5.11 – jedno hledání pro filmy i seriály; volba typu se nabídne, jen když dotaz najde obojí
+1.5.10 – rok napsaný do hledání funguje jako filtr („Pět švestek 2026“ vrátí jen film z roku 2026)
+1.5.9 – výpadek Sosáče/streamuj už nespadne jako chyba doplňku (SosacError byl ve dvou třídách)
+1.5.8 – plakáty a popis titulů Sosáče bez IMDb id se dohledají z TMDB podle názvu a roku
+1.5.7 – oprava chyby „items.json.tmp“ při procházení katalogů (souběžný zápis cache)
+1.5.6 – náhledy titulů ze Sosáče se berou z TMDB (movies.sosac.tv je vrací jako 404)
+1.5.5 – popis streamu čitelný i v úzkém sloupci seznamu (Arctic Fuse): nejdřív jazyk s počtem kanálů (5.1 a víc tučně), velikost a kvalita, pak zdroj a zbytek; preferovaný jazyk je první; stopáž a hodnocení filmu se v seznamu streamů už nevyplňují, braly šířku popisku
+1.5.4 – popis, stopáž a obsazení u titulů Sosáče (exporty Sosáče popis nemají; dotahuje se podle IMDb id z Luny, bez Luny z Cinemety, cache 30 dní)
+1.5.3 – oprava: „Přidat do Mého seznamu“ v kontextovém menu (přepisovalo ho „Označit jako zhlédnuté“)
+1.5.2 – volba „Preferovat prostorový zvuk (5.1 a víc)“, kanály zvuku v popisku streamu
+1.5.1 – nové logo (monogram N), řazení podle kvality má přednost před jazykem
+1.5.0 – nové logo; seznam streamů: zdroj (Luna / WebShare / Sosáč), barevná kvalita, jazyky zvuku a titulků, velikost; štítek Sosáč jen ve smíšeném hledání
+1.4.1 – odkaz na podporu autora (Ko-fi) v popisu a nastavení
+1.4.0 – Sosáč napřímo: katalogy z tv.sosac.to a streamy ze streamuj.tv (stačí účet Streamuj, bez Stremia a bez loginu k Sosáči), CZ titulky ze streamuj
+1.3.3 – popisy a pořadí nastavení: WebShare, Sosáč, Luna jako rovnocenné zdroje
+1.3.2 – bez modálních dialogů při chybějícím nastavení (blokovaly Kodi při volání z widgetu)
+1.3.1 – nové ID doplňku plugin.video.nokturno (nastavení a historie se přenesou automaticky)
+1.3.0 – Pokračovat ve sledování a další díl, Můj seznam, Naposledy zhlédnuté, filtr a řazení streamů (jazyk, SD, velikost), stahování do složky, Trakt.tv, cache API, widgety
+1.2.1 – stejný titul z Luny a Sosáče je ve výsledcích hledání jen jednou, zdroj je vidět až u streamů
+1.2.0 – WebShare přímo (účet v nastavení, bez serveru Luna), Luna jde vypnout; historie hledání; zhlédnuto/rozkoukáno
+1.1.1 – nový název Nokturno a logo
+1.1.0 – Sosáč jako druhý zdroj: vlastní katalogy, hledání napříč oběma zdroji, dohledání streamů titulu v druhém zdroji; název filmu v OSD přehrávače
+1.0.1 – streamy i z fulltextu WebShare (Luna: Search), sloučené s hlavním zdrojem
+1.0.0 – první vydání</news>
+  </extension>
+</addon>
 <addon id="repository.nokturno" name="Nokturno repozitář" version="1.0.1" provider-name="matata86">
   <extension point="xbmc.addon.repository" name="Nokturno repozitář">
     <dir>
