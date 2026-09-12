@@ -95,6 +95,14 @@ if _old_settings:
 STORE = Store(PROFILE)
 Errors = (LunaError, CinemetaError, TmdbError, SosacError, WebshareError, HellspyError, TraktError)
 
+# po aktualizaci doplňku (i downgradu) smazat cache API — jinak by staré verze
+# odpovědí (chybějící pole, jiný tvar dat po změně kódu) přežily klidně týdny,
+# než by je vytlačilo přirozené vypršení TTL
+_ADDON_VERSION = ADDON.getAddonInfo("version")
+if STORE.load("cache_version", "") != _ADDON_VERSION:
+    STORE.clear_cache()
+    STORE.save("cache_version", _ADDON_VERSION)
+
 
 def is_sosac_id(item_id):
     """Sosáč napřímo (`sosacd_…`) i starší Stremio režim (`sosac2_…`)."""
