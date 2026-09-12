@@ -16,7 +16,7 @@ import re
 import urllib.parse
 import urllib.request
 
-from sosac_api import SosacError, names_match, normalize  # Kodi načítá lib ploše, ne jako balíček
+from sosac_api import SosacError, names_match, normalize
 
 BASE = "http://tv.sosac.to"
 EXPORT = BASE + "/vystupy5981/"
