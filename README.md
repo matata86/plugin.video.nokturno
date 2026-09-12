@@ -134,11 +134,6 @@ jedním přepínačem v *Nastavení → Statistiky*.
 | náhodné id instalace | odlišení zařízení, negeneruje se z ničeho, co by šlo zpětně přiřadit |
 | verze doplňku, verze Kodi, platforma, jazyk | na čem doplněk běží |
 | kdy se čítače založily a poslední použití | kolik instalací je živých |
-| název, rok, typ a počet, kolikrát se u titulu zobrazily streamy | co je nejvíc žádané |
-
-Počítá se zobrazení streamů, ne přehrání. Spousta streamů nejde přehrát vůbec
-(mrtvý odkaz, region, chybějící titulky), a to nic nevypovídá o tom, jak moc
-je titul žádaný — jen o kvalitě zrovna toho jednoho odkazu.
 
 **Co se neposílá:** žádné přihlašovací údaje ke zdrojům, žádná IP adresa,
 žádný obsah hledání, nic z Traktu, nic ze stahování.
@@ -162,8 +157,7 @@ přesně, co odchází:
 {
   "id": "náhodných 32 hex znaků",
   "version": "1.5.18", "platform": "Android", "kodi": "21.1", "lang": "cs",
-  "installed": 1786000000, "last_used": 1788970000, "plays_total": 5,
-  "plays": [{"key": "tt0133093", "t": "Matrix", "y": 1999, "k": "movie", "c": 3, "l": 1788970000}]
+  "installed": 1786000000, "last_used": 1788970000
 }
 ```
 

@@ -48,11 +48,9 @@ DEFS = f'''
 STARS = ''.join(f'<circle cx="{x}" cy="{y}" r="{r}" fill="#FFF" opacity="{o}"/>'
                 for x, y, r, o in [(84, 92, 3.0, .50), (146, 56, 2.0, .30), (436, 316, 2.4, .34),
                                    (62, 214, 1.9, .26), (356, 58, 1.7, .24)])
-NIGHT = ('<rect width="512" height="512" rx="112" fill="url(#sky)"/>'
-         '<rect width="512" height="512" rx="112" fill="url(#glow)"/>' + STARS +
-         '<rect x="1.5" y="1.5" width="509" height="509" rx="110.5" fill="none" '
-         'stroke="url(#rim)" stroke-width="3"/>')
-FLAT = f'<rect width="512" height="512" rx="112" fill="{SKY_FLAT}"/>'
+NIGHT = (f'<rect width="512" height="512" fill="url(#sky)"/>'
+         f'<rect width="512" height="512" fill="url(#glow)"/>' + STARS)
+FLAT = f'<rect width="512" height="512" fill="{SKY_FLAT}"/>'
 
 
 # --- vektorové stavební kameny ----------------------------------------------
@@ -217,15 +215,30 @@ def make_fanart(path):
     sky.save(path, quality=92, subsampling=0)
 
 
+def make_ha_brand(icon):
+    """Značka pro `custom_components/nokturno/brand/` — stejná čtvercová kresba
+    jako ikona doplňku, jen v rozměrech, které chce seznam integrací HA."""
+    ha_dir = os.path.join(os.path.dirname(os.path.dirname(ROOT)), "HA", "nokturno-ha",
+                          "custom_components", "nokturno", "brand")
+    for name, size in (("icon.png", 256), ("icon@2x.png", 512), ("logo.png", 256), ("logo@2x.png", 512)):
+        icon.resize((size, size), Image.LANCZOS).save(os.path.join(ha_dir, name))
+
+
 def main():
+    # jméno "icon2.png" (ne "icon.png") je záměr — Kodi/Android si obrázek doplňku
+    # drží v texturové cache podle URL/cesty a u lokálního souboru mění jen zřídka;
+    # nová kresba tak dostala i novou cestu, ať se stará zaoblená verze fyzicky
+    # nemá odkud vrátit (viz stejná past u Dashboardu, dokumentace.md, sekce Značka)
     icon = mark(NIGHT, "url(#gold)").resize((ICON, ICON), Image.LANCZOS)
-    icon.save(os.path.join(ROOT, "resources", "media", "icon.png"))
+    icon.save(os.path.join(ROOT, "resources", "media", "icon2.png"))
     # Repozitář dostane plochou variantu téže značky — v seznamu doplňků je tak
     # rozeznatelný od samotného doplňku, ale patří zjevně k němu.
     repo = mark(FLAT, GOLD_FLAT).resize((ICON, ICON), Image.LANCZOS)
     repo.save(os.path.join(ROOT, "repository.nokturno", "resources", "icon.png"))
     make_fanart(os.path.join(ROOT, "resources", "media", "fanart.jpg"))
-    print("resources/media/{icon.png,fanart.jpg} + repository.nokturno/resources/icon.png hotovo")
+    make_ha_brand(icon)
+    print("resources/media/{icon2.png,fanart.jpg} + repository.nokturno/resources/icon.png "
+          "+ ../../HA/nokturno-ha/…/brand/{icon,logo}{,@2x}.png hotovo")
 
 
 if __name__ == "__main__":

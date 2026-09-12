@@ -18,7 +18,8 @@ import threading
 import time
 
 OLD_ADDON_ID = "plugin.video.luna"  # do 1.3.0 se doplněk jmenoval takhle
-DATA_FILES = ("history", "watched", "items", "favourites", "downloads", "trakt", "streampref", "favlog", "histlog")
+DATA_FILES = ("history", "watched", "items", "favourites", "downloads", "trakt", "streampref", "favlog", "histlog",
+              "streamfilter")
 HISTORY_MAX = 10
 WATCHED_MAX = 5000
 ITEMS_MAX = 2000
@@ -240,6 +241,17 @@ class Store:
             data[str(series_id)] = dict(pref, ts=int(time.time()))
             self._trim(data, 300)
             self.save("streampref", data)
+
+    # --- naposledy zvolený filtr streamů ---------------------------------------------
+    # jeden společný filtr pro celý doplněk (ne na titul) — soubor je v profilu
+    # tohoto Kodi, takže si ho každá instalace pamatuje sama za sebe, bez synchronizace
+    def last_stream_filter(self):
+        with self._lock:
+            return self.load("streamfilter", {})
+
+    def set_last_stream_filter(self, filt):
+        with self._lock:
+            self.save("streamfilter", dict(filt))
 
     # --- snímky titulů (pro seznamy bez dotazu na API) --------------------------------
     def remember_item(self, key, info):
