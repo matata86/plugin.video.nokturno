@@ -2091,14 +2091,18 @@ def list_hs_results(apis, query, offset=0):
 
 
 def history_remove(kind, query):
-    STORE.remove_history(kind, query)
+    # sjednocené hledání ("any") zobrazuje i historii z "movie"/"series"
+    # (viz search_history) — dotaz je proto potřeba smazat ze všech tří
+    for k in (("any", "movie", "series") if kind == "any" else (kind,)):
+        STORE.remove_history(k, query)
     xbmc.executebuiltin("Container.Refresh")
 
 
 def history_clear(kind):
-    STORE.clear_history(kind)
-    xbmc.executebuiltin("Container.Refresh")
+    for k in (("any", "movie", "series") if kind == "any" else (kind,)):
+        STORE.clear_history(k)
     xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
+    xbmc.executebuiltin("Container.Refresh")
 
 
 # --- zhlédnuto, Můj seznam, Pokračovat ----------------------------------------------

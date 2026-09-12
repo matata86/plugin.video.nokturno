@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="2.0.14" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="2.0.15" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -21,7 +21,8 @@
       <icon>resources/media/icon.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>2.0.14 – Průvodce nastavením umí i změřit rychlost internetu; hlášení o nedostupném zdroji teď přesně jmenuje, který zdroj selhal (dřív hlásilo natvrdo "Server Luna neodpovídá" i u jiné chyby)
+    <news>2.0.15 – Oprava: „Vymazat historii“ (i mazání jednotlivého dotazu) u sjednoceného hledání nefungovalo úplně – zobrazený seznam je sloučený z historie Filmů a Seriálů, ale mazala se jen jejich společná, jinak prázdná historie
+2.0.14 – Průvodce nastavením umí i změřit rychlost internetu; hlášení o nedostupném zdroji teď přesně jmenuje, který zdroj selhal (dřív hlásilo natvrdo "Server Luna neodpovídá" i u jiné chyby)
 2.0.13 – Oprava: 4 texty průvodce nastavením se kvůli chybě v překladu zobrazovaly anglicky místo česky
 2.0.12 – Průvodce prvním nastavením – při prvním otevření doplněk sám provede vyplněním zdrojů (WebShare, Sosáč, Luna, HellSpy, TMDB); kdykoli znovu spustitelný z Nastavení → Pokročilé
 2.0.11 – Tlačítko „Zkusit fulltext na WebShare/HellSpy“ u seznamu streamů – uvolněné hledání pro případ, že přísný filtr skutečnou shodu zahodil jako podobný, ale jiný titul
