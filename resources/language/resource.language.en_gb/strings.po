@@ -798,3 +798,11 @@ msgstr ""
 msgctxt "#30238"
 msgid "Loading streams…"
 msgstr ""
+
+msgctxt "#30330"
+msgid "Movies (database)"
+msgstr ""
+
+msgctxt "#30331"
+msgid "Series (database)"
+msgstr ""

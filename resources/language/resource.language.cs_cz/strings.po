@@ -798,3 +798,11 @@ msgstr "Podpoř autora: https://ko-fi.com/matata86"
 msgctxt "#30238"
 msgid "Loading streams…"
 msgstr "Načítám streamy…"
+
+msgctxt "#30330"
+msgid "Movies (database)"
+msgstr "Filmy (databáze)"
+
+msgctxt "#30331"
+msgid "Series (database)"
+msgstr "Seriály (databáze)"
