@@ -30,6 +30,7 @@ import xbmcvfs
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "lib"))
 from luna_api import LunaApi, LunaError, parse_base_url, parse_token  # noqa: E402
 from cinemeta_api import CinemetaApi, CinemetaError  # noqa: E402
+from tmdb_api import TmdbApi, TmdbError  # noqa: E402
 from sosac_api import SosacError, is_sosac_id as _is_stremio_sosac_id, names_match  # noqa: E402
 from sosac_direct import EXPORT as SOSAC_EXPORT, SosacDirect, is_direct_id  # noqa: E402
 from enrich import enrich, enrich_one  # noqa: E402
@@ -92,7 +93,7 @@ if _old_settings:
     except Exception as _e:  # noqa: BLE001
         xbmc.log(f"[{ADDON_ID}] migrace nastavení: {_e}", xbmc.LOGWARNING)
 STORE = Store(PROFILE)
-Errors = (LunaError, CinemetaError, SosacError, WebshareError, HellspyError, TraktError)
+Errors = (LunaError, CinemetaError, TmdbError, SosacError, WebshareError, HellspyError, TraktError)
 
 
 def is_sosac_id(item_id):
@@ -221,9 +222,17 @@ def get_cinemeta():
     return CinemetaApi(cache=STORE)
 
 
+def get_tmdb():
+    """Vlastní klíč uživatele (zdarma, viz nápověda v nastavení) — přednostní
+    náhrada za veřejný katalog Sosáče/Cinemetu, když Luna neběží: umí česky
+    i to, co ony ne (popis, obsazení). Bez klíče se prostě nepoužije."""
+    key = setting("tmdb_api_key").strip()
+    return TmdbApi(key, cache=STORE) if key else None
+
+
 def get_apis():
     return {"luna": get_luna(), "sosac": get_sosac(), "ws": get_webshare(), "hs": get_hellspy(),
-            "cinemeta": get_cinemeta(), "sosac_db": get_sosac_db()}
+            "cinemeta": get_cinemeta(), "sosac_db": get_sosac_db(), "tmdb": get_tmdb()}
 
 
 def source_for(item_id):
@@ -552,15 +561,22 @@ def add_hs_file(f, extra_context=None):
 
 def meta_for(apis, meta_type, item_id):
     """`api_for(...).meta(...)`, ale když titul přišel z vlastní databáze
-    (veřejný katalog Sosáče, nebo Cinemeta) a Luna/přihlášený Sosáč na něj
-    nestačí, zaskočí stejný zdroj, odkud titul původně přišel."""
+    (TMDB, veřejný katalog Sosáče, nebo Cinemeta) a Luna/přihlášený Sosáč na
+    něj nestačí, zaskočí stejný zdroj, odkud titul původně přišel — u tt… id
+    přednostně TMDB (umí popis česky), Cinemeta až když TMDB chybí/selže."""
     try:
         return api_for(apis, item_id).meta(meta_type, item_id)
     except LunaError:
         if is_sosac_id(item_id) and apis["sosac_db"]:
             return apis["sosac_db"].meta(meta_type, item_id)
-        if str(item_id).startswith("tt") and apis["cinemeta"]:
-            return apis["cinemeta"].meta(meta_type, item_id)
+        if str(item_id).startswith("tt"):
+            if apis["tmdb"]:
+                try:
+                    return apis["tmdb"].meta(meta_type, item_id)
+                except TmdbError:
+                    pass
+            if apis["cinemeta"]:
+                return apis["cinemeta"].meta(meta_type, item_id)
         raise
 
 
@@ -1539,11 +1555,13 @@ def main_menu(apis):
         folder_item(L(30036), build_url(action="catalogs", type="series", src="sosac"), icon="DefaultTVShows.png")
     if not apis["luna"] and not apis["sosac"]:
         # dřív šlo procházení podle žánru/popularity jen přes Lunu (nebo přihlášený
-        # Sosáč) — bez obojího teď zaskočí veřejný katalog Sosáče (viz get_sosac_db,
-        # česky, bez účtu); s Lunou/přihlášeným Sosáčem by šlo o duplicitní menu
-        folder_item(L(30330, "Filmy (databáze)"), build_url(action="catalogs", type="movie", src="sosac_db"),
+        # Sosáč) — bez obojího teď zaskočí vlastní databáze: přednostně TMDB (má-li
+        # uživatel vlastní klíč, viz get_tmdb — česky i s popisem), jinak veřejný
+        # katalog Sosáče (get_sosac_db, česky, bez účtu, ale bez popisu)
+        db_src = "tmdb" if apis["tmdb"] else "sosac_db"
+        folder_item(L(30330, "Filmy (databáze)"), build_url(action="catalogs", type="movie", src=db_src),
                    icon="DefaultMovies.png")
-        folder_item(L(30331, "Seriály (databáze)"), build_url(action="catalogs", type="series", src="sosac_db"),
+        folder_item(L(30331, "Seriály (databáze)"), build_url(action="catalogs", type="series", src=db_src),
                    icon="DefaultTVShows.png")
     folder_item(L(30060), build_url(action="favourites"), icon="DefaultFavourites.png")
     folder_item(L(30064), build_url(action="recent"), icon="DefaultRecentlyAddedMovies.png")
@@ -1735,8 +1753,9 @@ def _search_merge(apis, ctype, query, want_year, errors, tick=None):
     Kešuje se 5 minut.
 
     Primární zdroj: Luna, když je dostupná (beze změny). Bez ní zaskočí vlastní
-    databáze — nejdřív veřejný katalog Sosáče (česky, bez účtu), teprve když
-    ani ten nic nenajde, Cinemeta (anglicky, ale širší pokrytí)."""
+    databáze, v pořadí: TMDB (vlastní klíč uživatele, česky i s popisem), pak
+    veřejný katalog Sosáče (česky, bez účtu, ale bez popisu), teprve když ani
+    ten nic nenajde, Cinemeta (anglicky, ale nejširší pokrytí)."""
     def step():
         if tick:
             tick()
@@ -1759,10 +1778,16 @@ def _search_merge(apis, ctype, query, want_year, errors, tick=None):
         else:
             # přihlášený `apis["sosac"]` by tu jen zdvojil stejná data jako
             # `sosac_db` (stejný veřejný katalog), proto se nepřidává zvlášť
-            try:
-                luna_metas = apis["sosac_db"].catalog(ctype, "top", search=query)
-            except SosacError as e:
-                errors.append(e)
+            if apis["tmdb"]:
+                try:
+                    luna_metas = apis["tmdb"].catalog(ctype, "popular", search=query)
+                except TmdbError as e:
+                    errors.append(e)
+            if not luna_metas:
+                try:
+                    luna_metas = apis["sosac_db"].catalog(ctype, "top", search=query)
+                except SosacError as e:
+                    errors.append(e)
             if not luna_metas and apis["cinemeta"]:
                 try:
                     luna_metas = apis["cinemeta"].catalog(ctype, "top", search=query)

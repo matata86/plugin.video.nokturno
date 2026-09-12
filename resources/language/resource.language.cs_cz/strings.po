@@ -806,3 +806,15 @@ msgstr "Filmy (databáze)"
 msgctxt "#30331"
 msgid "Series (database)"
 msgstr "Seriály (databáze)"
+
+msgctxt "#30332"
+msgid "Own movie/series database"
+msgstr "Vlastní databáze filmů a seriálů"
+
+msgctxt "#30333"
+msgid "TMDB API key"
+msgstr "API klíč TMDB"
+
+msgctxt "#30334"
+msgid "TMDB API key help"
+msgstr "Vlastní klíč pro TMDB (themoviedb.org) — hledání a katalog filmů/seriálů ho použije, když zrovna není dostupná Luna: Absolute Cinema (ta má TMDB napojení zabudované). Bez klíče se použije zdarma veřejný katalog Sosáče a Cinemeta, ale ty nemají popis filmu v češtině (Sosáč popis vůbec nemá, Cinemeta jen anglicky). S klíčem budou i bez Luny tituly, popisy, žánry i herci česky.\n\nZaložení je zdarma: registrace na themoviedb.org → ikona profilu → Nastavení → API (v levém menu) → Request an API Key → Developer → krátký formulář (název aplikace stačí „Nokturno“) → zkopírovat „API Key (v3 auth)“ (ne delší „API Read Access Token“)."

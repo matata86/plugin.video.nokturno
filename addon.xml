@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="2.0.5" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="2.0.6" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -21,7 +21,8 @@
       <icon>resources/media/icon.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>2.0.5 – Veřejný katalog Sosáče (české tituly, žádný účet) má teď přednost před Cinemetou jako vlastní databáze – funguje i bez Luny a bez Streamuj účtu
+    <news>2.0.6 – Vlastní klíč TMDB v nastavení (zdarma, návod přímo v nápovědě) – bez Luny teď jde mít i popis a obsazení titulu česky, ne jen název
+2.0.5 – Veřejný katalog Sosáče (české tituly, žádný účet) má teď přednost před Cinemetou jako vlastní databáze – funguje i bez Luny a bez Streamuj účtu
 2.0.4 – Vlastní napojení na databázi filmů a seriálů (Cinemeta) – katalog i hledání teď fungují i bez Luny a Sosáče, třeba jen s HellSpy
 2.0.3 – Ukazatel průběhu při načítání streamů (dřív jen obecné točící se kolečko Kodi)
 2.0.2 – Můj seznam přidaný ještě před verzí se synchronizací (1.7.0) se teď taky dosynchronizuje mezi Kodi
