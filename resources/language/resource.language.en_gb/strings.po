@@ -918,3 +918,15 @@ msgstr ""
 msgctxt "#30359"
 msgid "Run setup wizard"
 msgstr ""
+
+msgctxt "#30360"
+msgid "Source did not respond"
+msgstr ""
+
+msgctxt "#30361"
+msgid "Internet speed"
+msgstr ""
+
+msgctxt "#30362"
+msgid "Measure your internet speed now?"
+msgstr ""

@@ -918,3 +918,15 @@ msgstr "Hotovo! Cokoli z tohohle můžeš kdykoli změnit v Nastavení doplňku.
 msgctxt "#30359"
 msgid "Run setup wizard"
 msgstr "Průvodce nastavením"
+
+msgctxt "#30360"
+msgid "Source did not respond"
+msgstr "Zdroj neodpověděl"
+
+msgctxt "#30361"
+msgid "Internet speed"
+msgstr "Rychlost internetu"
+
+msgctxt "#30362"
+msgid "Measure your internet speed now?"
+msgstr "Chceš teď změřit rychlost internetu a podle ní nastavit nejvyšší dovolený datový tok streamů? Zabrání to sekání při přehrávání příliš velkého souboru.\nZabere necelou minutu, jde udělat i později v Nastavení -> Přehrávání."

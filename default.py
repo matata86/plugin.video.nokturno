@@ -263,6 +263,31 @@ def log_error(err):
     xbmc.log(f"[{ADDON_ID}] {err}", xbmc.LOGERROR)
 
 
+SOURCE_LABELS = {
+    LunaError: "Luna", CinemetaError: "Cinemeta", TmdbError: "TMDB",
+    SosacError: "Sosáč", WebshareError: "WebShare", HellspyError: "HellSpy",
+    TraktError: "Trakt.tv",
+}
+
+
+def describe_error(e):
+    """Jméno zdroje před chybovou hláškou — ať je jasné, který přesně selhal
+    (dřív se u víc-zdrojového hledání hlásilo natvrdo „Server Luna neodpovídá“
+    i při chybě jinde, třeba na WebShare)."""
+    label = next((v for k, v in SOURCE_LABELS.items() if isinstance(e, k)), type(e).__name__)
+    return f"{label}: {e}"
+
+
+def describe_errors(errors):
+    lines, seen = [], set()
+    for e in errors:
+        line = describe_error(e)
+        if line not in seen:
+            seen.add(line)
+            lines.append(line)
+    return "\n".join(lines)
+
+
 # --- položky ------------------------------------------------------------------
 
 def folder_item(label, url, icon=None, context=None):
@@ -1432,6 +1457,12 @@ def setup_wizard(force=False):
             if key:
                 ADDON.setSetting("tmdb_api_key", key)
 
+        if dialog.yesno(L(30361, "Rychlost internetu"),
+                         L(30362, "Chceš teď změřit rychlost internetu a podle ní nastavit nejvyšší dovolený "
+                                  "datový tok streamů? Zabrání to sekání při přehrávání příliš velkého souboru.[CR]"
+                                  "Zabere necelou minutu, jde udělat i později v Nastavení → Přehrávání.")):
+            speedtest()
+
         dialog.ok(L(30357, "Nastavení uloženo"),
                   L(30358, "Hotovo! Cokoli z tohohle můžeš kdykoli změnit v Nastavení doplňku.[CR]"
                            "Bez zadaného zdroje budou katalog a hledání fungovat i tak, jen anglicky."))
@@ -2018,7 +2049,10 @@ def search_run(apis, kind, query, offset=0):
     for e in errors:
         log_error(e)
     if errors:
-        notify(L(30101), xbmcgui.NOTIFICATION_WARNING)
+        # blokující dialog, ne jen toast — ať si uživatel opravdu všimne, že
+        # nějaký zdroj neodpověděl, a ví přesně který; výsledky ze zbylých
+        # zdrojů se zobrazí hned po OK (endOfDirectory běží až za tímhle)
+        xbmcgui.Dialog().ok(L(30360, "Zdroj neodpověděl"), describe_errors(errors))
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
@@ -2696,7 +2730,7 @@ def router(query):
             main_menu(apis)
     except Errors as e:
         log_error(e)
-        notify(L(30103) if isinstance(e, WebshareError) else L(30101), xbmcgui.NOTIFICATION_ERROR, 5000)
+        notify(describe_error(e), xbmcgui.NOTIFICATION_ERROR, 5000)
         if action in ("play", "play_ws", "play_hs"):
             xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
         elif action not in ("download", "download_ws", "download_hs", "toggle_fav"):
