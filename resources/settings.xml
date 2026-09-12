@@ -436,7 +436,7 @@
         </setting>
       </group>
     </category>
-    <category id="advanced" label="30105" help="30329">
+    <category id="advanced" label="30105">
       <group id="1">
         <setting id="wizard_action" type="action" label="30359">
           <level>0</level>

@@ -2,7 +2,6 @@
 
 # Nokturno — filmy a seriály z WebShare, Sosáče, Luny a HellSpy pro Kodi
 
-[![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/matata86)
 
 Podrobný návod (instalace, nastavení každého zdroje, používání, řešení problémů) je ve [wiki](https://github.com/matata86/plugin.video.nokturno/wiki).
 
@@ -188,10 +187,3 @@ MIT
 
 ---
 
-## Podpora
-
-Pomohlo ti to? Kafe autorovi udělá radost ☕
-
-[![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/matata86)
-
-**https://ko-fi.com/matata86**
