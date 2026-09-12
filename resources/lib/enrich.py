@@ -15,7 +15,11 @@ TIMEOUT = 8
 WORKERS = 8
 DEAD_IMAGES = "movies.sosac.tv"  # jejich náhledy jsou od 2026-09 pryč (404)
 DEADLINE = 6.0  # s – déle seznam nezdržovat; zbytek se dotáhne na pozadí do cache
-FIELDS = ("description", "runtime", "director", "writer", "cast", "app_extras", "released", "country", "imdb_id")
+FIELDS = ("description", "runtime", "director", "writer", "cast", "app_extras", "released", "country", "imdb_id",
+          # veřejné exporty Sosáče mívají žánry jako syrové anglické tagy s velkými
+          # a malými písmeny na hromádce (a občas i vyloženě smetí typu "html5") —
+          # Luna/Cinemeta dávají čistý, přeložitelný seznam, ten má vždy přednost
+          "genres")
 
 
 def _cinemeta(ctype, imdb):
