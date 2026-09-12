@@ -155,6 +155,13 @@ def get_sosac():
     return None
 
 
+def get_sosac_db():
+    """Veřejný katalog Sosáče (žádný účet, žádný přepínač) — vlastní databáze
+    filmů a seriálů česky, funguje vždy. `apis["sosac"]` výš zůstává jen pro
+    přihlášené přehrávání a stahování; katalog samotný účet nepotřebuje."""
+    return SosacDirect(cache=STORE, cache_ttl=CACHE_TTL, index_store=STORE)
+
+
 def resolve_url(apis, url):
     """'streamuj:…' (Sosáč) a 'ws:<ident>' (soubor přímo z WebShare) se mění na
     finální odkaz až při přehrání — odkazy WebShare vyprší po pár hodinách."""
@@ -216,7 +223,7 @@ def get_cinemeta():
 
 def get_apis():
     return {"luna": get_luna(), "sosac": get_sosac(), "ws": get_webshare(), "hs": get_hellspy(),
-            "cinemeta": get_cinemeta()}
+            "cinemeta": get_cinemeta(), "sosac_db": get_sosac_db()}
 
 
 def source_for(item_id):
@@ -544,14 +551,17 @@ def add_hs_file(f, extra_context=None):
 # --- meta a streamy -------------------------------------------------------------
 
 def meta_for(apis, meta_type, item_id):
-    """`api_for(...).meta(...)`, ale bez Luny/Sosáče (titul z Cinemety) zaskočí
-    vlastní databáze — stejné (tt…) id, jen jiný zdroj."""
+    """`api_for(...).meta(...)`, ale když titul přišel z vlastní databáze
+    (veřejný katalog Sosáče, nebo Cinemeta) a Luna/přihlášený Sosáč na něj
+    nestačí, zaskočí stejný zdroj, odkud titul původně přišel."""
     try:
         return api_for(apis, item_id).meta(meta_type, item_id)
     except LunaError:
-        if not apis["cinemeta"] or not str(item_id).startswith("tt"):
-            raise
-        return apis["cinemeta"].meta(meta_type, item_id)
+        if is_sosac_id(item_id) and apis["sosac_db"]:
+            return apis["sosac_db"].meta(meta_type, item_id)
+        if str(item_id).startswith("tt") and apis["cinemeta"]:
+            return apis["cinemeta"].meta(meta_type, item_id)
+        raise
 
 
 def load_meta(apis, ctype, item_id, series_id=None):
@@ -1527,13 +1537,13 @@ def main_menu(apis):
     if apis["sosac"]:
         folder_item(L(30035), build_url(action="catalogs", type="movie", src="sosac"), icon="DefaultMovies.png")
         folder_item(L(30036), build_url(action="catalogs", type="series", src="sosac"), icon="DefaultTVShows.png")
-    if apis["cinemeta"] and not apis["luna"]:
-        # dřív šlo procházení podle žánru/popularity jen přes Lunu — bez ní teď
-        # zaskočí vlastní napojení na Cinemetu (viz get_cinemeta); s Lunou by šlo
-        # o duplicitní menu, tak se schová
-        folder_item(L(30330, "Filmy (databáze)"), build_url(action="catalogs", type="movie", src="cinemeta"),
+    if not apis["luna"] and not apis["sosac"]:
+        # dřív šlo procházení podle žánru/popularity jen přes Lunu (nebo přihlášený
+        # Sosáč) — bez obojího teď zaskočí veřejný katalog Sosáče (viz get_sosac_db,
+        # česky, bez účtu); s Lunou/přihlášeným Sosáčem by šlo o duplicitní menu
+        folder_item(L(30330, "Filmy (databáze)"), build_url(action="catalogs", type="movie", src="sosac_db"),
                    icon="DefaultMovies.png")
-        folder_item(L(30331, "Seriály (databáze)"), build_url(action="catalogs", type="series", src="cinemeta"),
+        folder_item(L(30331, "Seriály (databáze)"), build_url(action="catalogs", type="series", src="sosac_db"),
                    icon="DefaultTVShows.png")
     folder_item(L(30060), build_url(action="favourites"), icon="DefaultFavourites.png")
     folder_item(L(30064), build_url(action="recent"), icon="DefaultRecentlyAddedMovies.png")
@@ -1585,7 +1595,7 @@ def list_genres(apis, ctype, cid, src):
 def list_catalog(apis, ctype, cid, src, genre=None, search=None, skip=0):
     xbmcplugin.setContent(HANDLE, "tvshows" if ctype == "series" else "movies")
     metas = apis[src].catalog(ctype, cid, genre=genre, search=search, skip=skip)
-    if src in ("sosac", "cinemeta"):
+    if src in ("sosac", "sosac_db", "cinemeta"):
         # exporty Sosáče a holé výpisy Cinemety nemají popis → dotáhnout podle IMDb id
         # (Luna, jinak Cinemeta sama — viz `_fetch()` v enrich.py — cache)
         enrich(metas, apis["luna"], STORE, ctype)
@@ -1720,9 +1730,13 @@ class SearchProgress:
 
 
 def _search_merge(apis, ctype, query, want_year, errors, tick=None):
-    """Sloučené výsledky Luny (nebo Cinemety, když Luna chybí) a Sosáče pro jeden
-    typ (film / seriál), BEZ popisů — stačí na počty pro volbu Filmy/Seriály.
-    Kešuje se 5 minut."""
+    """Sloučené výsledky primárního zdroje a přihlášeného Sosáče pro jeden typ
+    (film / seriál), BEZ popisů — stačí na počty pro volbu Filmy/Seriály.
+    Kešuje se 5 minut.
+
+    Primární zdroj: Luna, když je dostupná (beze změny). Bez ní zaskočí vlastní
+    databáze — nejdřív veřejný katalog Sosáče (česky, bez účtu), teprve když
+    ani ten nic nenajde, Cinemeta (anglicky, ale širší pokrytí)."""
     def step():
         if tick:
             tick()
@@ -1736,19 +1750,24 @@ def _search_merge(apis, ctype, query, want_year, errors, tick=None):
             except LunaError as e:
                 errors.append(e)
             step()
-        elif apis["cinemeta"]:
-            # bez Luny zaskočí vlastní napojení na Cinemetu — stejný tvar dat
-            # (jen bez popisu, ten dotáhne enrich() v search_source())
+            if apis["sosac"]:
+                try:
+                    sosac_metas = apis["sosac"].search(ctype, query)
+                except SosacError as e:
+                    errors.append(e)
+                step()
+        else:
+            # přihlášený `apis["sosac"]` by tu jen zdvojil stejná data jako
+            # `sosac_db` (stejný veřejný katalog), proto se nepřidává zvlášť
             try:
-                luna_metas = apis["cinemeta"].catalog(ctype, "top", search=query)
-            except CinemetaError as e:
-                errors.append(e)
-            step()
-        if apis["sosac"]:
-            try:
-                sosac_metas = apis["sosac"].search(ctype, query)
+                luna_metas = apis["sosac_db"].catalog(ctype, "top", search=query)
             except SosacError as e:
                 errors.append(e)
+            if not luna_metas and apis["cinemeta"]:
+                try:
+                    luna_metas = apis["cinemeta"].catalog(ctype, "top", search=query)
+                except CinemetaError as e:
+                    errors.append(e)
             step()
         merged = filter_year(merge_results(luna_metas, sosac_metas), want_year)
         return merged, bool(luna_metas) and bool(sosac_metas)
@@ -1795,9 +1814,9 @@ def search_run(apis, kind, query, offset=0):
         bar = xbmcgui.DialogProgressBG()
         bar.create("Nokturno", L(30150, "Hledat"))
         bar.update(0)
-        sources = sum(1 for key in ("luna", "sosac") if apis.get(key))
-        if not apis.get("luna") and apis.get("cinemeta"):
-            sources += 1  # Cinemeta zaskakuje za Lunu — taky jeden krok navíc
+        # primární zdroj je vždy jeden krok (Luna, nebo za ni zaskočí sosac_db/Cinemeta
+        # — viz _search_merge); přihlášený Sosáč se sčítá zvlášť, jen když jede vedle Luny
+        sources = 1 + (1 if apis.get("luna") and apis.get("sosac") else 0)
         progress = SearchProgress(bar, 2 * sources)
         results = {}
         try:
