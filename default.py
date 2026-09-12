@@ -66,6 +66,7 @@ LANG_COLORS = {"CZ": "FF7FE07F", "SK": "FF7FE07F", "EN": "FF9A9A9A"}
 # EN a jazyky bez vlastní barvy dostanou stejný odstín jako GREY (níž) —
 # FFE0E0E0 (skoro bílá) na vybrané položce s bílým podkladem úplně mizelo
 GREY = "FF9A9A9A"
+WARN_COLOR = "FFE0A040"   # neověřená shoda z ručního fulltextu (viz stream_label)
 # databáze filmů (Luna/Cinemeta) vrací žánry anglicky, Sosáč rovnou česky —
 # do popisu titulu patří vždy česky, neznámý žánr necháme, jak přišel
 GENRES_CS = {
@@ -690,13 +691,18 @@ def _fold(text):
     return unicodedata.normalize("NFKD", text or "").encode("ascii", "ignore").decode().lower()
 
 
-def title_queries(apis, meta, video, ctype, alt=None):
+def title_queries(apis, meta, video, ctype, alt=None, strict=True):
     """Dotazy pro fulltextové zdroje a filtr, který z výsledku nechá jen ten titul.
 
     Sdílí to WebShare i HellSpy — oba hledají v názvech souborů, takže potřebují
     totéž: víc variant názvu (originál, rok, u dílu značku sezóny) a pak zahodit
     všechno, co se jen podobá. Luna se WebShare ptá jedním dotazem a část souborů
     jí uteče, proto se tu hledá ve víc variantách, stejně jako v integraci pro HA.
+
+    `strict=False` (ruční „Zkusit fulltext" ze seznamu streamů) vrací k poloze
+    v názvu shovívavější filtr — stačí, aby soubor obsahoval všechna slova
+    kdekoli. Používá se jen na výslovné vyžádání, kdy uživatel vidí i výsledky,
+    které by přísný filtr zahodil (a počítá s tím, že mezi nimi může být omyl).
     """
     title = meta.get("_title") or meta.get("name") or ""
     origs = [o for o in [meta.get("_orig") or ""] if o]
@@ -724,10 +730,31 @@ def title_queries(apis, meta, video, ctype, alt=None):
     wanted = [w for w in [words(title)] + [words(o) for o in origs] if w]
     title_years = {int(y) for y in YEAR_RE.findall(_fold(title) + " " + " ".join(_fold(o) for o in origs))}
 
+    def phrase_leads(tokens, group):
+        """Slova názvu musí být v souboru za sebou a skoro na začátku.
+
+        Pouhé „všechna slova někde v názvu" propustí i úplně jiný titul,
+        který ta slova jen náhodou obsahuje — např. český idiom „Seber si
+        svých pět švestek" vs. film „Pět švestek": obě slova tam jsou,
+        ale patří k jiné větě. Skutečný název souboru na nich vždycky
+        začíná (nejvýš za značkou webu/edicí v závorce), překódovaný
+        balíček zdrojů (rok, kvalita, kodek…) přijde až za ním.
+        """
+        n = len(group)
+        for i in range(len(tokens) - n + 1):
+            if tokens[i:i + n] == group:
+                return i <= 2
+        return False
+
     def relevant(name):
         folded = _fold(name)
-        if wanted and not any(all(w in folded for w in group) for group in wanted):
-            return False
+        if wanted:
+            if strict:
+                tokens = [t for t in re.split(r"[^a-z0-9]+", folded) if t]
+                if not any(phrase_leads(tokens, group) for group in wanted):
+                    return False
+            elif not any(all(w in folded for w in group) for group in wanted):
+                return False
         if not video and EPISODE_ANY_RE.search(folded):
             # u filmu nemá soubor se značkou dílu co dělat. Jednoslovný název
             # („Avatar") projde kontrolou slov a díly seriálu rok v názvu nemají,
@@ -742,12 +769,12 @@ def title_queries(apis, meta, video, ctype, alt=None):
     return [q.strip() for q in dict.fromkeys(queries) if q.strip()], relevant
 
 
-def webshare_streams(apis, meta, video, ctype, alt=None):
+def webshare_streams(apis, meta, video, ctype, alt=None, strict=True):
     """Tytéž soubory přímo z WebShare, navíc k tomu, co našla Luna."""
     ws = apis.get("ws")
     if ws is None:
         return []
-    queries, relevant = title_queries(apis, meta, video, ctype, alt)
+    queries, relevant = title_queries(apis, meta, video, ctype, alt, strict)
     out, seen = [], set()
     for query in queries:
         try:
@@ -761,18 +788,19 @@ def webshare_streams(apis, meta, video, ctype, alt=None):
             seen.add(f["ident"])
             # velikost do `detail` — odtud ji parse_stream čte; stejné jednotky jako u Luny
             out.append({"url": "ws:" + f["ident"], "label": f.get("name") or "",
-                        "detail": f.get("size_h") or human_size(f.get("size") or 0), "source": "ws"})
+                        "detail": f.get("size_h") or human_size(f.get("size") or 0), "source": "ws",
+                        "_loose": not strict})
     remember_ws_token(ws)
     return out
 
 
-def hellspy_streams(apis, meta, video, ctype, alt=None):
+def hellspy_streams(apis, meta, video, ctype, alt=None, strict=True):
     """Tentýž titul na HellSpy. Nabízí se původní soubor, ne překódování, takže
     název i velikost popisují to, co se opravdu přehraje — viz `hellspy_api`."""
     hs = apis.get("hs")
     if hs is None:
         return []
-    queries, relevant = title_queries(apis, meta, video, ctype, alt)
+    queries, relevant = title_queries(apis, meta, video, ctype, alt, strict)
     out, seen = [], set()
     for query in queries:
         try:
@@ -791,7 +819,7 @@ def hellspy_streams(apis, meta, video, ctype, alt=None):
             seen.add(f["hash"])
             seen.add(key)
             out.append({"url": f"hs:{f['id']}:{f['hash']}", "label": name,
-                        "detail": f.get("size_h") or "", "source": "hs"})
+                        "detail": f.get("size_h") or "", "source": "hs", "_loose": not strict})
     return out
 
 
@@ -928,7 +956,7 @@ def all_streams(apis, ctype, item_id):
     return api.streams(ctype, item_id)
 
 
-def collect_streams(apis, ctype, item_id, meta, alt=None, progress=None):
+def collect_streams(apis, ctype, item_id, meta, alt=None, progress=None, strict=True):
     """Streamy ze zdroje titulu + z druhého zdroje, vyfiltrované a seřazené podle nastavení.
 
     Oba dotazy běží souběžně — dřív šly za sebou a čas byl jejich součet. Chyba
@@ -946,8 +974,8 @@ def collect_streams(apis, ctype, item_id, meta, alt=None, progress=None):
     with ThreadPoolExecutor(max_workers=4) as pool:
         main = pool.submit(all_streams, apis, ctype, item_id)
         cross = pool.submit(cross_streams, apis, ctype, item_id, meta, alt)
-        ws = pool.submit(webshare_streams, apis, meta, video, ctype, alt) if direct else None
-        hs = pool.submit(hellspy_streams, apis, meta, video, ctype, alt) if apis.get("hs") else None
+        ws = pool.submit(webshare_streams, apis, meta, video, ctype, alt, strict) if direct else None
+        hs = pool.submit(hellspy_streams, apis, meta, video, ctype, alt, strict) if apis.get("hs") else None
         if progress:
             for _ in as_completed([f for f in (main, cross, ws, hs) if f is not None]):
                 progress.tick()
@@ -1209,7 +1237,12 @@ def stream_label(s):
     # barvu (žádný [COLOR] okolo), Kodi vykreslí bílou textovou barvou skinu;
     # na vybrané položce s bílým podkladem to pak úplně zmizí. Proto má i
     # velikost výslovnou barvu (GREY se na bílém podkladu čte jako tmavý text).
-    parts = [f"[COLOR {QUALITY_COLORS.get(s.get('quality_rank', 0), GREY)}][B]{quality or raw}[/B][/COLOR]"]
+    parts = []
+    if s.get("_loose"):
+        # z ručního „Zkusit fulltext" — přísný filtr ho zahodil jako podobný,
+        # ale možná jiný titul; uživatel to musí posoudit sám podle názvu souboru
+        parts.append(f"[COLOR {WARN_COLOR}]?[/COLOR]")
+    parts.append(f"[COLOR {QUALITY_COLORS.get(s.get('quality_rank', 0), GREY)}][B]{quality or raw}[/B][/COLOR]")
     tracks = s.get("_tracks") or []
     if tracks:
         # přečteno z hlavičky souboru: každá stopa zvlášť i s kodekem
@@ -1335,6 +1368,74 @@ def sub_status():
     else:
         msg = L(30232, "VIP není aktivní.")
     xbmcgui.Dialog().ok(L(30000), msg)
+
+
+def setup_wizard(force=False):
+    """Průvodce prvním nastavením — nabídne se sám při prvním otevření doplňku,
+    ať uživatel nemusí sám hledat, co a kde v nastavení vyplnit. Jde přeskočit
+    (`Přeskočit` na úvodní obrazovce), nebo si ho kdykoli znovu pustit ručně
+    z Nastavení → Pokročilé (`force=True`, běží bez ohledu na to, že už proběhl).
+    """
+    if not force:
+        if STORE.load("wizard_done", False):
+            return
+        # už existující instalace (aktualizace z verze bez průvodce) — má-li
+        # uživatel cokoli zapnuté, není to nová instalace a nemá se ho co ptát
+        if any(on(k, "false") for k in ("ws_enabled", "sosac_enabled", "luna_enabled", "hs_enabled")) \
+                or setting("tmdb_api_key").strip():
+            STORE.save("wizard_done", True)
+            return
+    dialog = xbmcgui.Dialog()
+    if dialog.yesno(
+        L(30336, "Vítej v Nokturnu"),
+        L(30337, "Projdeme spolu základní nastavení zdrojů, zabere to necelou minutu.[CR]"
+                 "Kdykoli to můžeš přeskočit a doplnit později v Nastavení doplňku."),
+        yeslabel=L(30338, "Pojďme na to"), nolabel=L(30339, "Přeskočit"),
+    ):
+        if dialog.yesno(L(30340, "WebShare"), L(30341, "Máš účet WebShare?")):
+            user = dialog.input(L(30342, "WebShare — e-mail"))
+            if user:
+                pwd = dialog.input(L(30343, "WebShare — heslo"), option=xbmcgui.ALPHANUM_HIDE_INPUT)
+                if pwd:
+                    ADDON.setSetting("ws_username", user)
+                    ADDON.setSetting("ws_password", pwd)
+                    ADDON.setSetting("ws_enabled", "true")
+
+        if dialog.yesno(L(30344, "Sosáč"),
+                         L(30345, "Máš účet Streamuj.tv (přehrávač Sosáče)?[CR]"
+                                  "Katalogy Sosáče fungují i bez účtu, jen pro přehrávání je potřeba.")):
+            user = dialog.input(L(30346, "Streamuj.tv — uživatel"))
+            if user:
+                pwd = dialog.input(L(30347, "Streamuj.tv — heslo"), option=xbmcgui.ALPHANUM_HIDE_INPUT)
+                if pwd:
+                    ADDON.setSetting("streamuj_username", user)
+                    ADDON.setSetting("streamuj_password", pwd)
+            ADDON.setSetting("sosac_enabled", "true")
+
+        if dialog.yesno(L(30348, "Luna: Absolute Cinema"),
+                         L(30349, "Máš v síti spuštěný server Luna: Absolute Cinema?")):
+            addr = dialog.input(L(30350, "Adresa doplňku nebo token ze setu Luny"))
+            if addr:
+                ADDON.setSetting("token", addr)
+                ADDON.setSetting("luna_enabled", "true")
+
+        if dialog.yesno(L(30351, "HellSpy"), L(30352, "Zapnout HellSpy? Je zdarma a nepotřebuje žádný účet.")):
+            ADDON.setSetting("hs_enabled", "true")
+
+        if dialog.yesno(L(30353, "Vlastní databáze filmů a seriálů"),
+                         L(30354, "Chceš zadat zdarma klíč TMDB, aby popisy a obsazení filmů byly česky? (nepovinné)")):
+            dialog.ok(L(30353, "Vlastní databáze filmů a seriálů"),
+                      L(30355, "Klíč se zakládá zdarma na themoviedb.org -> ikona profilu -> Nastavení -> API -> "
+                               "Request an API Key -> Developer -> zkopírovat \"API Key (v3 auth)\".[CR]"
+                               "Podrobný návod je i v nápovědě u tohoto nastavení."))
+            key = dialog.input(L(30356, "API klíč TMDB"))
+            if key:
+                ADDON.setSetting("tmdb_api_key", key)
+
+        dialog.ok(L(30357, "Nastavení uloženo"),
+                  L(30358, "Hotovo! Cokoli z tohohle můžeš kdykoli změnit v Nastavení doplňku.[CR]"
+                           "Bez zadaného zdroje budou katalog a hledání fungovat i tak, jen anglicky."))
+    STORE.save("wizard_done", True)
 
 
 def test_sources():
@@ -2124,8 +2225,20 @@ def list_episodes(apis, series_id, season, alt=None):
 
 # --- přehrávání ------------------------------------------------------------------
 
-def list_streams(apis, ctype, item_id, series_id=None, alt=None, fq="", flang="", fch="", fcodec="", fsub="", fsrc=""):
+def fulltext_item(ctype, item_id, series_id, alt):
+    """Odkaz na tuhle obrazovku znovu, ale s uvolněným filtrem WebShare/HellSpy
+    (viz `title_queries`, `strict=False`) — pro případ, že přísný automatický
+    filtr skutečnou shodu zahodil, protože název souboru je neobvyklý."""
+    folder_item(L(30335, "Zkusit fulltext na WebShare/HellSpy"),
+                build_url(action="streams", type=ctype, id=item_id, series=series_id, alt=alt, fulltext="1"),
+                icon="DefaultAddonsSearch.png")
+
+
+def list_streams(apis, ctype, item_id, series_id=None, alt=None, fq="", flang="", fch="", fcodec="", fsub="", fsrc="",
+                 fulltext=""):
     meta, video = load_meta(apis, ctype, item_id, series_id)
+    strict = fulltext != "1"
+    has_fulltext_source = bool(apis.get("ws") or apis.get("hs"))
     # ukazatel průběhu: pár kroků na dotazy zdrojům, pak (obvykle nejdelší část)
     # jeden na každý soubor, kterému se čte hlavička v `fill_audio()`
     try:
@@ -2138,10 +2251,17 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None, fq="", flang=""
     bar.update(0)
     progress = SearchProgress(bar, num_sources + max(probe_limit, 0))
     try:
-        streams = collect_streams(apis, ctype, item_id, meta, alt, progress)
+        streams = collect_streams(apis, ctype, item_id, meta, alt, progress, strict)
     finally:
         bar.close()
     if not streams:
+        if strict and has_fulltext_source:
+            # rovnou selhat by uživateli vzalo možnost zkusit to uvolněněji —
+            # nabídne se aspoň ta jedna položka místo prázdné/chybové obrazovky
+            xbmcplugin.setContent(HANDLE, "episodes")
+            fulltext_item(ctype, item_id, series_id, alt)
+            xbmcplugin.endOfDirectory(HANDLE)
+            return
         notify(L(30102))
         xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
         return
@@ -2190,6 +2310,10 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None, fq="", flang=""
         url = build_url(action="play", type=ctype, id=item_id, series=series_id, url=s["url"],
                         subs="|".join(s.get("subtitles") or []), pref=pref_param(s))
         xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=False)
+    if strict and has_fulltext_source:
+        # i mezi nalezenými streamy může být omyl (viz `phrase_leads`) — možnost
+        # dohledat víc je dobré mít i tady, ne jen když se nenajde nic
+        fulltext_item(ctype, item_id, series_id, alt)
     xbmcplugin.endOfDirectory(HANDLE)
 
 
@@ -2506,6 +2630,8 @@ def router(query):
                                 xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
         "stats_send": stats_send,
         "test_sources": test_sources,
+        "setup_wizard": lambda: (setup_wizard(force=True),
+                                 xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
         "sub_status": sub_status,
         "speedtest": speedtest,
         "sync_now": sync_now,
@@ -2519,6 +2645,9 @@ def router(query):
     apis = get_apis()
     try:
         if not action:
+            if not STORE.load("wizard_done", False):
+                setup_wizard()
+                apis = get_apis()  # nastavení se mohlo změnit, načíst zdroje znovu
             main_menu(apis)
         elif action == "catalogs":
             list_catalogs(apis, p["type"], p.get("src", "luna"))
@@ -2544,7 +2673,8 @@ def router(query):
         elif action == "streams":
             list_streams(apis, p["type"], p["id"], p.get("series"), alt=p.get("alt"),
                         fq=p.get("fq", ""), flang=p.get("flang", ""), fch=p.get("fch", ""),
-                        fcodec=p.get("fcodec", ""), fsub=p.get("fsub", ""), fsrc=p.get("fsrc", ""))
+                        fcodec=p.get("fcodec", ""), fsub=p.get("fsub", ""), fsrc=p.get("fsrc", ""),
+                        fulltext=p.get("fulltext", ""))
         elif action == "streams_filter":
             streams_filter(apis, p["type"], p["id"], p.get("series"), p.get("alt"),
                           p.get("fq", ""), p.get("flang", ""), p.get("fch", ""), p.get("fcodec", ""),

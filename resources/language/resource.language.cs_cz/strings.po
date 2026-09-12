@@ -818,3 +818,107 @@ msgstr "API klíč TMDB"
 msgctxt "#30334"
 msgid "TMDB API key help"
 msgstr "Vlastní klíč pro TMDB (themoviedb.org) — hledání a katalog filmů/seriálů ho použije, když zrovna není dostupná Luna: Absolute Cinema (ta má TMDB napojení zabudované). Bez klíče se použije zdarma veřejný katalog Sosáče a Cinemeta, ale ty nemají popis filmu v češtině (Sosáč popis vůbec nemá, Cinemeta jen anglicky). S klíčem budou i bez Luny tituly, popisy, žánry i herci česky.\n\nZaložení je zdarma: registrace na themoviedb.org → ikona profilu → Nastavení → API (v levém menu) → Request an API Key → Developer → krátký formulář (název aplikace stačí „Nokturno“) → zkopírovat „API Key (v3 auth)“ (ne delší „API Read Access Token“)."
+
+msgctxt "#30335"
+msgid "Try fulltext on WebShare/HellSpy"
+msgstr "Zkusit fulltext na WebShare/HellSpy"
+
+msgctxt "#30336"
+msgid "Vítej v Nokturnu"
+msgstr "Vítej v Nokturnu"
+
+msgctxt "#30337"
+msgid "Let's set up your sources"
+msgstr "Projdeme spolu základní nastavení zdrojů, zabere to necelou minutu.
+Kdykoli to můžeš přeskočit a doplnit později v Nastavení doplňku."
+
+msgctxt "#30338"
+msgid "Let's go"
+msgstr "Pojďme na to"
+
+msgctxt "#30339"
+msgid "Skip"
+msgstr "Přeskočit"
+
+msgctxt "#30340"
+msgid "WebShare"
+msgstr "WebShare"
+
+msgctxt "#30341"
+msgid "Do you have a WebShare account?"
+msgstr "Máš účet WebShare?"
+
+msgctxt "#30342"
+msgid "WebShare — email"
+msgstr "WebShare — e-mail"
+
+msgctxt "#30343"
+msgid "WebShare — password"
+msgstr "WebShare — heslo"
+
+msgctxt "#30344"
+msgid "Sosáč"
+msgstr "Sosáč"
+
+msgctxt "#30345"
+msgid "Do you have a Streamuj.tv account (Sosáč player)?"
+msgstr "Máš účet Streamuj.tv (přehrávač Sosáče)?
+Katalogy Sosáče fungují i bez účtu, jen pro přehrávání je potřeba."
+
+msgctxt "#30346"
+msgid "Streamuj.tv — username"
+msgstr "Streamuj.tv — uživatel"
+
+msgctxt "#30347"
+msgid "Streamuj.tv — password"
+msgstr "Streamuj.tv — heslo"
+
+msgctxt "#30348"
+msgid "Luna: Absolute Cinema"
+msgstr "Luna: Absolute Cinema"
+
+msgctxt "#30349"
+msgid "Do you have a Luna: Absolute Cinema server running on your network?"
+msgstr "Máš v síti spuštěný server Luna: Absolute Cinema?"
+
+msgctxt "#30350"
+msgid "Add-on address or token from setup"
+msgstr "Adresa doplňku nebo token ze setu Luny"
+
+msgctxt "#30351"
+msgid "HellSpy"
+msgstr "HellSpy"
+
+msgctxt "#30352"
+msgid "Enable HellSpy? It's free and needs no account."
+msgstr "Zapnout HellSpy? Je zdarma a nepotřebuje žádný účet."
+
+msgctxt "#30353"
+msgid "Own movie/series database"
+msgstr "Vlastní databáze filmů a seriálů"
+
+msgctxt "#30354"
+msgid "Do you want to enter a free TMDB key so descriptions and cast are in Czech? (optional)"
+msgstr "Chceš zadat zdarma klíč TMDB, aby popisy a obsazení filmů byly česky? (nepovinné)"
+
+msgctxt "#30355"
+msgid "Get a free key at themoviedb.org"
+msgstr "Klíč se zakládá zdarma na themoviedb.org -> ikona profilu -> Nastavení -> API -> Request an API Key -> Developer -> zkopírovat "API Key (v3 auth)".
+Podrobný návod je i v nápovědě u tohoto nastavení."
+
+msgctxt "#30356"
+msgid "TMDB API key"
+msgstr "API klíč TMDB"
+
+msgctxt "#30357"
+msgid "Settings saved"
+msgstr "Nastavení uloženo"
+
+msgctxt "#30358"
+msgid "Done! You can change any of this later in the add-on settings."
+msgstr "Hotovo! Cokoli z tohohle můžeš kdykoli změnit v Nastavení doplňku.
+Bez zadaného zdroje budou katalog a hledání fungovat i tak, jen anglicky."
+
+msgctxt "#30359"
+msgid "Run setup wizard"
+msgstr "Průvodce nastavením"

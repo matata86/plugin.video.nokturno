@@ -438,6 +438,14 @@
     </category>
     <category id="advanced" label="30105" help="30329">
       <group id="1">
+        <setting id="wizard_action" type="action" label="30359">
+          <level>0</level>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=setup_wizard)</data>
+          <control format="action" type="button"/>
+        </setting>
         <setting id="clear_cache_action" type="action" label="30106">
           <level>0</level>
           <constraints>

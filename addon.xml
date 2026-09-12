@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="2.0.9" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="2.0.12" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -21,7 +21,10 @@
       <icon>resources/media/icon.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>2.0.9 – Cache API se teď po každé aktualizaci doplňku sama smaže, ať se staré odpovědi nezdrží až do vypršení
+    <news>2.0.12 – Průvodce prvním nastavením – při prvním otevření doplněk sám provede vyplněním zdrojů (WebShare, Sosáč, Luna, HellSpy, TMDB); kdykoli znovu spustitelný z Nastavení → Pokročilé
+2.0.11 – Tlačítko „Zkusit fulltext na WebShare/HellSpy“ u seznamu streamů – uvolněné hledání pro případ, že přísný filtr skutečnou shodu zahodil jako podobný, ale jiný titul
+2.0.10 – Oprava: fulltextové hledání (WebShare/HellSpy) mohlo nabídnout úplně jiný titul, jehož název náhodou obsahoval stejná slova (např. idiom „Seber si svých pět švestek“ místo filmu „Pět švestek“)
+2.0.9 – Cache API se teď po každé aktualizaci doplňku sama smaže, ať se staré odpovědi nezdrží až do vypršení
 2.0.8 – TMDB (má-li uživatel klíč) má teď přednost i před Lunou v katalogu a hledání, s pádem zpátky na Lunu/Sosáč/Cinemetu, když zrovna nejde
 2.0.7 – Historie hledání zkrácena na posledních 10 dotazů (dřív 30)
 2.0.6 – Vlastní klíč TMDB v nastavení (zdarma, návod přímo v nápovědě) – bez Luny teď jde mít i popis a obsazení titulu česky, ne jen název
