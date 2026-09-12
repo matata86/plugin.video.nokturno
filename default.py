@@ -77,7 +77,6 @@ GENRES_CS = {
     "Sport": "Sportovní", "Thriller": "Thriller", "War": "Válečný", "Western": "Western",
 }
 PLAYING_PROP = "nokturno.playing"
-VIEWED_PROP = "nokturno.viewed"   # služba si odsud bere „u titulu se zobrazily streamy“ pro statistiky
 SYNC_PROP = "nokturno.sync"      # plugin → služba: synchronizuj hned, ne až za pět minut
 USED_PROP = "nokturno.used"    # služba si odsud bere „doplněk byl otevřen“ pro statistiky
 PREF_LANGS = ("", "CZ", "SK", "EN")
@@ -1102,41 +1101,57 @@ SOURCE_GROUP = {"main": "Luna", "search": "WebShare", "ws": "WebShare",
                 "sosac": "Sosáč", "hs": "HellSpy"}
 
 
+def stream_tracks(s):
+    """Zvukové stopy streamu jako (jazyk, kanály, kodek) DOHROMADY za stopu —
+    aby šlo filtrovat kombinaci (např. CZ 5.1), a ne párovat jazyk a kanály
+    nezávisle přes různé stopy (CZ 2.0 + EN 5.1 by jinak filtru „CZ a 5.1"
+    vyhovělo taky, i když žádná stopa ve skutečnosti CZ 5.1 není).
+
+    Kodek zná jen stream, u kterého se přečetla hlavička souboru (`_tracks`) —
+    zdroje samy o kodeku nic neříkají, proto ho ostatní stopy mají `None`.
+    """
+    tracks = s.get("_tracks") or []
+    if tracks:
+        return [{"lang": t.get("lang"), "channels": t.get("channels"), "codec": t.get("codec")} for t in tracks]
+    raw = s["label"]
+    for junk in ("(WS)", "Sosáč"):
+        raw = raw.replace(junk, "")
+    raw = raw.strip()
+    channels = s.get("channels") or {}
+    langs = set(s.get("langs") or []) | langs_from_name(raw)
+    return [{"lang": code, "channels": (f"{channels[code]:.1f}" if code in channels else None), "codec": None}
+            for code in langs] or [{"lang": None, "channels": None, "codec": None}]
+
+
 def stream_facets(s):
     """Kvalita, zvuk (jazyk/kanály/kodek), titulky a zdroj — přesně to, co vidí
     uživatel v `stream_label`, jen bez barev a řádkování. Používá to i filtr
     streamů, aby nabízel a pároval přesně to, co je v řádku vidět.
-
-    Kodek zná jen stream, u kterého se přečetla hlavička souboru (`_tracks`) —
-    zdroje samy o kodeku nic neříkají, proto se u ostatních prostě nenabídne.
     """
     parse_stream(s)
     raw = s["label"]
     for junk in ("(WS)", "Sosáč"):
         raw = raw.replace(junk, "")
     raw = raw.strip()
-    tracks = s.get("_tracks") or []
-    if tracks:
-        langs = {t.get("lang") for t in tracks if t.get("lang")}
-        channels = {t.get("channels") for t in tracks if t.get("channels")}
-        codecs = {t.get("codec") for t in tracks if t.get("codec")}
-    else:
-        langs = set(s.get("langs") or []) | langs_from_name(raw)
-        channels = {f"{v:.1f}" for v in (s.get("channels") or {}).values()}
-        codecs = set()
+    tracks = stream_tracks(s)
     subs = set(s.get("subs") or []) | subs_from_name(raw)
     return {
         "quality_rank": s.get("quality_rank") or 0,
-        "langs": langs,
-        "channels": channels,
-        "codecs": codecs,
+        "langs": {t["lang"] for t in tracks if t["lang"]},
+        "channels": {t["channels"] for t in tracks if t["channels"]},
+        "codecs": {t["codec"] for t in tracks if t["codec"]},
         "subs": subs,
         "source": SOURCE_GROUP.get(s.get("source"), s.get("source") or ""),
+        "tracks": tracks,
     }
 
 
 def apply_stream_filter(streams, fq="", flang="", fch="", fcodec="", fsub="", fsrc=""):
-    """Streamy, které vyhovují filtru z `streams_filter`. Prázdný filtr = beze změny."""
+    """Streamy, které vyhovují filtru z `streams_filter`. Prázdný filtr = beze změny.
+
+    Jazyk, kanály a kodek se ověřují na téže stopě (viz `stream_tracks`) — stream
+    projde, jen když aspoň jedna jeho stopa vyhovuje všem třem najednou.
+    """
     want_q = {x for x in fq.split(",") if x}
     want_lang = {x for x in flang.split(",") if x}
     want_ch = {x for x in fch.split(",") if x}
@@ -1150,15 +1165,16 @@ def apply_stream_filter(streams, fq="", flang="", fch="", fcodec="", fsub="", fs
         f = stream_facets(st)
         if want_q and str(f["quality_rank"]) not in want_q:
             continue
-        if want_lang and not (f["langs"] & want_lang):
-            continue
-        if want_ch and not (f["channels"] & want_ch):
-            continue
-        if want_codec and not (f["codecs"] & want_codec):
-            continue
         if want_sub and not (f["subs"] & want_sub):
             continue
         if want_src and f["source"] not in want_src:
+            continue
+        if (want_lang or want_ch or want_codec) and not any(
+            (not want_lang or t["lang"] in want_lang)
+            and (not want_ch or t["channels"] in want_ch)
+            and (not want_codec or t["codec"] in want_codec)
+            for t in f["tracks"]
+        ):
             continue
         out.append(st)
     return out
@@ -1221,6 +1237,11 @@ def streams_filter(apis, ctype, item_id, series_id, alt, fq, flang, fch, fcodec,
     for i in chosen:
         kind, val = kinds[i]
         new[kind].append(val)
+    if any(new.values()):
+        # zapamatovat jen skutečný filtr, ne jeho úplné zrušení — viz "Použít
+        # poslední filtr" v list_streams. Soubor je v profilu tohohle Kodi,
+        # takže si ho každá instalace pamatuje sama za sebe.
+        STORE.set_last_stream_filter(new)
     list_streams(apis, ctype, item_id, series_id, alt, fq=",".join(new["q"]), flang=",".join(new["lang"]),
                 fch=",".join(new["ch"]), fcodec=",".join(new["codec"]),
                 fsub=",".join(new["sub"]), fsrc=",".join(new["src"]))
@@ -1306,15 +1327,6 @@ def stream_label(s):
 
 def mark_playing(key, title="", year=None, kind="movie"):
     xbmcgui.Window(10000).setProperty(PLAYING_PROP, json.dumps(
-        {"id": key, "title": title, "year": year, "kind": kind}))
-
-
-def mark_viewed(key, title="", year=None, kind="movie"):
-    """Titul, u kterého se právě zobrazily streamy — nezávisle na tom, jestli si
-    uživatel nějaký pustí. Vypovídá o zájmu líp než počítání přehrání: spousta
-    streamů nejde přehrát vůbec (mrtvý odkaz, region, žádná titulková stopa)
-    a to není chyba diváka."""
-    xbmcgui.Window(10000).setProperty(VIEWED_PROP, json.dumps(
         {"id": key, "title": title, "year": year, "kind": kind}))
 
 
@@ -1679,7 +1691,7 @@ def main_menu(apis):
     fresh = unseen_changelog()
     if fresh:
         folder_item(f"{L(30192, 'Novinky ve verzi')} {fresh[0][0]}",
-                    build_url(action="whats_new"), icon="DefaultAddonsUpdates.png")
+                    build_url(action="whats_new"), icon="DefaultAddonRepository.png")
     # vlastní ikony místo jedné a té samé ikony doplňku u každé položky — jména
     # standardní sady Kodi (dodává je aktivní skin, žádný soubor navíc v doplňku)
     if STORE.in_progress() or STORE.recently_watched(1):
@@ -1711,11 +1723,11 @@ def main_menu(apis):
     folder_item(L(30060), build_url(action="favourites"), icon="DefaultFavourites.png")
     folder_item(L(30064), build_url(action="recent"), icon="DefaultRecentlyAddedMovies.png")
     if setting("download_dir"):
-        folder_item(L(30071), build_url(action="downloads"), icon="DefaultNetwork.png")
-    folder_item(L(30106), build_url(action="clear_cache"), icon="DefaultAddonsUpdates.png")
+        folder_item(L(30071), build_url(action="downloads"), icon="DefaultHardDisk.png")
+    folder_item(L(30106), build_url(action="clear_cache"), icon="DefaultVideoDeleted.png")
     if sync_settings():
         folder_item(L(30190, "Staženo v HA"), build_url(action="ha_files"), icon="DefaultNetwork.png")
-        folder_item(L(30184, "Synchronizovat teď"), build_url(action="sync_now"), icon="DefaultAddonService.png")
+        folder_item(L(30184, "Synchronizovat teď"), build_url(action="sync_now"), icon="DefaultAddonsUpdates.png")
     xbmcplugin.endOfDirectory(HANDLE)
 
 
@@ -1800,7 +1812,7 @@ def search_menu(kind):
         folder_item(q, build_url(action="search_run", type=kind, q=q), icon="DefaultAddonsSearch.png",
                     context=[(L(30042), runplugin(action="history_remove", type=kind, q=q))])
     if history:
-        folder_item(L(30041), build_url(action="history_clear", type=kind), icon="DefaultAddonsUpdates.png")
+        folder_item(L(30041), build_url(action="history_clear", type=kind), icon="DefaultVideoDeleted.png")
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
@@ -2121,6 +2133,22 @@ def toggle_watched(key):
     xbmc.executebuiltin("Container.Refresh")
 
 
+def remove_progress(key):
+    """Odebrání z Pokračovat ve sledování — vynuluje rozkoukanost (`resume`/`total`),
+    ne zhlédnutí. Nový `ts` (nastaví ho `set_resume`) je to, co odebrání přenese
+    i na ostatní synchronizovaná Kodi — bez novějšího času by ho starší rozkoukaný
+    záznam odjinud zase přepsal zpátky (viz sync.py, vyhrává vždy novější).
+
+    Volá se z kontextového menu (RunPlugin), ale i z integrace pro Home Assistant
+    přes `Files.GetDirectory` (`ExecuteAddon` neumí RunPlugin akce spustit) — proto
+    `succeeded=False` jako u „Vymazat mezipaměť": bez něj by na tenhle typ volání
+    Kodi čekalo na výpis složky, který nikdy nepřijde."""
+    STORE.set_resume(key, 0, 0)
+    request_sync()
+    xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
+    xbmc.executebuiltin("Container.Refresh")
+
+
 def toggle_fav(apis, key, ctype, series_id=None, alt=None):
     info = STORE.item(key)
     if not info and not str(key).startswith("ws:"):
@@ -2186,7 +2214,8 @@ def list_continue(apis):
     for key, _entry in STORE.in_progress():
         snap = STORE.item(key)
         if snap:
-            add_snapshot_item(key, snap)
+            add_snapshot_item(key, snap, [(L(30365, "Odebrat z Pokračovat ve sledování"),
+                                          runplugin(action="remove_progress", id=key))])
     seen_series = set()
     for key, _entry in STORE.recently_watched(40):
         snap = STORE.item(key)
@@ -2320,20 +2349,38 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None, fq="", flang=""
     # mezikrok — kolize je tam mnohem méně nápadná než přímo s hledáním.
     xbmcplugin.setContent(HANDLE, "episodes")
     title = (video or {}).get("title") or display_name(meta)
-    year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
-    # do statistik jde titul bez roku — ten se posílá zvlášť polem `year`,
-    # display_name() ho baká přímo do řetězce a v dashboardu by se zdvojil
-    stats_title = (video or {}).get("title") or bare_title(meta)
-    mark_viewed(item_id, stats_title, year if year.isdigit() else None, "series" if video else ctype)
     if len(streams) > 1:
         active = bool(fq or flang or fch or fcodec or fsub or fsrc)
         # počet vždy — beze filtru aspoň řekne, z kolika streamů se vybírá,
         # s filtrem navíc kolik z nich filtru vyhovělo
         count = f"({len(filtered)}/{len(streams)})" if active else f"({len(streams)})"
         label = f"{L(30213, 'Filtr streamů')}  {count}"
+        # aktivní filtr = zaškrtávací seznam kritérií, ne kolečko aktualizace —
+        # to bylo matoucí, protože stejnou ikonu měly i „Vymazat mezipaměť"
+        # a „Vymazat historii" (úplně jiná akce, teď mají křížek)
         folder_item(label, build_url(action="streams_filter", type=ctype, id=item_id, series=series_id, alt=alt,
                                      fq=fq, flang=flang, fch=fch, fcodec=fcodec, fsub=fsub, fsrc=fsrc),
-                   icon="DefaultAddonsUpdates.png" if active else "DefaultAddonsSearch.png")
+                   icon="DefaultPlaylist.png" if active else "DefaultAddonsSearch.png")
+        if active:
+            folder_item(L(30363, "Zrušit filtr"),
+                       build_url(action="streams", type=ctype, id=item_id, series=series_id, alt=alt,
+                                 fulltext=fulltext),
+                       icon="DefaultVideoDeleted.png")
+        last = STORE.last_stream_filter()
+        last_f = {k: ",".join(last.get(k) or []) for k in ("q", "lang", "ch", "codec", "sub", "src")}
+        if any(last_f.values()) and (last_f["q"], last_f["lang"], last_f["ch"], last_f["codec"], last_f["sub"],
+                                     last_f["src"]) != (fq, flang, fch, fcodec, fsub, fsrc):
+            last_count = len(apply_stream_filter(streams, **{
+                "fq": last_f["q"], "flang": last_f["lang"], "fch": last_f["ch"],
+                "fcodec": last_f["codec"], "fsub": last_f["sub"], "fsrc": last_f["src"]}))
+            # 0 shodných streamů by bylo jen matoucí tlačítko do prázdna — radši ho vůbec nenabízet
+            if last_count:
+                # hvězda jako u Můj seznam — „tvoje obvyklá volba", ne další lupa
+                folder_item(f"{L(30364, 'Použít poslední filtr')}  ({last_count})",
+                           build_url(action="streams", type=ctype, id=item_id, series=series_id, alt=alt,
+                                     fulltext=fulltext, fq=last_f["q"], flang=last_f["lang"], fch=last_f["ch"],
+                                     fcodec=last_f["codec"], fsub=last_f["sub"], fsrc=last_f["src"]),
+                           icon="DefaultFavourites.png")
     for s in filtered:
         li = xbmcgui.ListItem(label=stream_label(s))
         li.setArt(art_for(meta, video))
@@ -2447,7 +2494,7 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
         li.setSubtitles(subtitles)
     STORE.remember_item(item_id, snapshot(meta, ctype, video, series_id, alt))
     year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
-    # do statistik titul bez roku, viz komentář u mark_viewed v list_streams
+    # bez roku – ten se posílá zvlášť polem `year`, display_name() by ho zdvojil
     stats_title = (video or {}).get("title") or bare_title(meta)
     mark_playing(item_id, stats_title, year if year.isdigit() else None, "series" if video else ctype)
     xbmcplugin.setResolvedUrl(HANDLE, True, li)
@@ -2654,6 +2701,7 @@ def router(query):
         "history_remove": lambda: history_remove(p["type"], p.get("q", "")),
         "history_clear": lambda: history_clear(p["type"]),
         "toggle_watched": lambda: toggle_watched(p["id"]),
+        "remove_progress": lambda: remove_progress(p["id"]),
         "search": lambda: search_menu(p["type"]),
         "favourites": list_favourites,
         "recent": list_recent,

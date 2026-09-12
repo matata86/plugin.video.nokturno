@@ -929,3 +929,7 @@ msgstr "Zrušit filtr"
 msgctxt "#30364"
 msgid "Apply last filter"
 msgstr "Použít poslední filtr"
+
+msgctxt "#30365"
+msgid "Remove from Continue watching"
+msgstr "Odebrat z Pokračovat ve sledování"

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Vánoční varianta ikony doplňku — čepice na „N", sníh, mrazivé nebe.
 
-Vychází z `resources/media/icon.png`, nepřekresluje ji: identita (zlaté N z filmového
+Vychází z `resources/media/icon2.png`, nepřekresluje ji: identita (zlaté N z filmového
 pásu a měsíc) musí zůstat, jinak lidem v seznamu doplňků zmizí to, co znají.
 
     python3 tools/make_xmas_icon.py            # → resources/media/icon-vanoce.png
-    python3 tools/make_xmas_icon.py --apply    # rovnou i jako resources/media/icon.png
+    python3 tools/make_xmas_icon.py --apply    # rovnou i jako resources/media/icon2.png
 
 Kreslí se ve čtyřnásobku a pak zmenšuje, protože PIL nemá vyhlazování hran.
 """
@@ -16,7 +16,7 @@ import random
 from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SRC = os.path.join(ROOT, "resources", "media", "icon.png")
+SRC = os.path.join(ROOT, "resources", "media", "icon2.png")
 OUT = os.path.join(ROOT, "resources", "media", "icon-vanoce.png")
 S = 4  # nadvzorkování
 
@@ -98,7 +98,7 @@ def build():
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--apply", action="store_true", help="uložit i jako resources/media/icon.png")
+    ap.add_argument("--apply", action="store_true", help="uložit i jako resources/media/icon2.png")
     args = ap.parse_args()
     icon = build()
     icon.save(OUT)

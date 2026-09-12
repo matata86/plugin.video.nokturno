@@ -929,3 +929,7 @@ msgstr ""
 msgctxt "#30364"
 msgid "Apply last filter"
 msgstr ""
+
+msgctxt "#30365"
+msgid "Remove from Continue watching"
+msgstr ""
