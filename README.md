@@ -4,7 +4,7 @@
 
 [![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/matata86)
 
-Video doplněk pro Kodi (19+ / Python 3, testováno na Kodi 21 Omega, CoreELEC). Čtyři rovnocenné zdroje, každý jde zapnout samostatně:
+Video doplněk pro Kodi (19+ / Python 3, testováno na Kodi 21 Omega, CoreELEC). Čtyři rovnocenné zdroje streamů, každý jde zapnout samostatně:
 
 | zdroj | co dává | co potřebuje |
 |---|---|---|
@@ -15,6 +15,17 @@ Video doplněk pro Kodi (19+ / Python 3, testováno na Kodi 21 Omega, CoreELEC).
 
 Přihlašovací údaje zůstávají v Kodi — doplněk je posílá jen službě, ke které patří (WebShare, Streamuj, Luna).
 
+### Vlastní databáze filmů a seriálů
+
+Katalog (*Filmy* / *Seriály*) a hledání titulů běžely dřív jen přes Lunu (nebo přihlášený Sosáč) — bez nich se dřív ani nezobrazily v menu. Teď se použije řetězec zdrojů metadat, v tomhle pořadí (každý se zkusí, jen když předchozí nic nevrátil):
+
+1. **TMDB** — jakmile má uživatel vlastní zdarma klíč (viz *Nastavení → Vlastní databáze filmů a seriálů* → nápověda s návodem), má přednost **i před Lunou** — umí česky i to, co Luna neřekne (popis, obsazení). Luna zůstává zdrojem streamů, ne metadat.
+2. **Luna** — bez TMDB klíče, když je dostupná (beze změny oproti dřívějšku)
+3. **Veřejný katalog Sosáče** — bez TMDB i Luny, bez účtu, české tituly a žánry, ale bez popisu
+4. **Cinemeta** — poslední záchrana, funguje vždy, ale jen anglicky
+
+Streamy samotné (WebShare/HellSpy/Luna) se pak hledají stejně jako dřív — vlastní databáze řeší jen "co je to za titul", ne odkud stream stáhnout.
+
 ## Co umí
 
 - **Hledat** napříč zapnutými zdroji — jeden dotaz pro filmy i seriály; volba typu se nabídne, jen když dotaz najde obojí. Stejný titul z více zdrojů jen jednou, zdroj je vidět až ve výběru streamu
@@ -24,7 +35,7 @@ Přihlašovací údaje zůstávají v Kodi — doplněk je posílá jen službě
 - **streamy z více zdrojů u jednoho titulu** — Luna, přímý fulltext WebShare, Sosáč i HellSpy se prohledají **souběžně** a stejný soubor nalezený víc cestami se ukáže jen jednou; u každého streamu je zdroj, kvalita (u souborů bez kvality v názvu odhad podle velikosti se značkou `~`), datový tok, délka, velikost a jazyky zvuku i titulků — zjištěné ze zdroje, nebo dočtené z hlavičky souboru a označené `~`, když jde jen o odhad. Řazení podle nastavení, nebo se pustí automaticky nejlepší
 - **Filtr streamů** přímo v seznamu — podle kvality, jazyka zvuku, počtu kanálů (5.1 a víc), kodeku, titulků i zdroje; nabízí jen to, co se v aktuálním seznamu skutečně vyskytuje, s počtem nalezeného v závorce
 - **Max. datový tok** místo pevné velikosti v GB — nastavení umí i změřit rychlost internetu a spočítat dovolený tok s 25% rezervou; skutečná velikost se pak dopočítá podle stopáže právě otevřeného titulu, ne podle jednoho čísla pro všechno
-- **Pokračovat ve sledování** (rozkoukané + další díl), **Můj seznam**, **Naposledy zhlédnuté**, historie hledání, zhlédnuto/rozkoukáno (i bez Kodi knihovny)
+- **Pokračovat ve sledování** (rozkoukané + další díl), **Můj seznam**, **Naposledy zhlédnuté**, historie hledání (posledních 10 dotazů), zhlédnuto/rozkoukáno (i bez Kodi knihovny)
 - **Zapamatovaný stream u seriálu** — jakmile si u seriálu jednou vybereš stream (zdroj, kvalitu, jazyk), další díly se pustí stejně bez ptaní; výběr se nabídne, jen když u dílu ta kombinace chybí
 - **Značka dalšího dílu** — v seznamu epizod je `»` u prvního nezhlédnutého dílu, který navazuje na poslední zhlédnutý
 - **Otestovat zdroje** — tlačítko v *Nastavení → Pokročilé* ověří Lunu, Sosáč i přihlášení k WebShare a řekne, co nefunguje, bez čekání na prázdný seznam streamů
@@ -41,7 +52,7 @@ Přihlašovací údaje zůstávají v Kodi — doplněk je posílá jen službě
 
 ## Předpoklady
 
-Aspoň jeden zdroj z tabulky výše — účet WebShare, účet Sosáče, nebo server Luna v LAN.
+Katalog a hledání titulů fungují i úplně bez nastavení (vlastní databáze, viz výš). Pro skutečné streamy je ale potřeba aspoň jeden zdroj z tabulky výše — účet WebShare, účet Sosáče, server Luna v LAN, nebo prostě zapnout HellSpy (veřejný, nic nepotřebuje).
 
 ## Instalace
 
@@ -80,6 +91,7 @@ Zapni, co máš — jeden, víc, nebo všechny čtyři:
 - **Sosáč** — jméno + heslo ke **Streamuj.tv** (přehrávač Sosáče). Katalogy a hledání jdou z veřejných JSON exportů `tv.sosac.to`, streamy ze `streamuj.tv` — stejně jako oficiální Kodi doplněk Sosáče. Starší režim přes Stremio doplněk Sosáče (`userId`) zůstává v nastavení jako záloha.
 - **Luna** — otevři setup stránku Luny (`http://IP-Luny:7126/setup`), zkopíruj **adresu doplňku** (`…/e1.XXXX/manifest.json`) a vlož ji do pole *Adresa doplňku nebo token*; adresa serveru se z ní vezme sama.
 - **HellSpy** — jen přepínač v nastavení, rozhraní je veřejné a účet nepotřebuje.
+- **Vlastní databáze filmů a seriálů (TMDB)** — nepovinné, ale s klíčem má přednost i před Lunou (viz výš): zdarma klíč z [themoviedb.org](https://www.themoviedb.org/signup) → ikona profilu → *Nastavení* → *API* → *Request an API Key* → *Developer* → krátký formulář → zkopíruj **API Key (v3 auth)** (ne delší "API Read Access Token") do *Nastavení → Vlastní databáze filmů a seriálů*. Bez klíče se použije Luna (je-li dostupná), jinak zdarma veřejný katalog Sosáče a Cinemeta, ale bez českého popisu.
 
 ## Struktura
 
@@ -87,6 +99,8 @@ Zapni, co máš — jeden, víc, nebo všechny čtyři:
 addon.xml
 default.py                    # router a obrazovky Kodi
 resources/lib/luna_api.py     # klient API Luny (bez závislosti na Kodi, jde spustit samostatně)
+resources/lib/cinemeta_api.py # vlastní databáze: Cinemeta (Stremio), poslední záchrana bez klíče/účtu
+resources/lib/tmdb_api.py     # vlastní databáze: TMDB s vlastním klíčem uživatele (česky, s popisem)
 resources/lib/sosac_direct.py # Sosáč napřímo: veřejné JSONy tv.sosac.to + streamy/titulky ze streamuj.tv
 resources/lib/sosac_api.py    # starší režim přes Stremio API Sosáče + párování názvů pro hledání napříč
 resources/lib/webshare_api.py # přímý klient WebShare API (login s md5crypt/sha1, hledání, odkaz)
