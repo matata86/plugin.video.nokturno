@@ -30,7 +30,8 @@ Streamy samotné (WebShare/HellSpy/Luna) se pak hledají stejně jako dřív —
 
 ## Co umí
 
-- **Průvodce prvním nastavením** — hned po instalaci doplněk sám provede vyplněním zdrojů (WebShare, Sosáč, Luna, HellSpy, TMDB klíč), ať není potřeba předem vědět, co a kde v nastavení hledat. Jde přeskočit a kdykoli znovu spustit z *Nastavení → Pokročilé*. Stávající instalace (aktualizace ze starší verze) se nabízet nezačne — pozná se podle už zapnutého zdroje.
+- **Průvodce prvním nastavením** — hned po instalaci doplněk sám provede vyplněním zdrojů (WebShare, Sosáč, Luna, HellSpy, TMDB klíč) i změřením rychlosti internetu pro nastavení datového toku, ať není potřeba předem vědět, co a kde v nastavení hledat. Jde přeskočit a kdykoli znovu spustit z *Nastavení → Pokročilé*. Stávající instalace (aktualizace ze starší verze) se nabízet nezačne — pozná se podle už zapnutého zdroje.
+- **Přesná hláška, když zdroj neodpoví** — jmenuje konkrétní zdroj (WebShare, Luna, Sosáč…), ne obecnou chybu; u vícezdrojového hledání jde o blokující dialog, ne mizící upozornění, takže se snadno nepřehlédne. Výsledky ze zbylých fungujících zdrojů se po potvrzení zobrazí normálně.
 - **Hledat** napříč zapnutými zdroji — jeden dotaz pro filmy i seriály; volba typu se nabídne, jen když dotaz najde obojí. Stejný titul z více zdrojů jen jednou, zdroj je vidět až ve výběru streamu
 - **rok v dotazu je filtr** — „Pět švestek 2026“ vrátí jen film z roku 2026; číslo, které patří k názvu („2012“, „Blade Runner 2049“), se jako rok nebere
 - **Hledat na WebShare** — soubory přímo z WebShare API (řazení: relevance / nejnovější / hodnocení / velikost)
