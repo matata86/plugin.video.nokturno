@@ -818,3 +818,103 @@ msgstr ""
 msgctxt "#30334"
 msgid "TMDB API key help"
 msgstr "Your own TMDB (themoviedb.org) key — search and the movie/series catalogue use it whenever Luna: Absolute Cinema isn't available (Luna has its own built-in TMDB connection). Without a key, the free public Sosáč catalogue and Cinemeta are used instead, but neither has a Czech description (Sosáč has none at all, Cinemeta is English-only). With a key, titles, descriptions, genres and cast will be in Czech even without Luna.\n\nGetting one is free: sign up at themoviedb.org → profile icon → Settings → API (left menu) → Request an API Key → Developer → short form (\"Nokturno\" is fine as the app name) → copy the \"API Key (v3 auth)\" (not the longer \"API Read Access Token\")."
+
+msgctxt "#30335"
+msgid "Try fulltext on WebShare/HellSpy"
+msgstr ""
+
+msgctxt "#30336"
+msgid "Vítej v Nokturnu"
+msgstr ""
+
+msgctxt "#30337"
+msgid "Let's set up your sources"
+msgstr ""
+
+msgctxt "#30338"
+msgid "Let's go"
+msgstr ""
+
+msgctxt "#30339"
+msgid "Skip"
+msgstr ""
+
+msgctxt "#30340"
+msgid "WebShare"
+msgstr ""
+
+msgctxt "#30341"
+msgid "Do you have a WebShare account?"
+msgstr ""
+
+msgctxt "#30342"
+msgid "WebShare — email"
+msgstr ""
+
+msgctxt "#30343"
+msgid "WebShare — password"
+msgstr ""
+
+msgctxt "#30344"
+msgid "Sosáč"
+msgstr ""
+
+msgctxt "#30345"
+msgid "Do you have a Streamuj.tv account (Sosáč player)?"
+msgstr ""
+
+msgctxt "#30346"
+msgid "Streamuj.tv — username"
+msgstr ""
+
+msgctxt "#30347"
+msgid "Streamuj.tv — password"
+msgstr ""
+
+msgctxt "#30348"
+msgid "Luna: Absolute Cinema"
+msgstr ""
+
+msgctxt "#30349"
+msgid "Do you have a Luna: Absolute Cinema server running on your network?"
+msgstr ""
+
+msgctxt "#30350"
+msgid "Add-on address or token from setup"
+msgstr ""
+
+msgctxt "#30351"
+msgid "HellSpy"
+msgstr ""
+
+msgctxt "#30352"
+msgid "Enable HellSpy? It's free and needs no account."
+msgstr ""
+
+msgctxt "#30353"
+msgid "Own movie/series database"
+msgstr ""
+
+msgctxt "#30354"
+msgid "Do you want to enter a free TMDB key so descriptions and cast are in Czech? (optional)"
+msgstr ""
+
+msgctxt "#30355"
+msgid "Get a free key at themoviedb.org"
+msgstr ""
+
+msgctxt "#30356"
+msgid "TMDB API key"
+msgstr ""
+
+msgctxt "#30357"
+msgid "Settings saved"
+msgstr ""
+
+msgctxt "#30358"
+msgid "Done! You can change any of this later in the add-on settings."
+msgstr ""
+
+msgctxt "#30359"
+msgid "Run setup wizard"
+msgstr ""
