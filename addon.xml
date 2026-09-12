@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="2.0.3" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="2.0.4" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -10,8 +10,8 @@
   <extension point="xbmc.addon.metadata">
     <summary lang="en_GB">Movies and series from WebShare, Sosáč, Luna: Absolute Cinema and HellSpy — one add-on, search across sources</summary>
     <summary lang="cs_CZ">Filmy a seriály z WebShare, Sosáče, Luny a HellSpy v jednom doplňku, hledání napříč</summary>
-    <description lang="en_GB">Four sources, each optional: WebShare directly (your account – file search and playback), Sosáč directly (its catalogues, series with episodes, Czech dubbing and subtitles – only a Streamuj.tv account), a Luna: Absolute Cinema server, reachable on your LAN or running locally on the same device (TMDB catalogues, WebShare streams with detected quality and languages), and HellSpy (public, no account needed). Search across sources, streams from several sources for one title with a quality/audio/subtitle filter, bitrate and length on every stream, continue watching, my list, downloads, Trakt, WebShare subscription tracking. Support the author: https://ko-fi.com/matata86</description>
-    <description lang="cs_CZ">Čtyři zdroje, každý volitelný: WebShare přímo (tvůj účet – hledání souborů a přehrávání), Sosáč napřímo (jeho katalogy, seriály s epizodami, český dabing a titulky – stačí účet Streamuj.tv), server Luna: Absolute Cinema, dostupný v LAN nebo běžící lokálně na stejném zařízení (TMDB katalogy, streamy z WebShare s rozpoznanou kvalitou a jazyky), a HellSpy (veřejný, bez účtu). Hledání napříč zdroji, streamy z více zdrojů u jednoho titulu s filtrem podle kvality/zvuku/titulků, datový tok a délka u každého streamu, pokračovat ve sledování, můj seznam, stahování, Trakt, sledování předplatného WebShare. Podpoř autora: https://ko-fi.com/matata86</description>
+    <description lang="en_GB">Four sources, each optional: WebShare directly (your account – file search and playback), Sosáč directly (its catalogues, series with episodes, Czech dubbing and subtitles – only a Streamuj.tv account), a Luna: Absolute Cinema server, reachable on your LAN or running locally on the same device (TMDB catalogues, WebShare streams with detected quality and languages), and HellSpy (public, no account needed). The movie/series catalogue and search always work, even with none of these configured, thanks to a built-in Cinemeta connection. Search across sources, streams from several sources for one title with a quality/audio/subtitle filter, bitrate and length on every stream, continue watching, my list, downloads, Trakt, WebShare subscription tracking. Support the author: https://ko-fi.com/matata86</description>
+    <description lang="cs_CZ">Čtyři zdroje, každý volitelný: WebShare přímo (tvůj účet – hledání souborů a přehrávání), Sosáč napřímo (jeho katalogy, seriály s epizodami, český dabing a titulky – stačí účet Streamuj.tv), server Luna: Absolute Cinema, dostupný v LAN nebo běžící lokálně na stejném zařízení (TMDB katalogy, streamy z WebShare s rozpoznanou kvalitou a jazyky), a HellSpy (veřejný, bez účtu). Katalog filmů a seriálů i hledání fungují vždy, i bez jediného nastaveného zdroje, díky vlastnímu napojení na Cinemetu. Hledání napříč zdroji, streamy z více zdrojů u jednoho titulu s filtrem podle kvality/zvuku/titulků, datový tok a délka u každého streamu, pokračovat ve sledování, můj seznam, stahování, Trakt, sledování předplatného WebShare. Podpoř autora: https://ko-fi.com/matata86</description>
     <platform>all</platform>
     <license>MIT</license>
     <source>https://github.com/matata86/plugin.video.nokturno</source>
@@ -21,7 +21,8 @@
       <icon>resources/media/icon.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>2.0.3 – Ukazatel průběhu při načítání streamů (dřív jen obecné točící se kolečko Kodi)
+    <news>2.0.4 – Vlastní napojení na databázi filmů a seriálů (Cinemeta) – katalog i hledání teď fungují i bez Luny a Sosáče, třeba jen s HellSpy
+2.0.3 – Ukazatel průběhu při načítání streamů (dřív jen obecné točící se kolečko Kodi)
 2.0.2 – Můj seznam přidaný ještě před verzí se synchronizací (1.7.0) se teď taky dosynchronizuje mezi Kodi
 2.0.2 – Sloučení duplicitních streamů z Lunina vlastního fulltextu WebShare, když se vrátí tentýž soubor víckrát
 2.0.1 – Hledat i na HellSpy je teď zapnuté ve výchozím nastavení (u nových instalací)
