@@ -7,7 +7,7 @@ Výsledek se ukládá do cache doplňku na 30 dní, takže seznam se zdrží jen
 """
 import json
 import urllib.request
-from concurrent.futures import ThreadPoolExecutor, wait
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError, as_completed
 
 CINEMETA = "https://v3-cinemeta.strem.io/meta/{ctype}/{imdb}.json"
 TTL = 30 * 86400
@@ -18,7 +18,7 @@ DEADLINE = 6.0  # s – déle seznam nezdržovat; zbytek se dotáhne na pozadí 
 FIELDS = ("description", "runtime", "director", "writer", "cast", "app_extras", "released", "country", "imdb_id",
           # veřejné exporty Sosáče mívají žánry jako syrové anglické tagy s velkými
           # a malými písmeny na hromádce (a občas i vyloženě smetí typu "html5") —
-          # Luna/Cinemeta dávají čistý, přeložitelný seznam, ten má vždy přednost
+          # Luna/Cinemeta/TMDB dávají čistý, přeložitelný seznam, ten má vždy přednost
           "genres")
 
 
@@ -113,23 +113,37 @@ def _lookup(luna, store, ctype, meta):
     return _fetch_title(luna, store, ctype, meta.get("_title") or meta.get("name"), year if year.isdigit() else "")
 
 
-def enrich(metas, luna=None, store=None, ctype="movie", deadline=DEADLINE):
-    """Doplní popis do metas (in-place). Vrátí počet doplněných položek."""
+def enrich(metas, luna=None, store=None, ctype="movie", deadline=DEADLINE, on_tick=None, on_count=None):
+    """Doplní popis do metas (in-place). Vrátí počet doplněných položek.
+
+    `on_count(n)` se zavolá jednou se skutečným počtem položek k dohledání (pro
+    přepočet ukazatele průběhu na reálná 100 %) a `on_tick()` po každé dokončené —
+    stejný vzor jako `_fill_audio()` v engine.py.
+    """
     todo = [m for m in metas if _needs(m)]
+    if on_count:
+        on_count(len(todo))
     if not todo:
         return 0
     pool = ThreadPoolExecutor(max_workers=WORKERS)
     futures = {pool.submit(_lookup, luna, store, ctype, m): m for m in todo}
-    done, _pending = wait(futures, timeout=deadline)
     filled = 0
-    for fut in done:
-        try:
-            extra = fut.result()
-        except Exception:  # noqa: BLE001
-            continue
-        if extra:
-            _apply(futures[fut], extra)
-            filled += 1
+    try:
+        # jako dřívější wait(timeout=deadline) — po timeoutu se přestane čekat,
+        # nedokončené doběhnou na pozadí a zapíšou se do cache; tady navíc tiká
+        # ukazatel průběhu po každé položce, která stihla doběhnout včas
+        for fut in as_completed(futures, timeout=deadline):
+            if on_tick:
+                on_tick()
+            try:
+                extra = fut.result()
+            except Exception:  # noqa: BLE001
+                continue
+            if extra:
+                _apply(futures[fut], extra)
+                filled += 1
+    except FuturesTimeoutError:
+        pass
     pool.shutdown(wait=False)  # nedokončené doběhnou na pozadí a zapíšou se do cache
     return filled
 
