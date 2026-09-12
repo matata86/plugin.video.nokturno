@@ -19,7 +19,7 @@ import time
 
 OLD_ADDON_ID = "plugin.video.luna"  # do 1.3.0 se doplněk jmenoval takhle
 DATA_FILES = ("history", "watched", "items", "favourites", "downloads", "trakt", "streampref", "favlog", "histlog")
-HISTORY_MAX = 30
+HISTORY_MAX = 10
 WATCHED_MAX = 5000
 ITEMS_MAX = 2000
 
