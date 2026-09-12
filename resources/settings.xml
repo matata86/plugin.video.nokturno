@@ -170,6 +170,19 @@
         </setting>
       </group>
     </category>
+    <category id="database" label="30332">
+      <group id="1">
+        <setting id="tmdb_api_key" type="string" label="30333" help="30334">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+          </control>
+        </setting>
+      </group>
+    </category>
     <category id="playback" label="30004">
       <group id="1">
         <setting id="stream_mode" type="integer" label="30005" help="30312">

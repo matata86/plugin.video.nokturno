@@ -806,3 +806,15 @@ msgstr ""
 msgctxt "#30331"
 msgid "Series (database)"
 msgstr ""
+
+msgctxt "#30332"
+msgid "Own movie/series database"
+msgstr ""
+
+msgctxt "#30333"
+msgid "TMDB API key"
+msgstr ""
+
+msgctxt "#30334"
+msgid "TMDB API key help"
+msgstr "Your own TMDB (themoviedb.org) key — search and the movie/series catalogue use it whenever Luna: Absolute Cinema isn't available (Luna has its own built-in TMDB connection). Without a key, the free public Sosáč catalogue and Cinemeta are used instead, but neither has a Czech description (Sosáč has none at all, Cinemeta is English-only). With a key, titles, descriptions, genres and cast will be in Czech even without Luna.\n\nGetting one is free: sign up at themoviedb.org → profile icon → Settings → API (left menu) → Request an API Key → Developer → short form (\"Nokturno\" is fine as the app name) → copy the \"API Key (v3 auth)\" (not the longer \"API Read Access Token\")."
