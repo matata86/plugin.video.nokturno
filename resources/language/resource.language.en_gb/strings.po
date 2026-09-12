@@ -407,13 +407,7 @@ msgctxt "#30107"
 msgid "Open settings"
 msgstr ""
 
-msgctxt "#30140"
-msgid "Support the author (Ko-fi):"
-msgstr ""
 
-msgctxt "#30141"
-msgid "https://ko-fi.com/matata86"
-msgstr ""
 
 msgctxt "#30131"
 msgid "Prefer surround sound (5.1 and up)"
@@ -791,9 +785,6 @@ msgctxt "#30328"
 msgid "Must match the sync key shown in the Nokturno integration's settings in Home Assistant."
 msgstr ""
 
-msgctxt "#30329"
-msgid "Support the author: https://ko-fi.com/matata86"
-msgstr ""
 
 msgctxt "#30238"
 msgid "Loading streams…"
@@ -929,4 +920,12 @@ msgstr ""
 
 msgctxt "#30362"
 msgid "Measure your internet speed now?"
+msgstr ""
+
+msgctxt "#30363"
+msgid "Clear filter"
+msgstr ""
+
+msgctxt "#30364"
+msgid "Apply last filter"
 msgstr ""

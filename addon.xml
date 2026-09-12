@@ -10,13 +10,12 @@
   <extension point="xbmc.addon.metadata">
     <summary lang="en_GB">Movies and series from WebShare, Sosáč, Luna: Absolute Cinema and HellSpy — one add-on, search across sources</summary>
     <summary lang="cs_CZ">Filmy a seriály z WebShare, Sosáče, Luny a HellSpy v jednom doplňku, hledání napříč</summary>
-    <description lang="en_GB">Four sources, each optional: WebShare directly (your account – file search and playback), Sosáč directly (its catalogues, series with episodes, Czech dubbing and subtitles – only a Streamuj.tv account), a Luna: Absolute Cinema server, reachable on your LAN or running locally on the same device (TMDB catalogues, WebShare streams with detected quality and languages), and HellSpy (public, no account needed). The movie/series catalogue and search always work, even with none of these configured, thanks to a built-in Cinemeta connection. Search across sources, streams from several sources for one title with a quality/audio/subtitle filter, bitrate and length on every stream, continue watching, my list, downloads, Trakt, WebShare subscription tracking. Support the author: https://ko-fi.com/matata86</description>
-    <description lang="cs_CZ">Čtyři zdroje, každý volitelný: WebShare přímo (tvůj účet – hledání souborů a přehrávání), Sosáč napřímo (jeho katalogy, seriály s epizodami, český dabing a titulky – stačí účet Streamuj.tv), server Luna: Absolute Cinema, dostupný v LAN nebo běžící lokálně na stejném zařízení (TMDB katalogy, streamy z WebShare s rozpoznanou kvalitou a jazyky), a HellSpy (veřejný, bez účtu). Katalog filmů a seriálů i hledání fungují vždy, i bez jediného nastaveného zdroje, díky vlastnímu napojení na Cinemetu. Hledání napříč zdroji, streamy z více zdrojů u jednoho titulu s filtrem podle kvality/zvuku/titulků, datový tok a délka u každého streamu, pokračovat ve sledování, můj seznam, stahování, Trakt, sledování předplatného WebShare. Podpoř autora: https://ko-fi.com/matata86</description>
+    <description lang="en_GB">Four sources, each optional: WebShare directly (your account – file search and playback), Sosáč directly (its catalogues, series with episodes, Czech dubbing and subtitles – only a Streamuj.tv account), a Luna: Absolute Cinema server, reachable on your LAN or running locally on the same device (TMDB catalogues, WebShare streams with detected quality and languages), and HellSpy (public, no account needed). The movie/series catalogue and search always work, even with none of these configured, thanks to a built-in Cinemeta connection. Search across sources, streams from several sources for one title with a quality/audio/subtitle filter, bitrate and length on every stream, continue watching, my list, downloads, Trakt, WebShare subscription tracking.</description>
+    <description lang="cs_CZ">Čtyři zdroje, každý volitelný: WebShare přímo (tvůj účet – hledání souborů a přehrávání), Sosáč napřímo (jeho katalogy, seriály s epizodami, český dabing a titulky – stačí účet Streamuj.tv), server Luna: Absolute Cinema, dostupný v LAN nebo běžící lokálně na stejném zařízení (TMDB katalogy, streamy z WebShare s rozpoznanou kvalitou a jazyky), a HellSpy (veřejný, bez účtu). Katalog filmů a seriálů i hledání fungují vždy, i bez jediného nastaveného zdroje, díky vlastnímu napojení na Cinemetu. Hledání napříč zdroji, streamy z více zdrojů u jednoho titulu s filtrem podle kvality/zvuku/titulků, datový tok a délka u každého streamu, pokračovat ve sledování, můj seznam, stahování, Trakt, sledování předplatného WebShare.</description>
     <platform>all</platform>
     <license>MIT</license>
     <source>https://github.com/matata86/plugin.video.nokturno</source>
     <website>https://github.com/matata86/plugin.video.nokturno</website>
-    <forum>https://ko-fi.com/matata86</forum>
     <assets>
       <icon>resources/media/icon.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
@@ -101,7 +100,7 @@
 1.5.2 – volba „Preferovat prostorový zvuk (5.1 a víc)“, kanály zvuku v popisku streamu
 1.5.1 – nové logo (monogram N), řazení podle kvality má přednost před jazykem
 1.5.0 – nové logo; seznam streamů: zdroj (Luna / WebShare / Sosáč), barevná kvalita, jazyky zvuku a titulků, velikost; štítek Sosáč jen ve smíšeném hledání
-1.4.1 – odkaz na podporu autora (Ko-fi) v popisu a nastavení
+1.4.1 – doplněný popis a nastavení
 1.4.0 – Sosáč napřímo: katalogy z tv.sosac.to a streamy ze streamuj.tv (stačí účet Streamuj, bez Stremia a bez loginu k Sosáči), CZ titulky ze streamuj
 1.3.3 – popisy a pořadí nastavení: WebShare, Sosáč, Luna jako rovnocenné zdroje
 1.3.2 – bez modálních dialogů při chybějícím nastavení (blokovaly Kodi při volání z widgetu)
