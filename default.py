@@ -2358,6 +2358,7 @@ def search_run(apis, kind, query, offset=0):
         series, _ = results["series"]
         if movies and series:
             xbmcplugin.setContent(HANDLE, "files")
+            add_storage_hits(apis, raw_query, errors)
             folder_item(f"{L(30012)} ({len(movies)})", build_url(action="search_run", type="movie", q=raw_query),
                        icon="DefaultMovies.png")
             folder_item(f"{L(30013)} ({len(series)})", build_url(action="search_run", type="series", q=raw_query),
@@ -2372,6 +2373,7 @@ def search_run(apis, kind, query, offset=0):
     # vždy přes search_source() — i po volbě z Filmy/Seriály; holý katalog výše
     # je z vlastní cache (_search_merge) skoro zadarmo, teprve tady se čeká na popisy
     merged, mixed = search_source(apis, ctype, query, want_year, errors)
+    add_storage_hits(apis, raw_query, errors)
     for meta, alt in merged:
         add_meta_item(meta, ctype, alt=alt, tag_source=mixed)
     # bez Luny (nebo když zrovna neodpovídá) nabídneme rovnou soubory z WebShare
@@ -2396,13 +2398,6 @@ def search_run(apis, kind, query, offset=0):
         if apis.get("hs"):
             folder_item(L(30197, "Hledat na HellSpy"), build_url(action="search_run", type="hs", q=query),
                        icon="DefaultAddonsSearch.png")
-    if apis.get("dav"):
-        # vlastní soubory nemusí sedět na žádný titul z katalogu (domácí video, vlastní
-        # pojmenování) — hledání v nich je levné, seznam je v paměti, tak se nabízí vždy
-        found = sum(api.search(query, limit=1)[1] for api in apis["dav"] if _storage_ok(api, errors))
-        if found:
-            folder_item(f"{L(30386, 'Hledat ve vlastním úložišti')} ({found})",
-                       build_url(action="search_run", type="dav", q=query), icon="DefaultHardDisk.png")
     for e in errors:
         log_error(e)
     if errors:
@@ -2445,6 +2440,35 @@ def list_hs_results(apis, query, offset=0):
         folder_item(L(30021), build_url(action="search_run", type="hs", q=query, offset=offset + len(files)),
                    icon="DefaultFolder.png")
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
+STORAGE_INLINE = 4   # do kolika nalezených souborů je ukázat rovnou, nad tím jen složka
+
+
+def add_storage_hits(apis, query, errors):
+    """Soubory z vlastního úložiště na začátek výsledků hledání.
+
+    Dřív byla odbočka „Hledat ve vlastním úložišti" až pod katalogem, a když dotaz
+    našel filmy i seriály, nebyla vidět vůbec — uživatel hledal „Bláznivá dovolená"
+    a vlastní soubor nenašel. Hledá se v zapamatovaném seznamu (bez sítě, kromě
+    značky změny), podle všech slov dotazu v cestě; rok z dotazu se nevyžaduje."""
+    storages = apis.get("dav") or []
+    if not storages:
+        return
+    words, _year = split_year(query)
+    rows = []
+    for api in storages:
+        if _storage_ok(api, errors):
+            rows += [(api, f) for f in api.search(words, limit=STORAGE_INLINE + 1)[0]]
+    if not rows:
+        return
+    if len(rows) <= STORAGE_INLINE:
+        for api, f in rows:
+            add_dav_file(api, f)
+        return
+    total = sum(api.search(words, limit=1)[1] for api in storages if _storage_ok(api, []))
+    folder_item(f"[COLOR {DAV_COLOR}]{L(30387, 'Moje úložiště')}[/COLOR] ({total})",
+                build_url(action="search_run", type="dav", q=words), icon="DefaultHardDisk.png")
 
 
 def _storage_ok(api, errors):
