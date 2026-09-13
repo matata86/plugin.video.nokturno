@@ -8,7 +8,8 @@ proto tu nejsou žádné závislosti na Kodi ani na HA — jen `Store`.
 Jeden výměnný krok je POST na `/api/nokturno/sync`:
 
     {"device": "Obývák", "since": <čas HA z minula>,
-     "changes": {"watched": {klíč: záznam}, "favlog": {klíč: {"on", "ts"}}, "items": {klíč: snímek}}}
+     "changes": {"watched": {klíč: záznam}, "favlog": {klíč: {"on", "ts"}}, "items": {klíč: snímek},
+                 "next_hidden": {seriál: {"ep", "ts"}}}}
 
 a odpověď má stejný tvar plus `"now"` (čas HA). `since` je vždy čas HA, ne
 místní — jinak by se rozešly hodiny dvou boxů. U každého titulu vyhrává novější
@@ -60,9 +61,12 @@ def collect_changes(store, since):
     watched = {k: v for k, v in store.reload("watched", {}).items() if _ts(v) >= since}
     favlog = {k: v for k, v in store.reload("favlog", {}).items() if _ts(v) >= since}
     histlog = {k: v for k, v in store.reload("histlog", {}).items() if _ts(v) >= since}
+    # skryté „Další díly“ — záznamy starých doplňků bez času (jen řetězec) se neposílají
+    next_hidden = {k: v for k, v in store.reload("next_hidden", {}).items()
+                   if isinstance(v, dict) and _ts(v) >= since}
     items = store.reload("items", {})
     keys = set(watched) | set(favlog)
-    return {"watched": watched, "favlog": favlog, "histlog": histlog,
+    return {"watched": watched, "favlog": favlog, "histlog": histlog, "next_hidden": next_hidden,
             "items": {k: items[k] for k in keys if k in items}}
 
 
@@ -109,6 +113,17 @@ def apply_changes(store, changes):
         if hist_dirty:
             store._trim(histlog, 500)
             store.save("histlog", histlog)
+
+        hidden = store.reload("next_hidden", {})
+        dirty = False
+        for key, rec in (changes.get("next_hidden") or {}).items():
+            current = hidden.get(key)
+            if isinstance(rec, dict) and rec.get("ep") and _ts(rec) > (_ts(current) if isinstance(current, dict) else 0):
+                hidden[key] = {"ep": str(rec["ep"]), "ts": _ts(rec)}
+                dirty = True
+                applied += 1
+        if dirty:
+            store.save("next_hidden", hidden)
 
         items = store.reload("items", {})
         dirty = False

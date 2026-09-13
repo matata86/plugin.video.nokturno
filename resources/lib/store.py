@@ -253,6 +253,24 @@ class Store:
             self._trim(data, WATCHED_MAX)
             self.save("watched", data)
 
+    # --- skrytý „Další díl“ -------------------------------------------------------
+    # {id seriálu: {"ep": id dílu, "ts": čas}} — synchronizuje se mezi Kodi a HA
+    # (viz sync.py), aby odebrání z Pokračovat ve sledování platilo i na Kodi,
+    # které bylo zrovna vypnuté. Starší doplňky ukládaly jen {seriál: díl}.
+
+    def hide_next(self, series_id, episode_id):
+        with self._lock:
+            data = self.load("next_hidden", {})
+            data[str(series_id)] = {"ep": str(episode_id), "ts": int(time.time())}
+            self.save("next_hidden", data)
+
+    def next_hidden(self, series_id):
+        """Id dílu, který uživatel u seriálu skryl, nebo prázdný řetězec."""
+        rec = self.load("next_hidden", {}).get(str(series_id))
+        if isinstance(rec, dict):
+            return str(rec.get("ep") or "")
+        return str(rec or "")
+
     def in_progress(self):
         """Rozkoukané: [(klíč, záznam)] od nejnovějšího."""
         with self._lock:

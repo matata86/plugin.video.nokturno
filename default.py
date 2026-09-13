@@ -2581,9 +2581,7 @@ def remove_progress(key, series=None):
         # takže vynulované resume ho nezmění a položka se hned vrátila (Hospoda 1x02
         # v kartě HA). Pamatuje se proto skrytý díl: jakmile se zhlédne další a na řadě
         # je jiný, nabídne se zase.
-        hidden = STORE.load("next_hidden", {})
-        hidden[str(series)] = key
-        STORE.save("next_hidden", hidden)
+        STORE.hide_next(series, key)   # synchronizuje se na ostatní Kodi a do HA
     request_sync()
     xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
     xbmc.executebuiltin("Container.Refresh")
@@ -2679,7 +2677,6 @@ def list_continue(apis):
             add_snapshot_item(key, snap, [(L(30365, "Odebrat z Pokračovat ve sledování"),
                                           runplugin(action="remove_progress", id=key))])
     seen_series = set()
-    hidden = STORE.load("next_hidden", {})
     for key, _entry in STORE.recently_watched(40):
         snap = STORE.item(key)
         if not snap or snap.get("season") is None or snap.get("series") in seen_series:
@@ -2690,7 +2687,7 @@ def list_continue(apis):
             continue
         video, meta = found
         ep_id = video.get("id") or f"{snap['series']}:{video.get('season')}:{video.get('episode')}"
-        if STORE.playcount(ep_id) or hidden.get(str(snap["series"])) == ep_id:
+        if STORE.playcount(ep_id) or STORE.next_hidden(snap["series"]) == ep_id:
             continue
         li = xbmcgui.ListItem(label=f"{L(30067)}: {meta.get('_title') or meta.get('name')} – "
                                     f"{int(video.get('season') or 0)}x{int(video.get('episode') or 0):02d} {video.get('title') or ''}")
