@@ -1021,3 +1021,7 @@ msgstr ""
 msgctxt "#30386"
 msgid "Search own storage"
 msgstr ""
+
+msgctxt "#30387"
+msgid "My storage"
+msgstr ""

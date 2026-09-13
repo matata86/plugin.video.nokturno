@@ -1021,3 +1021,7 @@ msgstr "Ukáže se u streamů z tohohle úložiště, třeba NAS. Prázdné = jm
 msgctxt "#30386"
 msgid "Search own storage"
 msgstr "Hledat ve vlastním úložišti"
+
+msgctxt "#30387"
+msgid "My storage"
+msgstr "Moje úložiště"

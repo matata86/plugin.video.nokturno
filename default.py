@@ -2051,6 +2051,8 @@ def main_menu(apis):
                    icon="DefaultMovies.png")
         folder_item(L(30331, "Seriály (databáze)"), build_url(action="catalogs", type="series", src=db_src),
                    icon="DefaultTVShows.png")
+    if apis.get("dav"):
+        folder_item(L(30387, "Moje úložiště"), build_url(action="dav_browse"), icon="DefaultHardDisk.png")
     folder_item(L(30060), build_url(action="favourites"), icon="DefaultFavourites.png")
     folder_item(L(30064), build_url(action="recent"), icon="DefaultRecentlyAddedMovies.png")
     if setting("download_dir"):
@@ -2453,6 +2455,46 @@ def _storage_ok(api, errors):
     except StorageError as e:
         errors.append(SourceFailure(api.name, e))
         return False
+
+
+def list_dav_browse(apis, slot=0, path=""):
+    """Moje úložiště — procházení po složkách.
+
+    Složky se neptají serveru po jedné: strom se skládá ze zapamatovaného seznamu
+    souborů (`StorageApi.files`), takže přechod do podsložky je okamžitý. Ukazují se
+    jen složky, ve kterých je aspoň jedno video — prázdné by jen překážely. Při víc
+    nastavených úložištích se napřed vybírá úložiště."""
+    storages = apis.get("dav") or []
+    if not storages:
+        raise StorageError(L(30104))
+    if not slot and len(storages) > 1:
+        for api in storages:
+            folder_item(api.name, build_url(action="dav_browse", slot=api.slot), icon="DefaultHardDisk.png")
+        xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+        return
+    api = next((s for s in storages if s.slot == slot), storages[0])
+    prefix = f"{path.strip('/')}/" if path.strip("/") else ""
+    folders, files = {}, []
+    for f in api.files():
+        if not f["path"].startswith(prefix):
+            continue
+        rest = f["path"][len(prefix):]
+        if "/" in rest:
+            name = rest.split("/", 1)[0]
+            folders[name] = folders.get(name, 0) + 1
+        else:
+            files.append(f)
+    for name in sorted(folders, key=str.casefold):
+        count = folders[name]
+        folder_item(f"{name}  [COLOR FF9A9A9A]{count}[/COLOR]",
+                    build_url(action="dav_browse", slot=api.slot, path=prefix + name), icon="DefaultFolder.png")
+    if files:
+        xbmcplugin.setContent(HANDLE, "movies")
+    for f in sorted(files, key=lambda f: f["name"].casefold()):
+        add_dav_file(api, f)
+    if not folders and not files:
+        notify(L(30102))
+    xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
 def list_dav_results(apis, query, offset=0):
@@ -3190,6 +3232,8 @@ def router(query):
             play_ws(apis, p["ident"], p.get("name", ""))
         elif action == "play_hs":
             play_hs(apis, p["id"], p["hash"], p.get("name", ""))
+        elif action == "dav_browse":
+            list_dav_browse(apis, int(p.get("slot") or 0), p.get("path", ""))
         elif action == "play_dav":
             play_dav(apis, int(p.get("slot") or 0), p.get("path", ""), p.get("name", ""))
         elif action == "download":
