@@ -2360,7 +2360,7 @@ def _search_merge(apis, ctype, query, want_year, errors, tick=None):
             step()
         merged = filter_year(merge_results(luna_metas, sosac_metas), want_year)
         return merged, bool(luna_metas) and bool(sosac_metas)
-    key = f"search:{ctype}:{query.strip().lower()}:{want_year or ''}"
+    key = f"search2:{ctype}:{query.strip().lower()}:{want_year or ''}"
     return STORE.cached(key, SEARCH_TTL, load)
 
 
@@ -2377,7 +2377,7 @@ def search_source(apis, ctype, query, want_year, errors):
         # nemají ani ty z Cinemety, `enrich()` si sama vybere, co doopravdy chybí
         enrich([m for m, _alt in merged], apis["luna"], STORE, ctype)
         return merged, mixed
-    key = f"searchfull:{ctype}:{query.strip().lower()}:{want_year or ''}"
+    key = f"searchfull2:{ctype}:{query.strip().lower()}:{want_year or ''}"
     return STORE.cached(key, SEARCH_TTL, load)
 
 
