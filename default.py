@@ -11,6 +11,7 @@ Do profilu doplňku se ukládá historie hledání, zhlédnuto/rozkoukáno (zapi
 """
 import base64
 import json
+import logging
 import os
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -44,6 +45,18 @@ from webshare_api import SORTS, WebshareApi, WebshareError, human_size  # noqa: 
 
 ADDON = xbmcaddon.Addon()
 ADDON_ID = ADDON.getAddonInfo("id")
+
+
+class _KodiLogHandler(logging.Handler):
+    """Varování z knihovny (např. `store.py`: selhaný zápis souboru) do kodi.log —
+    bez toho by je Python jen tiše pustil na stderr, kam se v Kodi nikdo nedívá."""
+    def emit(self, record):
+        level = xbmc.LOGERROR if record.levelno >= logging.ERROR else xbmc.LOGWARNING
+        xbmc.log(f"[{ADDON_ID}/{record.name}] {self.format(record)}", level)
+
+
+logging.getLogger().addHandler(_KodiLogHandler())
+logging.getLogger().setLevel(logging.WARNING)
 HANDLE = int(sys.argv[1])
 BASE_URL = sys.argv[0]
 ICON = ADDON.getAddonInfo("icon")
@@ -161,7 +174,7 @@ def get_sosac():
     # ve veřejných exportech a k přehrání stačí Streamuj.
     su, sp = setting("streamuj_username").strip(), setting("streamuj_password").strip()
     if su and sp:
-        return SosacDirect(su, sp, cache=STORE, cache_ttl=CACHE_TTL, index_store=STORE)
+        return SosacDirect(su, sp, cache=STORE, cache_ttl=CACHE_TTL, index_store=STORE.index())
     return None
 
 
@@ -169,7 +182,7 @@ def get_sosac_db():
     """Veřejný katalog Sosáče (žádný účet, žádný přepínač) — vlastní databáze
     filmů a seriálů česky, funguje vždy. `apis["sosac"]` výš zůstává jen pro
     přihlášené přehrávání a stahování; katalog samotný účet nepotřebuje."""
-    return SosacDirect(cache=STORE, cache_ttl=CACHE_TTL, index_store=STORE)
+    return SosacDirect(cache=STORE, cache_ttl=CACHE_TTL, index_store=STORE.index())
 
 
 def resolve_url(apis, url):
@@ -2298,6 +2311,28 @@ def next_episode(apis, snap):
             return v, meta
 
 
+def recover_snapshot(apis, key):
+    """Snímek pro titul, který má záznam o rozkoukání, ale v `items.json` chybí.
+
+    Stávalo se to, když zápis snímku z přehrání přepsal jiný proces (rejstřík
+    Sosáče, do 2.0.22) — a bez snímku výpis položku tiše vynechal, takže titul
+    v Pokračovat ve sledování „nebyl". Dohledá se z meta a uloží, ať to příště
+    nestojí dotaz na síť. Soubory WebShare/HellSpy meta nemají, u těch není z čeho.
+    """
+    if key.startswith(("ws:", "hs:", "dl:")):
+        return None
+    base, season, _episode = split_episode_id(key)
+    ctype = "series" if season is not None else "movie"
+    try:
+        meta, video = load_meta(apis, ctype, key)
+        snap = snapshot(meta, ctype, video, base if video else None, None)
+    except Errors as e:
+        log_error(f"snímek {key}: {e}")
+        return None
+    STORE.remember_item(key, snap)
+    return snap
+
+
 def list_continue(apis):
     """Rozkoukané tituly + další díly po naposledy zhlédnutých epizodách."""
     # „videos" je obecný typ a skiny k němu nabízejí jen základní seznam;
@@ -2305,7 +2340,7 @@ def list_continue(apis):
     # pamatuje podle typu obsahu, takže tyhle seznamy sdílejí nastavení s Filmy.
     xbmcplugin.setContent(HANDLE, "movies")
     for key, _entry in STORE.in_progress():
-        snap = STORE.item(key)
+        snap = STORE.item(key) or recover_snapshot(apis, key)
         if snap:
             add_snapshot_item(key, snap, [(L(30365, "Odebrat z Pokračovat ve sledování"),
                                           runplugin(action="remove_progress", id=key))])

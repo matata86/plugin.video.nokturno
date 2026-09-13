@@ -3,6 +3,7 @@
 history.json     historie hledání {kind: [dotazy]}
 watched.json     {klíč: {"playcount", "resume", "total", "ts"}}
 items.json       snímky titulů podle klíče (název, plakát, typ, id…) pro Pokračovat / Můj seznam
+sosac_index.json snímky z rejstříku Sosáče (`idx:` klíče) — zvlášť, viz `Index`
 favourites.json  [klíče] – Můj seznam
 downloads.json   fronta stahování [{"id", "url", "name", "dest", "status", "done", "size", "error", "ts"}]
 trakt.json       tokeny Traktu
@@ -13,9 +14,12 @@ se mění), proto vlastní evidence.
 """
 import hashlib
 import json
+import logging
 import os
 import threading
 import time
+
+_LOGGER = logging.getLogger(__name__)
 
 OLD_ADDON_ID = "plugin.video.luna"  # do 1.3.0 se doplněk jmenoval takhle
 DATA_FILES = ("history", "watched", "items", "favourites", "downloads", "trakt", "streampref", "favlog", "histlog",
@@ -23,6 +27,8 @@ DATA_FILES = ("history", "watched", "items", "favourites", "downloads", "trakt",
 HISTORY_MAX = 10
 WATCHED_MAX = 5000
 ITEMS_MAX = 2000
+INDEX_MAX = 3000
+TMP_MAX_AGE = 3600   # s – starší rozepsané `*.tmp` po zabitém procesu se uklidí
 
 
 def migrate_profile(new_dir):
@@ -58,7 +64,15 @@ class Store:
         self.dir = directory
         os.makedirs(directory, exist_ok=True)
         os.makedirs(os.path.join(directory, "cache"), exist_ok=True)
+        # Soubory sdílí víc procesů najednou (doplněk v Kodi = nový proces na každý
+        # výpis, plus služba na pozadí). Načtený obsah se drží v paměti jen dokud se
+        # soubor na disku nezmění (`_sigs`: mtime + velikost) — jinak by zápis
+        # z procesu se starší kopií přepsal, co mezitím uložil jiný (přehrání
+        # uložilo snímek titulu, výpis katalogu ho vzápětí smazal).
         self._cache = {}
+        self._sigs = {}
+        self._index = None
+        self._clean_tmp()
         # Hledání pro film i seriál běží souběžně ve dvou vláknech (default.py
         # search_run) a obě sahají na tenhle jeden Store — bez zámku dvě vlákna
         # měnila stejný sdílený dict zároveň s tím, jak ho druhé zapisovalo
@@ -71,16 +85,35 @@ class Store:
     def _path(self, name):
         return os.path.join(self.dir, name + ".json")
 
+    def _sig(self, path):
+        try:
+            st = os.stat(path)
+            return (st.st_mtime_ns, st.st_size)
+        except OSError:
+            return None
+
+    def _clean_tmp(self):
+        try:
+            for name in os.listdir(self.dir):
+                path = os.path.join(self.dir, name)
+                if name.endswith(".tmp") and time.time() - os.path.getmtime(path) > TMP_MAX_AGE:
+                    os.remove(path)
+        except OSError:
+            pass
+
     def load(self, name, default):
         with self._lock:
-            if name in self._cache:
+            path = self._path(name)
+            sig = self._sig(path)
+            if name in self._cache and self._sigs.get(name) == sig:
                 return self._cache[name]
             try:
-                with open(self._path(name), encoding="utf-8") as f:
+                with open(path, encoding="utf-8") as f:
                     data = json.load(f)
             except (OSError, ValueError):
                 data = default
             self._cache[name] = data
+            self._sigs[name] = sig
             return data
 
     def _tmp(self, path):
@@ -98,17 +131,28 @@ class Store:
                 with open(tmp, "w", encoding="utf-8") as f:
                     json.dump(data, f, ensure_ascii=False)
                 os.replace(tmp, path)
-            except OSError:  # zápis cache není kritický, ať kvůli němu nepadne výpis
+                self._sigs[name] = self._sig(path)
+            except OSError as err:  # zápis není kritický, ať kvůli němu nepadne výpis — ale ať je vidět
+                _LOGGER.warning("zápis %s selhal: %s", path, err)
                 try:
                     os.remove(tmp)
                 except OSError:
                     pass
 
     def reload(self, name, default):
-        """Načte znovu z disku – když soubor mění i služba na pozadí."""
+        """Načte znovu z disku. `load` si změnu z jiného procesu pozná sám, tohle
+        zůstává pro volající, kteří to chtějí najisto (sync)."""
         with self._lock:
             self._cache.pop(name, None)
+            self._sigs.pop(name, None)
             return self.load(name, default)
+
+    def index(self):
+        """Rejstřík Sosáče nad vlastním souborem, viz `Index`."""
+        with self._lock:
+            if self._index is None:
+                self._index = Index(self)
+            return self._index
 
     # --- historie hledání -------------------------------------------------------
     def history(self, kind):
@@ -373,3 +417,52 @@ class Store:
                 os.remove(os.path.join(cdir, name))
             except OSError:
                 pass
+
+
+
+class Index:
+    """Snímky z rejstříku Sosáče (`idx:<id>`) ve vlastním souboru `sosac_index.json`.
+
+    Dřív šly do `items.json` vedle snímků pro Pokračovat / Můj seznam. Jenže rejstřík
+    zapisuje každý výpis katalogu Sosáče — stovky položek z procesu, který si soubor
+    načetl při svém startu. Jeho zápis pak přepsal snímek, který mezitím uložilo
+    přehrávání v jiném procesu, a rozkoukaný titul se v Pokračovat ve sledování
+    neukázal (Office 2026-09-13: 1168 z 1192 záznamů v items.json byl rejstřík,
+    „rozkoukáno tt38061210" bez snímku). Vlastní soubor drží `items.json` malý
+    a psaný jen z uživatelských akcí; staré `idx:` záznamy se odsud jednou odstěhují.
+    """
+
+    def __init__(self, store, name="sosac_index"):
+        self.store = store
+        self.name = name
+        self._migrate()
+
+    def _migrate(self):
+        with self.store._lock:
+            items = self.store.load("items", {})
+            old = [k for k in items if k.startswith("idx:")]
+            if not old:
+                return
+            data = self.store.load(self.name, {})
+            for k in old:
+                data.setdefault(k, items.pop(k))
+            self.store.save(self.name, data)
+            self.store.save("items", items)
+
+    def remember_item(self, key, info):
+        with self.store._lock:
+            data = self.store.load(self.name, {})
+            info = dict(info)
+            info["ts"] = int(time.time())
+            data[str(key)] = info
+            self.store._trim(data, INDEX_MAX)
+            self.store.save(self.name, data)
+
+    def item(self, key):
+        """`idx:` klíče z rejstříku; ostatní (snímek přehraného titulu, ze kterého
+        `SosacDirect.meta()` skládá meta neznámého filmu) z `items.json`."""
+        with self.store._lock:
+            snap = self.store.load(self.name, {}).get(str(key))
+            if snap is None and not str(key).startswith("idx:"):
+                snap = self.store.item(key)
+            return snap
