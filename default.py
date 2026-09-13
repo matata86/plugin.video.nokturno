@@ -1659,10 +1659,29 @@ def changelog_lines(since=None):
     return out
 
 
+def current_version():
+    """Verze z addon.xml na disku — ze stejného souboru, ze kterého se čte changelog.
+
+    `ADDON.getAddonInfo("version")` vrací verzi, kterou si Kodi načetlo při startu.
+    Když se addon.xml změní bez restartu (ruční nahrání na box), obě čísla se
+    rozejdou: „přečteno" se uložilo jako starší verze a řádek novější verze
+    v changelogu pořád prošel filtrem — položka „Novinky ve verzi" po zavření
+    nezmizela, dokud se Kodi nerestartovalo.
+    """
+    try:
+        import xml.etree.ElementTree as ET
+        version = ET.parse(os.path.join(ADDON_PATH, "addon.xml")).getroot().get("version")
+        if version:
+            return version
+    except Exception:  # noqa: BLE001 – bez addon.xml aspoň to, co ví Kodi
+        pass
+    return ADDON.getAddonInfo("version")
+
+
 def unseen_changelog():
     """Co uživatel po aktualizaci ještě neviděl. Při první instalaci nic —
     jinak by novinky vyskočily hned každému novému uživateli."""
-    version = ADDON.getAddonInfo("version")
+    version = current_version()
     seen = (STORE.load(SEEN, {}) or {}).get("version")
     if not seen:
         STORE.save(SEEN, {"version": version})
@@ -1683,7 +1702,7 @@ def whats_new():
             groups.append((v, [text]))
     body = "\n\n".join(f"[B]{v}[/B]\n" + "\n".join(f"• {t}" for t in texts) for v, texts in groups) \
         or L(30193, "Žádné novinky")
-    STORE.save(SEEN, {"version": ADDON.getAddonInfo("version")})
+    STORE.save(SEEN, {"version": current_version()})
     xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
     xbmcgui.Dialog().textviewer(L(30191, "Novinky"), body)
     xbmc.executebuiltin("Container.Refresh")
@@ -1739,7 +1758,9 @@ def main_menu(apis):
     if sync_settings():
         folder_item(L(30190, "Staženo v HA"), build_url(action="ha_files"), icon="DefaultNetwork.png")
         folder_item(L(30184, "Synchronizovat teď"), build_url(action="sync_now"), icon="DefaultAddonsUpdates.png")
-    xbmcplugin.endOfDirectory(HANDLE)
+    # bez cache na disk — položky se mění podle stavu (Novinky, Pokračovat), zpět do
+    # menu z podsložky by jinak Kodi ukázalo starý výpis i s už přečtenými Novinkami
+    xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
 def list_catalogs(apis, ctype, src):
