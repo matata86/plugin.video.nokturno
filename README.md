@@ -189,7 +189,7 @@ MIT
 
 ## Podpora
 
-Pomohlo ti to? Kafe autorovi udělá radost ☕
+[![Podpoř Nokturno — Ko-fi, PayPal, Bitcoin](.github/podpora.png)](https://ko-fi.com/matata86)
 
 - **Ko-fi:** https://ko-fi.com/matata86
 - **PayPal:** https://paypal.me/matata86

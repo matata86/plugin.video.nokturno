@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Značka Nokturna — ikona doplňku, ikona repozitáře a fanart.
 
-    python3 tools/make_icon.py
+    python3 tools/make_icon.py            # ikony a fanart
+    python3 tools/make_icon.py podpora    # obrázek podpory do README (.github/podpora.png)
 
 Značka je prstenec, v něm „N" s perforacemi filmového pásu a nad ním úplněk
 s vyříznutým play. Kreslí se vektorově (cairosvg) a skládá po vrstvách,
@@ -215,6 +216,60 @@ def make_fanart(path):
     sky.save(path, quality=92, subsampling=0)
 
 
+SUPPORT = (1600, 700)
+BTC = "bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc"
+
+
+def make_support(path):
+    """Obrázek podpory do README všech repozitářů: tatáž noční obloha jako fanart,
+    vlevo výzva a tři způsoby, vpravo QR kód bitcoinové adresy (`bitcoin:` URI,
+    peněženka ho otevře rovnou jako platbu). Vyžaduje navíc `pip install qrcode`."""
+    import qrcode
+
+    W, H = SUPPORT
+    sky = render(f'<rect width="{W}" height="{H}" fill="url(#sky)"/>', W, H, scale=1).convert("RGB")
+    q = 4
+    glow = Image.new("RGB", (W // q, H // q), (0, 0, 0))
+    ImageDraw.Draw(glow).ellipse([c / q for c in (-200, -250, 900, 700)], fill=(30, 40, 92))
+    sky = ImageChops.add(sky, glow.filter(ImageFilter.GaussianBlur(30)).resize((W, H), Image.BICUBIC))
+    dr = ImageDraw.Draw(sky, "RGBA")
+    for x, y, r, o in [(120, 620, 2, 50), (560, 60, 2, 45), (1010, 640, 3, 60), (1540, 70, 2, 55),
+                       (930, 110, 2, 40), (40, 300, 2, 35), (1200, 40, 2, 38)]:
+        dr.ellipse((x - r, y - r, x + r, y + r), fill=(255, 255, 255, o))
+
+    logo = mark("", "url(#gold)", scale=1).resize((150, 150), Image.LANCZOS)
+    sky.paste(logo, (86, 70), logo)
+    gold, text, dim = (243, 196, 118), (232, 230, 245), (163, 176, 218)
+    dr.text((262, 88), "Podpoř Nokturno", font=font("InterDisplay-Bold.otf", 84), fill=gold)
+    dr.text((266, 188), "Zdarma a bez reklam. Když ti ušetří večer hledání,", font=font("InterDisplay-Medium.otf", 34), fill=dim)
+    dr.text((266, 232), "kafe autorovi udělá radost ☕".replace(" ☕", ""), font=font("InterDisplay-Medium.otf", 34), fill=dim)
+
+    rows = (("Ko-fi", "ko-fi.com/matata86", (255, 94, 91)),
+            ("PayPal", "paypal.me/matata86", (0, 112, 186)),
+            ("Bitcoin", BTC, (247, 147, 26)))
+    y = 330
+    for label, value, color in rows:
+        dr.rounded_rectangle((86, y, 1130, y + 92), radius=18, fill=(23, 22, 43, 215), outline=(47, 45, 77), width=2)
+        dr.rounded_rectangle((86, y, 100, y + 92), radius=7, fill=color)
+        dr.text((128, y + 22), label, font=font("InterDisplay-SemiBold.otf", 38), fill=text)
+        size = 38
+        while size > 22 and dr.textlength(value, font=font("InterDisplay-Medium.otf", size)) > 780:
+            size -= 1
+        f = font("InterDisplay-Medium.otf", size)
+        dr.text((330, y + 46), value, font=f, fill=gold if label != "Bitcoin" else text, anchor="lm")
+        y += 112
+
+    code = qrcode.QRCode(border=2, box_size=10, error_correction=qrcode.constants.ERROR_CORRECT_M)
+    code.add_data(f"bitcoin:{BTC}")
+    qr = code.make_image(fill_color="black", back_color="white").convert("RGB").resize((340, 340), Image.NEAREST)
+    card = Image.new("RGBA", (380, 380), (0, 0, 0, 0))
+    ImageDraw.Draw(card).rounded_rectangle((0, 0, 379, 379), radius=28, fill=(255, 255, 255))
+    card.paste(qr, (20, 20))
+    sky.paste(card, (1170, 170), card)
+    dr.text((1360, 590), "Bitcoin — naskenuj v peněžence", font=font("InterDisplay-Medium.otf", 28), fill=dim, anchor="mm")
+    sky.save(path, optimize=True)
+
+
 def make_ha_brand(icon):
     """Značka pro `custom_components/nokturno/brand/` — stejná čtvercová kresba
     jako ikona doplňku, jen v rozměrech, které chce seznam integrací HA."""
@@ -242,4 +297,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    if sys.argv[1:] == ["podpora"]:
+        make_support(os.path.join(ROOT, ".github", "podpora.png"))
+        print(".github/podpora.png hotovo")
+    else:
+        main()
