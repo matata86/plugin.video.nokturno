@@ -134,6 +134,7 @@ jedním přepínačem v *Nastavení → Statistiky*.
 | náhodné id instalace | odlišení zařízení, negeneruje se z ničeho, co by šlo zpětně přiřadit |
 | verze doplňku, verze Kodi, platforma, jazyk | na čem doplněk běží |
 | kdy se čítače založily a poslední použití | kolik instalací je živých |
+| id, název a rok titulů, u kterých se zobrazily streamy, a kdy naposledy | které tituly jsou žádané — server si sám odvodí „kolik různých dnů", vícekrát za den se nepočítá |
 
 **Co se neposílá:** žádné přihlašovací údaje ke zdrojům, žádná IP adresa,
 žádný obsah hledání, nic z Traktu, nic ze stahování.
