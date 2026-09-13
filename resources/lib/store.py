@@ -433,11 +433,17 @@ class Index:
     """
 
     def __init__(self, store, name="sosac_index"):
+        # žádné čtení ani zápis souboru tady: `Engine.sources()` zakládá SosacDirect
+        # (a tím rejstřík) i z atributů senzoru HA, tedy ve smyčce událostí, kde HA
+        # blokující `open()` hlásí jako chybu. Stěhování proběhne až při prvním použití.
         self.store = store
         self.name = name
-        self._migrate()
+        self._migrated = False
 
     def _migrate(self):
+        if self._migrated:
+            return
+        self._migrated = True
         with self.store._lock:
             items = self.store.load("items", {})
             old = [k for k in items if k.startswith("idx:")]
@@ -450,6 +456,7 @@ class Index:
             self.store.save("items", items)
 
     def remember_item(self, key, info):
+        self._migrate()
         with self.store._lock:
             data = self.store.load(self.name, {})
             info = dict(info)
@@ -461,6 +468,7 @@ class Index:
     def item(self, key):
         """`idx:` klíče z rejstříku; ostatní (snímek přehraného titulu, ze kterého
         `SosacDirect.meta()` skládá meta neznámého filmu) z `items.json`."""
+        self._migrate()
         with self.store._lock:
             snap = self.store.load(self.name, {}).get(str(key))
             if snap is None and not str(key).startswith("idx:"):

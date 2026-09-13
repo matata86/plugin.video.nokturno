@@ -134,7 +134,9 @@ class Player(xbmc.Player):
         self.total = 0.0
         self.started = 0.0
         self.saved = 0.0      # kdy se naposledy zapsala pozice, 0 = ještě ne
+        self.saved_pos = -1.0  # jaká pozice se zapsala naposledy
         self.done = False     # už označené jako zhlédnuté
+        self.removed = False  # uživatel titul během přehrávání odebral z Pokračovat
 
     def onAVStarted(self):
         # předchozí titul uzavřít dřív, než ho přepíše nový
@@ -178,11 +180,20 @@ class Player(xbmc.Player):
     def save_resume(self):
         item_id = self.item.get("id")
         first = not self.saved
-        if first and (self.store.load("watched", {}).get(str(item_id)) or {}).get("playcount"):
+        entry = self.store.load("watched", {}).get(str(item_id)) or {}
+        if not first and not float(entry.get("resume") or 0) and int(entry.get("ts") or 0) >= int(self.saved):
+            # od posledního zápisu titul někdo odebral z Pokračovat ve sledování
+            # (kontextové menu, karta HA, jiné Kodi přes sync) — ta volba platí,
+            # dokud se titul nepustí znovu
+            self.removed = True
+            log(f"odebráno z rozkoukaných během přehrávání, dál nezapisuji {item_id}")
+            return
+        if first and entry.get("playcount"):
             # znovu puštěný zhlédnutý titul — rozkoukané ho se značkou zhlédnuto nevypíšou
             self.store.set_watched(item_id, False)
         self.store.set_resume(item_id, self.position, self.total)
         self.saved = time.time()
+        self.saved_pos = self.position
         if first:
             log(f"rozkoukáno {item_id} @ {int(self.position)} s")
             xbmcgui.Window(10000).setProperty(SYNC_PROP, "1")
@@ -192,7 +203,11 @@ class Player(xbmc.Player):
             return
         if self.watched_now():
             self.mark_watched()
-        elif self.position >= MIN_RESUME and time.time() - self.saved >= SAVE_EVERY:
+        elif (not self.removed and self.position >= MIN_RESUME and time.time() - self.saved >= SAVE_EVERY
+              and abs(self.position - self.saved_pos) >= 1):
+            # pozastavené video pozici nemění — zapisovat ji znovu by jen posunulo čas
+            # záznamu, a ten pak přebil odebrání z Pokračovat (Spasitel 2026-09-13:
+            # pauza v Kodi, odebrání se každých 30 s vrátilo a sync ho poslal do HA)
             self.save_resume()
 
     def trakt_scrobble(self, action, progress):
@@ -211,7 +226,7 @@ class Player(xbmc.Player):
         item_id = self.item.get("id")
         if self.done or self.watched_now():
             self.mark_watched()
-        elif self.position >= MIN_RESUME:
+        elif self.position >= MIN_RESUME and not self.removed:
             self.save_resume()
         self.trakt_scrobble("stop", self.progress())
         if split_key(item_id)[1] is not None:

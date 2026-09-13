@@ -933,3 +933,7 @@ msgstr ""
 msgctxt "#30365"
 msgid "Remove from Continue watching"
 msgstr ""
+
+msgctxt "#30366"
+msgid "skipped"
+msgstr ""

@@ -933,3 +933,7 @@ msgstr "Použít poslední filtr"
 msgctxt "#30365"
 msgid "Remove from Continue watching"
 msgstr "Odebrat z Pokračovat ve sledování"
+
+msgctxt "#30366"
+msgid "skipped"
+msgstr "přeskočeno"

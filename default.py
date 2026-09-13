@@ -38,6 +38,7 @@ from enrich import enrich, enrich_one  # noqa: E402
 from hellspy_api import HellspyApi, HellspyError  # noqa: E402
 from mediainfo import describe as describe_media, probe as probe_media, quality_from_size  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
+from source_errors import summarize as summarize_failures  # noqa: E402
 from sync import sync_once  # noqa: E402
 from streams import arrange, estimate_rank, langs_from_name, parse_stream, subs_from_name  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
@@ -287,8 +288,27 @@ def describe_error(e):
     """Jméno zdroje před chybovou hláškou — ať je jasné, který přesně selhal
     (dřív se u víc-zdrojového hledání hlásilo natvrdo „Server Luna neodpovídá“
     i při chybě jinde, třeba na WebShare)."""
-    label = next((v for k, v in SOURCE_LABELS.items() if isinstance(e, k)), type(e).__name__)
-    return f"{label}: {e}"
+    return f"{error_label(e)}: {e}"
+
+
+def error_label(e):
+    return getattr(e, "source_label", None) or next(
+        (v for k, v in SOURCE_LABELS.items() if isinstance(e, k)), type(e).__name__)
+
+
+class SourceFailure(Exception):
+    """Neočekávaná chyba zdroje mimo jeho vlastní typ výjimky — nese jméno zdroje."""
+
+    def __init__(self, label, err):
+        super().__init__(str(err))
+        self.source_label = label
+
+
+def skipped_notice(errors):
+    """Upozornění, že se zdroj přeskočil a výsledky jsou z ostatních — bez adres
+    a tokenů, ty jsou jen v logu (viz `lib/source_errors.py`)."""
+    lines = summarize_failures((error_label(e), e) for e in errors)
+    return f"{'; '.join(lines)} — {L(30366, 'přeskočeno')}"
 
 
 def describe_errors(errors):
@@ -648,7 +668,7 @@ def load_meta(apis, ctype, item_id, series_id=None):
     return meta, video
 
 
-def cross_streams(apis, ctype, item_id, meta, alt=None):
+def cross_streams(apis, ctype, item_id, meta, alt=None, errors=None):
     """Streamy z druhého zdroje pro stejný titul (Luna ↔ Sosáč).
 
     `alt` = id protějšku v Sosáči už známé z hledání (sloučený výsledek) – bez dohledávání.
@@ -662,6 +682,8 @@ def cross_streams(apis, ctype, item_id, meta, alt=None):
             return apis["sosac"].streams(ctype, target) if target else []
         except SosacError as e:
             log_error(f"cross-search (alt): {e}")
+            if errors is not None:
+                errors.append(e)
             return []
     title = meta.get("_title") or meta.get("name") or ""
     year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
@@ -696,6 +718,8 @@ def cross_streams(apis, ctype, item_id, meta, alt=None):
             return sosac.streams(ctype, target)
     except Errors as e:
         log_error(f"cross-search: {e}")
+        if errors is not None:
+            errors.append(e)
     return []
 
 
@@ -868,7 +892,7 @@ def title_queries(apis, meta, video, ctype, alt=None, strict=True):
     return [q.strip() for q in dict.fromkeys(queries) if q.strip()], relevant
 
 
-def webshare_streams(apis, meta, video, ctype, alt=None, strict=True):
+def webshare_streams(apis, meta, video, ctype, alt=None, strict=True, errors=None):
     """Tytéž soubory přímo z WebShare, navíc k tomu, co našla Luna."""
     ws = apis.get("ws")
     if ws is None:
@@ -880,6 +904,8 @@ def webshare_streams(apis, meta, video, ctype, alt=None, strict=True):
             files, _total = ws.search(query, limit=WS_LIMIT)
         except WebshareError as e:
             log_error(f"WebShare „{query}“: {e}")
+            if errors is not None:
+                errors.append(e)
             continue
         for f in files:
             if f["ident"] in seen or not relevant(f.get("name") or ""):
@@ -893,7 +919,7 @@ def webshare_streams(apis, meta, video, ctype, alt=None, strict=True):
     return out
 
 
-def hellspy_streams(apis, meta, video, ctype, alt=None, strict=True):
+def hellspy_streams(apis, meta, video, ctype, alt=None, strict=True, errors=None):
     """Tentýž titul na HellSpy. Nabízí se původní soubor, ne překódování, takže
     název i velikost popisují to, co se opravdu přehraje — viz `hellspy_api`."""
     hs = apis.get("hs")
@@ -906,6 +932,8 @@ def hellspy_streams(apis, meta, video, ctype, alt=None, strict=True):
             files, _next = hs.search(query, limit=HS_LIMIT)
         except HellspyError as e:
             log_error(f"HellSpy „{query}“: {e}")
+            if errors is not None:
+                errors.append(e)
             continue
         for f in files:
             name = f.get("name") or ""
@@ -1055,7 +1083,7 @@ def all_streams(apis, ctype, item_id):
     return api.streams(ctype, item_id)
 
 
-def collect_streams(apis, ctype, item_id, meta, alt=None, progress=None, strict=True):
+def collect_streams(apis, ctype, item_id, meta, alt=None, progress=None, strict=True, errors=None):
     """Streamy ze zdroje titulu + z druhého zdroje, vyfiltrované a seřazené podle nastavení.
 
     Oba dotazy běží souběžně — dřív šly za sebou a čas byl jejich součet. Chyba
@@ -1065,16 +1093,38 @@ def collect_streams(apis, ctype, item_id, meta, alt=None, progress=None, strict=
     `progress`, je-li dán, dostane jeden `tick()` za každý dokončený zdroj —
     vidět aspoň nějaký pohyb dřív, než začne (mnohem delší) čtení hlaviček
     v `fill_audio()`.
+
+    Každý zdroj běží pod vlastní pojistkou: když selže (vypnutý addon Luny,
+    výpadek WebShare…), jeho chyba se zapíše do `errors` a hledá se dál
+    v ostatních. Dřív chyba hlavního zdroje shodila celý výpis, i když ostatní
+    zdroje streamy měly. Co s chybami udělat (upozornit), řeší volající.
     """
+    errors = [] if errors is None else errors
+
+    def guarded(label, fn, *args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except Errors as e:
+            log_error(f"{label}: {e}")
+            errors.append(e)
+        except Exception as e:  # noqa: BLE001 – ani nečekaná chyba jednoho zdroje nesmí shodit ostatní
+            log_error(f"{label}: {e!r}")
+            errors.append(SourceFailure(label, e))
+        return []
+
+    main_label = "Sosáč" if is_sosac_id(split_episode_id(item_id)[0]) else "Luna"
+    cross_label = "Luna" if main_label == "Sosáč" else "Sosáč"
     # WebShare se do streamů dohledává vždy, když je účet vyplněný (stejně jako HA) —
     # není to zdvojení Luny: Luna pošle jeden dotaz, tohle víc variant (rok, originál)
     direct = apis.get("ws") is not None
     video = load_meta_video(meta, item_id)
     with ThreadPoolExecutor(max_workers=4) as pool:
-        main = pool.submit(all_streams, apis, ctype, item_id)
-        cross = pool.submit(cross_streams, apis, ctype, item_id, meta, alt)
-        ws = pool.submit(webshare_streams, apis, meta, video, ctype, alt, strict) if direct else None
-        hs = pool.submit(hellspy_streams, apis, meta, video, ctype, alt, strict) if apis.get("hs") else None
+        main = pool.submit(guarded, main_label, all_streams, apis, ctype, item_id)
+        cross = pool.submit(guarded, cross_label, cross_streams, apis, ctype, item_id, meta, alt, errors)
+        ws = pool.submit(guarded, "WebShare", webshare_streams, apis, meta, video, ctype, alt, strict,
+                         errors) if direct else None
+        hs = pool.submit(guarded, "HellSpy", hellspy_streams, apis, meta, video, ctype, alt, strict,
+                         errors) if apis.get("hs") else None
         if progress:
             for _ in as_completed([f for f in (main, cross, ws, hs) if f is not None]):
                 progress.tick()
@@ -2445,10 +2495,14 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None, fq="", flang=""
     bar.create("Nokturno", L(30238, "Načítám streamy…"))
     bar.update(0)
     progress = SearchProgress(bar, num_sources + max(probe_limit, 0))
+    errors = []
     try:
-        streams = collect_streams(apis, ctype, item_id, meta, alt, progress, strict)
+        streams = collect_streams(apis, ctype, item_id, meta, alt, progress, strict, errors)
     finally:
         bar.close()
+    if errors:
+        # jen upozornění, ne dialog — výpis může spustit widget nebo JSON-RPC z HA
+        notify(skipped_notice(errors), xbmcgui.NOTIFICATION_WARNING, 7000)
     if not streams:
         if strict and has_fulltext_source:
             # rovnou selhat by uživateli vzalo možnost zkusit to uvolněněji —
@@ -2457,7 +2511,8 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None, fq="", flang=""
             fulltext_item(ctype, item_id, series_id, alt)
             xbmcplugin.endOfDirectory(HANDLE)
             return
-        notify(L(30102))
+        if not errors:
+            notify(L(30102))
         xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
         return
     filtered = apply_stream_filter(streams, fq, flang, fch, fcodec, fsub, fsrc)
@@ -2602,9 +2657,13 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
         if pref_key and pref_from_param(pref):
             STORE.set_stream_pref(pref_key, pref_from_param(pref))
     else:
-        streams = collect_streams(apis, ctype, item_id, meta, alt)
+        errors = []
+        streams = collect_streams(apis, ctype, item_id, meta, alt, errors=errors)
+        if errors:
+            notify(skipped_notice(errors), xbmcgui.NOTIFICATION_WARNING, 7000)
         if not streams:
-            notify(L(30102))
+            if not errors:
+                notify(L(30102))
             xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
             return
         remembered = preferred_stream(streams, STORE.stream_pref(pref_key)) if pref_key else None
