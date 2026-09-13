@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="3.1.1" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="3.1.2" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -21,7 +21,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>3.1.1 – Streamy z vlastního úložiště jsou v seznamu vždy první a na začátku řádku mají název úložiště
+    <news>3.1.2 – „Další díl“ jde odebrat z Pokračovat ve sledování (kontextové menu i karta Home Assistantu); nabídne se zase po zhlédnutí dalšího dílu
+3.1.1 – Streamy z vlastního úložiště jsou v seznamu vždy první a na začátku řádku mají název úložiště
 3.1.0 – Vlastní úložiště: až tři WebDAV složky (NAS, Nextcloud, server) — soubory se objeví mezi streamy i ve vyhledávání (Nastavení → Vlastní úložiště)
 3.1.0 – Moje úložiště v hlavním menu: procházení vlastních souborů po složkách
 3.1.0 – Kontrola zdrojů hlásí nedostupný zdroj srozumitelně („… neodpovídá“)
