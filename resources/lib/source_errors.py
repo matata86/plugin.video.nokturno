@@ -14,6 +14,8 @@ _OFFLINE = (
     "network is unreachable", "name or service not known", "temporary failure in name resolution",
     "nodename nor servname", "remote end closed", "errno 111", "errno 113", "errno 101",
     "errno -2", "errno -3", "http 502", "http 503", "http 504", "bad gateway", "service unavailable",
+    # TLS spadne uprostřed handshake — typicky adresa, na které nic neposlouchá (port mimo Funnel)
+    "eof occurred in violation of protocol", "unexpected eof", "ssl: unexpected_eof",
 )
 MAX_LEN = 90
 

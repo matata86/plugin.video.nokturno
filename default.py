@@ -40,7 +40,7 @@ from sledujteto_api import SledujtetoApi, SledujtetoError  # noqa: E402
 from storage_api import SLOTS as STORAGE_SLOTS, StorageApi, StorageError, match_texts, parse_ref  # noqa: E402
 from mediainfo import describe as describe_media, probe as probe_media, quality_from_size  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
-from source_errors import summarize as summarize_failures  # noqa: E402
+from source_errors import describe_failure, summarize as summarize_failures  # noqa: E402
 from sync import sync_once  # noqa: E402
 from streams import arrange, estimate_rank, langs_from_name, parse_stream, subs_from_name  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
@@ -1801,7 +1801,8 @@ def test_sources():
                 result = futures[name].result(timeout=20)
                 lines.append(f"{name}: {L(30168)}" + (f" ({result})" if isinstance(result, (int, str)) else ""))
             except Exception as e:  # noqa: BLE001 – přesně tohle chceme uživateli ukázat
-                lines.append(f"{name}: {str(e)[:90]}")
+                # „<zdroj> neodpovídá" místo technického výpisu (TLS, spojení odmítnuto…)
+                lines.append(describe_failure(name, e))
     if ws:
         remember_ws_token(ws)
     xbmcgui.Dialog().ok(L(30170), "\n".join(lines))
