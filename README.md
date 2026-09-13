@@ -93,7 +93,7 @@ požadavku. Posílá se kumulativní stav, ne přírůstky — když se odeslán
 nepovede, nic se neztratí a nic se nezapočítá dvakrát. Selhání se nikde
 neprojeví, doplněk kvůli statistikám nikdy nečeká.
 
-Data chodí na `https://nokturno.full-net.cz/collect`. Adresa je v nastavení —
+Data chodí na `https://nokturno.tailf0014.ts.net/collect`. Adresa je v nastavení —
 kdo chce statistiky posílat jinam nebo nikam, přepíše ji. Hlášení je jeden POST s tímto tělem, takže si vlastní
 sběrač napíše kdokoli:
 
