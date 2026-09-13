@@ -965,3 +965,7 @@ msgstr "Sledujteto — heslo"
 msgctxt "#30373"
 msgid "Password for sledujteto.cz. It is sent only when signing in; requests then use a token."
 msgstr "Heslo ze sledujteto.cz. Posílá se jen při přihlášení, další dotazy jdou s tokenem."
+
+msgctxt "#30329"
+msgid "Like Nokturno? Support the author: Ko-fi ko-fi.com/matata86 · PayPal paypal.me/matata86 · Bitcoin bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc"
+msgstr "Líbí se ti Nokturno? Podpoř autora: Ko-fi ko-fi.com/matata86 · PayPal paypal.me/matata86 · Bitcoin bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc"
