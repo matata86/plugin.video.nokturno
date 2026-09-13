@@ -78,6 +78,35 @@ class TmdbApi:
                             lambda: self._get(f"/{kind}/{tmdb_id}/external_ids"))
         return (data or {}).get("imdb_id") or ""
 
+    def _art(self, kind, tmdb_id, background_path=""):
+        """Náhled (`landscapePoster`) a logo z obrázků TMDB.
+
+        Skin (Arctic Fuse) kreslí v náhledu `landscape`, a když chybí, vezme tentýž
+        obrázek jako na pozadí — u titulů Nokturna tak byl stejný obrázek dvakrát
+        (Sám doma). Náhled je obrázek z filmu s názvem (jazyk cs/en), jinak nejlépe
+        hodnocený jiný než pozadí; logo přednostně české. Obrázky se nemění, cache dlouhá."""
+        def load():
+            try:
+                return self._get(f"/{kind}/{tmdb_id}/images", include_image_language="cs,en,null")
+            except TmdbError:
+                return {}
+        data = self._cached(f"tmdb:images:{kind}:{tmdb_id}", DETAIL_TTL, load) or {}
+
+        def best(items, langs):
+            for lang in langs:
+                rows = [i for i in items if i.get("iso_639_1") == lang and i.get("file_path")]
+                if rows:
+                    return max(rows, key=lambda i: i.get("vote_average") or 0)["file_path"]
+            return ""
+
+        backdrops = [b for b in data.get("backdrops") or [] if b.get("file_path") != background_path]
+        landscape = best(backdrops, ("cs", "en")) or best(backdrops, (None,))
+        logo = best(data.get("logos") or [], ("cs", "en", None))
+        return {
+            "landscapePoster": IMG_BIG + landscape if landscape else "",
+            "logo": IMG + logo if logo else "",
+        }
+
     def _item(self, ctype, raw, genre_map):
         imdb_id = self._imdb_id(ctype, raw["id"])
         if not imdb_id:
@@ -97,6 +126,7 @@ class TmdbApi:
             "description": raw.get("overview") or "",
             "genres": genres,
             "imdbRating": raw.get("vote_average") or None,
+            **self._art(self._kind(ctype), raw["id"], raw.get("backdrop_path") or ""),
         }
 
     def catalog(self, ctype, cid, genre=None, search=None, skip=0):
@@ -174,8 +204,9 @@ class TmdbApi:
                 "imdbRating": data.get("vote_average") or None,
                 "runtime": data.get("runtime") or next(iter(data.get("episode_run_time") or []), None),
                 "videos": videos,
+                **self._art(kind, tmdb_id, data.get("backdrop_path") or ""),
             }
-        return self._cached(f"tmdb:meta:{kind}:{imdb_id}", DETAIL_TTL, load)
+        return self._cached(f"tmdb:meta2:{kind}:{imdb_id}", DETAIL_TTL, load)
 
 
 if __name__ == "__main__":
