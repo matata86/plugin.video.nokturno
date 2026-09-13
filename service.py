@@ -33,6 +33,7 @@ from trakt_api import TraktApi, TraktError  # noqa: E402
 from webshare_api import WebshareApi, WebshareError  # noqa: E402
 
 PROP = "nokturno.playing"
+VIEWED_PROP = "nokturno.viewed"
 USED_PROP = "nokturno.used"
 SYNC_PROP = "nokturno.sync"
 SYNC_EVERY = 5 * 60   # výměna s HA; změny (dokoukáno, Můj seznam) ji vyvolají hned
@@ -405,11 +406,21 @@ def stats_context(addon):
 
 
 def stats_tick(stats, force=False):
-    """Sebere „doplněk byl otevřen“, jednou za čas odešle čítače."""
+    """Sebere „doplněk byl otevřen“ a „u titulu se zobrazily streamy“, jednou za čas odešle čítače."""
     used = xbmcgui.Window(10000).getProperty(USED_PROP)
     if used:
         xbmcgui.Window(10000).clearProperty(USED_PROP)
         stats.note_use(int(used) if used.isdigit() else None)
+    raw_viewed = xbmcgui.Window(10000).getProperty(VIEWED_PROP)
+    if raw_viewed:
+        xbmcgui.Window(10000).clearProperty(VIEWED_PROP)
+        try:
+            viewed = json.loads(raw_viewed)
+        except ValueError:
+            viewed = None
+        if viewed and viewed.get("id"):
+            stats.note_play(viewed["id"], viewed.get("title") or "",
+                            viewed.get("year"), viewed.get("kind") or "movie")
     addon = fresh_addon()
     if addon is None or addon.getSetting("stats_enabled") != "true":
         return
