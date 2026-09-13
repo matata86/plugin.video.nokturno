@@ -67,7 +67,7 @@ povolit Nastavení → Systém → Doplňky → **Neznámé zdroje**.
 *Přímo v Kodi, bez prohlížeče (vhodné pro TV a set-top boxy):*
 
 1. Nastavení → Správce souborů → **Přidat zdroj** → jako adresu zadej
-   `https://nokturno.full-net.cz/repo/` a pojmenuj ji třeba `Nokturno`.
+   `https://nokturno.tailf0014.ts.net/repo/` a pojmenuj ji třeba `Nokturno`.
 2. Doplňky → **Instalovat ze souboru ZIP** → `Nokturno` → `repository.nokturno`
    → `repository.nokturno.zip`.
 3. Doplňky → Instalovat z repozitáře → **Nokturno repozitář** → Video doplňky →
@@ -155,7 +155,7 @@ odinstalaci (smazání složky doplňku) tohle zachytit nemůže, protože při 
 žádný kód doplňku neběží. Server proto instalaci, která se dlouho neozvala,
 sám počítá jako mrtvou (`dead_after` v konfiguraci sběrného bodu).
 
-Data chodí na `https://nokturno.full-net.cz/collect`. Odesílání se vypíná
+Data chodí na `https://nokturno.tailf0014.ts.net/collect`. Odesílání se vypíná
 přepínačem v nastavení. Hlášení je jeden POST s tímto tělem, takže je vidět
 přesně, co odchází:
 
