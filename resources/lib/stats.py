@@ -76,7 +76,7 @@ class Stats:
         server podle `l` (kdy naposledy) sám pozná, jestli jde o nový den, nebo jen
         o dohled nad tímtéž.
         """
-        now = int(when or time.time())
+        now = int(time.time())
         rec = self.data["plays"].setdefault(str(key), {})
         rec["l"] = now
         if title:
