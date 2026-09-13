@@ -39,7 +39,8 @@ SYNC_PROP = "nokturno.sync"
 SYNC_EVERY = 5 * 60   # výměna s HA; změny (dokoukáno, Můj seznam) ji vyvolají hned
 SUB_CHECK_EVERY = 12 * 3600   # jak často se ptát WebShare na stav předplatného
 WATCHED_PCT = 0.90
-MIN_RESUME = 60  # s – kratší kousek nemá cenu pamatovat
+MIN_RESUME = 90  # s – po takové době přehrávání patří titul do rozkoukaných
+SAVE_EVERY = 30  # s – jak často se za běhu přepisuje pozice rozkoukaného
 POLL = 5
 WARM_DELAY = 180          # po startu Kodi nechat nejdřív doběhnout skin a widgety
 WARM_EVERY = 3 * 3600     # žebříčky Sosáče mají TTL 3 h, Luna 12 h
@@ -100,27 +101,41 @@ def get_trakt(store):
 # --- přehrávání ---------------------------------------------------------------------
 
 class Player(xbmc.Player):
+    """Rozkoukané a zhlédnuté se zapisují už za běhu, ne až po zastavení.
+
+    Po `MIN_RESUME` s přehrávání jde titul hned do Pokračovat ve sledování a pozice
+    se každých `SAVE_EVERY` s přepíše, od `WATCHED_PCT` je zhlédnutý a z rozkoukaných
+    zmizí. Čekat na `onPlayBackStopped` nestačí: když se pustí jiný film bez
+    zastavení toho prvního, Kodi pro ten první nic nepošle a jeho pozice by se ztratila.
+    """
+
     def __init__(self, store, stats):
         super().__init__()
         self.store = store
         self.stats = stats
+        self.reset()
+
+    def reset(self):
         self.item = None
         self.position = 0.0
         self.total = 0.0
+        self.started = 0.0
+        self.saved = 0.0      # kdy se naposledy zapsala pozice, 0 = ještě ne
+        self.done = False     # už označené jako zhlédnuté
 
     def onAVStarted(self):
+        # předchozí titul uzavřít dřív, než ho přepíše nový
+        self.finish()
         raw = xbmcgui.Window(10000).getProperty(PROP)
         if not raw:
-            self.item = None
             return
         try:
-            self.item = json.loads(raw)
+            item = json.loads(raw)
         except ValueError:
-            self.item = None
             return
         xbmcgui.Window(10000).clearProperty(PROP)
-        self.position, self.total = 0.0, 0.0
-        log(f"sleduji {self.item.get('id')}")
+        self.item, self.started = item, time.time()
+        log(f"sleduji {item.get('id')}")
         self.trakt_scrobble("start", 0)
 
     def tick(self):
@@ -130,10 +145,42 @@ class Player(xbmc.Player):
             self.position = self.getTime()
             self.total = self.getTotalTime()
         except RuntimeError:
-            pass
+            return
+        self.checkpoint()
 
     def progress(self):
         return (self.position / self.total * 100) if self.total > 0 else 0
+
+    def watched_now(self):
+        return self.total > 0 and self.position / self.total >= WATCHED_PCT
+
+    def mark_watched(self):
+        if self.done:
+            return
+        self.store.set_watched(self.item.get("id"), True)
+        self.done = True
+        log(f"zhlédnuto {self.item.get('id')}")
+        xbmcgui.Window(10000).setProperty(SYNC_PROP, "1")   # zhlédnuto/pozice → do HA hned
+
+    def save_resume(self):
+        item_id = self.item.get("id")
+        first = not self.saved
+        if first and (self.store.load("watched", {}).get(str(item_id)) or {}).get("playcount"):
+            # znovu puštěný zhlédnutý titul — rozkoukané ho se značkou zhlédnuto nevypíšou
+            self.store.set_watched(item_id, False)
+        self.store.set_resume(item_id, self.position, self.total)
+        self.saved = time.time()
+        if first:
+            log(f"rozkoukáno {item_id} @ {int(self.position)} s")
+            xbmcgui.Window(10000).setProperty(SYNC_PROP, "1")
+
+    def checkpoint(self):
+        if self.done:
+            return
+        if self.watched_now():
+            self.mark_watched()
+        elif self.position >= MIN_RESUME and time.time() - self.saved >= SAVE_EVERY:
+            self.save_resume()
 
     def trakt_scrobble(self, action, progress):
         trakt = get_trakt(self.store)
@@ -149,19 +196,20 @@ class Player(xbmc.Player):
         if not self.item:
             return
         item_id = self.item.get("id")
-        if self.total > 0 and self.position / self.total >= WATCHED_PCT:
-            self.store.set_watched(item_id, True)
-            log(f"zhlédnuto {item_id}")
+        if self.done or self.watched_now():
+            self.mark_watched()
         elif self.position >= MIN_RESUME:
-            self.store.set_resume(item_id, self.position, self.total)
-            log(f"rozkoukáno {item_id} @ {int(self.position)} s")
+            self.save_resume()
         self.trakt_scrobble("stop", self.progress())
         if split_key(item_id)[1] is not None:
             prefetch_next_later()
-        xbmcgui.Window(10000).setProperty(SYNC_PROP, "1")   # zhlédnuto/pozice → do HA hned
-        self.item = None
+        xbmcgui.Window(10000).setProperty(SYNC_PROP, "1")
+        self.reset()
 
     def onPlayBackStopped(self):
+        # opožděné zastavení předchozího souboru po startu nového nesmí ukončit sledování nového
+        if self.item and time.time() - self.started < 5 and self.isPlayingVideo():
+            return
         self.finish()
 
     def onPlayBackEnded(self):
@@ -171,7 +219,7 @@ class Player(xbmc.Player):
         self.finish()
 
     def onPlayBackError(self):
-        self.item = None
+        self.reset()
 
 
 # --- stahování ----------------------------------------------------------------------
