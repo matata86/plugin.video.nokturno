@@ -27,7 +27,7 @@ import uuid
 
 # Sběrný bod je natvrdo v kódu, ne v nastavení — je to detail implementace,
 # ne něco, co by měl kdokoli přepínat. Změna adresy = nová verze.
-COLLECT_URL = "https://nokturno.full-net.cz/collect"
+COLLECT_URL = "https://nokturno.tailf0014.ts.net/collect"
 
 SEND_EVERY = 6 * 3600     # nejčastěji jednou za 6 hodin
 RETRY_EVERY = 30 * 60     # po neúspěchu (server neběží, není síť) nezkoušet hned znovu
