@@ -470,7 +470,7 @@ def fill_info(li, meta, ctype="movie", video=None, tech=True):
     if genres:
         # žánr na stejný řádek jako popis — s prázdným řádkem za ním zabral v panelu
         # skinu (Arctic Fuse, tři řádky) dva ze tří řádků a na popis zbyl jeden
-        plot = f"[B]{genres}[/B]  {plot}" if plot else genres
+        plot = f"[B]{genres}[/B] · {plot}" if plot else genres
     tag.setPlot(plot)
     year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
     if tech and year.isdigit():
