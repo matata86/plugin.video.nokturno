@@ -1201,7 +1201,41 @@ def drop_duplicates(streams):
             continue
         known.add(key(s))
         out.append(s)
-    return out
+    return pair_with_luna(out)
+
+
+LUNA_SIZE_TOLERANCE = 0.25   # GB — Luna a WebShare zaokrouhlují velikost jinak (stejně jako jádro)
+
+
+def pair_with_luna(streams):
+    """Tentýž soubor přes Lunu i přímo z WebShare/HellSpy/Sledujteto → jen jeden řádek.
+
+    `drop_duplicates` páruje podle názvu, jenže Luna název souboru neposílá, jen
+    svůj popis — dvojice se tak nepoznala (Extraktoři 2x06: Luna i WebShare, obojí
+    FHD, CZ 2.0, 2.4 GB, 57 min). Páruje se proto jako v jádře (`Engine._merge_direct`)
+    podle velikosti: stejná kvalita s tolerancí 0,25 GB, o stupeň jiná jen do 0,05 GB.
+    Zůstává řádek Luny — nese i titulky a jazyky — a každý přímý nález se spáruje
+    nejvýš s jedním řádkem Luny, ať nezmizí dva různé soubory podobné velikosti."""
+    luna = [s for s in streams if s.get("source") in ("main", "search") and (s.get("size_gb") or 0) > 0]
+    if not luna:
+        return streams
+    drop = set()
+    for stream in luna:
+        size = stream["size_gb"]
+        best, closest = None, None
+        for cand in streams:
+            if cand.get("source") not in DIRECT_SOURCES or id(cand) in drop or not cand.get("size_gb"):
+                continue
+            rank_diff = abs((cand.get("quality_rank") or 0) - (stream.get("quality_rank") or 0))
+            if rank_diff > 1:
+                continue
+            limit = LUNA_SIZE_TOLERANCE if rank_diff == 0 else 0.05
+            delta = abs(cand["size_gb"] - size)
+            if delta < limit and (closest is None or delta < closest):
+                best, closest = cand, delta
+        if best is not None:
+            drop.add(id(best))
+    return [s for s in streams if id(s) not in drop]
 
 
 def load_meta_video(meta, item_id):
