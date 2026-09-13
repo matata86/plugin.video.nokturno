@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="3.0.2" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="3.1.0" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -21,7 +21,10 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>3.0.2 – Verze srovnaná s doplňkem pro Stremio a integrací pro Home Assistant, bez změn v doplňku
+    <news>3.1.0 – Vlastní úložiště: až tři WebDAV složky (NAS, Nextcloud, server) — soubory se objeví mezi streamy i ve vyhledávání (Nastavení → Vlastní úložiště)
+3.1.0 – Moje úložiště v hlavním menu: procházení vlastních souborů po složkách
+3.1.0 – Kontrola zdrojů hlásí nedostupný zdroj srozumitelně („… neodpovídá“)
+3.0.2 – Verze srovnaná s doplňkem pro Stremio a integrací pro Home Assistant, bez změn v doplňku
 3.0.1 – Odkaz na podporu autora (Ko-fi, PayPal, Bitcoin) v popisu doplňku a v nápovědě pokročilého nastavení
 3.0.0 – Sledujteto jako pátý zdroj: hledání přes tvůj účet, přehrávání s Premium, zvukové stopy a titulky přímo z jeho API (Nastavení → Sledujteto)
 3.0.0 – Přesnější hledání u filmů, které mají na zdrojích český název jiný než originál: české a slovenské názvy se berou z Wikidat
