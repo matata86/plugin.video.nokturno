@@ -37,6 +37,7 @@ from sosac_direct import EXPORT as SOSAC_EXPORT, SosacDirect, is_direct_id  # no
 from enrich import enrich, enrich_one  # noqa: E402
 from hellspy_api import HellspyApi, HellspyError  # noqa: E402
 from sledujteto_api import SledujtetoApi, SledujtetoError  # noqa: E402
+from storage_api import SLOTS as STORAGE_SLOTS, StorageApi, StorageError, match_texts, parse_ref  # noqa: E402
 from mediainfo import describe as describe_media, probe as probe_media, quality_from_size  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
 from source_errors import summarize as summarize_failures  # noqa: E402
@@ -73,8 +74,11 @@ SOSAC_TAG = "[COLOR FFE0A040]Sosáč[/COLOR]"
 HS_TAG = "[COLOR FFFF8A6B]HellSpy[/COLOR]"
 ST_TAG = "[COLOR FF4DD0C0]Sledujteto[/COLOR]"
 WS_TAG = "[COLOR FF60B0FF]WebShare[/COLOR]"
+DAV_COLOR = "FFB0E57C"
+DAV_TAG = f"[COLOR {DAV_COLOR}]Úložiště[/COLOR]"
 LUNA_TAG = "[COLOR FFB39DFF]Luna[/COLOR]"
-SOURCE_TAGS = {"main": LUNA_TAG, "search": WS_TAG, "sosac": SOSAC_TAG, "ws": WS_TAG, "hs": HS_TAG, "st": ST_TAG}
+SOURCE_TAGS = {"main": LUNA_TAG, "search": WS_TAG, "sosac": SOSAC_TAG, "ws": WS_TAG, "hs": HS_TAG, "st": ST_TAG,
+               "dav": DAV_TAG}
 QUALITY_COLORS = {4: "FFE06A60", 3: "FF6FD18A", 2: "FF6FB6F0", 1: "FFA0A0A0"}
 # krátce, ať zbyde místo na zbytek řádku: „Full HD" se v úzkém sloupci nevyplatí
 QUALITY_NAMES = {4: "4K", 3: "FHD", 2: "HD", 1: "SD"}
@@ -110,7 +114,8 @@ if _old_settings:
     except Exception as _e:  # noqa: BLE001
         xbmc.log(f"[{ADDON_ID}] migrace nastavení: {_e}", xbmc.LOGWARNING)
 STORE = Store(PROFILE)
-Errors = (LunaError, CinemetaError, TmdbError, SosacError, WebshareError, HellspyError, SledujtetoError, TraktError)
+Errors = (LunaError, CinemetaError, TmdbError, SosacError, WebshareError, HellspyError, SledujtetoError, TraktError,
+          StorageError)
 
 # po aktualizaci doplňku (i downgradu) smazat cache API — jinak by staré verze
 # odpovědí (chybějící pole, jiný tvar dat po změně kódu) přežily klidně týdny,
@@ -207,6 +212,9 @@ def resolve_url(apis, url):
         if api is None:
             raise SledujtetoError(L(30104))
         return api.file_link(url[3:])
+    if url and url.startswith("dav:"):
+        api, path = storage_for(apis, url)
+        return api.kodi_url(path)
     if url and url.startswith("streamuj:"):
         api = apis.get("sosac")
         if not isinstance(api, SosacDirect):
@@ -243,6 +251,31 @@ def get_sledujteto():
     return SledujtetoApi(email, pw, cache=STORE)
 
 
+def get_storages():
+    """Vlastní úložiště z nastavení (až tři). Síť se tu nevolá — seznam souborů
+    se načte až při prvním hledání a hodinu se pamatuje (`storage_api.INDEX_TTL`)."""
+    out = []
+    for slot in range(1, STORAGE_SLOTS + 1):
+        url = setting(f"dav{slot}_url").strip()
+        if not url:
+            continue
+        try:
+            out.append(StorageApi(url, setting(f"dav{slot}_username"), setting(f"dav{slot}_password"),
+                                  setting(f"dav{slot}_name"), slot=slot, cache=STORE))
+        except StorageError as e:
+            log_error(f"úložiště {slot}: {e}")
+    return out
+
+
+def storage_for(apis, url):
+    """`dav:<slot>:<cesta>` → (úložiště, cesta); server se bere z nastavení, ne z odkazu."""
+    slot, path = parse_ref(url)
+    api = next((s for s in apis.get("dav") or [] if s.slot == slot), None)
+    if api is None:
+        raise StorageError(L(30104))
+    return api, path
+
+
 def remember_ws_token(api):
     if api and api.token:
         xbmcgui.Window(10000).setProperty("nokturno.ws_token", api.token)
@@ -273,7 +306,7 @@ def get_tmdb():
 
 def get_apis():
     return {"luna": get_luna(), "sosac": get_sosac(), "ws": get_webshare(), "hs": get_hellspy(), "st": get_sledujteto(),
-            "cinemeta": get_cinemeta(), "sosac_db": get_sosac_db(), "tmdb": get_tmdb()}
+            "dav": get_storages(), "cinemeta": get_cinemeta(), "sosac_db": get_sosac_db(), "tmdb": get_tmdb()}
 
 
 def source_for(item_id):
@@ -298,6 +331,7 @@ def log_error(err):
 SOURCE_LABELS = {
     LunaError: "Luna", CinemetaError: "Cinemeta", TmdbError: "TMDB",
     SosacError: "Sosáč", WebshareError: "WebShare", HellspyError: "HellSpy", SledujtetoError: "Sledujteto",
+    StorageError: "Úložiště",
     TraktError: "Trakt.tv",
 }
 
@@ -622,6 +656,22 @@ def add_ws_file(f, extra_context=None):
     apply_watched(li, key, ctx)
     li.setProperty("IsPlayable", "true")
     xbmcplugin.addDirectoryItem(HANDLE, build_url(action="play_ws", ident=f["ident"], name=f["name"]), li, isFolder=False)
+
+
+def add_dav_file(api, f):
+    """Soubor z vlastního úložiště ve výpisu hledání."""
+    key = f"dav:{api.slot}:{f['path']}"
+    folder = f["path"].rsplit("/", 1)[0] if "/" in f["path"] else ""
+    label = f"{f['name']}  [COLOR FF9A9A9A]{f.get('size_h', '')}[/COLOR]"
+    li = xbmcgui.ListItem(label=label)
+    tag = li.getVideoInfoTag()
+    tag.setMediaType("video")
+    tag.setTitle(f["name"])
+    tag.setPlot(f"[COLOR {DAV_COLOR}]{api.name}[/COLOR]  {f.get('size_h', '')}\n{folder}")
+    apply_watched(li, key, [])
+    li.setProperty("IsPlayable", "true")
+    xbmcplugin.addDirectoryItem(
+        HANDLE, build_url(action="play_dav", slot=api.slot, path=f["path"], name=f["name"]), li, isFolder=False)
 
 
 def add_hs_file(f, extra_context=None):
@@ -969,6 +1019,31 @@ def hellspy_streams(apis, meta, video, ctype, alt=None, strict=True, errors=None
     return out
 
 
+def storage_streams(apis, meta, video, ctype, alt=None, strict=True, errors=None):
+    """Tentýž titul ve vlastních úložištích — stejný přísný filtr jako fulltext, jen
+    nad zapamatovaným seznamem souborů. Soubor se přiřadí i podle složky nad ním
+    („Sherlock/Season 1/S01E02.mkv"), viz `storage_api.match_texts`."""
+    storages = apis.get("dav") or []
+    if not storages:
+        return []
+    _queries, relevant = title_queries(apis, meta, video, ctype, alt, strict)
+    out = []
+    for api in storages:
+        try:
+            files = api.files()
+        except StorageError as e:
+            log_error(f"úložiště {api.name}: {e}")
+            if errors is not None:
+                errors.append(SourceFailure(api.name, e))
+            continue
+        for f in files:
+            if any(relevant(text) for text in match_texts(f["path"])):
+                out.append({"url": f"dav:{api.slot}:{f['path']}", "label": f["name"],
+                            "detail": f.get("size_h") or "", "source": "dav", "_storage": api.name,
+                            "_loose": not strict})
+    return out
+
+
 _ST_KEYS_LOGGED = []
 
 
@@ -1053,7 +1128,7 @@ def fill_audio(apis, streams, progress=None):
     # uploader se může splést nebo zkopírovat popisek z jiného souboru, takže
     # název sám o sobě není důkaz — jen se čeká, až na ně dojde řada v limitu.
     candidates = [s for s in streams if not s.get("_tracks")
-                  and str(s.get("url") or "").startswith(("hs:", "ws:", "streamuj:"))]
+                  and str(s.get("url") or "").startswith(("hs:", "ws:", "streamuj:", "dav:"))]
     todo = sorted(candidates, key=lambda s: bool(s.get("channels")))[:limit]
     if not todo:
         return streams
@@ -1184,7 +1259,7 @@ def collect_streams(apis, ctype, item_id, meta, alt=None, progress=None, strict=
     # není to zdvojení Luny: Luna pošle jeden dotaz, tohle víc variant (rok, originál)
     direct = apis.get("ws") is not None
     video = load_meta_video(meta, item_id)
-    with ThreadPoolExecutor(max_workers=5) as pool:
+    with ThreadPoolExecutor(max_workers=6) as pool:
         main = pool.submit(guarded, main_label, all_streams, apis, ctype, item_id)
         cross = pool.submit(guarded, cross_label, cross_streams, apis, ctype, item_id, meta, alt, errors)
         ws = pool.submit(guarded, "WebShare", webshare_streams, apis, meta, video, ctype, alt, strict,
@@ -1193,11 +1268,13 @@ def collect_streams(apis, ctype, item_id, meta, alt=None, progress=None, strict=
                          errors) if apis.get("hs") else None
         st = pool.submit(guarded, "Sledujteto", sledujteto_streams, apis, meta, video, ctype, alt, strict,
                          errors) if apis.get("st") else None
+        dav = pool.submit(guarded, "Úložiště", storage_streams, apis, meta, video, ctype, alt, strict,
+                          errors) if apis.get("dav") else None
         if progress:
-            for _ in as_completed([f for f in (main, cross, ws, hs, st) if f is not None]):
+            for _ in as_completed([f for f in (main, cross, ws, hs, st, dav) if f is not None]):
                 progress.tick()
         extra = cross.result() + (ws.result() if ws else []) + (hs.result() if hs else []) \
-            + (st.result() if st else [])
+            + (st.result() if st else []) + (dav.result() if dav else [])
         streams = drop_duplicates(main.result() + extra)
     max_gb = effective_max_gb(video or meta)
 
@@ -1292,7 +1369,7 @@ def pref_from_param(value):
 
 
 SOURCE_GROUP = {"main": "Luna", "search": "WebShare", "ws": "WebShare",
-                "sosac": "Sosáč", "hs": "HellSpy", "st": "Sledujteto"}
+                "sosac": "Sosáč", "hs": "HellSpy", "st": "Sledujteto", "dav": "Úložiště"}
 
 
 def stream_tracks(s):
@@ -1459,6 +1536,8 @@ def stream_label(s):
     """
     parse_stream(s)
     tag = SOURCE_TAGS.get(s.get("source"), "")
+    if s.get("_storage"):
+        tag = f"[COLOR {DAV_COLOR}]{s['_storage']}[/COLOR]"
     raw = s["label"]
     for junk in ("(WS)", "Sosáč"):
         raw = raw.replace(junk, "")
@@ -1692,6 +1771,7 @@ def test_sources():
     zelená nebyla jen ozvěna včerejší odpovědi.
     """
     luna, sosac, ws, hs, st = get_luna(), get_sosac(), get_webshare(), get_hellspy(), get_sledujteto()
+    storages = get_storages()
 
     def check_sledujteto():
         # přihlášení samo nestačí — bez Premium Sledujteto odkaz na přehrání nevydá
@@ -1707,6 +1787,8 @@ def test_sources():
         # mimo cache jako ostatní — HellspyApi bez úložiště se ptá vždy znovu
         "HellSpy": (lambda: len(HellspyApi().search("matrix", limit=5)[0])) if hs else None,
         "Sledujteto": check_sledujteto if st else None,
+        # jen kořen složky — ověří adresu i heslo, celý strom se prochází až při hledání
+        **{api.name: (lambda api=api: api.check()) for api in storages},
     }
     lines = []
     with ThreadPoolExecutor(max_workers=5) as pool:
@@ -2037,7 +2119,7 @@ def list_catalog(apis, ctype, cid, src, genre=None, search=None, skip=0):
 
 def search_title(kind):
     return {"movie": L(30010), "series": L(30011), "ws": L(30045),
-            "hs": L(30197, "Hledat na HellSpy"),
+            "hs": L(30197, "Hledat na HellSpy"), "dav": L(30386, "Hledat ve vlastním úložišti"),
             "any": L(30150, "Hledat")}.get(kind, L(30150, "Hledat"))
 
 
@@ -2225,7 +2307,7 @@ def search_source(apis, ctype, query, want_year, errors):
 
 
 def search_run(apis, kind, query, offset=0):
-    if kind != "hs":
+    if kind not in ("hs", "dav"):
         # HellSpy se hledá jen jako odbočka z dotazu, který v katalozích nic
         # nenašel — do historie patří ten původní dotaz, ne tahle odbočka
         STORE.add_history(kind, query)
@@ -2234,6 +2316,9 @@ def search_run(apis, kind, query, offset=0):
         return
     if kind == "hs":
         list_hs_results(apis, query, offset)
+        return
+    if kind == "dav":
+        list_dav_results(apis, query, offset)
         return
     raw_query = query
     query, want_year = split_year(query)
@@ -2308,6 +2393,13 @@ def search_run(apis, kind, query, offset=0):
         if apis.get("hs"):
             folder_item(L(30197, "Hledat na HellSpy"), build_url(action="search_run", type="hs", q=query),
                        icon="DefaultAddonsSearch.png")
+    if apis.get("dav"):
+        # vlastní soubory nemusí sedět na žádný titul z katalogu (domácí video, vlastní
+        # pojmenování) — hledání v nich je levné, seznam je v paměti, tak se nabízí vždy
+        found = sum(api.search(query, limit=1)[1] for api in apis["dav"] if _storage_ok(api, errors))
+        if found:
+            folder_item(f"{L(30386, 'Hledat ve vlastním úložišti')} ({found})",
+                       build_url(action="search_run", type="dav", q=query), icon="DefaultHardDisk.png")
     for e in errors:
         log_error(e)
     if errors:
@@ -2349,6 +2441,35 @@ def list_hs_results(apis, query, offset=0):
     if len(files) == HS_PAGE:
         folder_item(L(30021), build_url(action="search_run", type="hs", q=query, offset=offset + len(files)),
                    icon="DefaultFolder.png")
+    xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
+def _storage_ok(api, errors):
+    """Jde úložiště přečíst? Chyba se připíše k ostatním a úložiště se přeskočí."""
+    try:
+        api.files()
+        return True
+    except StorageError as e:
+        errors.append(SourceFailure(api.name, e))
+        return False
+
+
+def list_dav_results(apis, query, offset=0):
+    storages = apis.get("dav") or []
+    if not storages:
+        raise StorageError(L(30104))
+    xbmcplugin.setContent(HANDLE, "movies")
+    errors, rows = [], []
+    for api in storages:
+        if _storage_ok(api, errors):
+            rows += [(api, f) for f in api.search(query, limit=10 ** 6)[0]]
+    for api, f in rows[offset:offset + WS_PAGE]:
+        add_dav_file(api, f)
+    if offset + WS_PAGE < len(rows):
+        folder_item(L(30021), build_url(action="search_run", type="dav", q=query, offset=offset + WS_PAGE),
+                   icon="DefaultFolder.png")
+    if errors:
+        notify(skipped_notice(errors), xbmcgui.NOTIFICATION_WARNING, 7000)
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
@@ -2805,6 +2926,16 @@ def play_ws(apis, ident, name=""):
     xbmcplugin.setResolvedUrl(HANDLE, True, li)
 
 
+def play_dav(apis, slot, path, name=""):
+    key = f"dav:{slot}:{path}"
+    api, path = storage_for(apis, key)
+    li = xbmcgui.ListItem(label=name or path, path=api.kodi_url(path))
+    li.getVideoInfoTag().setTitle(name or path)
+    STORE.remember_item(key, {"type": "dav", "id": key, "title": name or path, "art": {}})
+    mark_playing(key, name, kind="dav")
+    xbmcplugin.setResolvedUrl(HANDLE, True, li)
+
+
 def play_hs(apis, file_id, file_hash, name=""):
     api = apis.get("hs") or HellspyApi(cache=STORE)
     key = f"hs:{file_id}:{file_hash}"
@@ -3058,6 +3189,8 @@ def router(query):
             play_ws(apis, p["ident"], p.get("name", ""))
         elif action == "play_hs":
             play_hs(apis, p["id"], p["hash"], p.get("name", ""))
+        elif action == "play_dav":
+            play_dav(apis, int(p.get("slot") or 0), p.get("path", ""), p.get("name", ""))
         elif action == "download":
             download_stream(apis, p["url"], p.get("name", ""), p["id"], p.get("type", "movie"), p.get("series"), p.get("alt"))
         elif action == "download_ws":
@@ -3069,7 +3202,7 @@ def router(query):
     except Errors as e:
         log_error(e)
         notify(describe_error(e), xbmcgui.NOTIFICATION_ERROR, 5000)
-        if action in ("play", "play_ws", "play_hs"):
+        if action in ("play", "play_ws", "play_hs", "play_dav"):
             xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
         elif action not in ("download", "download_ws", "download_hs", "toggle_fav"):
             xbmcplugin.endOfDirectory(HANDLE, succeeded=False)

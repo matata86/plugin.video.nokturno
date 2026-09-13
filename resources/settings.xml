@@ -121,6 +121,125 @@
         </setting>
       </group>
     </category>
+    <category id="storage" label="30374" help="30375">
+      <group id="1" label="30376">
+        <setting id="dav1_url" type="string" label="30379" help="30380">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+          </control>
+        </setting>
+        <setting id="dav1_username" type="string" label="30381" help="30382">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+          </control>
+        </setting>
+        <setting id="dav1_password" type="string" label="30383" help="30382">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+            <hidden>true</hidden>
+          </control>
+        </setting>
+        <setting id="dav1_name" type="string" label="30384" help="30385">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+          </control>
+        </setting>
+      </group>
+      <group id="2" label="30377">
+        <setting id="dav2_url" type="string" label="30379" help="30380">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+          </control>
+        </setting>
+        <setting id="dav2_username" type="string" label="30381" help="30382">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+          </control>
+        </setting>
+        <setting id="dav2_password" type="string" label="30383" help="30382">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+            <hidden>true</hidden>
+          </control>
+        </setting>
+        <setting id="dav2_name" type="string" label="30384" help="30385">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+          </control>
+        </setting>
+      </group>
+      <group id="3" label="30378">
+        <setting id="dav3_url" type="string" label="30379" help="30380">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+          </control>
+        </setting>
+        <setting id="dav3_username" type="string" label="30381" help="30382">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+          </control>
+        </setting>
+        <setting id="dav3_password" type="string" label="30383" help="30382">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+            <hidden>true</hidden>
+          </control>
+        </setting>
+        <setting id="dav3_name" type="string" label="30384" help="30385">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+          </control>
+        </setting>
+      </group>
+    </category>
     <category id="sosac" label="30030">
       <group id="1">
         <setting id="sosac_enabled" type="boolean" label="30031" help="30304">

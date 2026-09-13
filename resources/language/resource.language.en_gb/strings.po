@@ -969,3 +969,55 @@ msgstr ""
 msgctxt "#30329"
 msgid "Like Nokturno? Support the author: Ko-fi ko-fi.com/matata86 · PayPal paypal.me/matata86 · Bitcoin bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc"
 msgstr ""
+
+msgctxt "#30374"
+msgid "Own storage"
+msgstr ""
+
+msgctxt "#30375"
+msgid "Up to three WebDAV folders with your own files (NAS, Nextcloud, server). Files are matched to titles by file name and the folders above it and show up among streams and in search."
+msgstr ""
+
+msgctxt "#30376"
+msgid "Storage 1"
+msgstr ""
+
+msgctxt "#30377"
+msgid "Storage 2"
+msgstr ""
+
+msgctxt "#30378"
+msgid "Storage 3"
+msgstr ""
+
+msgctxt "#30379"
+msgid "Folder address"
+msgstr ""
+
+msgctxt "#30380"
+msgid "WebDAV folder, e.g. davs://nokturno.tailf0014.ts.net:10000/ or https://nas/remote.php/dav/files/me/Video/. Empty = storage off. The file list is refreshed at most once an hour."
+msgstr ""
+
+msgctxt "#30381"
+msgid "Username"
+msgstr ""
+
+msgctxt "#30382"
+msgid "Login for the storage (HTTP Basic). Leave empty if the storage has no password."
+msgstr ""
+
+msgctxt "#30383"
+msgid "Password"
+msgstr ""
+
+msgctxt "#30384"
+msgid "Name"
+msgstr ""
+
+msgctxt "#30385"
+msgid "Shown next to streams from this storage, e.g. NAS. Empty = server name."
+msgstr ""
+
+msgctxt "#30386"
+msgid "Search own storage"
+msgstr ""

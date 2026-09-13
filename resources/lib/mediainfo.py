@@ -17,6 +17,7 @@ Výstup je řetězec ve tvaru, který čte `streams.parse_stream`, tedy
 nedá, se zahodí, ať se do popisku nedostane šum.
 """
 import struct
+import urllib.parse
 import urllib.request
 
 HEAD = 128 * 1024      # začátek souboru: na Matrosku i AVI bohatě stačí
@@ -44,6 +45,13 @@ CHANNELS = {1: "1.0", 2: "2.0", 3: "2.1", 6: "5.1", 7: "6.1", 8: "7.1"}
 ACMOD = {0: 2, 1: 1, 2: 2, 3: 3, 4: 3, 5: 4, 6: 4, 7: 5}
 
 
+def split_headers(url):
+    """`adresa|Hlavička=hodnota&…` (tvar, kterým Kodi předává hlavičky) → (adresa, hlavičky).
+    Vlastní úložiště tak nese heslo i do čtení hlavičky souboru."""
+    base, sep, extra = str(url).partition("|")
+    return (base, dict(urllib.parse.parse_qsl(extra))) if sep else (url, {})
+
+
 def fetch(url, start=None, end=None, length=HEAD, opener=None):
     """Výřez souboru. Bez `start` se bere začátek, se záporným `start` konec."""
     data, _total = fetch_sized(url, start, end, length, opener)
@@ -60,7 +68,8 @@ def fetch_sized(url, start=None, end=None, length=HEAD, opener=None):
         rng = f"bytes=-{-start}"
     else:
         rng = f"bytes={start}-{end if end is not None else start + length - 1}"
-    req = urllib.request.Request(url, headers={"Range": rng, "User-Agent": UA})
+    url, extra = split_headers(url)
+    req = urllib.request.Request(url, headers={"Range": rng, "User-Agent": UA, **extra})
     opened = (opener or urllib.request).urlopen(req, timeout=TIMEOUT)
     with opened as resp:
         data = resp.read()
