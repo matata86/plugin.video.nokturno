@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="2.0.21" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="2.0.22" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -20,7 +20,9 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>2.0.21 – Oprava: u titulů s krátkým slovem v názvu (např. „Harry Potter a Kámen mudrců“) hledání na WebShare a HellSpy zahodilo všechny přesné shody
+    <news>2.0.22 – Oprava: rozkoukaný film se neuložil, když se bez zastavení pustil jiný; titul se teď do „Pokračovat ve sledování“ zapíše už po 90 s přehrávání a od 90 % se označí jako zhlédnutý, obojí hned za běhu
+2.0.22 – Přesnější výsledky z WebShare a HellSpy: u titulu s krátkým názvem (např. „To“) se už neobjeví nesouvisející filmy, u filmu se nenabízí jeho pokračování („Jak vycvičit draka 2“ u jedničky) a pozná se i rok oddělený podtržítkem
+2.0.21 – Oprava: u titulů s krátkým slovem v názvu (např. „Harry Potter a Kámen mudrců“) hledání na WebShare a HellSpy zahodilo všechny přesné shody
 2.0.20 – Oprava: položka „Novinky ve verzi“ po přečtení někdy nezmizela (verze se brala z paměti Kodi místo z addon.xml)
 2.0.19 – Oprava pádu služby na pozadí zavedené v 2.0.18 (chyba v note_play zastavila sledování rozkoukanosti i synchronizaci, dokud se Kodi neresetlo) — kdo 2.0.18 už nainstaloval, aktualizaci udělá sám
 2.0.18 – Znovu zavedená statistika zhlédnutí titulů (nová logika: max jedno zhlédnutí za den, ne počítadlo přehrání); oprava, kdy „Pokračovat ve sledování“ po znovuotevření nabídlo míň streamů než hned po přehrání (chyběl odkaz na druhý zdroj)

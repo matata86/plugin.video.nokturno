@@ -693,6 +693,85 @@ EPISODE_ANY_RE = re.compile(r"(?<![a-z0-9])s\d{1,2}\s?e\d{1,2}(?!\d)|(?<!\d)\d{1
 AUDIO_PROBE_MAX = 24          # u kolika streamů se ještě vyplatí číst hlavičku souboru
 AUDIO_TTL = 30 * 24 * 3600    # obsah souboru se nemění, stačí zjistit jednou
 YEAR_RE = re.compile(r"\b(19\d{2}|20\d{2})\b")
+# číslo dílu hned za názvem („Já, padouch 2", „How.to.Train.Your.Dragon.3") — ne
+# zvuk 5.1/7.1, ten má za tečkou jedinou číslici; rok za tečkou („draka.2.2014") dílem je
+SEQUEL_AFTER_RE = re.compile(r"[\s._\-:,(\[]*(?:[2-9]|ii|iii|iv|vi|vii|viii)(?![a-z0-9])(?![.,]\d(?!\d))")
+# značky, které smí stát kolem krátkého názvu („To", „It") místo dalšího slova
+RELEASE_TAGS = frozenset((
+    "cz", "sk", "en", "eng", "cze", "czech", "cesky", "dabing", "dab", "dub", "titulky", "tit",
+    "cztit", "sktit", "subs", "hd", "fullhd", "uhd", "bluray", "bdrip", "brrip", "webrip", "web",
+    "webdl", "dl", "dvdrip", "hdtv", "remux", "hevc", "avc", "film", "movie", "mkv", "avi", "mp4",
+))
+
+
+def _years(folded):
+    """Roky v názvu souboru. `\\b` mezi číslicí a podtržítkem hranici nevidí
+    („Jak_vycvicit_draka_2025"), proto se podtržítka napřed mění na mezery."""
+    return {int(y) for y in YEAR_RE.findall(folded.replace("_", " "))}
+
+
+def _title_pattern(text):
+    """(slova, ocas, krátký) jedné varianty názvu pro přísný filtr.
+
+    Slova jsou ta delší než dva znaky („Harry Potter a Kámen mudrců" → bez „a"),
+    ocas je všechno za posledním z nich („Toy Story 5" → „5"), aby se dalo poznat
+    jiný díl. Název jen z krátkých slov („To", „It") by bez slov neměl žádný
+    filtr, takže bere všechna a hlídá se zvlášť (viz `_title_leads`).
+    """
+    raw = re.findall(r"[a-z0-9]+", _fold(text))
+    long_idx = [i for i, t in enumerate(raw) if len(t) > 2]
+    if long_idx:
+        return [raw[i] for i in long_idx], raw[long_idx[-1] + 1:], False
+    return raw, [], True
+
+
+def _title_leads(folded, pattern, movie, variants=()):
+    """Začíná název souboru tímhle názvem titulu? (přísný filtr)
+
+    Slova názvu musí být v souboru za sebou a skoro na začátku. Pouhé „všechna
+    slova někde v názvu" propustí i úplně jiný titul, který ta slova jen náhodou
+    obsahuje — např. český idiom „Seber si svých pět švestek" vs. film „Pět
+    švestek": obě slova tam jsou, ale patří k jiné větě. Skutečný název souboru
+    na nich vždycky začíná (nejvýš za značkou webu/edicí v závorce), balíček
+    zdrojů (rok, kvalita, kodek…) přijde až za ním.
+
+    U filmu nesmí za názvem hned následovat číslo jiného dílu („Jak vycvičit
+    draka 2" u jedničky). Krátký název („To") musí stát úplně na začátku a za
+    ním smí být jen rok, kvalita nebo značka jazyka — jinak projde „What
+    Happened to Monday" i „Někdo to rád horké". Výjimkou je jiná varianta
+    téhož názvu hned za ním („To - It (2017)").
+    """
+    group, tail, short = pattern
+    spans = [(m.group(), m.end()) for m in re.finditer(r"[a-z0-9]+", folded)]
+    n = len(group)
+    if short:
+        start = 0
+        while start < len(spans) and spans[start][0] in RELEASE_TAGS:
+            start += 1
+        if [t for t, _e in spans[start:start + n]] != group:
+            return False
+        after = spans[start + n:]
+        for other in variants:
+            if other != group and [t for t, _e in after[:len(other)]] == other:
+                after = after[len(other):]
+                break
+        if after and after[0][0].isalpha() and after[0][0] not in RELEASE_TAGS:
+            return False
+        end = spans[start + n - 1][1]
+    else:
+        long_spans = [(i, t) for i, (t, _e) in enumerate(spans) if len(t) > 2]
+        tokens = [t for _i, t in long_spans]
+        for i in range(min(3, len(tokens) - n + 1)):
+            if tokens[i:i + n] == group:
+                last = long_spans[i + n - 1][0]
+                break
+        else:
+            return False
+        after = spans[last + 1:]
+        if tail and [t for t, _e in after[:len(tail)]] == tail:
+            last += len(tail)
+        end = spans[last][1]
+    return not (movie and SEQUEL_AFTER_RE.match(folded, end))
 
 
 RUNTIME_RE = re.compile(r"(?:(\d+)\s*h)?\s*(?:(\d+)\s*min)?", re.I)
@@ -750,38 +829,17 @@ def title_queries(apis, meta, video, ctype, alt=None, strict=True):
         queries = [f"{title} {year}" if year else title, title] + [f"{o} {year}" if year else o for o in origs]
         episode_re, want_year = None, year
 
-    def words(text):
-        return [w for w in re.split(r"[^a-z0-9]+", _fold(text)) if len(w) > 2]
-    wanted = [w for w in [words(title)] + [words(o) for o in origs] if w]
-    title_years = {int(y) for y in YEAR_RE.findall(_fold(title) + " " + " ".join(_fold(o) for o in origs))}
-
-    def phrase_leads(tokens, group):
-        """Slova názvu musí být v souboru za sebou a skoro na začátku.
-
-        Pouhé „všechna slova někde v názvu" propustí i úplně jiný titul,
-        který ta slova jen náhodou obsahuje — např. český idiom „Seber si
-        svých pět švestek" vs. film „Pět švestek": obě slova tam jsou,
-        ale patří k jiné větě. Skutečný název souboru na nich vždycky
-        začíná (nejvýš za značkou webu/edicí v závorce), překódovaný
-        balíček zdrojů (rok, kvalita, kodek…) přijde až za ním.
-        """
-        n = len(group)
-        for i in range(len(tokens) - n + 1):
-            if tokens[i:i + n] == group:
-                return i <= 2
-        return False
+    wanted = [p for p in [_title_pattern(title)] + [_title_pattern(o) for o in origs] if p[0]]
+    variants = [group for group, _tail, _short in wanted]
+    title_years = _years(_fold(title) + " " + " ".join(_fold(o) for o in origs))
 
     def relevant(name):
         folded = _fold(name)
         if wanted:
             if strict:
-                # stejné síto jako `words()` u názvu titulu — jinak „Harry Potter
-                # a Kámen mudrců" nikdy nesedí: z názvu se „a" vyřadí, ze souboru
-                # ne, a slova pak nejdou za sebou (spadly všechny přesné shody)
-                tokens = [t for t in re.split(r"[^a-z0-9]+", folded) if len(t) > 2]
-                if not any(phrase_leads(tokens, group) for group in wanted):
+                if not any(_title_leads(folded, pattern, not video, variants) for pattern in wanted):
                     return False
-            elif not any(all(w in folded for w in group) for group in wanted):
+            elif not any(all(w in folded for w in group) for group, _tail, _short in wanted):
                 return False
         if not video and EPISODE_ANY_RE.search(folded):
             # u filmu nemá soubor se značkou dílu co dělat. Jednoslovný název
@@ -789,7 +847,7 @@ def title_queries(apis, meta, video, ctype, alt=None, strict=True):
             # takže by se do seznamu streamů filmu nasypal celý seriál.
             return False
         if want_year:
-            years = {int(y) for y in YEAR_RE.findall(folded)} - (title_years - {want_year})
+            years = _years(folded) - (title_years - {want_year})
             if years and not any(abs(y - want_year) <= 1 for y in years):
                 return False
         return not episode_re or bool(episode_re.search(folded))
