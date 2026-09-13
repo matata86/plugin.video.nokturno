@@ -11,6 +11,11 @@ WebShare: podle názvu souboru a podle složek nad ním („Sherlock/S01E02.mkv"
 se procházejí po jedné. Seznam se pamatuje hodinu (`INDEX_TTL`), takže nový film
 se ve výsledcích objeví nejpozději do hodiny.
 
+Dřív, když úložiště nese značku změny `.nokturno-rev` v kořeni: její obsah je
+součástí klíče seznamu, takže jakmile se změní, seznam se načte znovu hned.
+Dashboard Nokturna ji přepisuje po každém nahrání, přesunu a smazání a na
+tlačítko „Přeindexovat“. Jiná úložiště ji nemají a platí jen hodinová paměť.
+
 Odkaz na soubor se nosí jako `dav:<slot>:<cesta uvnitř úložiště>`. Adresa
 serveru v něm není záměrně: slot se překládá na úložiště z nastavení, takže
 z odkazu nejde přesměrovat jinam, a cesta se kontroluje, aby nevedla ven
@@ -30,6 +35,7 @@ from html.parser import HTMLParser
 SLOTS = 3                   # kolik vlastních úložišť jde nastavit
 TIMEOUT = 20
 INDEX_TTL = 3600            # jak dlouho platí seznam souborů
+REV_FILE = ".nokturno-rev"  # značka změny v kořeni úložiště (viz docstring)
 MAX_DIRS = 3000             # pojistka proti nekonečnému procházení
 MAX_FILES = 50000
 UA = "Mozilla/5.0 (compatible; Nokturno/1.0)"
@@ -251,11 +257,21 @@ class StorageApi:
         files.sort(key=lambda f: f["path"].lower())
         return {"ok": True, "files": files, "truncated": bool(queue)}
 
+    def revision(self):
+        """Obsah značky změny, prázdný řetězec, když ji úložiště nemá nebo nejde přečíst."""
+        try:
+            with self._open(self.base + REV_FILE, headers={"Cache-Control": "no-cache"}) as resp:
+                return resp.read(64).decode("ascii", "ignore").strip()
+        except StorageError:
+            return ""
+
     def index(self):
-        """Seznam videí v úložišti, z paměti nejvýš `INDEX_TTL` starý."""
+        """Seznam videí v úložišti, z paměti nejvýš `INDEX_TTL` starý — nebo čerstvý,
+        když se od posledního procházení změnila značka `.nokturno-rev`."""
         if self.cache is None:
             return self._crawl()
-        return self.cache.cached_if(f"dav:index1:{self.key}", self.index_ttl, self._crawl,
+        rev = re.sub(r"[^0-9A-Za-z._-]", "", self.revision())[:40]
+        return self.cache.cached_if(f"dav:index2:{self.key}:{rev}", self.index_ttl, self._crawl,
                                     ok=lambda d: bool(d and d.get("ok")))
 
     def files(self):
