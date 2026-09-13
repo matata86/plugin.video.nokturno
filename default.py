@@ -2554,7 +2554,7 @@ def toggle_watched(key):
     xbmc.executebuiltin("Container.Refresh")
 
 
-def remove_progress(key):
+def remove_progress(key, series=None):
     """Odebrání z Pokračovat ve sledování — vynuluje rozkoukanost (`resume`/`total`),
     ne zhlédnutí. Nový `ts` (nastaví ho `set_resume`) je to, co odebrání přenese
     i na ostatní synchronizovaná Kodi — bez novějšího času by ho starší rozkoukaný
@@ -2565,6 +2565,14 @@ def remove_progress(key):
     `succeeded=False` jako u „Vymazat mezipaměť": bez něj by na tenhle typ volání
     Kodi čekalo na výpis složky, který nikdy nepřijde."""
     STORE.set_resume(key, 0, 0)
+    if series:
+        # „Další díl“ není rozkoukaný — dopočítává se z posledního zhlédnutého dílu,
+        # takže vynulované resume ho nezmění a položka se hned vrátila (Hospoda 1x02
+        # v kartě HA). Pamatuje se proto skrytý díl: jakmile se zhlédne další a na řadě
+        # je jiný, nabídne se zase.
+        hidden = STORE.load("next_hidden", {})
+        hidden[str(series)] = key
+        STORE.save("next_hidden", hidden)
     request_sync()
     xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
     xbmc.executebuiltin("Container.Refresh")
@@ -2660,6 +2668,7 @@ def list_continue(apis):
             add_snapshot_item(key, snap, [(L(30365, "Odebrat z Pokračovat ve sledování"),
                                           runplugin(action="remove_progress", id=key))])
     seen_series = set()
+    hidden = STORE.load("next_hidden", {})
     for key, _entry in STORE.recently_watched(40):
         snap = STORE.item(key)
         if not snap or snap.get("season") is None or snap.get("series") in seen_series:
@@ -2670,13 +2679,15 @@ def list_continue(apis):
             continue
         video, meta = found
         ep_id = video.get("id") or f"{snap['series']}:{video.get('season')}:{video.get('episode')}"
-        if STORE.playcount(ep_id):
+        if STORE.playcount(ep_id) or hidden.get(str(snap["series"])) == ep_id:
             continue
         li = xbmcgui.ListItem(label=f"{L(30067)}: {meta.get('_title') or meta.get('name')} – "
                                     f"{int(video.get('season') or 0)}x{int(video.get('episode') or 0):02d} {video.get('title') or ''}")
         li.setArt(art_for(meta, video))
         fill_info(li, meta, "series", video=video)
-        apply_watched(li, ep_id, [fav_context(ep_id, "series", snap["series"], snap.get("alt"))])
+        apply_watched(li, ep_id, [fav_context(ep_id, "series", snap["series"], snap.get("alt")),
+                                  (L(30365, "Odebrat z Pokračovat ve sledování"),
+                                   runplugin(action="remove_progress", id=ep_id, series=snap["series"]))])
         add_playable(li, "series", ep_id, series_id=snap["series"], alt=snap.get("alt"))
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
@@ -3168,7 +3179,7 @@ def router(query):
         "history_remove": lambda: history_remove(p["type"], p.get("q", "")),
         "history_clear": lambda: history_clear(p["type"]),
         "toggle_watched": lambda: toggle_watched(p["id"]),
-        "remove_progress": lambda: remove_progress(p["id"]),
+        "remove_progress": lambda: remove_progress(p["id"], p.get("series")),
         "search": lambda: search_menu(p["type"]),
         "favourites": list_favourites,
         "recent": list_recent,
