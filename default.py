@@ -36,6 +36,7 @@ from sosac_api import SosacError, is_sosac_id as _is_stremio_sosac_id, names_mat
 from sosac_direct import EXPORT as SOSAC_EXPORT, SosacDirect, is_direct_id  # noqa: E402
 from enrich import enrich, enrich_one  # noqa: E402
 from hellspy_api import HellspyApi, HellspyError  # noqa: E402
+from sledujteto_api import SledujtetoApi, SledujtetoError  # noqa: E402
 from mediainfo import describe as describe_media, probe as probe_media, quality_from_size  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
 from source_errors import summarize as summarize_failures  # noqa: E402
@@ -70,9 +71,10 @@ CACHE_TTL = 600
 SEARCH_TTL = 12 * 3600  # sjednocené s luna_api.SEARCH_TTL / webshare_api.SEARCH_TTL
 SOSAC_TAG = "[COLOR FFE0A040]Sosáč[/COLOR]"
 HS_TAG = "[COLOR FFFF8A6B]HellSpy[/COLOR]"
+ST_TAG = "[COLOR FF4DD0C0]Sledujteto[/COLOR]"
 WS_TAG = "[COLOR FF60B0FF]WebShare[/COLOR]"
 LUNA_TAG = "[COLOR FFB39DFF]Luna[/COLOR]"
-SOURCE_TAGS = {"main": LUNA_TAG, "search": WS_TAG, "sosac": SOSAC_TAG, "ws": WS_TAG, "hs": HS_TAG}
+SOURCE_TAGS = {"main": LUNA_TAG, "search": WS_TAG, "sosac": SOSAC_TAG, "ws": WS_TAG, "hs": HS_TAG, "st": ST_TAG}
 QUALITY_COLORS = {4: "FFE06A60", 3: "FF6FD18A", 2: "FF6FB6F0", 1: "FFA0A0A0"}
 # krátce, ať zbyde místo na zbytek řádku: „Full HD" se v úzkém sloupci nevyplatí
 QUALITY_NAMES = {4: "4K", 3: "FHD", 2: "HD", 1: "SD"}
@@ -108,7 +110,7 @@ if _old_settings:
     except Exception as _e:  # noqa: BLE001
         xbmc.log(f"[{ADDON_ID}] migrace nastavení: {_e}", xbmc.LOGWARNING)
 STORE = Store(PROFILE)
-Errors = (LunaError, CinemetaError, TmdbError, SosacError, WebshareError, HellspyError, TraktError)
+Errors = (LunaError, CinemetaError, TmdbError, SosacError, WebshareError, HellspyError, SledujtetoError, TraktError)
 
 # po aktualizaci doplňku (i downgradu) smazat cache API — jinak by staré verze
 # odpovědí (chybějící pole, jiný tvar dat po změně kódu) přežily klidně týdny,
@@ -200,6 +202,11 @@ def resolve_url(apis, url):
         api = apis.get("hs") or HellspyApi(cache=STORE)
         file_id, _sep, file_hash = url[3:].partition(":")
         return api.file_link(file_id, file_hash)
+    if url and url.startswith("st:"):
+        api = apis.get("st")
+        if api is None:
+            raise SledujtetoError(L(30104))
+        return api.file_link(url[3:])
     if url and url.startswith("streamuj:"):
         api = apis.get("sosac")
         if not isinstance(api, SosacDirect):
@@ -223,6 +230,17 @@ def get_hellspy():
     if not on("hs_enabled", "false"):
         return None
     return HellspyApi(cache=STORE)
+
+
+def get_sledujteto():
+    """Sledujteto — přihlášený účet. Token si klient drží v úložišti doplňku,
+    heslo se posílá jen při přihlášení. Přehrávat jde jen s Premium."""
+    if not on("st_enabled", "false"):
+        return None
+    email, pw = setting("st_email").strip(), setting("st_password")
+    if not email or not pw:
+        return None
+    return SledujtetoApi(email, pw, cache=STORE)
 
 
 def remember_ws_token(api):
@@ -254,7 +272,7 @@ def get_tmdb():
 
 
 def get_apis():
-    return {"luna": get_luna(), "sosac": get_sosac(), "ws": get_webshare(), "hs": get_hellspy(),
+    return {"luna": get_luna(), "sosac": get_sosac(), "ws": get_webshare(), "hs": get_hellspy(), "st": get_sledujteto(),
             "cinemeta": get_cinemeta(), "sosac_db": get_sosac_db(), "tmdb": get_tmdb()}
 
 
@@ -279,7 +297,7 @@ def log_error(err):
 
 SOURCE_LABELS = {
     LunaError: "Luna", CinemetaError: "Cinemeta", TmdbError: "TMDB",
-    SosacError: "Sosáč", WebshareError: "WebShare", HellspyError: "HellSpy",
+    SosacError: "Sosáč", WebshareError: "WebShare", HellspyError: "HellSpy", SledujtetoError: "Sledujteto",
     TraktError: "Trakt.tv",
 }
 
@@ -725,6 +743,7 @@ def cross_streams(apis, ctype, item_id, meta, alt=None, errors=None):
 
 WS_LIMIT = 25
 HS_LIMIT = 25
+ST_LIMIT = 25
 # značka dílu v názvu souboru: „S01E03", „s1 e3", „1x03"
 EPISODE_ANY_RE = re.compile(r"(?<![a-z0-9])s\d{1,2}\s?e\d{1,2}(?!\d)|(?<!\d)\d{1,2}x\d{2}(?!\d)", re.I)
 AUDIO_PROBE_MAX = 24          # u kolika streamů se ještě vyplatí číst hlavičku souboru
@@ -950,7 +969,54 @@ def hellspy_streams(apis, meta, video, ctype, alt=None, strict=True, errors=None
     return out
 
 
-DIRECT_SOURCES = ("ws", "hs")   # fulltextové zdroje, kde bývá tentýž soubor jako u Luny
+_ST_KEYS_LOGGED = []
+
+
+def sledujteto_streams(apis, meta, video, ctype, alt=None, strict=True, errors=None):
+    """Tentýž titul na Sledujteto — stejné dotazy a přísný filtr jako HellSpy, jen
+    přes přihlášený účet. Hledání jde i bez Premium, přehrání ne — to se ozve až
+    při přehrání (viz `resolve_url`)."""
+    st = apis.get("st")
+    if st is None:
+        return []
+    queries, relevant = title_queries(apis, meta, video, ctype, alt, strict)
+    out, seen = [], set()
+    for query in queries:
+        try:
+            files, _total = st.search(query, limit=ST_LIMIT)
+        except SledujtetoError as e:
+            log_error(f"Sledujteto „{query}“: {e}")
+            if errors is not None:
+                errors.append(e)
+            if getattr(e, "status", None) in (401, 403):
+                break   # špatný účet — další dotazy by dopadly stejně
+            continue
+        if st.last_keys and not _ST_KEYS_LOGGED:
+            # velikost souboru jejich doplněk nepoužívá a klíč neznáme jistě — jednou do logu
+            _ST_KEYS_LOGGED.append(True)
+            xbmc.log(f"[{ADDON_ID}] Sledujteto: klíče výsledku hledání {st.last_keys}, "
+                     f"ukázka {getattr(st, 'last_sample', {})}", xbmc.LOGINFO)
+        for f in files:
+            name = f.get("name") or ""
+            if f["id"] in seen or not relevant(name):
+                continue
+            seen.add(f["id"])
+            info = f.get("media") or {}
+            # technické údaje dává přímo API — jako přečtená hlavička (viz fill_audio)
+            text = describe_media(info) if info.get("audio") else ""
+            real = quality_from_size(info.get("width") or 0, info.get("height") or 0)
+            stream = {"url": f"st:{f['id']}", "label": name,
+                      "detail": " | ".join(x for x in (f.get("size_h") or "", text) if x),
+                      "quality": real or f.get("quality") or "", "source": "st",
+                      "subtitles": list(f.get("subtitles") or []), "_duration": f.get("duration") or 0,
+                      "_loose": not strict}
+            if info.get("audio") or info.get("height"):
+                stream.update(_tracks=info.get("audio") or [], _media=info, _from_file=True)
+            out.append(stream)
+    return out
+
+
+DIRECT_SOURCES = ("ws", "hs", "st")   # fulltextové zdroje, kde bývá tentýž soubor jako u Luny
 
 
 def media_from_file(apis, url):
@@ -1118,17 +1184,20 @@ def collect_streams(apis, ctype, item_id, meta, alt=None, progress=None, strict=
     # není to zdvojení Luny: Luna pošle jeden dotaz, tohle víc variant (rok, originál)
     direct = apis.get("ws") is not None
     video = load_meta_video(meta, item_id)
-    with ThreadPoolExecutor(max_workers=4) as pool:
+    with ThreadPoolExecutor(max_workers=5) as pool:
         main = pool.submit(guarded, main_label, all_streams, apis, ctype, item_id)
         cross = pool.submit(guarded, cross_label, cross_streams, apis, ctype, item_id, meta, alt, errors)
         ws = pool.submit(guarded, "WebShare", webshare_streams, apis, meta, video, ctype, alt, strict,
                          errors) if direct else None
         hs = pool.submit(guarded, "HellSpy", hellspy_streams, apis, meta, video, ctype, alt, strict,
                          errors) if apis.get("hs") else None
+        st = pool.submit(guarded, "Sledujteto", sledujteto_streams, apis, meta, video, ctype, alt, strict,
+                         errors) if apis.get("st") else None
         if progress:
-            for _ in as_completed([f for f in (main, cross, ws, hs) if f is not None]):
+            for _ in as_completed([f for f in (main, cross, ws, hs, st) if f is not None]):
                 progress.tick()
-        extra = cross.result() + (ws.result() if ws else []) + (hs.result() if hs else [])
+        extra = cross.result() + (ws.result() if ws else []) + (hs.result() if hs else []) \
+            + (st.result() if st else [])
         streams = drop_duplicates(main.result() + extra)
     max_gb = effective_max_gb(video or meta)
 
@@ -1223,7 +1292,7 @@ def pref_from_param(value):
 
 
 SOURCE_GROUP = {"main": "Luna", "search": "WebShare", "ws": "WebShare",
-                "sosac": "Sosáč", "hs": "HellSpy"}
+                "sosac": "Sosáč", "hs": "HellSpy", "st": "Sledujteto"}
 
 
 def stream_tracks(s):
@@ -1622,15 +1691,25 @@ def test_sources():
     Dřív se to poznalo až z prázdného seznamu streamů. Volá se mimo cache, aby
     zelená nebyla jen ozvěna včerejší odpovědi.
     """
-    luna, sosac, ws = get_luna(), get_sosac(), get_webshare()
+    luna, sosac, ws, hs, st = get_luna(), get_sosac(), get_webshare(), get_hellspy(), get_sledujteto()
+
+    def check_sledujteto():
+        # přihlášení samo nestačí — bez Premium Sledujteto odkaz na přehrání nevydá
+        user = st.me()
+        xbmc.log(f"[{ADDON_ID}] Sledujteto: údaje o účtu {st.last_me_keys}", xbmc.LOGINFO)
+        return "Premium" if user.get("is_premium") else "bez Premium — přehrávání nepůjde"
+
     checks = {
         "Luna": (lambda: len((luna._get(luna._meta_url("manifest.json")) or {}).get("catalogs", []))) if luna else None,
         "Sosáč": (lambda: len(sosac._get(SOSAC_EXPORT + "souboryzanry.json", ttl=0) or {}))
         if isinstance(sosac, SosacDirect) else None,
         "WebShare": (lambda: bool(ws.login())) if ws else None,
+        # mimo cache jako ostatní — HellspyApi bez úložiště se ptá vždy znovu
+        "HellSpy": (lambda: len(HellspyApi().search("matrix", limit=5)[0])) if hs else None,
+        "Sledujteto": check_sledujteto if st else None,
     }
     lines = []
-    with ThreadPoolExecutor(max_workers=3) as pool:
+    with ThreadPoolExecutor(max_workers=5) as pool:
         futures = {name: pool.submit(fn) for name, fn in checks.items() if fn}
         for name in checks:
             if name not in futures:
@@ -1638,7 +1717,7 @@ def test_sources():
                 continue
             try:
                 result = futures[name].result(timeout=20)
-                lines.append(f"{name}: {L(30168)}" + (f" ({result})" if isinstance(result, int) else ""))
+                lines.append(f"{name}: {L(30168)}" + (f" ({result})" if isinstance(result, (int, str)) else ""))
             except Exception as e:  # noqa: BLE001 – přesně tohle chceme uživateli ukázat
                 lines.append(f"{name}: {str(e)[:90]}")
     if ws:
@@ -1741,10 +1820,25 @@ def prefetch(apis, kind):
     xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
 
 
+def stats_sources():
+    """Které zdroje jsou v nastavení aktivní — do statistik, bez účtů a adres.
+    Tentýž výčet skládá služba (`service.stats_context`), tohle je ruční odeslání."""
+    return [name for name, active in (
+        ("luna", on("luna_enabled") and bool(setting("token").strip())),
+        ("sosac", on("sosac_enabled") and bool(setting("streamuj_username").strip())),
+        ("webshare", on("ws_enabled", "false") and bool(setting("ws_username").strip())),
+        ("hellspy", on("hs_enabled", "false")),
+        ("sledujteto", on("st_enabled", "false") and bool(setting("st_email").strip())),
+        ("tmdb", bool(setting("tmdb_api_key").strip())),
+        ("trakt", on("trakt_enabled", "false")),
+    ) if active]
+
+
 def stats_send():
     """Ruční odeslání statistik z nastavení – jinak je posílá služba na pozadí."""
     from stats import COLLECT_URL, Stats
-    ok, why = Stats(PROFILE).send(COLLECT_URL, version=ADDON.getAddonInfo("version"))
+    ok, why = Stats(PROFILE).send(COLLECT_URL, version=ADDON.getAddonInfo("version"),
+                                  sources=stats_sources(), product="kodi")
     notify(L(30165) if ok else f"{L(30166)}: {why}",
            xbmcgui.NOTIFICATION_INFO if ok else xbmcgui.NOTIFICATION_ERROR, 5000)
 
@@ -2474,7 +2568,7 @@ def fulltext_item(ctype, item_id, series_id, alt):
     """Odkaz na tuhle obrazovku znovu, ale s uvolněným filtrem WebShare/HellSpy
     (viz `title_queries`, `strict=False`) — pro případ, že přísný automatický
     filtr skutečnou shodu zahodil, protože název souboru je neobvyklý."""
-    folder_item(L(30335, "Zkusit fulltext na WebShare/HellSpy"),
+    folder_item(L(30335, "Zkusit uvolněný fulltext (WebShare, HellSpy, Sledujteto)"),
                 build_url(action="streams", type=ctype, id=item_id, series=series_id, alt=alt, fulltext="1"),
                 icon="DefaultAddonsSearch.png")
 
@@ -2483,14 +2577,14 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None, fq="", flang=""
                  fulltext=""):
     meta, video = load_meta(apis, ctype, item_id, series_id)
     strict = fulltext != "1"
-    has_fulltext_source = bool(apis.get("ws") or apis.get("hs"))
+    has_fulltext_source = bool(apis.get("ws") or apis.get("hs") or apis.get("st"))
     # ukazatel průběhu: pár kroků na dotazy zdrojům, pak (obvykle nejdelší část)
     # jeden na každý soubor, kterému se čte hlavička v `fill_audio()`
     try:
         probe_limit = int(setting("audio_probe", str(AUDIO_PROBE_MAX)) or AUDIO_PROBE_MAX)
     except ValueError:
         probe_limit = AUDIO_PROBE_MAX
-    num_sources = 2 + (1 if apis.get("ws") else 0) + (1 if apis.get("hs") else 0)
+    num_sources = 2 + sum(1 for k in ("ws", "hs", "st") if apis.get(k))
     bar = xbmcgui.DialogProgressBG()
     bar.create("Nokturno", L(30238, "Načítám streamy…"))
     bar.update(0)

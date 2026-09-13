@@ -18,6 +18,8 @@ CONF_STREAMUJ_USER = "streamuj_username"
 CONF_STREAMUJ_PASS = "streamuj_password"
 CONF_TMDB_KEY = "tmdb_api_key"
 CONF_HS_ENABLED = "hs_enabled"   # HellSpy je veřejný, stačí přepínač
+CONF_ST_EMAIL = "st_email"       # Sledujteto — hledání chce účet, přehrávání Premium
+CONF_ST_PASS = "st_password"
 
 # --- torrenty ------------------------------------------------------------
 CONF_PROWLARR_URL = "prowlarr_url"

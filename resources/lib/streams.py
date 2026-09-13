@@ -5,6 +5,7 @@ Luna popisuje stream textem („4K HDR“, „18 Mb/s · 2:42:02 · 19.8G“, �
 jazyky zvuku a titulků, aby šlo skrýt SD, omezit velikost, preferovat CZ a řadit.
 """
 import re
+import unicodedata
 
 QUALITY_RANK = (("4K", 4), ("2160", 4), ("UHD", 4), ("FULL HD", 3), ("1080", 3), ("HD", 2), ("720", 2), ("SD", 1))
 LANG_ALIASES = {"GB": "EN", "US": "EN", "UK": "EN", "CZ": "CZ", "SK": "SK", "EN": "EN"}
@@ -15,6 +16,36 @@ BITRATE_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*Mb/s", re.I)
 DURATION_RE = re.compile(r"(?<!\d)(?:(\d+):)?(\d{1,2}):(\d{2})(?!\d)")
 LANG_RE = re.compile(r"\b([A-Z]{2})\b")
 AUDIO_RE = re.compile(r"\b([A-Z]{2})\s+(\d(?:\.\d)?)\b")   # „CZ 5.1“, „GB 2.0“
+
+
+# Uploadeři na HellSpy a WebShare lepí za název souboru znak z cizího písma, aby se
+# jejich kopie téhož souboru lišily: „… UHD CZ  ᚠ", „(ሐ)", „ก", „(ア)", „(ㄅ)".
+# Z názvu nic nevyčteš a škodí: klient Stremia kvůli němu přepne na záložní písmo
+# a v celém popisu streamu přestane kreslit emoji (vlaječky jako písmena v rámečku)
+# — a kopie téhož souboru se kvůli němu neslučovaly.
+JUNK_SUFFIX_RE = re.compile(r"\s*[\(\[]?\s*([^\s()\[\]]{1,3})\s*[\)\]]?\s*$")
+
+
+def _junk_token(token):
+    """1–3 písmena z písma, které není latinka (runy, etiopské, thajské, kana…)."""
+    for ch in token:
+        if not unicodedata.category(ch).startswith("L"):
+            return False
+        if unicodedata.name(ch, "").startswith("LATIN"):
+            return False
+    return True
+
+
+def clean_file_name(name):
+    """Ořízne koncovku z cizího písma na konci názvu souboru. Víc slov cizím písmem
+    (skutečný ruský nebo japonský název) nechá — bere jen 1–3 znaky za mezerou."""
+    name = name or ""
+    m = JUNK_SUFFIX_RE.search(name)
+    if m and m.start() > 0 and name[:m.start()].strip() and _junk_token(m.group(1)) \
+            and (name[m.start() - 1:m.start()].isspace() or name[m.start():m.start() + 1].isspace()
+                 or name[m.start():].lstrip().startswith(("(", "["))):
+        return name[:m.start()].rstrip()
+    return name
 
 
 def quality_rank(text):

@@ -937,3 +937,31 @@ msgstr ""
 msgctxt "#30366"
 msgid "skipped"
 msgstr ""
+
+msgctxt "#30367"
+msgid "Sledujteto"
+msgstr ""
+
+msgctxt "#30368"
+msgid "Search Sledujteto for titles"
+msgstr ""
+
+msgctxt "#30369"
+msgid "Sledujteto.cz is a Czech video hosting. Searching needs an account, playback needs a Premium account."
+msgstr ""
+
+msgctxt "#30370"
+msgid "Sledujteto — e-mail"
+msgstr ""
+
+msgctxt "#30371"
+msgid "E-mail you use to sign in to sledujteto.cz."
+msgstr ""
+
+msgctxt "#30372"
+msgid "Sledujteto — password"
+msgstr ""
+
+msgctxt "#30373"
+msgid "Password for sledujteto.cz. It is sent only when signing in; requests then use a token."
+msgstr ""

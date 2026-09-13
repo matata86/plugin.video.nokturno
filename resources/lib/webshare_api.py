@@ -12,6 +12,8 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 
+from streams import clean_file_name
+
 API = "https://webshare.cz/api/"
 TIMEOUT = 40
 ITOA64 = "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
@@ -140,7 +142,7 @@ class WebshareApi:
             for f in root.findall("file"):
                 files.append({
                     "ident": f.findtext("ident"),
-                    "name": f.findtext("name") or "",
+                    "name": clean_file_name(f.findtext("name") or ""),
                     "type": f.findtext("type") or "",
                     "img": f.findtext("img") or "",
                     "size": int(f.findtext("size") or 0),
@@ -154,7 +156,7 @@ class WebshareApi:
             return load()
         # klíč jen z parametrů dotazu — token se obnovuje při přihlášení, ale
         # stejný dotaz má vracet totéž bez ohledu na to, kterým tokenem se ptal
-        key = f"ws:search:{what}:{sort}:{limit}:{offset}"
+        key = f"ws:search2:{what}:{sort}:{limit}:{offset}"  # 2 = názvy bez koncovky z cizího písma
         return self.cache.cached(key, self.cache_ttl, load)
 
     def account_status(self):

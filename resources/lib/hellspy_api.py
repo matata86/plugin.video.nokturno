@@ -18,6 +18,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from streams import clean_file_name
+
 API = "https://api.hellspy.to/gw/"
 TIMEOUT = 20
 SEARCH_TTL = 12 * 3600
@@ -74,7 +76,7 @@ class HellspyApi:
                 files.append({
                     "id": i.get("id"),
                     "hash": i.get("fileHash"),
-                    "name": i.get("title") or "",
+                    "name": clean_file_name(i.get("title") or ""),
                     "size": size,
                     "size_h": human_size(size),
                     "duration": int(i.get("duration") or 0),
@@ -82,7 +84,7 @@ class HellspyApi:
             return files, int(data.get("nextOffset") or 0)
         if self.cache is None:
             return load()
-        return self.cache.cached(f"hs:search:{what}:{limit}:{offset}", self.cache_ttl, load)
+        return self.cache.cached(f"hs:search2:{what}:{limit}:{offset}", self.cache_ttl, load)
 
     def file_link(self, file_id, file_hash):
         """Podepsaný odkaz na původní soubor. Vytažený z hlavičky přesměrování."""

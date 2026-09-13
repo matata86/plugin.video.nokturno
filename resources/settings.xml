@@ -87,6 +87,40 @@
         </setting>
       </group>
     </category>
+    <category id="st" label="30367">
+      <group id="1">
+        <setting id="st_enabled" type="boolean" label="30368" help="30369">
+          <level>0</level>
+          <default>false</default>
+          <control type="toggle"/>
+        </setting>
+        <setting id="st_email" type="string" label="30370" help="30371">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="st_enabled">true</dependency>
+          </dependencies>
+          <control type="edit" format="string">
+          </control>
+        </setting>
+        <setting id="st_password" type="string" label="30372" help="30373">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="st_enabled">true</dependency>
+          </dependencies>
+          <control type="edit" format="string">
+            <hidden>true</hidden>
+          </control>
+        </setting>
+      </group>
+    </category>
     <category id="sosac" label="30030">
       <group id="1">
         <setting id="sosac_enabled" type="boolean" label="30031" help="30304">

@@ -13,6 +13,12 @@ stats.json v profilu drží:
               denně" dělá server podle dne posledního zobrazení (`server/lib/collect.php`
               v Dashboardu), klient jen posílá čerstvý stav.
 
+K hlášení se přidává (neukládá se, klient ho skládá při každém odeslání):
+  sources     které zdroje má instalace v nastavení aktivní — klíče jako `Engine.sources()`
+              („luna", „sosac", „webshare", „hellspy", „sledujteto", „torrent") plus
+              „tmdb" a „trakt"; nic z účtů, jen jestli je zdroj zapnutý
+  product     „kodi" / „ha" / „stremio" — dřív server odvozoval jen z platformy
+
 Posílá se kumulativní stav, ne přírůstky — server dělá upsert, takže výpadek
 sítě ani ztracená odpověď nic nerozhodí. Zapisuje jen služba na pozadí
 (`service.py`); plugin jí události předává přes vlastnost okna, aby dva procesy
@@ -27,7 +33,9 @@ import uuid
 
 # Sběrný bod je natvrdo v kódu, ne v nastavení — je to detail implementace,
 # ne něco, co by měl kdokoli přepínat. Změna adresy = nová verze.
-COLLECT_URL = "https://nokturno.full-net.cz/collect"
+# Od 2026-09-13 dashboard běží v LXC 124 přes Tailscale Funnel; stará adresa
+# nokturno.full-net.cz/collect zatím hlášení přeposílá (Dashboard/thinline-presmerovani).
+COLLECT_URL = "https://nokturno.tailf0014.ts.net/collect"
 
 SEND_EVERY = 6 * 3600     # nejčastěji jednou za 6 hodin
 RETRY_EVERY = 30 * 60     # po neúspěchu (server neběží, není síť) nezkoušet hned znovu
@@ -92,9 +100,9 @@ class Stats:
     def due(self):
         return time.time() >= (self.data.get("next_try") or 0)
 
-    def payload(self, version="", platform="", kodi="", lang=""):
+    def payload(self, version="", platform="", kodi="", lang="", sources=None, product=""):
         plays = sorted(self.data.get("plays", {}).items(), key=lambda kv: kv[1].get("l") or 0, reverse=True)
-        return {
+        out = {
             "id": self.data["id"],
             "version": version,
             "platform": platform,
@@ -104,8 +112,14 @@ class Stats:
             "last_used": self.data.get("last_used"),
             "plays": [dict(key=k, **v) for k, v in plays[:PLAYS_MAX]],
         }
+        if sources is not None:
+            out["sources"] = sorted({str(x) for x in sources if x})
+        if product:
+            out["product"] = product
+        return out
 
-    def send(self, url, version="", platform="", kodi="", lang="", agent="Kodi plugin.video.nokturno"):
+    def send(self, url, version="", platform="", kodi="", lang="", agent="Kodi plugin.video.nokturno",
+             sources=None, product=""):
         """Odešle stav. Vrací (True, "") nebo (False, důvod) — nikdy nevyhodí výjimku.
 
         `agent` odlišuje odesílatele v přístupovém logu serveru; tentýž modul
@@ -113,7 +127,7 @@ class Stats:
         """
         if not url:
             return False, "chybí adresa"
-        body = json.dumps(self.payload(version, platform, kodi, lang)).encode("utf-8")
+        body = json.dumps(self.payload(version, platform, kodi, lang, sources, product)).encode("utf-8")
         req = urllib.request.Request(url, data=body, headers={
             "Content-Type": "application/json",
             "User-Agent": f"{agent}/" + (version or "?"),

@@ -467,17 +467,36 @@ def prefetch_next_later():
 # --- statistiky ---------------------------------------------------------------------
 
 def stats_context(addon):
-    """Verze doplňku, platforma a Kodi – kontext k odeslaným čítačům."""
+    """Verze doplňku, platforma, Kodi a aktivní zdroje – kontext k odeslaným čítačům."""
     platform = next((name for name, cond in (
         ("Android", "System.Platform.Android"), ("Linux", "System.Platform.Linux"),
         ("Windows", "System.Platform.Windows"), ("macOS", "System.Platform.OSX"),
         ("iOS", "System.Platform.IOS"), ("tvOS", "System.Platform.TVOS"),
     ) if xbmc.getCondVisibility(cond)), "?")
+
+    def zapnuto(key, default="true"):
+        return (addon.getSetting(key) or default) == "true"
+
+    def vyplneno(key):
+        return bool((addon.getSetting(key) or "").strip())
+
+    # jen jestli je zdroj v nastavení aktivní — žádné účty, žádné adresy
+    sources = [name for name, active in (
+        ("luna", zapnuto("luna_enabled") and vyplneno("token")),
+        ("sosac", zapnuto("sosac_enabled") and vyplneno("streamuj_username")),
+        ("webshare", zapnuto("ws_enabled", "false") and vyplneno("ws_username")),
+        ("hellspy", zapnuto("hs_enabled", "false")),
+        ("sledujteto", zapnuto("st_enabled", "false") and vyplneno("st_email")),
+        ("tmdb", vyplneno("tmdb_api_key")),
+        ("trakt", zapnuto("trakt_enabled", "false")),
+    ) if active]
     return {
         "version": addon.getAddonInfo("version"),
         "platform": platform,
         "kodi": xbmc.getInfoLabel("System.BuildVersionShort"),
         "lang": xbmc.getLanguage(xbmc.ISO_639_1) or "",
+        "sources": sources,
+        "product": "kodi",
     }
 
 

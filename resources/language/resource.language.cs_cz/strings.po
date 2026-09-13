@@ -812,7 +812,7 @@ msgstr "Vlastní klíč pro TMDB (themoviedb.org) — hledání a katalog filmů
 
 msgctxt "#30335"
 msgid "Try fulltext on WebShare/HellSpy"
-msgstr "Zkusit fulltext na WebShare/HellSpy"
+msgstr "Zkusit uvolněný fulltext (WebShare, HellSpy, Sledujteto)"
 
 msgctxt "#30336"
 msgid "Vítej v Nokturnu"
@@ -937,3 +937,31 @@ msgstr "Odebrat z Pokračovat ve sledování"
 msgctxt "#30366"
 msgid "skipped"
 msgstr "přeskočeno"
+
+msgctxt "#30367"
+msgid "Sledujteto"
+msgstr "Sledujteto"
+
+msgctxt "#30368"
+msgid "Search Sledujteto for titles"
+msgstr "U titulů hledat i na Sledujteto"
+
+msgctxt "#30369"
+msgid "Sledujteto.cz is a Czech video hosting. Searching needs an account, playback needs a Premium account."
+msgstr "Sledujteto.cz je česká úschovna videí. Hledání chce účet, přehrávání účet Premium — bez něj Sledujteto odkaz na soubor nevydá."
+
+msgctxt "#30370"
+msgid "Sledujteto — e-mail"
+msgstr "Sledujteto — e-mail"
+
+msgctxt "#30371"
+msgid "E-mail you use to sign in to sledujteto.cz."
+msgstr "E-mail, kterým se přihlašuješ na sledujteto.cz."
+
+msgctxt "#30372"
+msgid "Sledujteto — password"
+msgstr "Sledujteto — heslo"
+
+msgctxt "#30373"
+msgid "Password for sledujteto.cz. It is sent only when signing in; requests then use a token."
+msgstr "Heslo ze sledujteto.cz. Posílá se jen při přihlášení, další dotazy jdou s tokenem."

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="2.0.24" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="3.0.0" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -8,10 +8,10 @@
   </extension>
   <extension point="xbmc.service" library="service.py"/>
   <extension point="xbmc.addon.metadata">
-    <summary lang="en_GB">Movies and series from WebShare, Sosáč, Luna: Absolute Cinema and HellSpy — one add-on, search across sources</summary>
-    <summary lang="cs_CZ">Filmy a seriály z WebShare, Sosáče, Luny a HellSpy v jednom doplňku, hledání napříč</summary>
-    <description lang="en_GB">Four sources, each optional: WebShare directly (your account – file search and playback), Sosáč directly (its catalogues, series with episodes, Czech dubbing and subtitles – only a Streamuj.tv account), a Luna: Absolute Cinema server, reachable on your LAN or running locally on the same device (TMDB catalogues, WebShare streams with detected quality and languages), and HellSpy (public, no account needed). The movie/series catalogue and search always work, even with none of these configured, thanks to a built-in Cinemeta connection. Search across sources, streams from several sources for one title with a quality/audio/subtitle filter, bitrate and length on every stream, continue watching, my list, downloads, Trakt, WebShare subscription tracking.</description>
-    <description lang="cs_CZ">Čtyři zdroje, každý volitelný: WebShare přímo (tvůj účet – hledání souborů a přehrávání), Sosáč napřímo (jeho katalogy, seriály s epizodami, český dabing a titulky – stačí účet Streamuj.tv), server Luna: Absolute Cinema, dostupný v LAN nebo běžící lokálně na stejném zařízení (TMDB katalogy, streamy z WebShare s rozpoznanou kvalitou a jazyky), a HellSpy (veřejný, bez účtu). Katalog filmů a seriálů i hledání fungují vždy, i bez jediného nastaveného zdroje, díky vlastnímu napojení na Cinemetu. Hledání napříč zdroji, streamy z více zdrojů u jednoho titulu s filtrem podle kvality/zvuku/titulků, datový tok a délka u každého streamu, pokračovat ve sledování, můj seznam, stahování, Trakt, sledování předplatného WebShare.</description>
+    <summary lang="en_GB">Movies and series from WebShare, Sosáč, Sledujteto, Luna: Absolute Cinema and HellSpy — one add-on, search across sources</summary>
+    <summary lang="cs_CZ">Filmy a seriály z WebShare, Sosáče, Sledujteto, Luny a HellSpy v jednom doplňku, hledání napříč</summary>
+    <description lang="en_GB">Five sources, each optional: WebShare directly (your account – file search and playback), Sosáč directly (its catalogues, series with episodes, Czech dubbing and subtitles – only a Streamuj.tv account), Sledujteto (your account – search, playback with Premium, audio and subtitle tracks straight from its API), a Luna: Absolute Cinema server, reachable on your LAN or running locally on the same device (TMDB catalogues, WebShare streams with detected quality and languages), and HellSpy (public, no account needed). The movie/series catalogue and search always work, even with none of these configured, thanks to a built-in Cinemeta connection. Search across sources, streams from several sources for one title with a quality/audio/subtitle filter, bitrate and length on every stream, continue watching, my list, downloads, Trakt, WebShare subscription tracking.</description>
+    <description lang="cs_CZ">Pět zdrojů, každý volitelný: WebShare přímo (tvůj účet – hledání souborů a přehrávání), Sosáč napřímo (jeho katalogy, seriály s epizodami, český dabing a titulky – stačí účet Streamuj.tv), Sledujteto (tvůj účet – hledání, přehrávání s Premium, zvukové stopy a titulky přímo z jeho API), server Luna: Absolute Cinema, dostupný v LAN nebo běžící lokálně na stejném zařízení (TMDB katalogy, streamy z WebShare s rozpoznanou kvalitou a jazyky), a HellSpy (veřejný, bez účtu). Katalog filmů a seriálů i hledání fungují vždy, i bez jediného nastaveného zdroje, díky vlastnímu napojení na Cinemetu. Hledání napříč zdroji, streamy z více zdrojů u jednoho titulu s filtrem podle kvality/zvuku/titulků, datový tok a délka u každého streamu, pokračovat ve sledování, můj seznam, stahování, Trakt, sledování předplatného WebShare.</description>
     <platform>all</platform>
     <license>MIT</license>
     <source>https://github.com/matata86/plugin.video.nokturno</source>
@@ -20,7 +20,12 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>2.0.24 – Výpadek jednoho zdroje (třeba vypnutá Luna) už nezastaví hledání streamů: zdroj se přeskočí, ukáže se upozornění a nabídnou se streamy z ostatních zdrojů
+    <news>3.0.0 – Sledujteto jako pátý zdroj: hledání přes tvůj účet, přehrávání s Premium, zvukové stopy a titulky přímo z jeho API (Nastavení → Sledujteto)
+3.0.0 – Přesnější hledání u filmů, které mají na zdrojích český název jiný než originál: české a slovenské názvy se berou z Wikidat
+3.0.0 – Názvy souborů bez nesmyslných znaků z cizího písma na konci (kvůli nim se u streamu nezobrazily vlajky jazyků)
+3.0.0 – Test zdrojů kontroluje i HellSpy a Sledujteto
+3.0.0 – Anonymní statistiky hlásí, které zdroje máš zapnuté, a posílají se na novou adresu
+2.0.24 – Výpadek jednoho zdroje (třeba vypnutá Luna) už nezastaví hledání streamů: zdroj se přeskočí, ukáže se upozornění a nabídnou se streamy z ostatních zdrojů
 2.0.24 – Oprava: pozastavené video vracelo titul do „Pokračovat ve sledování“ i poté, co jsi ho odtamtud odebral
 2.0.23 – Oprava: rozkoukaný titul se někdy v „Pokračovat ve sledování“ vůbec neukázal (rejstřík Sosáče přepsal jeho uložený snímek); rejstřík má teď vlastní soubor a chybějící snímek si výpis dohledá sám
 2.0.22 – Oprava: rozkoukaný film se neuložil, když se bez zastavení pustil jiný; titul se teď do „Pokračovat ve sledování“ zapíše už po 90 s přehrávání a od 90 % se označí jako zhlédnutý, obojí hned za běhu
