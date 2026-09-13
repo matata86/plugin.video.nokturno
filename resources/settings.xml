@@ -239,7 +239,8 @@
         </setting>
         <setting id="sort_streams" type="integer" label="30117" help="30316">
           <level>0</level>
-          <default>0</default>
+          <!-- 2026-09-13: nové instalace řadí streamy podle velikosti (2 = Největší první), ne podle pořadí od zdrojů -->
+          <default>2</default>
           <constraints>
             <options>
               <option label="30118">0</option>

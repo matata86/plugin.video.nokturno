@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="2.0.16" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="2.0.17" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -20,7 +20,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>2.0.16 – Nová položka „Odebrat z Pokračovat ve sledování“ v kontextovém menu rozkoukaného titulu (jde odebrat i z karty v Home Assistantu); opravený a rozšířený filtr streamů (kombinace jazyk+kanály se teď ověřuje na téže stopě, přidáno tlačítko Zrušit filtr a Použít poslední filtr); přehlednější ikony v menu (dřív měly stejnou ikonu i nesouvisející věci jako Vymazat mezipaměť a Novinky); nová čtvercová značka doplňku na nové cestě (stará se v cache TV nemá odkud vrátit); zrušená statistika zhlédnutí jednotlivých titulů (zbylo jen "instalace je živá")
+    <news>2.0.17 – Výchozí řazení streamů je teď „Největší první“ místo „Jak přišly“ (u nových instalací; kdo si řazení už nastavil, zůstává mu, jak měl)
+2.0.16 – Nová položka „Odebrat z Pokračovat ve sledování“ v kontextovém menu rozkoukaného titulu (jde odebrat i z karty v Home Assistantu); opravený a rozšířený filtr streamů (kombinace jazyk+kanály se teď ověřuje na téže stopě, přidáno tlačítko Zrušit filtr a Použít poslední filtr); přehlednější ikony v menu (dřív měly stejnou ikonu i nesouvisející věci jako Vymazat mezipaměť a Novinky); nová čtvercová značka doplňku na nové cestě (stará se v cache TV nemá odkud vrátit); zrušená statistika zhlédnutí jednotlivých titulů (zbylo jen "instalace je živá")
 2.0.15 – Oprava: „Vymazat historii“ (i mazání jednotlivého dotazu) u sjednoceného hledání nefungovalo úplně – zobrazený seznam je sloučený z historie Filmů a Seriálů, ale mazala se jen jejich společná, jinak prázdná historie
 2.0.14 – Průvodce nastavením umí i změřit rychlost internetu; hlášení o nedostupném zdroji teď přesně jmenuje, který zdroj selhal (dřív hlásilo natvrdo "Server Luna neodpovídá" i u jiné chyby)
 2.0.13 – Oprava: 4 texty průvodce nastavením se kvůli chybě v překladu zobrazovaly anglicky místo česky

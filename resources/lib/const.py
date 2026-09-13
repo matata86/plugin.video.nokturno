@@ -45,4 +45,4 @@ DEFAULT_LUNA_URL = "http://192.168.1.10:7126"
 DEFAULT_PROWLARR_URL = "http://192.168.1.10:9696"
 DEFAULT_QBIT_URL = "http://192.168.1.10:9091"
 DEFAULT_DOWNLOAD_DIR = "/media/nokturno"
-DEFAULT_SORT = "quality"
+DEFAULT_SORT = "size_desc"  # 2026-09-13: nové instalace řadí streamy podle velikosti, ne kvality
