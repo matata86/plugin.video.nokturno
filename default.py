@@ -1292,7 +1292,17 @@ def collect_streams(apis, ctype, item_id, meta, alt=None, progress=None, strict=
     # a před seřazením se rozpočet utratil za řádky, které skončí dole; teď padne
     # na začátek seznamu, tedy na to, co má uživatel před očima. Po doplnění
     # kanálů se řadí znovu, protože 5.1 může pořadím pohnout.
-    return order(ensure_bitrate(fill_audio(apis, order(streams), progress), video or meta))
+    ordered = order(ensure_bitrate(fill_audio(apis, order(storage_first(streams)), progress), video or meta))
+    return storage_first(ordered)
+
+
+def storage_first(streams):
+    """Soubory z vlastního úložiště vždy na začátek, jinak ve stejném pořadí.
+
+    Mezi desítkami streamů z WebShare a HellSpy se vlastní soubor ztrácel (u Bláznivé
+    dovolené byl 5. z 61 a uživatel ho nenašel) — přitom je to ten, kvůli kterému
+    úložiště má, a přehrává se bez závislosti na cizí službě."""
+    return [s for s in streams if s.get("source") == "dav"] + [s for s in streams if s.get("source") != "dav"]
 
 
 def ensure_bitrate(streams, meta_or_video):
@@ -1557,6 +1567,10 @@ def stream_label(s):
     # na vybrané položce s bílým podkladem to pak úplně zmizí. Proto má i
     # velikost výslovnou barvu (GREY se na bílém podkladu čte jako tmavý text).
     parts = []
+    if s.get("_storage"):
+        # vlastní soubor: štítek úložiště jako první, ne až za zvukem a velikostí na konci řádku
+        parts.append(f"[COLOR {DAV_COLOR}][B]{s['_storage']}[/B][/COLOR]")
+        tag = ""
     if s.get("_loose"):
         # z ručního „Zkusit fulltext" — přísný filtr ho zahodil jako podobný,
         # ale možná jiný titul; uživatel to musí posoudit sám podle názvu souboru
