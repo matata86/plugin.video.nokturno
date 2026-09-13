@@ -1037,3 +1037,43 @@ msgstr "Sledujteto — e-mail"
 msgctxt "#30390"
 msgid "Sledujteto — password"
 msgstr "Sledujteto — heslo"
+
+msgctxt "#30391"
+msgid "Downloaded"
+msgstr "Stiahnuté"
+
+msgctxt "#30392"
+msgid "Settings"
+msgstr "Nastavenia"
+
+msgctxt "#30393"
+msgid "Trending this week"
+msgstr "Trendy tento týždeň"
+
+msgctxt "#30394"
+msgid "Recently added with Czech dubbing"
+msgstr "Novo pridané s CZ dabingom"
+
+msgctxt "#30395"
+msgid "By genre"
+msgstr "Podľa žánru"
+
+msgctxt "#30396"
+msgid "By year"
+msgstr "Podľa roku"
+
+msgctxt "#30397"
+msgid "By letter"
+msgstr "Podľa písmena"
+
+msgctxt "#30398"
+msgid "Popular"
+msgstr "Populárne"
+
+msgctxt "#30399"
+msgid "Top rated"
+msgstr "Najlepšie hodnotené"
+
+msgctxt "#30400"
+msgid "New episodes with Czech dubbing"
+msgstr "Nové diely s CZ dabingom"

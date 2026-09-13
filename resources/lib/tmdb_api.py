@@ -28,6 +28,9 @@ SEARCH_TTL = 12 * 3600
 DETAIL_TTL = 30 * 86400
 GENRE_TTL = 7 * 86400
 CATALOGS = {"popular": "Populární", "top_rated": "Nejlépe hodnocené"}
+# katalogy bez žánrů — trendy za týden a výběr podle roku (rok je v roli „žánru“)
+EXTRA_CATALOGS = {"trending": "Trendy tento týden", "year": "Podle roku"}
+FIRST_YEAR = 1920
 
 
 class TmdbError(Exception):
@@ -68,9 +71,16 @@ class TmdbApi:
         return {g["id"]: g["name"] for g in data.get("genres") or []}
 
     def catalogs(self, ctype):
+        import datetime
         genres = list(self._genres(ctype).values())
+        years = [str(y) for y in range(datetime.date.today().year, FIRST_YEAR - 1, -1)]
         return [{"id": cid, "name": name, "search": False, "genre_required": False, "genres": genres}
-                for cid, name in CATALOGS.items()]
+                for cid, name in CATALOGS.items()] + [
+            {"id": "trending", "name": EXTRA_CATALOGS["trending"], "search": False, "genre_required": False,
+             "genres": []},
+            {"id": "year", "name": EXTRA_CATALOGS["year"], "search": False, "genre_required": True,
+             "genres": years},
+        ]
 
     def _imdb_id(self, ctype, tmdb_id):
         kind = self._kind(ctype)
@@ -140,6 +150,13 @@ class TmdbApi:
             def load():
                 return self._get(f"/search/{kind}", query=search, page=page).get("results") or []
             raw = self._cached(f"tmdb:search:{kind}:{search.strip().lower()}:{page}", SEARCH_TTL, load)
+        elif cid == "trending":
+            raw = self._cached(f"tmdb:trending:{kind}:{page}", SEARCH_TTL,
+                               lambda: self._get(f"/trending/{kind}/week", page=page).get("results") or [])
+        elif cid == "year":
+            field = "primary_release_year" if kind == "movie" else "first_air_date_year"
+            params = {"sort_by": "popularity.desc", "page": page, field: str(genre or "")[:4]}
+            raw = self._get(f"/discover/{kind}", **params).get("results") or []
         else:
             params = {"sort_by": "vote_average.desc" if cid == "top_rated" else "popularity.desc", "page": page}
             if cid == "top_rated":

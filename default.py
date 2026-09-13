@@ -815,7 +815,10 @@ RELEASE_TAGS = frozenset((
 def _years(folded):
     """Roky v názvu souboru. `\\b` mezi číslicí a podtržítkem hranici nevidí
     („Jak_vycvicit_draka_2025"), proto se podtržítka napřed mění na mezery."""
-    return {int(y) for y in YEAR_RE.findall(folded.replace("_", " "))}
+    text = folded.replace("_", " ")
+    # rok slepený s „r“/„rok“ („Seber si svých pět švestek r1983“) \b nepozná
+    glued = re.findall(r"(?<![a-z0-9])r(?:ok)?[ .-]?(19\d{2}|20\d{2})(?!\d)", text)
+    return {int(y) for y in YEAR_RE.findall(text) + glued}
 
 
 def _title_pattern(text):
@@ -831,6 +834,16 @@ def _title_pattern(text):
     if long_idx:
         return [raw[i] for i in long_idx], raw[long_idx[-1] + 1:], False
     return raw, [], True
+
+
+def _prefix_ok(folded, spans, first):
+    """Smí název titulu v souboru stát až za textem před ním? (viz `_title_leads`)"""
+    before = [t for t, _e in spans[:first]]
+    if all(t in RELEASE_TAGS or t.isdigit() for t in before):
+        return True
+    start = spans[first][1] - len(spans[first][0])
+    prefix = folded[:start].rstrip(" ._")
+    return prefix.endswith(("-", "–", "|", ":", "]", ")"))
 
 
 def _title_leads(folded, pattern, movie, variants=()):
@@ -870,9 +883,16 @@ def _title_leads(folded, pattern, movie, variants=()):
         long_spans = [(i, t) for i, (t, _e) in enumerate(spans) if len(t) > 2]
         tokens = [t for _i, t in long_spans]
         for i in range(min(3, len(tokens) - n + 1)):
-            if tokens[i:i + n] == group:
-                last = long_spans[i + n - 1][0]
-                break
+            if tokens[i:i + n] != group:
+                continue
+            first = long_spans[i][0]
+            # Název smí začínat až za jiným textem jen tehdy, když je to značka (webu,
+            # jazyka, kvality) nebo předpona oddělená závorkou či pomlčkou. Jinak prošel
+            # český idiom „Seber si svých pět švestek“ u filmu „Pět švestek“ (2026).
+            if first and not _prefix_ok(folded, spans, first):
+                continue
+            last = long_spans[i + n - 1][0]
+            break
         else:
             return False
         after = spans[last + 1:]
@@ -2097,45 +2117,70 @@ def main_menu(apis):
                     build_url(action="whats_new"), icon="DefaultAddonRepository.png")
     # vlastní ikony místo jedné a té samé ikony doplňku u každé položky — jména
     # standardní sady Kodi (dodává je aktivní skin, žádný soubor navíc v doplňku)
+    # Jedno hledání, jedny Filmy a jedny Seriály — dřív tu byly Filmy/Seriály zvlášť za
+    # každý zdroj katalogu (Luna, Sosáč, databáze), každé s vlastními podkategoriemi.
+    # Který zdroj stojí za kterým seznamem, rozhoduje až `browse_menu`.
+    folder_item(L(30150, "Hledat"), build_url(action="search", type="any"),
+               icon="DefaultAddonsSearch.png", context=[(L(30106), runplugin(action="clear_cache"))])
     if STORE.in_progress() or STORE.recently_watched(1):
         folder_item(L(30063), build_url(action="continue"), icon="DefaultInProgressShows.png")
-    if apis["luna"] or apis["sosac"] or apis["cinemeta"]:
-        # jedno hledání pro filmy i seriály — když dotaz najde obojí, nabídne se volba
-        # v kontextovém menu (podržet/kliknout pravým) jde cache hledání vymazat i odsud,
-        # ne jen z Nastavení — vynutí to čerstvá data, když se něco změnilo na zdroji
-        # Cinemeta funguje vždy (bez účtu), takže tahle položka teď zmizí jen ručním
-        # zásahem — ale hledání samo se bez Luny/Sosáče vrátí jen s tím, co zná Cinemeta.
-        folder_item(L(30150, "Hledat"), build_url(action="search", type="any"),
-                   icon="DefaultAddonsSearch.png", context=[(L(30106), runplugin(action="clear_cache"))])
-    if apis["luna"]:
-        folder_item(L(30012), build_url(action="catalogs", type="movie", src="luna"), icon="DefaultMovies.png")
-        folder_item(L(30013), build_url(action="catalogs", type="series", src="luna"), icon="DefaultTVShows.png")
-    if apis["sosac"]:
-        folder_item(L(30035), build_url(action="catalogs", type="movie", src="sosac"), icon="DefaultMovies.png")
-        folder_item(L(30036), build_url(action="catalogs", type="series", src="sosac"), icon="DefaultTVShows.png")
-    if not apis["luna"] and not apis["sosac"]:
-        # dřív šlo procházení podle žánru/popularity jen přes Lunu (nebo přihlášený
-        # Sosáč) — bez obojího teď zaskočí vlastní databáze: přednostně TMDB (má-li
-        # uživatel vlastní klíč, viz get_tmdb — česky i s popisem), jinak veřejný
-        # katalog Sosáče (get_sosac_db, česky, bez účtu, ale bez popisu)
-        db_src = "tmdb" if apis["tmdb"] else "sosac_db"
-        folder_item(L(30330, "Filmy (databáze)"), build_url(action="catalogs", type="movie", src=db_src),
-                   icon="DefaultMovies.png")
-        folder_item(L(30331, "Seriály (databáze)"), build_url(action="catalogs", type="series", src=db_src),
-                   icon="DefaultTVShows.png")
+    folder_item(L(30012), build_url(action="browse", type="movie"), icon="DefaultMovies.png")
+    folder_item(L(30013), build_url(action="browse", type="series"), icon="DefaultTVShows.png")
+    folder_item(L(30060), build_url(action="favourites"), icon="DefaultFavourites.png")
     if apis.get("dav"):
         folder_item(L(30387, "Moje úložiště"), build_url(action="dav_browse"), icon="DefaultHardDisk.png")
-    folder_item(L(30060), build_url(action="favourites"), icon="DefaultFavourites.png")
-    folder_item(L(30064), build_url(action="recent"), icon="DefaultRecentlyAddedMovies.png")
-    if setting("download_dir"):
-        folder_item(L(30071), build_url(action="downloads"), icon="DefaultHardDisk.png")
-    folder_item(L(30106), build_url(action="clear_cache"), icon="DefaultVideoDeleted.png")
-    if sync_settings():
-        folder_item(L(30190, "Staženo v HA"), build_url(action="ha_files"), icon="DefaultNetwork.png")
-        folder_item(L(30184, "Synchronizovat teď"), build_url(action="sync_now"), icon="DefaultAddonsUpdates.png")
+    if setting("download_dir") or sync_settings():
+        folder_item(L(30391, "Stažené"), build_url(action="downloads"), icon="DefaultHardDisk.png")
+    folder_item(L(30392, "Nastavení"), build_url(action="settings"), icon="DefaultAddonProgram.png")
     # bez cache na disk — položky se mění podle stavu (Novinky, Pokračovat), zpět do
     # menu z podsložky by jinak Kodi ukázalo starý výpis i s už přečtenými Novinkami
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
+def browse_menu(apis, ctype):
+    """Filmy / Seriály: seznamy bez ohledu na zdroj. Zdroj vybírá doplněk sám —
+    TMDB (vlastní klíč), jinak Luna, jinak Cinemeta; „s CZ dabingem“ a „Podle písmene“
+    jsou z veřejného katalogu Sosáče, protože český dabing pozná jen on."""
+    kind = "series" if ctype == "series" else "movie"
+    tmdb, luna, cinemeta, sosac = apis.get("tmdb"), apis.get("luna"), apis.get("cinemeta"), apis.get("sosac_db")
+
+    def pick(tmdb_cid, luna_cid, cinemeta_cid, luna_genre=None, sosac_cid=None):
+        if tmdb and tmdb_cid:
+            return "tmdb", tmdb_cid, None
+        if luna and luna_cid:
+            return "luna", luna_cid, luna_genre
+        if sosac and sosac_cid:
+            return "sosac_db", sosac_cid, None
+        if cinemeta and cinemeta_cid:
+            return "cinemeta", cinemeta_cid, None
+        return None
+
+    rows = [
+        (L(30398, "Populární"), "catalog", pick("popular", f"tmdb.top_{kind}", "top"), "DefaultMovies.png"),
+        (L(30393, "Trendy tento týden"), "catalog",
+         pick("trending", f"tmdb.trending_{kind}", None, luna_genre="Week"), "DefaultRecentlyAddedMovies.png"),
+        (L(30399, "Nejlépe hodnocené"), "catalog", pick("top_rated", f"tmdb.top_rated_{kind}", "imdbRating"),
+         "DefaultMusicTop100.png"),
+        (L(30400, "Nové díly s CZ dabingem") if kind == "series" else L(30394, "Nově přidané s CZ dabingem"),
+         "catalog", ("sosac_db", "tvshowsrecentlyadded" if kind == "series" else "moviesrecentlyadded", None)
+         if sosac else None, "DefaultRecentlyAddedEpisodes.png"),
+        (L(30395, "Podle žánru"), "genres",
+         pick("popular", f"tmdb.top_{kind}", "top", sosac_cid="genre" if kind == "movie" else None), "DefaultGenre.png"),
+        (L(30396, "Podle roku"), "genres", pick("year", f"tmdb.year_{kind}", "year"), "DefaultYear.png"),
+        (L(30397, "Podle písmene"), "genres", ("sosac_db", "tvaz" if kind == "series" else "az", None)
+         if sosac else None, "DefaultVideoPlaylists.png"),
+    ]
+    for label, action, target, icon in rows:
+        if not target:
+            continue
+        src, cid, genre = target
+        params = {"action": action, "type": ctype, "catalog": cid, "src": src}
+        if genre:
+            params["genre"] = genre
+        if action == "genres":
+            params["noall"] = 1   # „Vše“ by jen opakovalo Populární
+        folder_item(label, build_url(**params), icon=icon)
+    xbmcplugin.endOfDirectory(HANDLE)
 
 
 def list_catalogs(apis, ctype, src):
@@ -2158,13 +2203,13 @@ def list_catalogs(apis, ctype, src):
 GENRE_LABELS = {"Day": "Za den", "Week": "Za týden"}
 
 
-def list_genres(apis, ctype, cid, src):
+def list_genres(apis, ctype, cid, src, show_all=True):
     api = apis[src]
     cat = next((c for c in api.catalogs(ctype) if c["id"] == cid), None) if api else None
     if not cat:
         xbmcplugin.endOfDirectory(HANDLE)
         return
-    if not cat["genre_required"]:
+    if show_all and not cat["genre_required"]:
         folder_item(L(30020), build_url(action="catalog", type=ctype, catalog=cid, src=src),
                    icon="DefaultVideoPlaylists.png")
     for g in cat["genres"]:
@@ -2658,6 +2703,10 @@ def list_favourites():
         snap = STORE.item(key)
         if snap:
             add_snapshot_item(key, snap)
+    # z hlavního menu sem — patří k „mým“ titulům a synchronizuje se s nimi
+    folder_item(L(30064), build_url(action="recent"), icon="DefaultRecentlyAddedMovies.png")
+    if sync_settings():
+        folder_item(L(30184, "Synchronizovat teď"), build_url(action="sync_now"), icon="DefaultAddonsUpdates.png")
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
@@ -3137,6 +3186,8 @@ def download_hs(apis, file_id, file_hash, name):
 
 
 def list_downloads():
+    if sync_settings():
+        folder_item(L(30190, "Staženo v HA"), build_url(action="ha_files"), icon="DefaultNetwork.png")
     xbmcplugin.setContent(HANDLE, "videos")
     status_labels = {"queued": L(30078), "running": L(30079), "done": L(30080), "error": L(30081), "cancel": L(30082)}
     for d in STORE.downloads():
@@ -3270,8 +3321,10 @@ def router(query):
             main_menu(apis)
         elif action == "catalogs":
             list_catalogs(apis, p["type"], p.get("src", "luna"))
+        elif action == "browse":
+            browse_menu(apis, p.get("type", "movie"))
         elif action == "genres":
-            list_genres(apis, p["type"], p["catalog"], p.get("src", "luna"))
+            list_genres(apis, p["type"], p["catalog"], p.get("src", "luna"), show_all=not p.get("noall"))
         elif action == "catalog":
             list_catalog(apis, p["type"], p["catalog"], p.get("src", "luna"), genre=p.get("genre"),
                          search=p.get("search"), skip=int(p.get("skip") or 0))

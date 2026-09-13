@@ -1037,3 +1037,43 @@ msgstr ""
 msgctxt "#30390"
 msgid "Sledujteto — password"
 msgstr ""
+
+msgctxt "#30391"
+msgid "Downloaded"
+msgstr ""
+
+msgctxt "#30392"
+msgid "Settings"
+msgstr ""
+
+msgctxt "#30393"
+msgid "Trending this week"
+msgstr ""
+
+msgctxt "#30394"
+msgid "Recently added with Czech dubbing"
+msgstr ""
+
+msgctxt "#30395"
+msgid "By genre"
+msgstr ""
+
+msgctxt "#30396"
+msgid "By year"
+msgstr ""
+
+msgctxt "#30397"
+msgid "By letter"
+msgstr ""
+
+msgctxt "#30398"
+msgid "Popular"
+msgstr ""
+
+msgctxt "#30399"
+msgid "Top rated"
+msgstr ""
+
+msgctxt "#30400"
+msgid "New episodes with Czech dubbing"
+msgstr ""
