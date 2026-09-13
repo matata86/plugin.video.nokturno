@@ -1025,3 +1025,15 @@ msgstr "Hledat ve vlastním úložišti"
 msgctxt "#30387"
 msgid "My storage"
 msgstr "Moje úložiště"
+
+msgctxt "#30388"
+msgid "Do you have a Sledujteto account?[CR]Search uses your account, playback needs Premium."
+msgstr "Máš účet Sledujteto?[CR]Hledá se přes tvůj účet, přehrávat jde jen s Premium."
+
+msgctxt "#30389"
+msgid "Sledujteto — e-mail"
+msgstr "Sledujteto — e-mail"
+
+msgctxt "#30390"
+msgid "Sledujteto — password"
+msgstr "Sledujteto — heslo"

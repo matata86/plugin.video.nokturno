@@ -1025,3 +1025,15 @@ msgstr ""
 msgctxt "#30387"
 msgid "My storage"
 msgstr ""
+
+msgctxt "#30388"
+msgid "Do you have a Sledujteto account?[CR]Search uses your account, playback needs Premium."
+msgstr ""
+
+msgctxt "#30389"
+msgid "Sledujteto — e-mail"
+msgstr ""
+
+msgctxt "#30390"
+msgid "Sledujteto — password"
+msgstr ""

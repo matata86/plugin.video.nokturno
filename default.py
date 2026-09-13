@@ -1715,7 +1715,7 @@ def setup_wizard(force=False):
             return
         # už existující instalace (aktualizace z verze bez průvodce) — má-li
         # uživatel cokoli zapnuté, není to nová instalace a nemá se ho co ptát
-        if any(on(k, "false") for k in ("ws_enabled", "sosac_enabled", "luna_enabled", "hs_enabled")) \
+        if any(on(k, "false") for k in ("ws_enabled", "sosac_enabled", "luna_enabled", "hs_enabled", "st_enabled")) \
                 or setting("tmdb_api_key").strip():
             STORE.save("wizard_done", True)
             return
@@ -1755,6 +1755,17 @@ def setup_wizard(force=False):
 
         if dialog.yesno(L(30351, "HellSpy"), L(30352, "Zapnout HellSpy? Je zdarma a nepotřebuje žádný účet.")):
             ADDON.setSetting("hs_enabled", "true")
+
+        if dialog.yesno(L(30367, "Sledujteto"),
+                         L(30388, "Máš účet Sledujteto?[CR]"
+                                  "Hledá se přes tvůj účet, přehrávat jde jen s Premium.")):
+            email = dialog.input(L(30389, "Sledujteto — e-mail"))
+            if email:
+                pwd = dialog.input(L(30390, "Sledujteto — heslo"), option=xbmcgui.ALPHANUM_HIDE_INPUT)
+                if pwd:
+                    ADDON.setSetting("st_email", email)
+                    ADDON.setSetting("st_password", pwd)
+                    ADDON.setSetting("st_enabled", "true")
 
         if dialog.yesno(L(30353, "Vlastní databáze filmů a seriálů"),
                          L(30354, "Chceš zadat zdarma klíč TMDB, aby popisy a obsazení filmů byly česky? (nepovinné)")):
