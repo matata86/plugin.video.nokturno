@@ -12,6 +12,7 @@
    jí události předává vlastnostmi okna.
 """
 import json
+import logging
 import os
 import re
 import sys
@@ -25,6 +26,18 @@ import xbmcgui
 import xbmcvfs
 
 ADDON = xbmcaddon.Addon()
+
+
+class _KodiLogHandler(logging.Handler):
+    """Varování z knihovny (např. `store.py`: selhaný zápis souboru) do kodi.log —
+    bez toho by je Python jen tiše pustil na stderr, kam se v Kodi nikdo nedívá."""
+    def emit(self, record):
+        level = xbmc.LOGERROR if record.levelno >= logging.ERROR else xbmc.LOGWARNING
+        xbmc.log(f"[{ADDON.getAddonInfo('id')}/{record.name}] {self.format(record)}", level)
+
+
+logging.getLogger().addHandler(_KodiLogHandler())
+logging.getLogger().setLevel(logging.WARNING)
 sys.path.insert(0, os.path.join(xbmcvfs.translatePath(ADDON.getAddonInfo("path")), "resources", "lib"))
 from stats import COLLECT_URL, Stats  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
