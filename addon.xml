@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="3.1.10" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="3.1.12" provider-name="matata86">
   <requires>
-    <import addon="xbmc.python" version="3.0.0"/>
+    <import addon="xbmc.python" version="3.0.1"/>
   </requires>
   <extension point="xbmc.python.pluginsource" library="default.py">
     <provides>video</provides>
@@ -23,7 +23,14 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>3.1.10 – Beta verze: volitelný „Nokturno repozitář (beta)“ pro novinky dřív
+    <news>3.1.12 – Průvodce prvním nastavením se na čisté instalaci opravdu nabídne — jako položka nahoře v menu
+3.1.12 – Pokračovat ve sledování a Naposledy zhlédnuté fungují i u souborů z HellSpy a vlastního úložiště
+3.1.12 – Oprava: chyba uvnitř doplňku už nenechá Kodi čekat na timeout přehrání
+3.1.12 – Zahřívání cache bere aktuální nastavení (po zadání klíče TMDB se dál zahřívala Luna)
+3.1.12 – Vypršelý odkaz Streamuj už neshodí celý seznam streamů; čtení hlavičky souboru nestahuje celý film ze serveru bez podpory Range
+3.1.12 – Token Luny a heslo Streamuj se nedostanou do chybových hlášek ani do kodi.log
+3.1.12 – Vyžaduje Kodi 20 a novější (addon.xml to dřív tvrdil špatně)
+3.1.10 – Beta verze: volitelný „Nokturno repozitář (beta)“ pro novinky dřív
 3.1.10 – Vypnuté statistiky posílají už jen náhodné id instalace a verzi (že instalace žije), žádné tituly ani zdroje
 3.1.8 – Filmy: nově přidané zvlášť s CZ dabingem a s CZ titulky
 3.1.8 – Seznamy ze Sosáče se i na slabších zařízeních načtou za pár sekund místo minuty a víc

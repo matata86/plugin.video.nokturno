@@ -628,6 +628,24 @@ def add_snapshot_item(key, snap, extra_context=None):
              "size_h": snap.get("size_h", ""), "positive": 0, "negative": 0}
         add_ws_file(f, extra_context)
         return
+    # HellSpy a vlastní úložiště mají snímek z `play_hs`/`play_dav` — bez těchhle větví šel
+    # jejich klíč do `api_for` jako titul a Pokračovat skončilo chybou Luny (audit 2026-09-14)
+    if snap.get("type") == "hs":
+        _prefix, file_id, file_hash = snap["id"].split(":", 2)
+        add_hs_file({"id": file_id, "hash": file_hash, "name": snap.get("title") or snap["id"],
+                     "size_h": snap.get("size_h", "")}, extra_context)
+        return
+    if snap.get("type") == "dav":
+        try:
+            slot, path = parse_ref(snap["id"])
+        except StorageError:
+            return
+        api = next((s for s in get_storages() if s.slot == slot), None)
+        if api is None:
+            return   # úložiště už není v nastavení
+        add_dav_file(api, {"path": path, "name": snap.get("title") or path.rsplit("/", 1)[-1],
+                           "size_h": snap.get("size_h", "")})
+        return
     label = snap.get("title") or key
     if snap.get("tvshow") and snap.get("season") is not None:
         label = f"{snap['tvshow']} – {int(snap['season'])}x{int(snap['episode'] or 0):02d} {label}"
@@ -1775,6 +1793,12 @@ def sub_status():
     xbmcgui.Dialog().ok(L(30000), msg)
 
 
+def accounts_set():
+    """Má uživatel vyplněný aspoň jeden účet nebo zdroj, který účet nepotřebuje nastavit?"""
+    return any(setting(k).strip() for k in ("token", "streamuj_username", "ws_username", "st_email",
+                                            "tmdb_api_key", "dav1_url", "dav2_url", "dav3_url"))
+
+
 def setup_wizard(force=False):
     """Průvodce prvním nastavením — nabídne se sám při prvním otevření doplňku,
     ať uživatel nemusí sám hledat, co a kde v nastavení vyplnit. Jde přeskočit
@@ -1785,9 +1809,11 @@ def setup_wizard(force=False):
         if STORE.load("wizard_done", False):
             return
         # už existující instalace (aktualizace z verze bez průvodce) — má-li
-        # uživatel cokoli zapnuté, není to nová instalace a nemá se ho co ptát
-        if any(on(k, "false") for k in ("ws_enabled", "sosac_enabled", "luna_enabled", "hs_enabled", "st_enabled")) \
-                or setting("tmdb_api_key").strip():
+        # uživatel vyplněný účet, není to nová instalace a nemá se ho co ptát.
+        # Přepínače zdrojů se hlídat nesmí: sosac/luna/hs mají v settings.xml
+        # výchozí true a Kodi ho vrací i bez uloženého nastavení, takže průvodce
+        # se na čisté instalaci nikdy nespustil (audit 2026-09-14)
+        if accounts_set():
             STORE.save("wizard_done", True)
             return
     dialog = xbmcgui.Dialog()
@@ -2115,6 +2141,12 @@ def main_menu(apis):
         folder_item(L(30107), build_url(action="settings"), icon="DefaultAddonProgram.png")
         xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
         return
+    # čistá instalace: průvodce nahoře jako položka. Spouštět ho z kořene sám od sebe
+    # nejde — modální dialog v cestě, kterou otevírají widgety a JSON-RPC, blokuje
+    # i vypínání Kodi (viz pravidlo v CLAUDE.md)
+    if not STORE.load("wizard_done", False) and not accounts_set():
+        folder_item(L(30359, "Průvodce nastavením"), build_url(action="setup_wizard"),
+                    icon="DefaultAddonProgram.png")
     fresh = unseen_changelog()
     if fresh:
         folder_item(f"{L(30192, 'Novinky ve verzi')} {fresh[0][0]}",
@@ -2753,7 +2785,7 @@ def recover_snapshot(apis, key):
     v Pokračovat ve sledování „nebyl". Dohledá se z meta a uloží, ať to příště
     nestojí dotaz na síť. Soubory WebShare/HellSpy meta nemají, u těch není z čeho.
     """
-    if key.startswith(("ws:", "hs:", "dl:")):
+    if key.startswith(("ws:", "hs:", "dav:", "dl:")):
         return None
     base, season, _episode = split_episode_id(key)
     ctype = "series" if season is not None else "movie"
@@ -3321,9 +3353,6 @@ def router(query):
     apis = get_apis()
     try:
         if not action:
-            if not STORE.load("wizard_done", False):
-                setup_wizard()
-                apis = get_apis()  # nastavení se mohlo změnit, načíst zdroje znovu
             main_menu(apis)
         elif action == "catalogs":
             list_catalogs(apis, p["type"], p.get("src", "luna"))
@@ -3378,11 +3407,19 @@ def router(query):
             main_menu(apis)
     except Errors as e:
         log_error(e)
-        notify(describe_error(e), xbmcgui.NOTIFICATION_ERROR, 5000)
-        if action in ("play", "play_ws", "play_hs", "play_dav"):
-            xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
-        elif action not in ("download", "download_ws", "download_hs", "toggle_fav"):
-            xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+        _fail(action, describe_error(e))
+    except Exception as e:  # noqa: BLE001 – KeyError z chybějícího parametru, RuntimeError z Kodi API…
+        # bez úklidu handle by Kodi u přehrání čekalo na timeout a hlásilo „Chyba skriptu"
+        log_error(f"{action}: {e!r}")
+        _fail(action, f"{type(e).__name__}: {e}")
+
+
+def _fail(action, message):
+    notify(message, xbmcgui.NOTIFICATION_ERROR, 5000)
+    if action in ("play", "play_ws", "play_hs", "play_dav"):
+        xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
+    elif action not in ("download", "download_ws", "download_hs", "toggle_fav"):
+        xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
 
 
 if __name__ == "__main__":

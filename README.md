@@ -8,7 +8,7 @@ Podrobný návod (instalace, nastavení každého zdroje, používání, řešen
 
 > **Patří k sobě:** stejné zdroje nabízí i [**Nokturno pro Home Assistant**](https://github.com/matata86/nokturno-ha) (HACS integrace, přehrává právě přes tenhle doplněk) a [**Nokturno pro Stremio**](https://github.com/matata86/nokturno-stremio) (i Nuvio). Všechny tři stojí na společném jádru [nokturno-core](https://github.com/matata86/nokturno-core).
 
-Video doplněk pro Kodi (19+ / Python 3, testováno na Kodi 21 Omega, CoreELEC). Pět rovnocenných zdrojů streamů a vlastní úložiště, každý jde zapnout samostatně:
+Video doplněk pro Kodi (20 Nexus a novější — `InfoTagVideo`, testováno na Kodi 21 Omega, CoreELEC). Pět rovnocenných zdrojů streamů a vlastní úložiště, každý jde zapnout samostatně:
 
 | zdroj | co dává | co potřebuje |
 |---|---|---|

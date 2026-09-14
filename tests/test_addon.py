@@ -376,6 +376,56 @@ class TestRouter(unittest.TestCase):
         self.assertFalse(xbmcplugin.ended[-1]["succeeded"])
 
 
+class TestOpravyZAuditu(unittest.TestCase):
+    def setUp(self):
+        reset_kodi()
+        default.STORE.save("wizard_done", False)
+
+    def test_pruvodce_se_na_ciste_instalaci_nabidne_v_menu(self):
+        """Přepínače sosac/luna/hs mají výchozí true — podle nich průvodce nikdy nebyl potřeba."""
+        self.assertFalse(default.accounts_set())
+        default.setup_wizard()   # bez účtů nic neuloží (dialog v testu odpoví „Přeskočit“ → uloží až na konci)
+        default.STORE.save("wizard_done", False)
+        default.router("")
+        akce = [params_of(u).get("action") for u in xbmcplugin.urls()]
+        self.assertEqual(akce[0], "setup_wizard", "průvodce je první položka, ne modální dialog v kořeni")
+        xbmcaddon.settings["ws_username"] = "ja"
+        self.assertTrue(default.accounts_set())
+        xbmcplugin.reset()
+        default.router("")
+        self.assertNotIn("setup_wizard", [params_of(u).get("action") for u in xbmcplugin.urls()])
+        default.STORE.save("wizard_done", False)
+        default.setup_wizard()
+        self.assertTrue(default.STORE.load("wizard_done", False), "s účtem se průvodce považuje za hotový")
+
+    def test_pokracovat_umi_hellspy_a_uloziste(self):
+        default.add_snapshot_item("hs:123:abc", {"type": "hs", "id": "hs:123:abc", "title": "Film.mkv", "art": {}})
+        self.assertEqual(params_of(xbmcplugin.urls()[0]), {"action": "play_hs", "id": "123", "hash": "abc", "name": "Film.mkv"})
+        xbmcaddon.settings.update(dav1_url="http://nas.lan/dav/", dav1_username="u", dav1_password="p", dav1_name="NAS")
+        default.add_snapshot_item("dav:1:Filmy/a.mkv", {"type": "dav", "id": "dav:1:Filmy/a.mkv", "title": "a.mkv", "art": {}})
+        self.assertEqual(params_of(xbmcplugin.urls()[1]), {"action": "play_dav", "slot": "1", "path": "Filmy/a.mkv", "name": "a.mkv"})
+        # úložiště, které už v nastavení není, se tiše vynechá; rozbitý klíč taky
+        default.add_snapshot_item("dav:3:x.mkv", {"type": "dav", "id": "dav:3:x.mkv", "title": "x", "art": {}})
+        default.add_snapshot_item("dav:zle", {"type": "dav", "id": "dav:zle", "title": "x", "art": {}})
+        self.assertEqual(len(xbmcplugin.items), 2)
+        self.assertIsNone(default.recover_snapshot({}, "dav:1:Filmy/a.mkv"), "snímek úložiště se z meta nedohledává")
+
+    def test_cizi_vyjimka_v_routeru_uklidi_handle(self):
+        with mock.patch.object(default, "play", side_effect=KeyError("id")):
+            default.router("?action=play&type=movie&id=tt1")
+        self.assertEqual([r[1] for r in xbmcplugin.resolved], [False])
+        self.assertIn("KeyError", xbmcgui.notifications[-1][1])
+        xbmcplugin.reset()
+        with mock.patch.object(default, "browse_menu", side_effect=RuntimeError("kodi")):
+            default.router("?action=browse&type=movie")
+        self.assertFalse(xbmcplugin.ended[-1]["succeeded"])
+
+    def test_addon_xml_vyzaduje_kodi_20(self):
+        root = ET.parse(ROOT / "addon.xml").getroot()
+        ver = root.find(".//import[@addon='xbmc.python']").get("version")
+        self.assertGreaterEqual(tuple(int(x) for x in ver.split(".")), (3, 0, 1), "setMediaType a VideoStreamDetail jsou Kodi 20+")
+
+
 class TestMenuAZahrivani(unittest.TestCase):
     """`service.warm_urls()` musí zahřívat přesně ty výpisy, které `browse_menu()` nabízí —
     jinak se zahřívá něco jiného a první otevření trvá desítky sekund (3.1.8)."""
@@ -401,6 +451,13 @@ class TestMenuAZahrivani(unittest.TestCase):
         self.assertIn(("sosac_db", "moviesrecentlyadded_dub", "movie", None), self.warm())
         self.assertIn(("sosac_db", "moviesrecentlyadded_subs", "movie", None), self.warm())
         self.assertIn(("sosac_db", "tvshowsrecentlyadded", "series", None), self.warm())
+
+    def test_zahrivani_bere_aktualni_nastaveni(self):
+        """Modulový ADDON služby nevidí změny — po zadání klíče TMDB se dál zahřívala Luna."""
+        xbmcaddon.settings["token"] = "t"
+        self.assertEqual({p["src"] for p in map(params_of, service.warm_urls())}, {"luna", "sosac_db"})
+        xbmcaddon.settings["tmdb_api_key"] = "abc"
+        self.assertEqual({p["src"] for p in map(params_of, service.warm_urls())}, {"tmdb", "sosac_db"})
 
     def test_s_lunou(self):
         xbmcaddon.settings["token"] = "t"

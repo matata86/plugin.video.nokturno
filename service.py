@@ -414,12 +414,17 @@ def warm_urls():
     (je-li klíč) a z veřejného katalogu `sosac_db` — zahřívání tak minulo všechno,
     co uživatel otevírá, a první otevření nově přidaných trvalo na Office 12 s."""
     base = "plugin://plugin.video.nokturno/?action=catalog&src={src}&type={t}&catalog={c}"
+    # čerstvá instance: modulový ADDON z doby startu služby nevidí změny nastavení —
+    # po zadání klíče TMDB se dál zahřívala Luna
+    addon = fresh_addon()
+    if addon is None:
+        return []
     urls = []
     for t in ("movie", "series"):
-        if ADDON.getSetting("tmdb_api_key").strip():
+        if addon.getSetting("tmdb_api_key").strip():
             for c in ("popular", "trending", "top_rated"):
                 urls.append(base.format(src="tmdb", t=t, c=c))
-        elif ADDON.getSetting("luna_enabled") != "false":
+        elif addon.getSetting("luna_enabled") != "false":
             urls.append(base.format(src="luna", t=t, c=f"tmdb.top_{t}"))
             urls.append(base.format(src="luna", t=t, c=f"tmdb.trending_{t}") + "&genre=Week")
             urls.append(base.format(src="luna", t=t, c=f"tmdb.top_rated_{t}"))
