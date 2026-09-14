@@ -1,4 +1,4 @@
-![Nokturno](resources/media/fanart.jpg)
+![Nokturno](https://raw.githubusercontent.com/matata86/plugin.video.nokturno/main/resources/media/fanart.jpg)
 
 # Nokturno — filmy a seriály z WebShare, Sosáče, Luny, HellSpy, Sledujteto a FastShare pro Kodi
 
