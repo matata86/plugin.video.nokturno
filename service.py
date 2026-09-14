@@ -39,7 +39,11 @@ class _KodiLogHandler(logging.Handler):
 logging.getLogger().addHandler(_KodiLogHandler())
 logging.getLogger().setLevel(logging.WARNING)
 sys.path.insert(0, os.path.join(xbmcvfs.translatePath(ADDON.getAddonInfo("path")), "resources", "lib"))
+from hellspy_api import HellspyApi  # noqa: E402
+from sledujteto_api import SledujtetoApi  # noqa: E402
+from sosac_direct import SosacDirect  # noqa: E402
 from stats import COLLECT_URL, Stats  # noqa: E402
+from storage_api import StorageApi, parse_ref  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
 from sync import sync_once  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
@@ -56,7 +60,8 @@ MIN_RESUME = 90  # s – po takové době přehrávání patří titul do rozkou
 SAVE_EVERY = 30  # s – jak často se za běhu přepisuje pozice rozkoukaného
 POLL = 5
 WARM_DELAY = 180          # po startu Kodi nechat nejdřív doběhnout skin a widgety
-WARM_EVERY = 3 * 3600     # žebříčky Sosáče mají TTL 3 h, Luna 12 h
+WARM_EVERY = int(2.5 * 3600)   # pod TTL žebříčků Sosáče (3 h); s WARM_PROP se cache obnoví i před vypršením
+WARM_PROP = "nokturno.warm"    # plugin při zahřívání cache API jen zapisuje, nečte (viz default.warming)
 WARM_RETRY = 10 * 60      # když se zrovna přehrává, zahřívání počká
 CHUNK = 1024 * 1024
 PROFILE = xbmcvfs.translatePath(ADDON.getAddonInfo("profile"))
@@ -257,6 +262,37 @@ def safe_filename(name):
     return name[:180]
 
 
+def resolve_internal(url, store):
+    """Vnitřní odkaz z fronty (`ws:`, `hs:`, `st:`, `streamuj:`, `dav:`) → (odkaz ke stažení, hlavičky).
+
+    Rozklíčovává se až tady, ve chvíli stahování: podepsané odkazy zdrojů platí jen
+    pár hodin a fronta je sekvenční — s hotovým odkazem uloženým při zařazení končil
+    třetí soubor ve frontě nebo cokoli po restartu Kodi chybou. Nastavení se čte
+    čerstvé (`fresh_addon`), účty jsou tytéž jako v pluginu."""
+    addon = fresh_addon()
+    s = (lambda key: (addon.getSetting(key) or "").strip()) if addon else (lambda key: "")
+    if url.startswith("ws:"):
+        api = WebshareApi(s("ws_username"), s("ws_password"),
+                          token=xbmcgui.Window(10000).getProperty("nokturno.ws_token"), cache=store)
+        link = api.file_link(url[3:])
+        if api.token:
+            xbmcgui.Window(10000).setProperty("nokturno.ws_token", api.token)
+        return link, {}
+    if url.startswith("hs:"):
+        file_id, _sep, file_hash = url[3:].partition(":")
+        return HellspyApi(cache=store).file_link(file_id, file_hash), {}
+    if url.startswith("st:"):
+        return SledujtetoApi(s("st_email"), addon.getSetting("st_password") if addon else "", cache=store).file_link(url[3:]), {}
+    if url.startswith("streamuj:"):
+        return SosacDirect(s("streamuj_username"), s("streamuj_password"), cache=store).resolve(url), {}
+    if url.startswith("dav:"):
+        slot, path = parse_ref(url)
+        api = StorageApi(s(f"dav{slot}_url"), s(f"dav{slot}_username"), addon.getSetting(f"dav{slot}_password") if addon else "",
+                         s(f"dav{slot}_name"), slot=slot, cache=store)
+        return api.file_url(path), api.headers()
+    return url, {}
+
+
 class Downloader(threading.Thread):
     def __init__(self, store, monitor):
         super().__init__(daemon=True)
@@ -278,7 +314,10 @@ class Downloader(threading.Thread):
         tmp = dest + ".part"
         try:
             os.makedirs(os.path.dirname(dest), exist_ok=True)
-            req = urllib.request.Request(url, headers={"User-Agent": "Kodi plugin.video.nokturno"})
+            link, headers = resolve_internal(url, self.store)
+            if not link:
+                raise RuntimeError("zdroj odkaz nevydal")
+            req = urllib.request.Request(link, headers={"User-Agent": "Kodi plugin.video.nokturno", **headers})
             with urllib.request.urlopen(req, timeout=60) as resp, open(tmp, "wb") as out:
                 size = int(resp.headers.get("Content-Length") or 0)
                 done, last = 0, 0.0
@@ -442,10 +481,16 @@ def rpc_directory(url):
 def warm_caches(monitor, what="all"):
     try:
         if what in ("all", "catalogs"):
-            for url in warm_urls():
-                if monitor.abortRequested():
-                    return
-                rpc_directory(url)
+            # plugin během zahřívání cache API jen zapisuje: jinak by warm-up s TTL rovným
+            # intervalu jen zjistil, že cache je ještě čerstvá, a nic neobnovil
+            xbmcgui.Window(10000).setProperty(WARM_PROP, "1")
+            try:
+                for url in warm_urls():
+                    if monitor.abortRequested():
+                        return
+                    rpc_directory(url)
+            finally:
+                xbmcgui.Window(10000).clearProperty(WARM_PROP)
         if what in ("all", "next"):
             rpc_directory("plugin://plugin.video.nokturno/?action=prefetch&kind=next")
         log(f"cache zahřáta ({what})")

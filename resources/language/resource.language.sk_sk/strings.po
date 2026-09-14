@@ -86,10 +86,6 @@ msgctxt "#30024"
 msgid "Choose stream"
 msgstr "Vyber stream"
 
-msgctxt "#30101"
-msgid "Luna server is not responding"
-msgstr "Server Luna neodpovedá"
-
 msgctxt "#30102"
 msgid "No stream found"
 msgstr "Nenašiel sa žiadny stream"
@@ -105,14 +101,6 @@ msgstr "Zapnúť Sosáč (katalógy z tv.sosac.to, streamy zo streamuj.tv)"
 msgctxt "#30034"
 msgid "Also look up streams for a title in the other source"
 msgstr "Dohľadať streamy titulu aj v druhom zdroji"
-
-msgctxt "#30035"
-msgid "Sosáč – movies"
-msgstr "Sosáč – filmy"
-
-msgctxt "#30036"
-msgid "Sosáč – series"
-msgstr "Sosáč – seriály"
 
 msgctxt "#30014"
 msgid "Enable Luna source"
@@ -181,10 +169,6 @@ msgstr "Najväčšie"
 msgctxt "#30059"
 msgid "Smallest"
 msgstr "Najmenšie"
-
-msgctxt "#30103"
-msgid "WebShare login or request failed"
-msgstr "Prihlásenie alebo požiadavka na WebShare zlyhala"
 
 msgctxt "#30104"
 msgid "No source is configured – enable Luna, Sosáč or WebShare in settings"
@@ -421,10 +405,6 @@ msgctxt "#30161"
 msgid "Send anonymous usage statistics"
 msgstr "Odosielať anonymné štatistiky"
 
-msgctxt "#30162"
-msgid "Collector address"
-msgstr "Adresa zberného bodu"
-
 msgctxt "#30163"
 msgid "Send statistics now"
 msgstr "Odoslať štatistiky teraz"
@@ -493,10 +473,6 @@ msgctxt "#30188"
 msgid "Sync failed"
 msgstr "Synchronizácia zlyhala"
 
-msgctxt "#30189"
-msgid "Also offer files found directly on WebShare for titles"
-msgstr "Pri tituloch ponúkať aj súbory nájdené priamo na WebShare"
-
 msgctxt "#30190"
 msgid "Downloaded in HA"
 msgstr "Stiahnuté v HA"
@@ -536,10 +512,6 @@ msgstr "Zisťovať zvuk zo súboru (koľko streamov)"
 msgctxt "#30199"
 msgid "Reads the start of the file to find audio language and channels where the source stays silent. Only for such streams, from the top of the sorted list, result kept for a month. 0 = off."
 msgstr "Prečíta začiatok súboru a zistí z neho jazyk a počet kanálov tam, kde ich zdroj neuviedol. Týka sa len takých streamov, berie sa od začiatku zoradeného zoznamu a výsledok sa pamätá mesiac. 0 = nezisťovať."
-
-msgctxt "#30200"
-msgid "audio read from the file"
-msgstr "zvuk zo súboru"
 
 msgctxt "#30201"
 msgid "Stream list"
@@ -785,14 +757,6 @@ msgstr "Musí sa zhodovať so synchronizačným kľúčom z nastavení integrác
 msgctxt "#30238"
 msgid "Loading streams…"
 msgstr "Načítavam streamy…"
-
-msgctxt "#30330"
-msgid "Movies (database)"
-msgstr "Filmy (databáza)"
-
-msgctxt "#30331"
-msgid "Series (database)"
-msgstr "Seriály (databáza)"
 
 msgctxt "#30332"
 msgid "Own movie/series database"
@@ -1058,10 +1022,6 @@ msgctxt "#30396"
 msgid "By year"
 msgstr "Podľa roku"
 
-msgctxt "#30397"
-msgid "By letter"
-msgstr "Podľa písmena"
-
 msgctxt "#30398"
 msgid "Popular"
 msgstr "Populárne"
@@ -1077,3 +1037,7 @@ msgstr "Nové diely s CZ dabingom"
 msgctxt "#30401"
 msgid "New with Czech subtitles"
 msgstr "Novo pridané s CZ titulkami"
+
+msgctxt "#30402"
+msgid "Measuring download speed…"
+msgstr "Meriam rýchlosť sťahovania…"

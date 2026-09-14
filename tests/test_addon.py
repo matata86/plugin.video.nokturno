@@ -399,11 +399,14 @@ class TestOpravyZAuditu(unittest.TestCase):
         self.assertTrue(default.STORE.load("wizard_done", False), "s účtem se průvodce považuje za hotový")
 
     def test_pokracovat_umi_hellspy_a_uloziste(self):
-        default.add_snapshot_item("hs:123:abc", {"type": "hs", "id": "hs:123:abc", "title": "Film.mkv", "art": {}})
+        odebrat = [("Odebrat z Pokračovat", "RunPlugin(plugin://x/?action=remove_progress)")]
+        default.add_snapshot_item("hs:123:abc", {"type": "hs", "id": "hs:123:abc", "title": "Film.mkv", "art": {}}, odebrat)
         self.assertEqual(params_of(xbmcplugin.urls()[0]), {"action": "play_hs", "id": "123", "hash": "abc", "name": "Film.mkv"})
         xbmcaddon.settings.update(dav1_url="http://nas.lan/dav/", dav1_username="u", dav1_password="p", dav1_name="NAS")
-        default.add_snapshot_item("dav:1:Filmy/a.mkv", {"type": "dav", "id": "dav:1:Filmy/a.mkv", "title": "a.mkv", "art": {}})
+        default.add_snapshot_item("dav:1:Filmy/a.mkv", {"type": "dav", "id": "dav:1:Filmy/a.mkv", "title": "a.mkv", "art": {}}, odebrat)
         self.assertEqual(params_of(xbmcplugin.urls()[1]), {"action": "play_dav", "slot": "1", "path": "Filmy/a.mkv", "name": "a.mkv"})
+        for _h, _u, li, _f in xbmcplugin.items:
+            self.assertIn(odebrat[0], li.context, "kontext z výpisu (Odebrat z Pokračovat) musí projít i u HellSpy a úložiště")
         # úložiště, které už v nastavení není, se tiše vynechá; rozbitý klíč taky
         default.add_snapshot_item("dav:3:x.mkv", {"type": "dav", "id": "dav:3:x.mkv", "title": "x", "art": {}})
         default.add_snapshot_item("dav:zle", {"type": "dav", "id": "dav:zle", "title": "x", "art": {}})
@@ -558,3 +561,64 @@ class TestSluzbaStatistiky(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestFrontaAZahrivani(unittest.TestCase):
+    """Audit 2026-09-14: fronta stahování drží vnitřní odkaz a stabilní id, zahřívání cache
+    skutečně obnovuje, žádný mrtvý řetězec."""
+
+    def setUp(self):
+        reset_kodi()
+        self.tmp = tempfile.mkdtemp()
+        xbmcaddon.settings["download_dir"] = self.tmp
+        default.STORE.save("downloads", [])
+
+    def test_fronta_nese_vnitrni_odkaz_a_stabilni_id(self):
+        apis = {"ws": None, "hs": None, "luna": None, "sosac": None}
+        with mock.patch.object(default, "load_meta", side_effect=LunaError("bez sítě")):
+            default.download_stream(apis, "ws:abc", "Film.2020.1080p.mkv", "tt1", "movie")
+            default.download_stream(apis, "ws:abc", "Film.2020.1080p.mkv", "tt1", "movie")
+        fronta = default.STORE.downloads()
+        self.assertEqual(len(fronta), 1, "tentýž soubor podruhé se nezařadí (dřív hash() per proces)")
+        self.assertEqual(fronta[0]["url"], "ws:abc", "vnitřní odkaz, rozklíčuje ho až služba")
+        import hashlib
+        self.assertEqual(fronta[0]["id"], "dl:tt1:" + hashlib.sha1(b"ws:abc").hexdigest()[:8])
+        self.assertTrue(fronta[0]["dest"].endswith("Film.2020.1080p.mkv"))
+
+    def test_pripona_z_odkazu_jen_kdyz_nazev_nema(self):
+        apis = {"ws": None}
+        with mock.patch.object(default, "load_meta", side_effect=LunaError("x")), \
+             mock.patch.object(default, "resolve_url", return_value="https://cdn/x.mp4?sig=1") as res:
+            default.download_stream(apis, "streamuj:https://www.streamuj.tv/1", "Sosáč CZ - HD", "sosacd_1", "movie")
+        res.assert_called_once()
+        self.assertTrue(default.STORE.downloads()[-1]["dest"].endswith("Sosáč CZ - HD.mp4"))
+
+    def test_sluzba_rozklicuje_az_pri_stahovani(self):
+        self.assertEqual(service.resolve_internal("https://cdn/a.mkv", default.STORE), ("https://cdn/a.mkv", {}))
+        xbmcaddon.settings.update(dav1_url="http://nas.lan/dav/", dav1_username="u", dav1_password="p")
+        link, headers = service.resolve_internal("dav:1:Filmy/a b.mkv", default.STORE)
+        self.assertEqual(link, "http://nas.lan/dav/Filmy/a%20b.mkv")
+        self.assertTrue(headers.get("Authorization", "").startswith("Basic "))
+        with self.assertRaises(Exception):
+            service.resolve_internal("dav:9:x", default.STORE)
+
+    def test_zahrivani_nastavi_priznak_a_api_cache_jen_zapisuji(self):
+        videno = []
+        with mock.patch.object(service, "rpc_directory",
+                               side_effect=lambda url: videno.append(xbmcgui.Window(10000).getProperty(service.WARM_PROP))):
+            xbmcaddon.settings["tmdb_api_key"] = "k"
+            service.warm_caches(xbmc.Monitor(), "catalogs")
+        self.assertTrue(videno and all(v == "1" for v in videno), "během zahřívání je příznak nastavený")
+        self.assertEqual(xbmcgui.Window(10000).getProperty(service.WARM_PROP), "", "po zahřátí zmizí")
+        self.assertFalse(default.get_sosac_db().fresh)
+        xbmcgui.Window(10000).setProperty(default.WARM_PROP, "1")
+        self.assertTrue(default.get_sosac_db().fresh)
+        self.assertLess(service.WARM_EVERY, 3 * 3600, "pod TTL žebříčků Sosáče")
+
+    def test_zadny_mrtvy_retezec(self):
+        code = "".join((ROOT / n).read_text(encoding="utf-8") for n in ("default.py", "service.py"))
+        code += (ROOT / "resources" / "settings.xml").read_text(encoding="utf-8")
+        used = set(int(x) for x in re.findall(r"\b(3\d{4})\b", code))
+        mrtve = sorted(set(po_ids("cs_cz")) - used)
+        self.assertEqual(mrtve, [], f"řetězce bez použití: {mrtve}")
+        self.assertIn(30402, used, "průběh měření rychlosti má vlastní řetězec, ne label tlačítka")

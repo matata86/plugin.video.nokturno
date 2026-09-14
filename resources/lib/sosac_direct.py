@@ -78,11 +78,12 @@ def bez_uctu(url):
 
 # SosacError se dědí ze sosac_api — dvě stejnojmenné třídy by se navzájem nechytaly
 class SosacDirect:
-    def __init__(self, streamuj_user="", streamuj_pass="", cache=None, cache_ttl=600, index_store=None):
+    def __init__(self, streamuj_user="", streamuj_pass="", cache=None, cache_ttl=600, index_store=None, fresh=False):
         self.user = (streamuj_user or "").strip()
         self.password = (streamuj_pass or "").strip()
         self.cache = cache
         self.cache_ttl = cache_ttl
+        self.fresh = fresh   # True = cache jen zapisovat, ne číst (zahřívání na pozadí)
         self.index = index_store  # objekt s remember_item/item – snímky filmů pro meta()
         self._pending = None      # během výpisu se snímky sbírají a zapíšou najednou
 
@@ -97,7 +98,7 @@ class SosacDirect:
                 raise SosacError(f"{e} ({bez_uctu(url)})") from e
         if self.cache is None:
             return load()
-        return self.cache.cached(url, ttl or self.cache_ttl, load)
+        return self.cache.cached(url, 0 if self.fresh else (ttl or self.cache_ttl), load)
 
     # --- převod položek ----------------------------------------------------
     @staticmethod

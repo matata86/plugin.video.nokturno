@@ -86,10 +86,6 @@ msgctxt "#30024"
 msgid "Choose stream"
 msgstr ""
 
-msgctxt "#30101"
-msgid "Luna server is not responding"
-msgstr ""
-
 msgctxt "#30102"
 msgid "No stream found"
 msgstr ""
@@ -104,14 +100,6 @@ msgstr ""
 
 msgctxt "#30034"
 msgid "Also look up streams for a title in the other source"
-msgstr ""
-
-msgctxt "#30035"
-msgid "Sosáč – movies"
-msgstr ""
-
-msgctxt "#30036"
-msgid "Sosáč – series"
 msgstr ""
 
 msgctxt "#30014"
@@ -180,10 +168,6 @@ msgstr ""
 
 msgctxt "#30059"
 msgid "Smallest"
-msgstr ""
-
-msgctxt "#30103"
-msgid "WebShare login or request failed"
 msgstr ""
 
 msgctxt "#30104"
@@ -421,10 +405,6 @@ msgctxt "#30161"
 msgid "Send anonymous usage statistics"
 msgstr "Send anonymous usage statistics"
 
-msgctxt "#30162"
-msgid "Collector address"
-msgstr "Collector address"
-
 msgctxt "#30163"
 msgid "Send statistics now"
 msgstr "Send statistics now"
@@ -493,10 +473,6 @@ msgctxt "#30188"
 msgid "Sync failed"
 msgstr "Sync failed"
 
-msgctxt "#30189"
-msgid "Also offer files found directly on WebShare for titles"
-msgstr "Also offer files found directly on WebShare for titles"
-
 msgctxt "#30190"
 msgid "Downloaded in HA"
 msgstr "Downloaded in HA"
@@ -536,10 +512,6 @@ msgstr "Detect audio from the file (how many streams)"
 msgctxt "#30199"
 msgid "Reads the start of the file to find audio language and channels where the source stays silent. Only for such streams, from the top of the sorted list, result kept for a month. 0 = off."
 msgstr "Reads the start of the file to find audio language and channels where the source stays silent. Only for such streams, from the top of the sorted list, result kept for a month. 0 = off."
-
-msgctxt "#30200"
-msgid "audio read from the file"
-msgstr "audio read from the file"
 
 msgctxt "#30201"
 msgid "Stream list"
@@ -784,14 +756,6 @@ msgstr ""
 
 msgctxt "#30238"
 msgid "Loading streams…"
-msgstr ""
-
-msgctxt "#30330"
-msgid "Movies (database)"
-msgstr ""
-
-msgctxt "#30331"
-msgid "Series (database)"
 msgstr ""
 
 msgctxt "#30332"
@@ -1058,10 +1022,6 @@ msgctxt "#30396"
 msgid "By year"
 msgstr ""
 
-msgctxt "#30397"
-msgid "By letter"
-msgstr ""
-
 msgctxt "#30398"
 msgid "Popular"
 msgstr ""
@@ -1076,4 +1036,8 @@ msgstr ""
 
 msgctxt "#30401"
 msgid "New with Czech subtitles"
+msgstr ""
+
+msgctxt "#30402"
+msgid "Measuring download speed…"
 msgstr ""

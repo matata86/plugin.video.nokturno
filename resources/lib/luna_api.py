@@ -68,16 +68,17 @@ class LunaError(Exception):
 
 
 class LunaApi:
-    def __init__(self, base_url, token, cache=None, cache_ttl=600):
+    def __init__(self, base_url, token, cache=None, cache_ttl=600, fresh=False):
         self.base = base_url.rstrip("/")
         self.token = token
         self.cache = cache  # objekt s .cached(key, ttl, loader) – manifest a meta se nemění každou minutu
         self.cache_ttl = cache_ttl
+        self.fresh = fresh  # True = cache jen zapisovat, ne číst (zahřívání na pozadí obnoví, co ještě neprošlo)
 
     def _get_cached(self, url):
         if self.cache is None:
             return self._get(url)
-        return self.cache.cached(url, self.cache_ttl, lambda: self._get(url))
+        return self.cache.cached(url, 0 if self.fresh else self.cache_ttl, lambda: self._get(url))
 
     # --- HTTP -------------------------------------------------------------
     def _get(self, url):

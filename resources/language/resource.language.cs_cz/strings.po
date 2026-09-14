@@ -86,10 +86,6 @@ msgctxt "#30024"
 msgid "Choose stream"
 msgstr "Vyber stream"
 
-msgctxt "#30101"
-msgid "Luna server is not responding"
-msgstr "Server Luna neodpovídá"
-
 msgctxt "#30102"
 msgid "No stream found"
 msgstr "Žádný stream nenalezen"
@@ -105,14 +101,6 @@ msgstr "Zapnout Sosáč (katalogy z tv.sosac.to, streamy ze streamuj.tv)"
 msgctxt "#30034"
 msgid "Also look up streams for a title in the other source"
 msgstr "Dohledat streamy titulu i v druhém zdroji"
-
-msgctxt "#30035"
-msgid "Sosáč – movies"
-msgstr "Sosáč – filmy"
-
-msgctxt "#30036"
-msgid "Sosáč – series"
-msgstr "Sosáč – seriály"
 
 msgctxt "#30014"
 msgid "Enable Luna source"
@@ -181,10 +169,6 @@ msgstr "Největší"
 msgctxt "#30059"
 msgid "Smallest"
 msgstr "Nejmenší"
-
-msgctxt "#30103"
-msgid "WebShare login or request failed"
-msgstr "Přihlášení nebo dotaz na WebShare selhal"
 
 msgctxt "#30104"
 msgid "No source is configured – enable Luna, Sosáč or WebShare in settings"
@@ -421,10 +405,6 @@ msgctxt "#30161"
 msgid "Send anonymous usage statistics"
 msgstr "Odesílat anonymní statistiky"
 
-msgctxt "#30162"
-msgid "Collector address"
-msgstr "Adresa sběrného bodu"
-
 msgctxt "#30163"
 msgid "Send statistics now"
 msgstr "Odeslat statistiky nyní"
@@ -493,10 +473,6 @@ msgctxt "#30188"
 msgid "Sync failed"
 msgstr "Synchronizace selhala"
 
-msgctxt "#30189"
-msgid "Also offer files found directly on WebShare for titles"
-msgstr "U titulů nabízet i soubory nalezené přímo na WebShare"
-
 msgctxt "#30190"
 msgid "Downloaded in HA"
 msgstr "Staženo v HA"
@@ -536,10 +512,6 @@ msgstr "Zjišťovat zvuk ze souboru (kolik streamů)"
 msgctxt "#30199"
 msgid "Reads the start of the file to find audio language and channels where the source stays silent. Only for such streams, from the top of the sorted list, result kept for a month. 0 = off."
 msgstr "Přečte začátek souboru a zjistí z něj jazyk a počet kanálů tam, kde je zdroj neřekl. Týká se jen takových streamů, bere se od začátku seřazeného seznamu a výsledek se pamatuje měsíc. 0 = nezjišťovat."
-
-msgctxt "#30200"
-msgid "audio read from the file"
-msgstr "zvuk ze souboru"
 
 msgctxt "#30201"
 msgid "Stream list"
@@ -785,14 +757,6 @@ msgstr "Musí sedět se synchronizačním klíčem z nastavení integrace Noktur
 msgctxt "#30238"
 msgid "Loading streams…"
 msgstr "Načítám streamy…"
-
-msgctxt "#30330"
-msgid "Movies (database)"
-msgstr "Filmy (databáze)"
-
-msgctxt "#30331"
-msgid "Series (database)"
-msgstr "Seriály (databáze)"
 
 msgctxt "#30332"
 msgid "Own movie/series database"
@@ -1058,10 +1022,6 @@ msgctxt "#30396"
 msgid "By year"
 msgstr "Podle roku"
 
-msgctxt "#30397"
-msgid "By letter"
-msgstr "Podle písmene"
-
 msgctxt "#30398"
 msgid "Popular"
 msgstr "Populární"
@@ -1077,3 +1037,7 @@ msgstr "Nové díly s CZ dabingem"
 msgctxt "#30401"
 msgid "New with Czech subtitles"
 msgstr "Nově přidané s CZ titulky"
+
+msgctxt "#30402"
+msgid "Measuring download speed…"
+msgstr "Měřím rychlost stahování…"

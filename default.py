@@ -69,6 +69,10 @@ PAGE = 20
 WS_PAGE = 40
 HS_PAGE = 40
 CACHE_TTL = 600
+# Luna: katalogy i meta se drží déle než obecných 10 min — zahřívání na pozadí běží
+# každé 2,5 h a s 10min TTL zahřívalo do prázdna (menu bylo studené 10 min po každém warm-upu)
+LUNA_TTL = 4 * 3600
+WARM_PROP = "nokturno.warm"   # služba ji nastaví během zahřívání: API cache jen zapisují, nečtou
 SEARCH_TTL = 12 * 3600  # sjednocené s luna_api.SEARCH_TTL / webshare_api.SEARCH_TTL
 SOSAC_TAG = "[COLOR FFE0A040]Sosáč[/COLOR]"
 HS_TAG = "[COLOR FFFF8A6B]HellSpy[/COLOR]"
@@ -163,6 +167,12 @@ def runplugin(**params):
 
 # --- zdroje ---------------------------------------------------------------------
 
+def warming():
+    """Běží zahřívání cache ze služby? Pak se API cache jen zapisují, ne čtou — jinak
+    zahřátí s TTL rovným intervalu jen ověřilo, že cache je čerstvá, a nic neobnovilo."""
+    return xbmcgui.Window(10000).getProperty(WARM_PROP) == "1"
+
+
 def get_luna():
     if not on("luna_enabled"):
         return None
@@ -171,7 +181,7 @@ def get_luna():
     if not token:
         return None
     base = parse_base_url(raw_token, setting("luna_url", "http://192.168.1.10:7126"))
-    return LunaApi(base, token, cache=STORE, cache_ttl=CACHE_TTL)
+    return LunaApi(base, token, cache=STORE, cache_ttl=LUNA_TTL, fresh=warming())
 
 
 def get_sosac():
@@ -182,7 +192,7 @@ def get_sosac():
     # ve veřejných exportech a k přehrání stačí Streamuj.
     su, sp = setting("streamuj_username").strip(), setting("streamuj_password").strip()
     if su and sp:
-        return SosacDirect(su, sp, cache=STORE, cache_ttl=CACHE_TTL, index_store=STORE.index())
+        return SosacDirect(su, sp, cache=STORE, cache_ttl=CACHE_TTL, index_store=STORE.index(), fresh=warming())
     return None
 
 
@@ -190,7 +200,7 @@ def get_sosac_db():
     """Veřejný katalog Sosáče (žádný účet, žádný přepínač) — vlastní databáze
     filmů a seriálů česky, funguje vždy. `apis["sosac"]` výš zůstává jen pro
     přihlášené přehrávání a stahování; katalog samotný účet nepotřebuje."""
-    return SosacDirect(cache=STORE, cache_ttl=CACHE_TTL, index_store=STORE.index())
+    return SosacDirect(cache=STORE, cache_ttl=CACHE_TTL, index_store=STORE.index(), fresh=warming())
 
 
 def resolve_url(apis, url):
@@ -644,7 +654,7 @@ def add_snapshot_item(key, snap, extra_context=None):
         if api is None:
             return   # úložiště už není v nastavení
         add_dav_file(api, {"path": path, "name": snap.get("title") or path.rsplit("/", 1)[-1],
-                           "size_h": snap.get("size_h", "")})
+                           "size_h": snap.get("size_h", "")}, extra_context)
         return
     label = snap.get("title") or key
     if snap.get("tvshow") and snap.get("season") is not None:
@@ -678,8 +688,8 @@ def add_ws_file(f, extra_context=None):
     xbmcplugin.addDirectoryItem(HANDLE, build_url(action="play_ws", ident=f["ident"], name=f["name"]), li, isFolder=False)
 
 
-def add_dav_file(api, f):
-    """Soubor z vlastního úložiště ve výpisu hledání."""
+def add_dav_file(api, f, extra_context=None):
+    """Soubor z vlastního úložiště ve výpisu hledání (a v Pokračovat/Naposledy přes `add_snapshot_item`)."""
     key = f"dav:{api.slot}:{f['path']}"
     folder = f["path"].rsplit("/", 1)[0] if "/" in f["path"] else ""
     label = f"{f['name']}  [COLOR FF9A9A9A]{f.get('size_h', '')}[/COLOR]"
@@ -688,7 +698,7 @@ def add_dav_file(api, f):
     tag.setMediaType("video")
     tag.setTitle(f["name"])
     tag.setPlot(f"[COLOR {DAV_COLOR}]{api.name}[/COLOR]  {f.get('size_h', '')}\n{folder}")
-    apply_watched(li, key, [])
+    apply_watched(li, key, list(extra_context or []))   # např. „Odebrat z Pokračovat“ z výpisu
     li.setProperty("IsPlayable", "true")
     xbmcplugin.addDirectoryItem(
         HANDLE, build_url(action="play_dav", slot=api.slot, path=f["path"], name=f["name"]), li, isFolder=False)
@@ -1963,7 +1973,7 @@ def speedtest():
     teprve pro konkrétní titul a jeho stopáž mění na GB.
     """
     dialog = xbmcgui.DialogProgress()
-    dialog.create(L(30000), L(30220, "Měřím rychlost stahování…"))
+    dialog.create(L(30000), L(30402, "Měřím rychlost stahování…"))
     got, t0 = 0, time.time()
     try:
         req = urllib.request.Request(SPEEDTEST_URL, headers={"User-Agent": "Mozilla/5.0"})
@@ -3170,8 +3180,11 @@ def safe_filename(name):
     return name[:150]
 
 
+VIDEO_EXTS = (".mkv", ".mp4", ".avi", ".ts", ".mov", ".m4v", ".webm", ".wmv")
+
+
 def guess_ext(url, name):
-    for ext in (".mkv", ".mp4", ".avi", ".ts", ".mov", ".m4v", ".webm", ".wmv"):
+    for ext in VIDEO_EXTS:
         if name.lower().endswith(ext):
             return ""
         if url.lower().split("?")[0].endswith(ext):
@@ -3179,12 +3192,16 @@ def guess_ext(url, name):
     return ".mkv"
 
 
-def enqueue_download(url, name, key, dest_name=None):
+def enqueue_download(url, name, key, dest_name=None, link=None):
+    """Do fronty jde VNITŘNÍ odkaz (`ws:`, `hs:`, `st:`, `streamuj:`, `dav:`) — služba ho
+    rozklíčuje až ve chvíli stahování (`service.resolve_internal`). Hotový odkaz WebShare
+    vyprší za pár hodin: třetí soubor ve frontě nebo cokoli po restartu Kodi dřív končilo
+    chybou. `link` je volitelný už rozklíčovaný odkaz jen kvůli odhadu přípony."""
     d = download_dir()
     if not d:
         return
     base = safe_filename(dest_name or name)
-    dest = os.path.join(d, base + guess_ext(url, base))
+    dest = os.path.join(d, base + guess_ext(link or url, base))
     entry = {"id": key, "url": url, "name": name, "dest": dest}
     if STORE.add_download(entry):
         notify(Lf(30072, name))
@@ -3199,19 +3216,25 @@ def download_stream(apis, url, name, key, ctype, series_id=None, alt=None):
             STORE.remember_item(key, snapshot(meta, ctype, video, series_id, alt))
         except Errors:
             pass
-    enqueue_download(resolve_url(apis, url), name, f"dl:{key}:{abs(hash(url)) % 10**8}", dest_name=name)
+    # id z hashlib: `hash(str)` je náhodně seedovaný per proces, takže tentýž soubor
+    # dostal po restartu Kodi jiné id a dedup ve frontě ho stáhl podruhé
+    import hashlib
+    dl_id = f"dl:{key}:{hashlib.sha1(url.encode('utf-8')).hexdigest()[:8]}"
+    # rozklíčovat jen kvůli příponě, když ji název nemá (Luna/Sosáč mají místo názvu popisek)
+    link = None if name.lower().endswith(VIDEO_EXTS) else resolve_url(apis, url)
+    enqueue_download(url, name, dl_id, dest_name=name, link=link)
 
 
 def download_ws(apis, ident, name):
     api = apis["ws"]
     if api is None:
         raise WebshareError(L(30104))
-    link = api.file_link(ident)
+    link = api.file_link(ident)   # ověření, že soubor existuje; stahuje se až z fronty
     remember_ws_token(api)
     if not link:
         notify(L(30102))
         return
-    enqueue_download(link, name, f"dl:ws:{ident}", dest_name=name)
+    enqueue_download("ws:" + ident, name, f"dl:ws:{ident}", dest_name=name, link=link)
 
 
 def download_hs(apis, file_id, file_hash, name):
@@ -3220,7 +3243,7 @@ def download_hs(apis, file_id, file_hash, name):
     if not link:
         notify(L(30102))
         return
-    enqueue_download(link, name, f"dl:hs:{file_id}", dest_name=name)
+    enqueue_download(f"hs:{file_id}:{file_hash}", name, f"dl:hs:{file_id}", dest_name=name, link=link)
 
 
 def list_downloads():
