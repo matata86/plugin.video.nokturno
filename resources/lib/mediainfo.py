@@ -377,7 +377,10 @@ def codec_name(raw):
     raw = str(raw or "")
     if raw in CODECS:
         return CODECS[raw]
-    return raw.split("/")[0].removeprefix("A_").removeprefix("V_") or ""
+    name = raw.split("/")[0]
+    # bez str.removeprefix — to je Python 3.9+, Kodi 20 na Androidu a Windows má 3.8 a tady
+    # uvnitř try/except by AttributeError tiše vypnul čtení hlaviček úplně (audit 2026-09-14)
+    return (name[2:] if name.startswith(("A_", "V_")) else name) or ""
 
 
 def probe(url, opener=None):
