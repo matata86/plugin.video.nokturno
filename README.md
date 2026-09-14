@@ -44,11 +44,13 @@ Streamy samotné (WebShare/HellSpy/Sledujteto/Luna) se pak hledají stejně jako
 - **Vlastní úložiště** (od 3.1.0) — až tři složky s vlastními soubory na WebDAV (NAS, Nextcloud, server). Soubor se k titulu přiřadí podle názvu a složek nad ním (rok u filmu, `S01E02` u dílu), mezi streamy je vždy první se jménem úložiště na začátku řádku; **Moje úložiště** v hlavním menu prochází úložiště po složkách. Nic se do úložiště nezapisuje (žádné `.nfo`/`.strm`). Návod a pojmenování souborů: [wiki → Vlastní úložiště](https://github.com/matata86/plugin.video.nokturno/wiki/Vlastni-uloziste)
 - **Zkusit uvolněný fulltext (WebShare, HellSpy, Sledujteto)** — tlačítko dole v seznamu streamů spustí uvolněnější hledání pro případ, že přísný filtr (chrání proti nabídnutí úplně jiného titulu, který hledaná slova jen náhodou obsahuje) zahodil skutečnou shodu; takové výsledky jsou označené jako neověřené
 - **Filtr streamů** přímo v seznamu — podle kvality, jazyka zvuku, počtu kanálů (5.1 a víc), kodeku, titulků i zdroje; nabízí jen to, co se v aktuálním seznamu skutečně vyskytuje, s počtem nalezeného v závorce
+- **Výběr streamu podle toho, odkud titul pouštíš** — ve výpisu Nokturna klik otevře seznam streamů (režim *Vybrat ze seznamu streamů*); z widgetu na domovské obrazovce, z detailu filmu nebo z TMDb Helperu se nabídne dialog s výběrem a nahoře v něm **Filtr streamů**, **Zrušit filtr** a **Použít poslední filtr**. Kontextové menu filmu a dílu nabízí druhou cestu: *Vybrat stream a přehrát* (ve výpisu), *Seznam streamů* (ve widgetu)
 - **Max. datový tok** místo pevné velikosti v GB — nastavení umí i změřit rychlost internetu a spočítat dovolený tok s 25% rezervou; skutečná velikost se pak dopočítá podle stopáže právě otevřeného titulu, ne podle jednoho čísla pro všechno
 - **Pokračovat ve sledování** (rozkoukané + další díl), **Můj seznam**, **Naposledy zhlédnuté**, historie hledání (posledních 10 dotazů), zhlédnuto/rozkoukáno (i bez Kodi knihovny)
 - **Zapamatovaný stream u seriálu** — jakmile si u seriálu jednou vybereš stream (zdroj, kvalitu, jazyk), další díly se pustí stejně bez ptaní; výběr se nabídne, jen když u dílu ta kombinace chybí
 - **Značka dalšího dílu** — v seznamu epizod je `»` u prvního nezhlédnutého dílu, který navazuje na poslední zhlédnutý
 - **Otestovat zdroje** — tlačítko v *Nastavení → Pokročilé* ověří Lunu, Sosáč i přihlášení k WebShare a řekne, co nefunguje, bez čekání na prázdný seznam streamů
+- **Zkontrolovat aktualizace doplňků** — tlačítko v *Nastavení → Pokročilé* vyžádá kontrolu repozitářů hned, ne až při denní kontrole Kodi
 - **Rychlejší procházení** — služba na pozadí drží načtené katalogy pro domovskou obrazovku a předstahuje streamy dalšího dílu rozkoukaných seriálů, takže se otevírají hned
 - **Stahování** streamů i souborů na pozadí do zvolené složky
 - **Trakt.tv** scrobble (vlastní client id/secret), IMDb id pro doplňky titulků, cesty pro widgety skinu
@@ -65,8 +67,10 @@ Streamy samotné (WebShare/HellSpy/Sledujteto/Luna) se pak hledají stejně jako
 Skiny jako Arctic Fuse ukazují detail filmu nebo dílu přes doplněk TMDb Helper. Jeho
 tlačítko **Přehrát** umí spustit Nokturno: *Nastavení doplňku → Pokročilé → Přidat
 Nokturno do TMDb Helperu*. Doplněk tam uloží player a nabídne ho jako výchozí —
-Přehrát pak podle IMDb id najde streamy v Nokturnu (v režimu *Zobrazit seznam
-streamů* se zeptá, který pustit).
+Přehrát pak podle IMDb id najde streamy v Nokturnu (v režimu *Vybrat ze seznamu
+streamů* nabídne dialog s filtrem). Filmy a díly z widgetů Nokturna se z detailu
+přehrají i bez TMDb Helperu; v detailu otevřeném přímo ve výpisu Nokturna použij
+kontextové menu *Vybrat stream a přehrát*.
 
 ## Předpoklady
 
@@ -123,7 +127,10 @@ Zapni, co máš — jeden, víc, nebo všech pět (plus vlastní úložiště):
 
 ```
 addon.xml
-default.py                    # router a obrazovky Kodi
+default.py                    # router a obrazovky Kodi (nad jádrem: KodiEngine)
+resources/lib/engine.py       # jádro: hledání, streamy ze všech zdrojů, párování, hlavičky, odkazy (sdílené s HA a Stremiem)
+resources/lib/const.py        # klíče nastavení společné s HA a Stremiem
+resources/players/nokturno.json # player pro TMDb Helper (Přehrát v detailu filmu → Nokturno)
 resources/lib/luna_api.py     # klient API Luny (bez závislosti na Kodi, jde spustit samostatně)
 resources/lib/cinemeta_api.py # vlastní databáze: Cinemeta (Stremio), poslední záchrana bez klíče/účtu
 resources/lib/tmdb_api.py     # vlastní databáze: TMDB s vlastním klíčem uživatele (česky, s popisem)
@@ -142,6 +149,7 @@ resources/lib/stats.py        # čítače používání a jejich odesílání (b
 resources/lib/store.py        # historie hledání + zhlédnuto/rozkoukáno (JSON v profilu)
 resources/lib/streams.py      # rozbor, filtr a řazení streamů
 resources/lib/trakt_api.py    # Trakt.tv (device code, scrobble, historie)
+resources/lib/prowlarr.py, qbittorrent.py # torrenty (používá je integrace pro HA, engine je importuje)
 service.py                    # služba: zhlédnuto/pozice, Trakt scrobble, stahování, statistiky
 repository.nokturno/          # repozitář pro automatické aktualizace (stable)
 repository.nokturno.beta/     # repozitář beta (repo/ + repo-beta/)
@@ -206,7 +214,7 @@ Očekávaná odpověď je `{"ok": true}`.
 
 ## Nokturno v Home Assistantu
 
-Stejné zdroje umí i [**integrace Nokturno pro Home Assistant**](https://github.com/matata86/nokturno-ha) (instalace přes HACS). Hledá ve WebShare, Sosáči a Luně, výsledky pouští **v Kodi právě přes tenhle doplněk** (`plugin://plugin.video.nokturno/…`), takže titul skončí v „Pokračovat ve sledování" a Kodi si pamatuje pozici. Navíc umí stáhnout film do Home Assistantu nebo poslat odkaz do mobilu.
+Stejné zdroje umí i [**integrace Nokturno pro Home Assistant**](https://github.com/matata86/nokturno-ha) (instalace přes HACS). Hledá ve stejných zdrojích (WebShare, Sosáč, Luna, HellSpy, Sledujteto, vlastní úložiště), výsledky pouští **v Kodi právě přes tenhle doplněk** (`plugin://plugin.video.nokturno/…`), takže titul skončí v „Pokračovat ve sledování" a Kodi si pamatuje pozici. Navíc umí stáhnout film do Home Assistantu nebo poslat odkaz do mobilu.
 
 [![Otevřít repozitář v HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=matata86&repository=nokturno-ha&category=integration)
 [![Přidat integraci](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=nokturno)
