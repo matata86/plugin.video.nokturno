@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="4.0.0~beta3" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="4.0.0~beta4" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,7 +23,12 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>4.0.0~beta3 – Oprava: odkaz bez parametru (starší widget, ruční URL z HA) už neshodí doplněk ani Kodi — jen upozornění
+    <news>4.0.0~beta4 – Přehrát v detailu filmu nebo dílu z TMDb Helperu (Arctic Fuse a další skiny) hledá streamy v Nokturnu — Nastavení → Pokročilé → Přidat Nokturno do TMDb Helperu
+4.0.0~beta4 – Výběr streamu: ve výpisu Nokturna klik otevře seznam streamů, z widgetu nebo detailu se nabídne dialog — nově s Filtrem streamů, Zrušit filtr a Použít poslední filtr
+4.0.0~beta4 – Kontextové menu filmu a dílu: Vybrat stream a přehrát (ve výpisu), Seznam streamů (ve widgetu); režim výběru se jmenuje „Vybrat ze seznamu streamů“
+4.0.0~beta4 – Oprava: seznam streamů v zobrazení FlixArt ukazoval u všech streamů jen název filmu; Přehrát z detailu filmu Nokturna ve widgetu nic nepustilo
+4.0.0~beta4 – Při přehrání z widgetu nebo detailu je vidět průběh „Načítám streamy“
+4.0.0~beta3 – Oprava: odkaz bez parametru (starší widget, ruční URL z HA) už neshodí doplněk ani Kodi — jen upozornění
 4.0.0~beta2 – Hledání jde přes sdílené jádro (řetězec zdrojů TMDB → Luna → Sosáč → Cinemeta, sloučení, rok v dotazu, cache) — stejně jako v Home Assistantu a Stremiu
 4.0.0~beta2 – Tlačítko „Zkontrolovat aktualizace doplňků“ přesunuto do Pokročilé (k „Otestovat zdroje“)
 4.0.0~beta1 – BETA rodiny Nokturno 4.0: doplněk stojí nad sdíleným jádrem (stejná logika streamů jako Home Assistant a Stremio) — co se chová jinak než ve 3.1, nahlaste na GitHubu
