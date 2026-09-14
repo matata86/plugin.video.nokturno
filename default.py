@@ -2141,8 +2141,9 @@ def main_menu(apis):
 
 def browse_menu(apis, ctype):
     """Filmy / Seriály: seznamy bez ohledu na zdroj. Zdroj vybírá doplněk sám —
-    TMDB (vlastní klíč), jinak Luna, jinak Cinemeta; „s CZ dabingem“ a „Podle písmene“
-    jsou z veřejného katalogu Sosáče, protože český dabing pozná jen on."""
+    TMDB (vlastní klíč), jinak Luna, jinak Cinemeta; „s CZ dabingem“ je z veřejného
+    katalogu Sosáče, protože český dabing pozná jen on. „Podle písmene“ vypadlo
+    (2026-09-14) — 100 položek bez popisů, pomalé a nikdo ho neprocházel."""
     kind = "series" if ctype == "series" else "movie"
     tmdb, luna, cinemeta, sosac = apis.get("tmdb"), apis.get("luna"), apis.get("cinemeta"), apis.get("sosac_db")
 
@@ -2169,8 +2170,6 @@ def browse_menu(apis, ctype):
         (L(30395, "Podle žánru"), "genres",
          pick("popular", f"tmdb.top_{kind}", "top", sosac_cid="genre" if kind == "movie" else None), "DefaultGenre.png"),
         (L(30396, "Podle roku"), "genres", pick("year", f"tmdb.year_{kind}", "year"), "DefaultYear.png"),
-        (L(30397, "Podle písmene"), "genres", ("sosac_db", "tvaz" if kind == "series" else "az", None)
-         if sosac else None, "DefaultVideoPlaylists.png"),
     ]
     for label, action, target, icon in rows:
         if not target:

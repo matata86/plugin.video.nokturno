@@ -88,8 +88,14 @@ class SosacDirect:
 
     def movie_meta(self, v):
         link = v.get("l") or ""
+        imdb = "tt" + str(v["m"]).zfill(7) if v.get("m") else ""
+        # čerstvě přidané filmy Sosáč ještě nemá nahrané („l": null) — bez odkazu by
+        # vzniklo prázdné id „sosacd_m_", které nejde otevřít; přes IMDb id se titul
+        # otevře z TMDB/Cinemety a streamy najdou ostatní zdroje
+        if not link and not imdb:
+            return None
         meta = {
-            "id": ID_PREFIX + "m_" + link,
+            "id": ID_PREFIX + "m_" + link if link else imdb,
             "type": "movie",
             "name": self._name(v.get("n")),
             "_title": self._name(v.get("n")),
@@ -104,8 +110,8 @@ class SosacDirect:
             "_quality": v.get("q") or "",
             "_link": link,
         }
-        if v.get("m"):
-            meta["imdb_id"] = "tt" + str(v["m"]).zfill(7)
+        if imdb:
+            meta["imdb_id"] = imdb
         try:
             if v.get("r"):
                 meta["imdbRating"] = float(v["r"]) * 2
@@ -170,7 +176,7 @@ class SosacDirect:
                 return []
             items = [self.movie_meta(v) for v in self._get(url)]
         elif cid == "az":
-            items = [self.movie_meta(v) for v in self._get(EXPORT + f"souboryaz/{(genre or 'a').lower()}.json")]
+            items = [self.movie_meta(v) for v in self._get(EXPORT + f"pismena/{(genre or 'a').lower()}.json")]
         elif cid == "tvaz":
             items = [self.series_meta(v) for v in self._get(EXPORT + f"tvpismena/{(genre or 'a').lower()}.json")]
         # žebříčky se mění pomalu a služba je na pozadí zahřívá po třech hodinách —
