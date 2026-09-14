@@ -114,7 +114,10 @@ class FastshareApi:
                                      headers={"Accept": "application/json", "User-Agent": UA})
         try:
             with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
-                return json.loads(resp.read().decode("utf-8"))
+                # `replace` — pár názvů souborů umí FastShare poslat s bajtem, co do UTF-8
+                # nepatří (cizí/poškozené znakové sady u uživatelských uploadů); "The Matrix
+                # 1999" na Office 2026-09-14 spadlo na pozici 12320 uprostřed výpisu
+                return json.loads(resp.read().decode("utf-8", "replace"))
         except urllib.error.HTTPError as e:
             if e.code in (401, 403):
                 raise FastshareError("přihlášení se nepovedlo — zkontroluj jméno a heslo", status=e.code) from e

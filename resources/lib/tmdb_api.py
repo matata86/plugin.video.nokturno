@@ -37,6 +37,24 @@ class TmdbError(Exception):
     pass
 
 
+def _certification(kind, raw):
+    """Věkový rating ze `release_dates` (film) nebo `content_ratings` (seriál) —
+    přednostně český, jinak americký (nejběžnější, skoro vždy vyplněný)."""
+    zeme = raw.get("results") or []
+    if kind == "movie":
+        def pro_zemi(kod):
+            polozka = next((z for z in zeme if z.get("iso_3166_1") == kod), None)
+            for vydani in (polozka or {}).get("release_dates") or []:
+                if vydani.get("certification"):
+                    return vydani["certification"]
+            return ""
+        return pro_zemi("CZ") or pro_zemi("US")
+    def pro_zemi_serial(kod):
+        polozka = next((z for z in zeme if z.get("iso_3166_1") == kod), None)
+        return (polozka or {}).get("rating") or ""
+    return pro_zemi_serial("CZ") or pro_zemi_serial("US")
+
+
 class TmdbApi:
     def __init__(self, api_key, cache=None):
         self.key = (api_key or "").strip()
@@ -141,6 +159,7 @@ class TmdbApi:
             "description": raw.get("overview") or "",
             "genres": genres,
             "imdbRating": raw.get("vote_average") or None,
+            "voteCount": int(raw.get("vote_count") or 0),   # v odpovědi katalogu zdarma, žádný dotaz navíc
             **self._art(kind, raw["id"], raw.get("backdrop_path") or "", images=details.get("images") or {}),
         }
 
@@ -179,6 +198,9 @@ class TmdbApi:
         """Detail podle `tt…` id (přes TMDB `/find`) — titul, popis, žánry, obsazení,
         u seriálu i epizody (`videos`, stejný tvar jako Luna/Cinemeta)."""
         kind = self._kind(ctype)
+        # u filmu je certifikace v `release_dates` (podle země a uvedení), u seriálu
+        # v `content_ratings` (jedna hodnota na zemi) — jiný název i tvar odpovědi
+        ratings_key = "release_dates" if kind == "movie" else "content_ratings"
 
         def load():
             found = self._get(f"/find/{imdb_id}", external_source="imdb_id")
@@ -186,10 +208,12 @@ class TmdbApi:
             if not results:
                 raise TmdbError(f"titul {imdb_id} v TMDB nenalezen")
             tmdb_id = results[0]["id"]
-            data = self._get(f"/{kind}/{tmdb_id}", append_to_response="credits,images",
+            data = self._get(f"/{kind}/{tmdb_id}", append_to_response=f"credits,images,videos,{ratings_key}",
                              include_image_language="cs,en,null")
             crew = (data.get("credits") or {}).get("crew") or []
-            cast = [c["name"] for c in (data.get("credits") or {}).get("cast", [])[:10]]
+            cast = [{"name": c.get("name") or "", "character": c.get("character") or "",
+                    "photo": IMG + c["profile_path"] if c.get("profile_path") else ""}
+                   for c in (data.get("credits") or {}).get("cast", [])[:10]]
             director = [c["name"] for c in crew if c.get("job") == "Director"][:3]
             writer = [c["name"] for c in crew if c.get("job") in ("Writer", "Screenplay")][:3]
             year = (data.get("release_date") or data.get("first_air_date") or "")[:4]
@@ -215,6 +239,14 @@ class TmdbApi:
                             "thumbnail": IMG + ep["still_path"] if ep.get("still_path") else "",
                             "description": ep.get("overview") or "",
                         })
+            trailer_id = ""
+            for v in (data.get("videos") or {}).get("results") or []:
+                if v.get("site") == "YouTube" and v.get("type") == "Trailer":
+                    trailer_id = v["key"]
+                    break
+            if not trailer_id:  # bez oficiálního traileru vezmi aspoň první YouTube video (teaser, klip)
+                trailer_id = next((v["key"] for v in (data.get("videos") or {}).get("results") or []
+                                   if v.get("site") == "YouTube" and v.get("key")), "")
             return {
                 "id": imdb_id,
                 "imdb_id": imdb_id,
@@ -228,11 +260,14 @@ class TmdbApi:
                 "writer": writer,
                 "cast": cast,
                 "imdbRating": data.get("vote_average") or None,
+                "voteCount": int(data.get("vote_count") or 0),
+                "mpaa": _certification(kind, data.get(ratings_key) or {}),
+                "trailerYoutubeId": trailer_id,
                 "runtime": data.get("runtime") or next(iter(data.get("episode_run_time") or []), None),
                 "videos": videos,
                 **self._art(kind, tmdb_id, data.get("backdrop_path") or "", images=data.get("images") or {}),
             }
-        return self._cached(f"tmdb:meta2:{kind}:{imdb_id}", DETAIL_TTL, load)
+        return self._cached(f"tmdb:meta3:{kind}:{imdb_id}", DETAIL_TTL, load)
 
 
 if __name__ == "__main__":

@@ -582,8 +582,14 @@ def fill_info(li, meta, ctype="movie", video=None, tech=True):
             tag.setRating(rating)
             # skin kreslí z ratingu hvězdičky; procento posíláme zvlášť jako vlastnost
             li.setProperty("RatingPercent", f"{round(rating * 10)} %")
+            if meta.get("voteCount"):  # jen TMDB — Luna/Cinemeta/Sosáč počet hlasů neznají
+                tag.setVotes(int(meta["voteCount"]))
     except (TypeError, ValueError):
         pass
+    if meta.get("mpaa"):  # věkový rating (jen TMDB, přednostně český)
+        tag.setMpaa(str(meta["mpaa"]))
+    if meta.get("trailerYoutubeId"):
+        tag.setTrailer(f"plugin://plugin.video.youtube/play/?video_id={meta['trailerYoutubeId']}")
     # IMDb id: podle něj Kodi (OpenSubtitles apod.) hledá titulky
     if meta.get("imdb_id") or str(meta.get("id", "")).startswith("tt"):
         tag.setIMDBNumber(meta.get("imdb_id") or meta.get("id"))
@@ -599,7 +605,11 @@ def fill_info(li, meta, ctype="movie", video=None, tech=True):
     extras = meta.get("app_extras") or {}
     if isinstance(extras, dict) and extras.get("cast"):
         cast = [(c.get("name", ""), c.get("character", ""), c.get("photo") or "") for c in extras["cast"][:15]]
+    elif isinstance(meta.get("cast"), list) and meta["cast"] and isinstance(meta["cast"][0], dict):
+        # TMDB — jméno, role a fotka rovnou ve tvaru API (viz tmdb_api.py:meta)
+        cast = [(c.get("name", ""), c.get("character", ""), c.get("photo") or "") for c in meta["cast"][:15]]
     elif isinstance(meta.get("cast"), list):
+        # Luna/Cinemeta (přes Sosáč) — jen jména, bez fotky
         cast = [(str(c), "", "") for c in meta["cast"][:15]]
     if cast:
         try:
@@ -608,6 +618,8 @@ def fill_info(li, meta, ctype="movie", video=None, tech=True):
             pass
     if isinstance(meta.get("director"), list) and meta["director"]:
         tag.setDirectors([str(d) for d in meta["director"]])
+    if isinstance(meta.get("writer"), list) and meta["writer"]:
+        tag.setWriters([str(w) for w in meta["writer"]])
 
 
 # rozlišení, které se pošle skinu, když se kvalita jen odhadla z názvu
@@ -2019,6 +2031,11 @@ def search_source(apis, ctype, query, want_year, errors):
 
 
 def search_run(apis, kind, query, offset=0):
+    # `search_new` prázdný dotaz nepustí dál, ale sem se dá dostat i přímo (crafted plugin://
+    # URL, widget) — prázdné `q=` u Sosáče/WebSharu/HellSpy spadne na nerozparsovatelné odpovědi
+    if not str(query or "").strip():
+        xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
+        return
     if kind not in ("hs", "dav"):
         # HellSpy se hledá jen jako odbočka z dotazu, který v katalozích nic
         # nenašel — do historie patří ten původní dotaz, ne tahle odbočka

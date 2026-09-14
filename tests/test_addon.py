@@ -221,6 +221,73 @@ class TestPomocneFunkce(unittest.TestCase):
         self.assertEqual([s["source"] for s in default.storage_first(streams)], ["dav", "dav", "ws", "hs"])
 
 
+class TestFillInfo(unittest.TestCase):
+    """`fill_info` skládá VideoInfoTag z meta — obsazení s fotkou, počet hlasů,
+    trailer a věkový rating jsou z TMDB (viz nokturno_core/lib/tmdb_api.py:meta)."""
+
+    def setUp(self):
+        reset_kodi()
+
+    def calls(self, li, name):
+        return [args for n, args, _kw in li.tag.calls if n == name]
+
+    def test_tmdb_obsazeni_s_fotkou_hlasy_trailer_mpaa_scenarista(self):
+        li = xbmcgui.ListItem()
+        meta = {
+            "id": "tt1", "name": "Film", "year": 2026, "imdbRating": 8.1, "voteCount": 12345,
+            "mpaa": "15", "trailerYoutubeId": "abc123",
+            "cast": [{"name": "Herec", "character": "Role", "photo": "https://image.tmdb.org/t/p/w500/h.jpg"}],
+            "director": ["Režisér"], "writer": ["Scénárista"],
+        }
+        default.fill_info(li, meta)
+        self.assertEqual(self.calls(li, "setVotes"), [(12345,)])
+        self.assertEqual(self.calls(li, "setMpaa"), [("15",)])
+        self.assertEqual(self.calls(li, "setTrailer"),
+                         [("plugin://plugin.video.youtube/play/?video_id=abc123",)])
+        self.assertEqual(self.calls(li, "setWriters"), [(["Scénárista"],)])
+        [(actors,)] = self.calls(li, "setCast")
+        # stub Actor jen zaznamená pozici argumentů (jméno, role, pořadí, fotka) — viz stubs/xbmc.py
+        self.assertEqual([(a.args[0], a.args[1], a.args[3]) for a in actors],
+                         [("Herec", "Role", "https://image.tmdb.org/t/p/w500/h.jpg")])
+
+    def test_cast_jen_jmena_bez_fotky_kdyz_neni_z_tmdb(self):
+        """Luna/Cinemeta (přes obohacení Sosáče) dávají jen jména — starý tvar musí projít beze změny."""
+        li = xbmcgui.ListItem()
+        default.fill_info(li, {"id": "tt1", "name": "Film", "cast": ["Herec Jedna", "Herec Dva"]})
+        [(actors,)] = self.calls(li, "setCast")
+        self.assertEqual([(a.args[0], a.args[1], a.args[3]) for a in actors],
+                         [("Herec Jedna", "", ""), ("Herec Dva", "", "")])
+
+    def test_bez_tmdb_udaju_se_nic_nenastavi(self):
+        li = xbmcgui.ListItem()
+        default.fill_info(li, {"id": "tt1", "name": "Film"})
+        for name in ("setVotes", "setMpaa", "setTrailer", "setWriters"):
+            self.assertEqual(self.calls(li, name), [])
+
+
+class TestSearchRun(unittest.TestCase):
+    """Prázdný dotaz se dá na `search_run` poslat i mimo dialog `search_new` (crafted plugin://
+    URL, widget) — Sosáč/WebShare/HellSpy na prázdné `q=` vrací nerozparsovatelnou odpověď."""
+
+    def setUp(self):
+        reset_kodi()
+
+    def test_prazdny_dotaz_konci_bez_volani_zdroju(self):
+        for query in ("", "   ", None):
+            reset_kodi()
+            with mock.patch.object(default, "list_ws_results") as ws:
+                default.search_run({}, "any", query)
+            ws.assert_not_called()
+            self.assertEqual(xbmcplugin.ended, [{"handle": default.HANDLE, "succeeded": False,
+                                                 "updateListing": False, "cacheToDisc": False}])
+            self.assertEqual(xbmcplugin.items, [], f"query={query!r} nesmí nic vypsat")
+
+    def test_neprazdny_dotaz_projde_dal(self):
+        with mock.patch.object(default, "list_ws_results") as ws:
+            default.search_run({}, "ws", "matrix")
+        ws.assert_called_once()
+
+
 class TestFiltrNazvuSouboru(unittest.TestCase):
     """Přísný filtr fulltextových zdrojů (WebShare, HellSpy) — chyby tady se
     projeví jako cizí film mezi streamy, nebo naopak prázdný seznam."""
