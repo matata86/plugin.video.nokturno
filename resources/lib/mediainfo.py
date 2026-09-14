@@ -63,19 +63,26 @@ def fetch_sized(url, start=None, end=None, length=HEAD, opener=None):
     poslal v `Content-Range` — u zdrojů bez vlastního údaje o velikosti
     (Sosáč) je jinak jediný způsob, jak se k ní vůbec dostat."""
     if start is None:
-        rng = f"bytes=0-{length - 1}"
+        rng, want = f"bytes=0-{length - 1}", length
     elif start < 0:
-        rng = f"bytes=-{-start}"
+        rng, want = f"bytes=-{-start}", -start
     else:
-        rng = f"bytes={start}-{end if end is not None else start + length - 1}"
+        last = end if end is not None else start + length - 1
+        rng, want = f"bytes={start}-{last}", last - start + 1
     url, extra = split_headers(url)
     req = urllib.request.Request(url, headers={"Range": rng, "User-Agent": UA, **extra})
     opened = (opener or urllib.request).urlopen(req, timeout=TIMEOUT)
     with opened as resp:
-        data = resp.read()
+        status = getattr(resp, "status", None) or resp.getcode()
+        # číst jen výřez: server, který Range neumí, pošle celý soubor se stavem 200
+        # a `read()` bez limitu by tahal desítky GB do paměti (ARM box s 2 GB)
+        data = resp.read(want + 1)
         content_range = resp.headers.get("Content-Range", "")
+    if status != 206 and len(data) > want:
+        # bez výřezu nemá odpověď smysl — u „konce souboru" by to byl začátek
+        return b"", 0
     tail = content_range.rsplit("/", 1)[-1] if "/" in content_range else ""
-    return data, (int(tail) if tail.isdigit() else 0)
+    return data[:want], (int(tail) if tail.isdigit() else 0)
 
 
 # --- Matroska ---------------------------------------------------------------

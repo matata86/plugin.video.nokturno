@@ -86,7 +86,12 @@ class LunaApi:
             with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except Exception as e:  # noqa: BLE001
-            raise LunaError(f"{e} ({url})") from e
+            raise LunaError(f"{e} ({self._bez_tokenu(url)})") from e
+
+    def _bez_tokenu(self, url):
+        """Adresa do chybové hlášky bez tokenu — hláška jde do notifikace Kodi i do
+        kodi.log, který lidé posílají do fór, a token dává přístup k cizímu WebShare."""
+        return url.replace(self.token, "…") if self.token else url
 
     def _meta_url(self, *parts):
         return "/".join([self.base, "metadata", self.token] + [str(p) for p in parts])

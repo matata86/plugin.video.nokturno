@@ -1122,12 +1122,14 @@ def media_from_file(apis, url):
     """Co se o souboru dá přečíst z jeho hlavičky. Prázdné, když to nejde."""
     def load():
         try:
-            link = resolve_url(apis, url)
-        except Errors as e:
+            return probe_media(resolve_url(apis, url))
+        except Exception as e:  # noqa: BLE001 – čtení hlavičky je bonus, nikdy nesmí shodit výpis
             log_error(f"hlavička {url[:28]}: {e}")
             return {}
-        return probe_media(link)
-    return STORE.cached(f"media:{url}", AUDIO_TTL, load) or {}
+    # `probe()` při selhání vrací slovník s nulami — ten se nesmí pamatovat 30 dní,
+    # jinak stream po jednom timeoutu měsíc nemá zvuk ani rozlišení (stejně jako v jádru)
+    return STORE.cached_if(f"media:{url}", AUDIO_TTL, load,
+                           ok=lambda d: bool(d.get("audio") or d.get("height") or d.get("size"))) or {}
 
 
 def fill_audio(apis, streams, progress=None):

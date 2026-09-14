@@ -57,6 +57,25 @@ def streamuj_hash(password):
     return hashlib.md5(hashlib.md5(password.encode("utf-8")).hexdigest().encode()).hexdigest()
 
 
+def je_streamuj(url):
+    """Vede odkaz na streamuj.tv? Jen tam se `resolve()` smí obrátit — odkaz přichází
+    z exportu Sosáče a u doplňku pro Stremio i z adresy od kohokoli (SSRF)."""
+    parts = urllib.parse.urlsplit(str(url or ""))
+    host = (parts.hostname or "").lower()
+    return parts.scheme in ("http", "https") and (host == "streamuj.tv" or host.endswith(".streamuj.tv"))
+
+
+def bez_uctu(url):
+    """Adresa do chybové hlášky bez loginu a hesla Streamuj — hlášky končí v logu Kodi
+    i v notifikacích a `md5(md5(heslo))` jde offline lámat."""
+    parts = urllib.parse.urlsplit(url)
+    if not parts.query:
+        return url
+    query = [(k, "…" if k in ("login", "password", "pass") else v)
+             for k, v in urllib.parse.parse_qsl(parts.query, keep_blank_values=True)]
+    return urllib.parse.urlunsplit(parts._replace(query=urllib.parse.urlencode(query)))
+
+
 # SosacError se dědí ze sosac_api — dvě stejnojmenné třídy by se navzájem nechytaly
 class SosacDirect:
     def __init__(self, streamuj_user="", streamuj_pass="", cache=None, cache_ttl=600, index_store=None):
@@ -75,7 +94,7 @@ class SosacDirect:
                 with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
                     return json.loads(resp.read().decode("utf-8"))
             except Exception as e:  # noqa: BLE001
-                raise SosacError(f"{e} ({url})") from e
+                raise SosacError(f"{e} ({bez_uctu(url)})") from e
         if self.cache is None:
             return load()
         return self.cache.cached(url, ttl or self.cache_ttl, load)
@@ -426,6 +445,8 @@ class SosacDirect:
     def resolve(self, url):
         """'streamuj:<odkaz>' → finální mp4 (GET odkazu vrací URL v těle)."""
         link = url[len("streamuj:"):] if url.startswith("streamuj:") else url
+        if not je_streamuj(link):
+            raise SosacError("odkaz nevede na streamuj.tv")
         if self.user and self.password:
             link += ("&" if "?" in link else "?") + "pass=" + urllib.parse.quote(f"{self.user}:::{streamuj_hash(self.password)}", safe=":")
         req = urllib.request.Request(link, headers={"User-Agent": UA})
