@@ -344,11 +344,14 @@ class TestJadroVKodi(unittest.TestCase):
     def test_klienty_podle_prepinacu(self):
         xbmcaddon.settings.update(ws_enabled="false", ws_username="u", ws_password="p",
                                   hs_enabled="true", st_enabled="true", st_email="a@b", st_password="x",
+                                  fs_enabled="true", fs_username="u", fs_password="p",
                                   dav1_url="http://nas.lan/dav/", dav1_username="u", dav1_password="p")
         engine = default.KodiEngine()
         self.assertIsNone(engine.ws, "WebShare vypnutý přepínačem, i když je účet vyplněný")
         self.assertIsNotNone(engine.hs)
         self.assertIsNotNone(engine.st)
+        self.assertIsNotNone(engine.fs)
+        self.assertEqual(default.get_apis()["fs"].login_name, "u")
         self.assertEqual([s.slot for s in engine.storages], [1])
         self.assertIs(engine.hs, engine.hs, "klient se staví jednou za volání pluginu")
         apis = default.get_apis()
@@ -995,7 +998,7 @@ class TestUdrzbaKodi(unittest.TestCase):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         for zastarale in ("všechny čtyři", "userId", "Kodi (19", "en_GB, cs_CZ\n"):
             self.assertNotIn(zastarale, readme, zastarale)
-        for lib in ("hellspy_api", "sledujteto_api", "storage_api", "mediainfo", "sk_SK", "tests/"):
+        for lib in ("hellspy_api", "sledujteto_api", "fastshare_api", "storage_api", "mediainfo", "sk_SK", "tests/"):
             self.assertIn(lib, readme, lib)
         self.assertIn("github.com/matata86/plugin.video.nokturno/issues", (ROOT / "addon.xml").read_text(encoding="utf-8"))
 

@@ -31,6 +31,7 @@ from store import Store
 from streams import arrange, estimate_rank, fold, langs_from_name, parse_stream
 from hellspy_api import HellspyApi, HellspyError
 from sledujteto_api import SledujtetoApi, SledujtetoError
+from fastshare_api import FastshareApi, FastshareError, make_ref as fastshare_ref
 from storage_api import StorageApi, StorageError, match_texts, parse_ref
 from wikidata_api import local_titles
 from mediainfo import describe as describe_media, probe as probe_media, quality_from_size
@@ -39,6 +40,7 @@ from webshare_api import WebshareApi, WebshareError, human_size
 WS_LIMIT = 25    # kolik souborů brát z fulltextu WebShare
 HS_LIMIT = 25    # totéž pro HellSpy
 ST_LIMIT = 25    # totéž pro Sledujteto
+FS_LIMIT = 25    # totéž pro FastShare
 # značka dílu v názvu souboru: „S01E03", „s1 e3", „1x03"
 EPISODE_ANY_RE = re.compile(r"(?<![a-z0-9])s\d{1,2}\s?e\d{1,2}(?!\d)|(?<!\d)\d{1,2}x\d{2}(?!\d)", re.I)
 AUDIO_PROBE_MAX = 24          # u kolika streamů se ještě vyplatí číst hlavičku souboru
@@ -55,7 +57,7 @@ STREAMS_CACHE_TTL = 259200    # 72 h – seznam streamů k titulu, ale JEN když
 _LOGGER = logging.getLogger(__name__)
 
 SOURCE_NAMES = {"main": "Luna", "search": "WebShare", "ws": "WebShare", "sosac": "Sosáč",
-                "hs": "HellSpy", "st": "Sledujteto", "torrent": "Torrent", "dav": "Úložiště"}
+                "hs": "HellSpy", "st": "Sledujteto", "fs": "FastShare", "torrent": "Torrent", "dav": "Úložiště"}
 
 # vlastní úložiště (WebDAV) — až tři, každé s adresou, jménem, heslem a názvem;
 # klíče jsou vypsané celé, ať je najde kontrola nastavení v testech konzumentů
@@ -255,6 +257,7 @@ class Engine:
         self._orig_memo = {}         # original_titles() za jeden výpis: (klíč) → (čas, názvy)
         self._hs = None
         self._st = None
+        self._fs = None
         self._storages = None
         self._cinemeta = None
         self._sosac_db = None
@@ -275,6 +278,7 @@ class Engine:
         self._orig_memo = {}
         self._hs = None
         self._st = None
+        self._fs = None
         self._storages = None
         self._tmdb = None
         self._prowlarr = self._qbit = None
@@ -355,6 +359,17 @@ class Engine:
         return self._st
 
     @property
+    def fs(self):
+        """FastShare — jméno a heslo z fastshare.cz. Hledá se bez přihlášení, účet
+        je potřeba až k přehrání (cookie z loginu) a stahuje se z kreditu, pokud
+        účet nemá neomezený tarif."""
+        if self._fs is None:
+            user = str(self._opt("fs_username") or "").strip()
+            if user and self._opt("fs_password"):
+                self._fs = FastshareApi(user, self._opt("fs_password"), cache=self.store)
+        return self._fs
+
+    @property
     def storages(self):
         """Nastavená vlastní úložiště. Síť se tu nevolá — soubory se procházejí
         až při prvním hledání (`_storage_streams`), seznam se pak hodinu pamatuje."""
@@ -389,6 +404,22 @@ class Engine:
             return api.request(path)
         except StorageError as err:
             raise NokturnoError(f"Úložiště: {err}") from err
+
+    def _fastshare_api(self):
+        if self.fs is None:
+            raise NokturnoError("Účet FastShare není nastavený.")
+        return self.fs
+
+    def fastshare_request(self, url):
+        """(adresa, hlavičky s cookie) souboru z FastShare — pro proxy (Stremio, HA mimo Kodi)."""
+        try:
+            return self._fastshare_api().request(url)
+        except FastshareError as err:
+            raise NokturnoError(f"FastShare: {err}") from err
+
+    def file_request(self, url):
+        """(adresa, hlavičky) pro proxy u odkazů, které bez hlaviček nehrají (`dav:`, `fs:`)."""
+        return self.fastshare_request(url) if str(url).startswith("fs:") else self.storage_request(url)
 
     @property
     def cinemeta(self):
@@ -447,6 +478,7 @@ class Engine:
                 "webshare": bool(self._opt("ws_username").strip()),
                 "hellspy": bool(self._opt(CONF_HS_ENABLED, False)),
                 "sledujteto": bool(str(self._opt("st_email") or "").strip()),
+                "fastshare": bool(str(self._opt("fs_username") or "").strip()),
                 "storage": bool(self.storages),
                 "torrent": self.prowlarr is not None}
 
@@ -1187,6 +1219,17 @@ class Engine:
         return self.store.cached_if(f"media:{url}", AUDIO_TTL, load,
                                     ok=lambda d: bool(d.get("audio") or d.get("height") or d.get("size"))) or {}
 
+    def _fastshare_unlimited(self):
+        """Má účet FastShare neomezené stahování? Přihlášení se pamatuje (`FastshareApi.account`),
+        při chybě se bere „ne" — čtení hlavičky je bonus, kvůli němu se kredit riskovat nebude."""
+        if self.fs is None:
+            return False
+        try:
+            return bool(self.fs.account().get("unlimited"))
+        except Exception as err:  # noqa: BLE001 – síť, špatné heslo
+            _LOGGER.debug("FastShare účet: %s", err)
+            return False
+
     def _fill_audio(self, streams, on_tick=None, on_count=None):
         """Doplní zvuk, titulky a rozlišení tam, kde je zdroj neřekl, a ověří je
         tam, kde je řekl jen název souboru.
@@ -1213,8 +1256,13 @@ class Engine:
             if on_count:
                 on_count(0)
             return streams
+        schemes = ("hs:", "ws:", "streamuj:", "dav:")
+        # FastShare strhává kredit za přenesená data — hlavičky výpisu stojí desítky MB.
+        # Kdo jede na kredit, zvuk nezjišťujeme; s neomezeným stahováním ano.
+        if any(str(s.get("url") or "").startswith("fs:") for s in streams) and self._fastshare_unlimited():
+            schemes += ("fs:",)
         candidates = [s for s in streams if not s.get("_tracks")
-                      and str(s.get("url") or "").startswith(("hs:", "ws:", "streamuj:", "dav:"))]
+                      and str(s.get("url") or "").startswith(schemes)]
         todo = sorted(candidates, key=lambda s: bool(s.get("channels")))[:limit]
         # skutečný počet čtených hlaviček bývá výrazně nižší než limit —
         # ukazatel průběhu si podle něj dopočítá reálné 100 %, ne odhad
@@ -1367,6 +1415,40 @@ class Engine:
                 if info.get("audio") or info.get("height"):
                     stream["_tracks"] = info.get("audio") or []
                     stream["_media"] = info
+                out.append(stream)
+        return out
+
+    def _fastshare_streams(self, meta, video=None, ctype="movie", alt=None, strict=True, failures=None):
+        """Tentýž titul na FastShare — stejné dotazy i přísný filtr jako ostatní fulltext.
+        Rozlišení a stopáž posílá hledání; zvuk API neříká, dočte se z hlavičky
+        souboru v `_fill_audio` — jen s neomezeným stahováním, na kredit ne (viz `lib/fastshare_api`)."""
+        if not self.fs:
+            return []
+        queries, relevant = self._title_queries(meta, video, ctype, alt, strict)
+        out, seen = [], set()
+        for query in queries:
+            try:
+                files, _total = self.fs.search(query, limit=FS_LIMIT)
+            except FastshareError as err:
+                _LOGGER.warning("FastShare hledání „%s“: %s", query, err)
+                if failures is not None:
+                    failures.append(("FastShare", err))
+                continue
+            for f in files:
+                name = f.get("name") or ""
+                if f["id"] in seen or not relevant(name):
+                    continue
+                seen.add(f["id"])
+                info = f.get("media") or {}
+                stream = {
+                    "url": fastshare_ref(f),
+                    "label": name,
+                    "detail": f.get("size_h") or "",
+                    "quality": quality_from_size(info.get("width") or 0, info.get("height") or 0) or "",
+                    "source": "fs",
+                    "_duration": f.get("duration") or 0,
+                    "_direct": True,
+                }
                 out.append(stream)
         return out
 
@@ -1615,8 +1697,8 @@ class Engine:
         rows = self._torrent_streams(meta, video, ctype)
         return [self._describe_torrent(row, offset + i) for i, row in enumerate(rows)]
 
-    def fulltext_streams(self, ctype, item_id, series_id=None, alt=None, sources=("ws", "hs", "st")):
-        """Ruční, méně přísné hledání na WebShare/HellSpy/Sledujteto — na vyžádání z karty.
+    def fulltext_streams(self, ctype, item_id, series_id=None, alt=None, sources=("ws", "hs", "st", "fs")):
+        """Ruční, méně přísné hledání na WebShare/HellSpy/Sledujteto/FastShare — na vyžádání z karty.
 
         Běžné `_webshare_streams`/`_hellspy_streams` filtrují přísně (viz
         `_title_queries`, `strict=True`): jméno souboru musí mít slova názvu
@@ -1634,6 +1716,8 @@ class Engine:
             found += self._hellspy_streams(meta, video, ctype, alt, strict=False)
         if "st" in sources:
             found += self._sledujteto_streams(meta, video, ctype, alt, strict=False)
+        if "fs" in sources:
+            found += self._fastshare_streams(meta, video, ctype, alt, strict=False)
         for stream in found:
             parse_stream(stream)
         found = self._merge_direct(found)
@@ -1844,13 +1928,14 @@ class Engine:
             # zdroje jsou nezávislé a každý má vlastní timeouty (15–40 s) — za sebou byl studený
             # výpis 8–15 sériových dotazů. Líné klienty (login WebShare) založit ještě tady,
             # v hlavním vlákně, ať se čtyři vlákna neperou o `_ws_ready`.
-            self.ws, self.hs, self.st, self.sosac  # noqa: B018 – jen inicializace
+            self.ws, self.hs, self.st, self.fs, self.sosac  # noqa: B018 – jen inicializace
             cross = self._cross_streams if self._opt("cross_search", True) else (lambda *a, **k: [])
             zdroje = (
                 ("Sosáč/Luna", lambda: cross(ctype, item_id, meta, alt, failures)),
                 ("WebShare", lambda: self._webshare_streams(meta, video, ctype, alt, strict, failures)),
                 ("HellSpy", lambda: self._hellspy_streams(meta, video, ctype, alt, strict, failures)),
                 ("Sledujteto", lambda: self._sledujteto_streams(meta, video, ctype, alt, strict, failures)),
+                ("FastShare", lambda: self._fastshare_streams(meta, video, ctype, alt, strict, failures)),
             )
 
             def bezpecne(label, fetch):
@@ -2011,6 +2096,12 @@ class Engine:
                 return self.st.file_link(url[3:])
             except SledujtetoError as err:
                 raise NokturnoError(f"Sledujteto: {err}") from err
+        if url.startswith("fs:"):
+            # cookie za svislítkem, jako u úložiště — přehrávače mimo Kodi jdou přes `fastshare_request`
+            try:
+                return self._fastshare_api().kodi_url(url)
+            except FastshareError as err:
+                raise NokturnoError(f"FastShare: {err}") from err
         if url.startswith("dav:"):
             api, path = self.storage_for(url)
             try:

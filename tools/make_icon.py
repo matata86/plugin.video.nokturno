@@ -205,7 +205,7 @@ def make_fanart(path):
     dr.text((170, 398), "Nokturno", font=font("InterDisplay-Bold.otf", 152), fill=(243, 196, 118))
     # Podtitulek se musí vejít vedle značky, proto se písmo zmenšuje, dokud
     # se řádek nevejde — s přibývajícími zdroji by jinak zajel pod logo.
-    sub = "WebShare  ·  Sosáč  ·  Sledujteto  ·  HellSpy  ·  Luna  ·  Home Assistant"
+    sub = "WebShare  ·  Sosáč  ·  Sledujteto  ·  FastShare  ·  HellSpy  ·  Luna  ·  Home Assistant"
     size = 44
     while size > 26:
         f = font("InterDisplay-Medium.otf", size)

@@ -768,7 +768,7 @@ msgstr "Vlastní klíč pro TMDB (themoviedb.org) — hledání a katalog filmů
 
 msgctxt "#30335"
 msgid "Try fulltext on WebShare/HellSpy"
-msgstr "Zkusit uvolněný fulltext (WebShare, HellSpy, Sledujteto)"
+msgstr "Zkusit uvolněný fulltext (WebShare, HellSpy, Sledujteto, FastShare)"
 
 msgctxt "#30336"
 msgid "Vítej v Nokturnu"
@@ -1093,3 +1093,43 @@ msgstr "Přehrát z detailu filmu"
 msgctxt "#30416"
 msgid "You have TMDb Helper (movie details in Arctic Fuse and other skins).[CR]Set Nokturno as its player? The Play button on the details page will then search streams in Nokturno."
 msgstr "Máš doplněk TMDb Helper (detail filmu v Arctic Fuse a dalších skinech).[CR]Nastavit Nokturno jako jeho přehrávač? Tlačítko Přehrát v detailu pak hledá streamy v Nokturnu."
+
+msgctxt "#30417"
+msgid "FastShare"
+msgstr "FastShare"
+
+msgctxt "#30418"
+msgid "Search FastShare for titles"
+msgstr "U titulů hledat i na FastShare"
+
+msgctxt "#30419"
+msgid "FastShare.cz is a Czech file host. Search works without an account; playback needs one and is charged from your credit unless you have unlimited downloads."
+msgstr "FastShare.cz je česká úschovna souborů. Hledá se i bez účtu, k přehrání je potřeba účet — soubor se odečte z kreditu, pokud nemáš neomezené stahování."
+
+msgctxt "#30420"
+msgid "FastShare — username"
+msgstr "FastShare — uživatel"
+
+msgctxt "#30421"
+msgid "Name you use to sign in to fastshare.cz."
+msgstr "Jméno, kterým se přihlašuješ na fastshare.cz."
+
+msgctxt "#30422"
+msgid "FastShare — password"
+msgstr "FastShare — heslo"
+
+msgctxt "#30423"
+msgid "Password for fastshare.cz. It is sent only when signing in; playback then uses a cookie."
+msgstr "Heslo z fastshare.cz. Posílá se jen při přihlášení, přehrávání pak jde s cookie."
+
+msgctxt "#30424"
+msgid "Do you have a FastShare account?[CR]Search works without it, playback is charged from your credit or unlimited plan."
+msgstr "Máš účet FastShare?[CR]Hledá se i bez něj, přehrání jde z tvého kreditu nebo neomezeného tarifu."
+
+msgctxt "#30425"
+msgid "unlimited downloads"
+msgstr "neomezené stahování"
+
+msgctxt "#30426"
+msgid "credit"
+msgstr "kredit"

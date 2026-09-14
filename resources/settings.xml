@@ -121,6 +121,40 @@
         </setting>
       </group>
     </category>
+    <category id="fs" label="30417">
+      <group id="1">
+        <setting id="fs_enabled" type="boolean" label="30418" help="30419">
+          <level>0</level>
+          <default>false</default>
+          <control type="toggle"/>
+        </setting>
+        <setting id="fs_username" type="string" label="30420" help="30421">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="fs_enabled">true</dependency>
+          </dependencies>
+          <control type="edit" format="string">
+          </control>
+        </setting>
+        <setting id="fs_password" type="string" label="30422" help="30423">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="fs_enabled">true</dependency>
+          </dependencies>
+          <control type="edit" format="string">
+            <hidden>true</hidden>
+          </control>
+        </setting>
+      </group>
+    </category>
     <category id="storage" label="30374" help="30375">
       <group id="1" label="30376">
         <setting id="dav1_url" type="string" label="30379" help="30380">

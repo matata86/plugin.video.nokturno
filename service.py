@@ -41,6 +41,7 @@ logging.getLogger().setLevel(logging.WARNING)
 sys.path.insert(0, os.path.join(xbmcvfs.translatePath(ADDON.getAddonInfo("path")), "resources", "lib"))
 from hellspy_api import HellspyApi  # noqa: E402
 from sledujteto_api import SledujtetoApi  # noqa: E402
+from fastshare_api import FastshareApi  # noqa: E402
 from sosac_direct import SosacDirect  # noqa: E402
 from stats import COLLECT_URL, Stats  # noqa: E402
 from storage_api import StorageApi, parse_ref  # noqa: E402
@@ -302,6 +303,9 @@ def resolve_internal(url, store):
         return HellspyApi(cache=store).file_link(file_id, file_hash), {}
     if url.startswith("st:"):
         return SledujtetoApi(s("st_email"), addon.getSetting("st_password") if addon else "", cache=store).file_link(url[3:]), {}
+    if url.startswith("fs:"):
+        # soubor chce cookie z přihlášení — stahovač ji dostane v hlavičkách jako u úložiště
+        return FastshareApi(s("fs_username"), addon.getSetting("fs_password") if addon else "", cache=store).request(url)
     if url.startswith("streamuj:"):
         return SosacDirect(s("streamuj_username"), s("streamuj_password"), cache=store).resolve(url), {}
     if url.startswith("dav:"):
@@ -566,6 +570,7 @@ def stats_context(addon):
         ("webshare", zapnuto("ws_enabled", "false") and vyplneno("ws_username")),
         ("hellspy", zapnuto("hs_enabled", "false")),
         ("sledujteto", zapnuto("st_enabled", "false") and vyplneno("st_email")),
+        ("fastshare", zapnuto("fs_enabled", "false") and vyplneno("fs_username")),
         ("tmdb", vyplneno("tmdb_api_key")),
         ("trakt", zapnuto("trakt_enabled", "false")),
     ) if active]

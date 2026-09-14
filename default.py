@@ -36,6 +36,7 @@ from sosac_direct import EXPORT as SOSAC_EXPORT, SosacDirect, is_direct_id  # no
 from enrich import enrich, enrich_one  # noqa: E402
 from hellspy_api import HellspyApi, HellspyError  # noqa: E402
 from sledujteto_api import SledujtetoApi, SledujtetoError  # noqa: E402
+from fastshare_api import FastshareApi, FastshareError  # noqa: E402
 from storage_api import SLOTS as STORAGE_SLOTS, StorageApi, StorageError, parse_ref  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
 from source_errors import describe_failure, summarize as summarize_failures  # noqa: E402
@@ -76,12 +77,13 @@ SEARCH_TTL = 12 * 3600  # sjednocené s luna_api.SEARCH_TTL / webshare_api.SEARC
 SOSAC_TAG = "[COLOR FFE0A040]Sosáč[/COLOR]"
 HS_TAG = "[COLOR FFFF8A6B]HellSpy[/COLOR]"
 ST_TAG = "[COLOR FF4DD0C0]Sledujteto[/COLOR]"
+FS_TAG = "[COLOR FFF2C14E]FastShare[/COLOR]"
 WS_TAG = "[COLOR FF60B0FF]WebShare[/COLOR]"
 DAV_COLOR = "FFB0E57C"
 DAV_TAG = f"[COLOR {DAV_COLOR}]Úložiště[/COLOR]"
 LUNA_TAG = "[COLOR FFB39DFF]Luna[/COLOR]"
 SOURCE_TAGS = {"main": LUNA_TAG, "search": WS_TAG, "sosac": SOSAC_TAG, "ws": WS_TAG, "hs": HS_TAG, "st": ST_TAG,
-               "dav": DAV_TAG}
+               "fs": FS_TAG, "dav": DAV_TAG}
 QUALITY_COLORS = {4: "FFE06A60", 3: "FF6FD18A", 2: "FF6FB6F0", 1: "FFA0A0A0"}
 # krátce, ať zbyde místo na zbytek řádku: „Full HD" se v úzkém sloupci nevyplatí
 QUALITY_NAMES = {4: "4K", 3: "FHD", 2: "HD", 1: "SD"}
@@ -117,8 +119,8 @@ if _old_settings:
     except Exception as _e:  # noqa: BLE001
         xbmc.log(f"[{ADDON_ID}] migrace nastavení: {_e}", xbmc.LOGWARNING)
 STORE = Store(PROFILE)
-Errors = (LunaError, CinemetaError, TmdbError, SosacError, WebshareError, HellspyError, SledujtetoError, TraktError,
-          StorageError, NokturnoError)
+Errors = (LunaError, CinemetaError, TmdbError, SosacError, WebshareError, HellspyError, SledujtetoError, FastshareError,
+          TraktError, StorageError, NokturnoError)
 
 # po aktualizaci doplňku (i downgradu) smazat cache API — jinak by staré verze
 # odpovědí (chybějící pole, jiný tvar dat po změně kódu) přežily klidně týdny,
@@ -244,6 +246,17 @@ def get_sledujteto():
     return SledujtetoApi(email, pw, cache=STORE)
 
 
+def get_fastshare():
+    """FastShare — jméno a heslo. Hledá se bez přihlášení, k přehrání se přihlásí
+    a soubor jde z kreditu účtu (nebo neomezeného tarifu)."""
+    if not on("fs_enabled", "false"):
+        return None
+    user, pw = setting("fs_username").strip(), setting("fs_password")
+    if not user or not pw:
+        return None
+    return FastshareApi(user, pw, cache=STORE)
+
+
 def get_storages():
     """Vlastní úložiště z nastavení (až tři). Síť se tu nevolá — seznam souborů
     se načte až při prvním hledání a hodinu se pamatuje (`storage_api.INDEX_TTL`)."""
@@ -314,6 +327,7 @@ def engine_options():
         "luna_url": setting("luna_url", "http://192.168.1.10:7126"),
         "ws_username": setting("ws_username") if on("ws_enabled", "false") else "",
         "st_email": setting("st_email") if on("st_enabled", "false") else "",
+        "fs_username": setting("fs_username") if on("fs_enabled", "false") else "",
         "hs_enabled": on("hs_enabled", "false"),
         "tmdb_api_key": setting("tmdb_api_key"),
     }
@@ -330,7 +344,7 @@ class KodiEngine(Engine):
     """
 
     FACTORIES = {"luna": get_luna, "sosac": get_sosac, "sosac_db": get_sosac_db, "ws": get_webshare,
-                 "hs": get_hellspy, "st": get_sledujteto, "storages": get_storages, "tmdb": get_tmdb,
+                 "hs": get_hellspy, "st": get_sledujteto, "fs": get_fastshare, "storages": get_storages, "tmdb": get_tmdb,
                  "cinemeta": get_cinemeta}
 
     def __init__(self):
@@ -348,6 +362,7 @@ class KodiEngine(Engine):
     ws = property(lambda self: self._client("ws"))
     hs = property(lambda self: self._client("hs"))
     st = property(lambda self: self._client("st"))
+    fs = property(lambda self: self._client("fs"))
     storages = property(lambda self: self._client("storages"))
     tmdb = property(lambda self: self._client("tmdb"))
     cinemeta = property(lambda self: self._client("cinemeta"))
@@ -357,7 +372,7 @@ def get_apis():
     """Klienty zdrojů pod jmény, na která je zvyklý zbytek doplňku, plus jádro pod `engine`."""
     engine = KodiEngine()
     return {"engine": engine, "luna": engine.luna, "sosac": engine.sosac, "ws": engine.ws, "hs": engine.hs,
-            "st": engine.st, "dav": engine.storages, "cinemeta": engine.cinemeta, "sosac_db": engine.sosac_db,
+            "st": engine.st, "fs": engine.fs, "dav": engine.storages, "cinemeta": engine.cinemeta, "sosac_db": engine.sosac_db,
             "tmdb": engine.tmdb}
 
 
@@ -391,7 +406,7 @@ def log_error(err):
 SOURCE_LABELS = {
     LunaError: "Luna", CinemetaError: "Cinemeta", TmdbError: "TMDB",
     SosacError: "Sosáč", WebshareError: "WebShare", HellspyError: "HellSpy", SledujtetoError: "Sledujteto",
-    StorageError: L(30405, "Úložiště"),
+    FastshareError: "FastShare", StorageError: L(30405, "Úložiště"),
     TraktError: "Trakt.tv",
 }
 
@@ -838,7 +853,7 @@ def title_queries(apis, meta, video, ctype, alt=None, strict=True):
     return engine_of(apis)._title_queries(meta, video, ctype, alt, strict)
 
 
-DIRECT_SOURCES = ("ws", "hs", "st")   # fulltextové zdroje, kde bývá tentýž soubor jako u Luny
+DIRECT_SOURCES = ("ws", "hs", "st", "fs")   # fulltextové zdroje, kde bývá tentýž soubor jako u Luny
 
 
 def drop_duplicates(streams):
@@ -931,7 +946,7 @@ def pref_from_param(value):
 
 
 SOURCE_GROUP = {"main": "Luna", "search": "WebShare", "ws": "WebShare",
-                "sosac": "Sosáč", "hs": "HellSpy", "st": "Sledujteto", "dav": L(30405, "Úložiště")}
+                "sosac": "Sosáč", "hs": "HellSpy", "st": "Sledujteto", "fs": "FastShare", "dav": L(30405, "Úložiště")}
 
 
 def stream_tracks(s):
@@ -1318,7 +1333,7 @@ def sub_status():
 
 def accounts_set():
     """Má uživatel vyplněný aspoň jeden účet nebo zdroj, který účet nepotřebuje nastavit?"""
-    return any(setting(k).strip() for k in ("token", "streamuj_username", "ws_username", "st_email",
+    return any(setting(k).strip() for k in ("token", "streamuj_username", "ws_username", "st_email", "fs_username",
                                             "tmdb_api_key", "dav1_url", "dav2_url", "dav3_url"))
 
 
@@ -1387,6 +1402,17 @@ def setup_wizard(force=False):
                     ADDON.setSetting("st_password", pwd)
                     ADDON.setSetting("st_enabled", "true")
 
+        if dialog.yesno(L(30417, "FastShare"),
+                         L(30424, "Máš účet FastShare?[CR]"
+                                  "Hledá se i bez něj, přehrání jde z tvého kreditu nebo neomezeného tarifu.")):
+            user = dialog.input(L(30420, "FastShare — uživatel"))
+            if user:
+                pwd = dialog.input(L(30422, "FastShare — heslo"), option=xbmcgui.ALPHANUM_HIDE_INPUT)
+                if pwd:
+                    ADDON.setSetting("fs_username", user)
+                    ADDON.setSetting("fs_password", pwd)
+                    ADDON.setSetting("fs_enabled", "true")
+
         if dialog.yesno(L(30353, "Vlastní databáze filmů a seriálů"),
                          L(30354, "Chceš zadat zdarma klíč TMDB, aby popisy a obsazení filmů byly česky? (nepovinné)")):
             dialog.ok(L(30353, "Vlastní databáze filmů a seriálů"),
@@ -1426,12 +1452,20 @@ def test_sources():
     zelená nebyla jen ozvěna včerejší odpovědi.
     """
     luna, sosac, ws, hs, st = get_luna(), get_sosac(), get_webshare(), get_hellspy(), get_sledujteto()
+    fs = get_fastshare()
     storages = get_storages()
 
     def check_sledujteto():
         # přihlášení samo nestačí — bez Premium Sledujteto odkaz na přehrání nevydá
         user = st.me()
         return "Premium" if user.get("is_premium") else L(30406, "bez Premium — přehrávání nepůjde")
+
+    def check_fastshare():
+        # přihlášení a kolik zbývá — soubor se odečítá z kreditu, pokud účet nemá neomezený tarif
+        account = fs.login()
+        if account.get("unlimited"):
+            return L(30425, "neomezené stahování")
+        return f"{L(30426, 'kredit')} {account.get('credit_mb', 0) / 1024:.1f} GB"
 
     checks = {
         "Luna": (lambda: len((luna._get(luna._meta_url("manifest.json")) or {}).get("catalogs", []))) if luna else None,
@@ -1441,6 +1475,7 @@ def test_sources():
         # mimo cache jako ostatní — HellspyApi bez úložiště se ptá vždy znovu
         "HellSpy": (lambda: len(HellspyApi().search("matrix", limit=5)[0])) if hs else None,
         "Sledujteto": check_sledujteto if st else None,
+        "FastShare": check_fastshare if fs else None,
         # jen kořen složky — ověří adresu i heslo, celý strom se prochází až při hledání
         **{api.name: (lambda api=api: api.check()) for api in storages},
     }
@@ -1598,6 +1633,7 @@ def stats_sources():
         ("webshare", on("ws_enabled", "false") and bool(setting("ws_username").strip())),
         ("hellspy", on("hs_enabled", "false")),
         ("sledujteto", on("st_enabled", "false") and bool(setting("st_email").strip())),
+        ("fastshare", on("fs_enabled", "false") and bool(setting("fs_username").strip())),
         ("tmdb", bool(setting("tmdb_api_key").strip())),
         ("trakt", on("trakt_enabled", "false")),
     ) if active]
@@ -2416,10 +2452,10 @@ def list_episodes(apis, series_id, season, alt=None):
 # --- přehrávání ------------------------------------------------------------------
 
 def fulltext_item(ctype, item_id, series_id, alt):
-    """Odkaz na tuhle obrazovku znovu, ale s uvolněným filtrem WebShare/HellSpy
+    """Odkaz na tuhle obrazovku znovu, ale s uvolněným filtrem fulltextových zdrojů
     (viz `Engine._title_queries`, `strict=False`) — pro případ, že přísný automatický
     filtr skutečnou shodu zahodil, protože název souboru je neobvyklý."""
-    folder_item(L(30335, "Zkusit uvolněný fulltext (WebShare, HellSpy, Sledujteto)"),
+    folder_item(L(30335, "Zkusit uvolněný fulltext (WebShare, HellSpy, Sledujteto, FastShare)"),
                 build_url(action="streams", type=ctype, id=item_id, series=series_id, alt=alt, fulltext="1"),
                 icon="DefaultAddonsSearch.png")
 
@@ -2428,7 +2464,7 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None, fq="", flang=""
                  fulltext=""):
     meta, video = load_meta(apis, ctype, item_id, series_id)
     strict = fulltext != "1"
-    has_fulltext_source = bool(apis.get("ws") or apis.get("hs") or apis.get("st"))
+    has_fulltext_source = bool(apis.get("ws") or apis.get("hs") or apis.get("st") or apis.get("fs"))
     # ukazatel průběhu: pár kroků na dotazy zdrojům, pak (obvykle nejdelší část)
     # jeden na každý soubor, kterému jádro čte hlavičku — přesný počet si jádro upraví
     bar = xbmcgui.DialogProgressBG()

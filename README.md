@@ -1,6 +1,6 @@
 ![Nokturno](resources/media/fanart.jpg)
 
-# Nokturno — filmy a seriály z WebShare, Sosáče, Luny, HellSpy a Sledujteto pro Kodi
+# Nokturno — filmy a seriály z WebShare, Sosáče, Luny, HellSpy, Sledujteto a FastShare pro Kodi
 
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-podpo%C5%99%20autora-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/matata86) [![PayPal](https://img.shields.io/badge/PayPal-paypal.me%2Fmatata86-00457C?logo=paypal&logoColor=white)](https://paypal.me/matata86) [![Bitcoin](https://img.shields.io/badge/Bitcoin-BTC-f7931a?logo=bitcoin&logoColor=white)](#podpora)
 
@@ -8,7 +8,7 @@ Podrobný návod (instalace, nastavení každého zdroje, používání, řešen
 
 > **Patří k sobě:** stejné zdroje nabízí i [**Nokturno pro Home Assistant**](https://github.com/matata86/nokturno-ha) (HACS integrace, přehrává právě přes tenhle doplněk) a [**Nokturno pro Stremio**](https://github.com/matata86/nokturno-stremio) (i Nuvio). Všechny tři stojí na společném jádru [nokturno-core](https://github.com/matata86/nokturno-core).
 
-Video doplněk pro Kodi (20 Nexus a novější — `InfoTagVideo`, testováno na Kodi 21 Omega, CoreELEC). Pět rovnocenných zdrojů streamů a vlastní úložiště, každý jde zapnout samostatně:
+Video doplněk pro Kodi (20 Nexus a novější — `InfoTagVideo`, testováno na Kodi 21 Omega, CoreELEC). Šest rovnocenných zdrojů streamů a vlastní úložiště, každý jde zapnout samostatně:
 
 | zdroj | co dává | co potřebuje |
 |---|---|---|
@@ -17,9 +17,10 @@ Video doplněk pro Kodi (20 Nexus a novější — `InfoTagVideo`, testováno na
 | **Luna: Absolute Cinema** | TMDB katalogy (trendy, populární, podle roku, žánru…), streamy z WebShare s rozpoznanou kvalitou a jazyky | běžící server [Luna](https://stremio.cz/d/47-luna-absolute-cinema-addon-pro-prehravani-sifrovaneho-obsahu-z-webshare) v LAN (např. jako [addon Home Assistantu](https://github.com/matata86/ha-addons)) |
 | **HellSpy** | fulltextové hledání souborů na hellspy.to a přehrávání původních souborů | nic, rozhraní je veřejné |
 | **Sledujteto** (od 3.0.0) | fulltextové hledání na sledujteto.cz a přehrávání; rozlišení, kanály a kodek zvuku posílá přímo jejich API | účet Sledujteto (e-mail + heslo), k přehrání **Premium** |
+| **FastShare** (od 4.0.2) | fulltextové hledání na fastshare.cz a přehrávání; rozlišení a stopáž posílá jejich API, zvuk se dočte z hlavičky souboru (pár set kB z kreditu, jednou za 30 dní) | účet FastShare (jméno + heslo), přehrání z **kreditu** nebo neomezeného tarifu |
 | **Vlastní úložiště** (od 3.1.0) | tvoje soubory z NAS, Nextcloudu nebo serveru — až tři WebDAV složky; u titulů mezi streamy vždy první, v menu **Moje úložiště** | adresa složky na WebDAV, případně jméno a heslo |
 
-Přihlašovací údaje zůstávají v Kodi — doplněk je posílá jen službě, ke které patří (WebShare, Streamuj, Luna, Sledujteto).
+Přihlašovací údaje zůstávají v Kodi — doplněk je posílá jen službě, ke které patří (WebShare, Streamuj, Luna, Sledujteto, FastShare).
 
 ### Vlastní databáze filmů a seriálů
 
@@ -30,19 +31,19 @@ Katalog (*Filmy* / *Seriály*) a hledání titulů běžely dřív jen přes Lun
 3. **Veřejný katalog Sosáče** — bez TMDB i Luny, bez účtu, české tituly a žánry, ale bez popisu
 4. **Cinemeta** — poslední záchrana, funguje vždy, ale jen anglicky
 
-Streamy samotné (WebShare/HellSpy/Sledujteto/Luna) se pak hledají stejně jako dřív — vlastní databáze řeší jen "co je to za titul", ne odkud stream stáhnout.
+Streamy samotné (WebShare/HellSpy/Sledujteto/FastShare/Luna) se pak hledají stejně jako dřív — vlastní databáze řeší jen "co je to za titul", ne odkud stream stáhnout.
 
 ## Co umí
 
-- **Průvodce prvním nastavením** — hned po instalaci doplněk sám provede vyplněním zdrojů (WebShare, Sosáč, Luna, HellSpy, TMDB klíč; Sledujteto se zapíná v nastavení) i změřením rychlosti internetu pro nastavení datového toku a — je-li nainstalovaný TMDb Helper — nastavením Nokturna jako přehrávače pro Přehrát v detailu filmu, ať není potřeba předem vědět, co a kde v nastavení hledat. Jde přeskočit a kdykoli znovu spustit z *Nastavení → Pokročilé*. Stávající instalace (aktualizace ze starší verze) se nabízet nezačne — pozná se podle už zapnutého zdroje.
+- **Průvodce prvním nastavením** — hned po instalaci doplněk sám provede vyplněním zdrojů (WebShare, Sosáč, Luna, HellSpy, Sledujteto, FastShare, TMDB klíč) i změřením rychlosti internetu pro nastavení datového toku a — je-li nainstalovaný TMDb Helper — nastavením Nokturna jako přehrávače pro Přehrát v detailu filmu, ať není potřeba předem vědět, co a kde v nastavení hledat. Jde přeskočit a kdykoli znovu spustit z *Nastavení → Pokročilé*. Stávající instalace (aktualizace ze starší verze) se nabízet nezačne — pozná se podle už zapnutého zdroje.
 - **Přesná hláška, když zdroj neodpoví** — jmenuje konkrétní zdroj (WebShare, Luna, Sosáč…), ne obecnou chybu; u vícezdrojového hledání jde o blokující dialog, ne mizící upozornění, takže se snadno nepřehlédne. Výsledky ze zbylých fungujících zdrojů se po potvrzení zobrazí normálně.
 - **Hledat** napříč zapnutými zdroji — jeden dotaz pro filmy i seriály; volba typu se nabídne, jen když dotaz najde obojí. Stejný titul z více zdrojů jen jednou, zdroj je vidět až ve výběru streamu
 - **rok v dotazu je filtr** — „Pět švestek 2026“ vrátí jen film z roku 2026; číslo, které patří k názvu („2012“, „Blade Runner 2049“), se jako rok nebere
 - **Hledat na WebShare** — soubory přímo z WebShare API (řazení: relevance / nejnovější / hodnocení / velikost)
 - **katalogy** Luny (TMDB) i Sosáče; seriály → série → epizody s plakáty, popisy, hodnocením, obsazením
-- **streamy z více zdrojů u jednoho titulu** — Luna, přímý fulltext WebShare, Sosáč, HellSpy i Sledujteto se prohledají **souběžně** a stejný soubor nalezený víc cestami se ukáže jen jednou; u každého streamu je zdroj, kvalita (u souborů bez kvality v názvu odhad podle velikosti se značkou `~`), datový tok, délka, velikost a jazyky zvuku i titulků — zjištěné ze zdroje, nebo dočtené z hlavičky souboru a označené `~`, když jde jen o odhad. Řazení podle nastavení, nebo se pustí automaticky nejlepší
+- **streamy z více zdrojů u jednoho titulu** — Luna, přímý fulltext WebShare, Sosáč, HellSpy, Sledujteto i FastShare se prohledají **souběžně** a stejný soubor nalezený víc cestami se ukáže jen jednou; u každého streamu je zdroj, kvalita (u souborů bez kvality v názvu odhad podle velikosti se značkou `~`), datový tok, délka, velikost a jazyky zvuku i titulků — zjištěné ze zdroje, nebo dočtené z hlavičky souboru a označené `~`, když jde jen o odhad. Řazení podle nastavení, nebo se pustí automaticky nejlepší
 - **Vlastní úložiště** (od 3.1.0) — až tři složky s vlastními soubory na WebDAV (NAS, Nextcloud, server). Soubor se k titulu přiřadí podle názvu a složek nad ním (rok u filmu, `S01E02` u dílu), mezi streamy je vždy první se jménem úložiště na začátku řádku; **Moje úložiště** v hlavním menu prochází úložiště po složkách. Nic se do úložiště nezapisuje (žádné `.nfo`/`.strm`). Návod a pojmenování souborů: [wiki → Vlastní úložiště](https://github.com/matata86/plugin.video.nokturno/wiki/Vlastni-uloziste)
-- **Zkusit uvolněný fulltext (WebShare, HellSpy, Sledujteto)** — tlačítko dole v seznamu streamů spustí uvolněnější hledání pro případ, že přísný filtr (chrání proti nabídnutí úplně jiného titulu, který hledaná slova jen náhodou obsahuje) zahodil skutečnou shodu; takové výsledky jsou označené jako neověřené
+- **Zkusit uvolněný fulltext (WebShare, HellSpy, Sledujteto, FastShare)** — tlačítko dole v seznamu streamů spustí uvolněnější hledání pro případ, že přísný filtr (chrání proti nabídnutí úplně jiného titulu, který hledaná slova jen náhodou obsahuje) zahodil skutečnou shodu; takové výsledky jsou označené jako neověřené
 - **Filtr streamů** přímo v seznamu — podle kvality, jazyka zvuku, počtu kanálů (5.1 a víc), kodeku, titulků i zdroje; nabízí jen to, co se v aktuálním seznamu skutečně vyskytuje, s počtem nalezeného v závorce
 - **Výběr streamu podle toho, odkud titul pouštíš** — ve výpisu Nokturna klik otevře seznam streamů (režim *Vybrat ze seznamu streamů*); z widgetu na domovské obrazovce, z detailu filmu nebo z TMDb Helperu se nabídne dialog s výběrem a nahoře v něm **Filtr streamů**, **Zrušit filtr** a **Použít poslední filtr**. Kontextové menu filmu a dílu nabízí druhou cestu: *Vybrat stream a přehrát* (ve výpisu), *Seznam streamů* (ve widgetu)
 - **Max. datový tok** místo pevné velikosti v GB — nastavení umí i změřit rychlost internetu a spočítat dovolený tok s 25% rezervou; skutečná velikost se pak dopočítá podle stopáže právě otevřeného titulu, ne podle jednoho čísla pro všechno
@@ -114,13 +115,14 @@ repozitář nabízí i předchozí vydání.
 
 ## Nastavení zdrojů
 
-Zapni, co máš — jeden, víc, nebo všech pět (plus vlastní úložiště):
+Zapni, co máš — jeden, víc, nebo všech šest (plus vlastní úložiště):
 
 - **WebShare (přímo)** — jméno + heslo k WebShare (nebo 40znakový salted hash, který používá WebShare doplněk pro Stremio).
 - **Sosáč** — jméno + heslo ke **Streamuj.tv** (přehrávač Sosáče). Katalogy a hledání jdou z veřejných JSON exportů `tv.sosac.to`, streamy ze `streamuj.tv` — stejně jako oficiální Kodi doplněk Sosáče.
 - **Luna** — otevři setup stránku Luny (`http://IP-Luny:7126/setup`), zkopíruj **adresu doplňku** (`…/e1.XXXX/manifest.json`) a vlož ji do pole *Adresa doplňku nebo token*; adresa serveru se z ní vezme sama.
 - **HellSpy** — jen přepínač v nastavení, rozhraní je veřejné a účet nepotřebuje.
 - **Sledujteto** — e-mail a heslo v kategorii *Sledujteto*. Hledá se s jakýmkoli účtem, přehrát jde jen s **Premium**; *Nastavení → Pokročilé → Otestovat zdroje* ukáže, jestli je aktivní.
+- **FastShare** — jméno a heslo v kategorii *FastShare*. Hledá se i bez účtu, přehrání se odečte z **kreditu** podle velikosti souboru (pokud nemáš neomezené stahování); *Nastavení → Pokročilé → Otestovat zdroje* ukáže, kolik kreditu zbývá. Soubor chce cookie z přihlášení, Kodi ji posílá samo.
 - **Vlastní databáze filmů a seriálů (TMDB)** — nepovinné, ale s klíčem má přednost i před Lunou (viz výš): zdarma klíč z [themoviedb.org](https://www.themoviedb.org/signup) → ikona profilu → *Nastavení* → *API* → *Request an API Key* → *Developer* → krátký formulář → zkopíruj **API Key (v3 auth)** (ne delší "API Read Access Token") do *Nastavení → Vlastní databáze filmů a seriálů*. Bez klíče se použije Luna (je-li dostupná), jinak zdarma veřejný katalog Sosáče a Cinemeta, ale bez českého popisu.
 
 ## Struktura
@@ -139,6 +141,7 @@ resources/lib/sosac_api.py    # párování názvů (normalize, names_match) pro
 resources/lib/webshare_api.py # přímý klient WebShare API (login s md5crypt/sha1, hledání, odkaz)
 resources/lib/hellspy_api.py  # HellSpy (veřejné, bez účtu)
 resources/lib/sledujteto_api.py # Sledujteto (účet, Premium pro přehrání, zvuk a titulky z API)
+resources/lib/fastshare_api.py # FastShare (hledání bez účtu, přehrání s cookie z přihlášení, kredit)
 resources/lib/storage_api.py  # vlastní úložiště (WebDAV, až tři sloty)
 resources/lib/mediainfo.py    # čtení hlavičky souboru (MKV/MP4/AVI): zvuk, titulky, rozlišení
 resources/lib/enrich.py       # popisy titulů Sosáče z Luny/Cinemety
@@ -214,7 +217,7 @@ Očekávaná odpověď je `{"ok": true}`.
 
 ## Nokturno v Home Assistantu
 
-Stejné zdroje umí i [**integrace Nokturno pro Home Assistant**](https://github.com/matata86/nokturno-ha) (instalace přes HACS). Hledá ve stejných zdrojích (WebShare, Sosáč, Luna, HellSpy, Sledujteto, vlastní úložiště), výsledky pouští **v Kodi právě přes tenhle doplněk** (`plugin://plugin.video.nokturno/…`), takže titul skončí v „Pokračovat ve sledování" a Kodi si pamatuje pozici. Navíc umí stáhnout film do Home Assistantu nebo poslat odkaz do mobilu.
+Stejné zdroje umí i [**integrace Nokturno pro Home Assistant**](https://github.com/matata86/nokturno-ha) (instalace přes HACS). Hledá ve stejných zdrojích (WebShare, Sosáč, Luna, HellSpy, Sledujteto, FastShare, vlastní úložiště), výsledky pouští **v Kodi právě přes tenhle doplněk** (`plugin://plugin.video.nokturno/…`), takže titul skončí v „Pokračovat ve sledování" a Kodi si pamatuje pozici. Navíc umí stáhnout film do Home Assistantu nebo poslat odkaz do mobilu.
 
 [![Otevřít repozitář v HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=matata86&repository=nokturno-ha&category=integration)
 [![Přidat integraci](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=nokturno)
@@ -226,7 +229,7 @@ Tlačítka otevřou tvoji instanci: první přidá integraci do HACS, druhé spu
 
 ## Nokturno ve Stremiu
 
-Stejné zdroje (WebShare, Sosáč, Sledujteto, HellSpy) jsou i jako [**doplněk pro Stremio**](https://github.com/matata86/nokturno-stremio) — funguje i v Nuviu a dalších klientech Stremia. Na rozdíl od tohoto doplňku nemá vlastní katalogy ani knihovnu — dohledává jen streamy k titulům, které si Stremio najde samo.
+Stejné zdroje (WebShare, Sosáč, Sledujteto, FastShare, HellSpy) jsou i jako [**doplněk pro Stremio**](https://github.com/matata86/nokturno-stremio) — funguje i v Nuviu a dalších klientech Stremia. Na rozdíl od tohoto doplňku nemá vlastní katalogy ani knihovnu — dohledává jen streamy k titulům, které si Stremio najde samo.
 
 **Přidat do Stremia:** [nokturno.tailf0014.ts.net/configure](https://nokturno.tailf0014.ts.net/configure).
 

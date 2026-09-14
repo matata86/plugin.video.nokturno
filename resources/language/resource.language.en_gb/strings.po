@@ -1093,3 +1093,43 @@ msgstr ""
 msgctxt "#30416"
 msgid "You have TMDb Helper (movie details in Arctic Fuse and other skins).[CR]Set Nokturno as its player? The Play button on the details page will then search streams in Nokturno."
 msgstr ""
+
+msgctxt "#30417"
+msgid "FastShare"
+msgstr ""
+
+msgctxt "#30418"
+msgid "Search FastShare for titles"
+msgstr ""
+
+msgctxt "#30419"
+msgid "FastShare.cz is a Czech file host. Search works without an account; playback needs one and is charged from your credit unless you have unlimited downloads."
+msgstr ""
+
+msgctxt "#30420"
+msgid "FastShare — username"
+msgstr ""
+
+msgctxt "#30421"
+msgid "Name you use to sign in to fastshare.cz."
+msgstr ""
+
+msgctxt "#30422"
+msgid "FastShare — password"
+msgstr ""
+
+msgctxt "#30423"
+msgid "Password for fastshare.cz. It is sent only when signing in; playback then uses a cookie."
+msgstr ""
+
+msgctxt "#30424"
+msgid "Do you have a FastShare account?[CR]Search works without it, playback is charged from your credit or unlimited plan."
+msgstr ""
+
+msgctxt "#30425"
+msgid "unlimited downloads"
+msgstr ""
+
+msgctxt "#30426"
+msgid "credit"
+msgstr ""
