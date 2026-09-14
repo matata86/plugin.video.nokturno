@@ -442,19 +442,17 @@ class TestTmdbHelperPlayer(unittest.TestCase):
     def test_player_vede_na_akce_nokturna(self):
         self.assertEqual(self.player["plugin"], "plugin.video.nokturno")
         self.assertEqual(self.player["is_resolvable"], "true")
-        for mode in ("play_movie", "search_movie", "play_episode", "search_episode"):
+        # složkové režimy (search_*) TMDb Helper otevírá až po zavření detailu přes ActivateWindow —
+        # na Office 2026-09-14 se streamy načetly, ale okno se neotevřelo; výběr je proto v pluginu
+        self.assertEqual({k for k in self.player if k.startswith(("play_", "search_"))}, {"play_movie", "play_episode"})
+        for mode in ("play_movie", "play_episode"):
             self.assertIn("imdb", self.player["assert"][mode], "bez IMDb id se player nemá nabízet")
-        with mock.patch.object(default, "get_apis", return_value={}), \
-             mock.patch.object(default, "play") as play, mock.patch.object(default, "list_streams") as streams:
+        with mock.patch.object(default, "get_apis", return_value={}), mock.patch.object(default, "play") as play:
             default.router(self.query("play_movie"))
             self.assertEqual(play.call_args.args[1:4], ("movie", "tt1", None))
             self.assertEqual(play.call_args.kwargs["ask"], "1")
             default.router(self.query("play_episode"))
             self.assertEqual(play.call_args.args[1:4], ("series", "tt1:1:2", "tt1"), "díl = id seriálu:sezóna:díl")
-            default.router(self.query("search_movie"))
-            self.assertEqual(streams.call_args.args[1:4], ("movie", "tt1", None))
-            default.router(self.query("search_episode"))
-            self.assertEqual(streams.call_args.args[1:4], ("series", "tt1:1:2", "tt1"))
 
     def test_tlacitko_nainstaluje_player_a_nastavi_vychozi(self):
         tmp = tempfile.mkdtemp()

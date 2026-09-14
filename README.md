@@ -66,8 +66,7 @@ Skiny jako Arctic Fuse ukazují detail filmu nebo dílu přes doplněk TMDb Help
 tlačítko **Přehrát** umí spustit Nokturno: *Nastavení doplňku → Pokročilé → Přidat
 Nokturno do TMDb Helperu*. Doplněk tam uloží player a nabídne ho jako výchozí —
 Přehrát pak podle IMDb id najde streamy v Nokturnu (v režimu *Zobrazit seznam
-streamů* se zeptá, který pustit). V nabídce playerů TMDb Helperu je navíc
-*Hledat Nokturno*, které otevře celý seznam streamů s filtrem.
+streamů* se zeptá, který pustit).
 
 ## Předpoklady
 

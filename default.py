@@ -2489,7 +2489,15 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
             STORE.set_stream_pref(pref_key, pref_from_param(pref))
     else:
         errors = []
-        streams = collect_streams(apis, ctype, item_id, meta, alt, errors=errors)
+        # z přehrání (widget, TMDb Helper) je jinak vidět jen točící se kolečko Kodi — streamy se
+        # načítají i 15 s, tak aspoň stejný průběh jako nad seznamem streamů
+        bar = xbmcgui.DialogProgressBG()
+        bar.create(L(30000, "Nokturno"), L(30238, "Načítám streamy…"))
+        try:
+            streams = collect_streams(apis, ctype, item_id, meta, alt,
+                                      SearchProgress(bar, Engine.STREAM_SOURCE_STEPS + AUDIO_PROBE_MAX), errors=errors)
+        finally:
+            bar.close()
         if errors:
             notify(skipped_notice(errors), xbmcgui.NOTIFICATION_WARNING, 7000)
         if not streams:
