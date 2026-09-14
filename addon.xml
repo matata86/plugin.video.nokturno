@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="4.0.0~beta2" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="4.0.0~beta3" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,7 +23,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>4.0.0~beta2 – Hledání jde přes sdílené jádro (řetězec zdrojů TMDB → Luna → Sosáč → Cinemeta, sloučení, rok v dotazu, cache) — stejně jako v Home Assistantu a Stremiu
+    <news>4.0.0~beta3 – Oprava: odkaz bez parametru (starší widget, ruční URL z HA) už neshodí doplněk ani Kodi — jen upozornění
+4.0.0~beta2 – Hledání jde přes sdílené jádro (řetězec zdrojů TMDB → Luna → Sosáč → Cinemeta, sloučení, rok v dotazu, cache) — stejně jako v Home Assistantu a Stremiu
 4.0.0~beta2 – Tlačítko „Zkontrolovat aktualizace doplňků“ přesunuto do Pokročilé (k „Otestovat zdroje“)
 4.0.0~beta1 – BETA rodiny Nokturno 4.0: doplněk stojí nad sdíleným jádrem (stejná logika streamů jako Home Assistant a Stremio) — co se chová jinak než ve 3.1, nahlaste na GitHubu
 4.0.0~beta1 – Nalezené streamy se pamatují 72 hodin (jen úspěšný výsledek), další otevření titulu je rychlejší
