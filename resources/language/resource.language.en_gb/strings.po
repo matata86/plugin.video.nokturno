@@ -1085,3 +1085,11 @@ msgstr ""
 msgctxt "#30414"
 msgid "Choose stream and play"
 msgstr ""
+
+msgctxt "#30415"
+msgid "Play from movie details"
+msgstr ""
+
+msgctxt "#30416"
+msgid "You have TMDb Helper (movie details in Arctic Fuse and other skins).[CR]Set Nokturno as its player? The Play button on the details page will then search streams in Nokturno."
+msgstr ""

@@ -1085,3 +1085,11 @@ msgstr "Pridanie do TMDb Helpera zlyhalo"
 msgctxt "#30414"
 msgid "Choose stream and play"
 msgstr "Vybrať stream a prehrať"
+
+msgctxt "#30415"
+msgid "Play from movie details"
+msgstr "Prehrať z detailu filmu"
+
+msgctxt "#30416"
+msgid "You have TMDb Helper (movie details in Arctic Fuse and other skins).[CR]Set Nokturno as its player? The Play button on the details page will then search streams in Nokturno."
+msgstr "Máš doplnok TMDb Helper (detail filmu v Arctic Fuse a ďalších skinoch).[CR]Nastaviť Nokturno ako jeho prehrávač? Tlačidlo Prehrať v detaile potom hľadá streamy v Nokturne."

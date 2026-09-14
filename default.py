@@ -1403,6 +1403,16 @@ def setup_wizard(force=False):
                                   "Zabere necelou minutu, jde udělat i později v Nastavení → Přehrávání.")):
             speedtest()
 
+        # jen když TMDb Helper je — jinak by otázka nedávala smysl (bez něj Přehrát v detailu
+        # filmu z widgetů Nokturna funguje samo, player je jen pro detail z TMDb Helperu)
+        if tmdbhelper_installed() and dialog.yesno(
+                L(30415, "Přehrát z detailu filmu"),
+                L(30416, "Máš doplněk TMDb Helper (detail filmu v Arctic Fuse a dalších skinech).[CR]"
+                         "Nastavit Nokturno jako jeho přehrávač? Tlačítko Přehrát v detailu pak hledá "
+                         "streamy v Nokturnu.")):
+            if not install_tmdbhelper_player(set_default=True):
+                notify(L(30413, "Přidání do TMDb Helperu selhalo"), xbmcgui.NOTIFICATION_ERROR)
+
         dialog.ok(L(30357, "Nastavení uloženo"),
                   L(30358, "Hotovo! Cokoli z tohohle můžeš kdykoli změnit v Nastavení doplňku.[CR]"
                            "Bez zadaného zdroje budou katalog a hledání fungovat i tak, jen anglicky."))
@@ -1510,6 +1520,28 @@ TMDBH_PLAYER = f"special://profile/addon_data/{TMDBH_ID}/players/nokturno.json"
 TMDBH_PLAYER_SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "players", "nokturno.json")
 
 
+def tmdbhelper_installed():
+    return bool(xbmc.getCondVisibility(f"System.HasAddon({TMDBH_ID})"))
+
+
+def install_tmdbhelper_player(set_default=True):
+    """Uloží player Nokturna do TMDb Helperu a volitelně ho nastaví jako výchozí přehrávač
+    filmů i dílů. False, když TMDb Helper chybí nebo se soubor nepodařilo zapsat.
+    Sdílí ho tlačítko v nastavení (`tmdbhelper_player`) i průvodce prvním nastavením."""
+    if not tmdbhelper_installed():
+        return False
+    dest = xbmcvfs.translatePath(TMDBH_PLAYER)
+    xbmcvfs.mkdirs(os.path.dirname(dest))
+    if not xbmcvfs.copy(TMDBH_PLAYER_SRC, dest):
+        return False
+    if set_default:
+        # hodnota ve tvaru, jaký ukládá TMDb Helper sám (`<soubor> <režim>`, config/default.py)
+        tmdbh = xbmcaddon.Addon(TMDBH_ID)
+        tmdbh.setSetting("default_player_movies", "nokturno.json play_movie")
+        tmdbh.setSetting("default_player_episodes", "nokturno.json play_episode")
+    return True
+
+
 def tmdbhelper_player():
     """Tlačítko v nastavení: „Přehrát“ v detailu filmu nebo dílu z TMDb Helperu (Arctic Fuse
     a další skiny ho používají pro info stránky) pustí hledání streamů v Nokturnu.
@@ -1517,21 +1549,15 @@ def tmdbhelper_player():
     TMDb Helper přehrává přes JSON „playery“ ve své složce — bez nich Přehrát v detailu nic
     z Nokturna nevyvolá. Player jde podle IMDb id (u dílu id seriálu + sezóna a díl), takže
     nehledá podle názvu. Nainstalovaný soubor pak po aktualizacích drží aktuální služba."""
-    if not xbmc.getCondVisibility(f"System.HasAddon({TMDBH_ID})"):
+    if not tmdbhelper_installed():
         notify(L(30410, "TMDb Helper není nainstalovaný"), xbmcgui.NOTIFICATION_WARNING)
         return
-    dest = xbmcvfs.translatePath(TMDBH_PLAYER)
-    xbmcvfs.mkdirs(os.path.dirname(dest))
-    if not xbmcvfs.copy(TMDBH_PLAYER_SRC, dest):
+    set_default = xbmcgui.Dialog().yesno(L(30000, "Nokturno"), L(30411, "Nastavit Nokturno jako výchozí přehrávač v "
+                                                                        "TMDb Helperu? Přehrát v detailu filmu nebo "
+                                                                        "dílu pak rovnou hledá streamy v Nokturnu."))
+    if not install_tmdbhelper_player(set_default):
         notify(L(30413, "Přidání do TMDb Helperu selhalo"), xbmcgui.NOTIFICATION_ERROR)
         return
-    if xbmcgui.Dialog().yesno(L(30000, "Nokturno"), L(30411, "Nastavit Nokturno jako výchozí přehrávač v TMDb "
-                                                             "Helperu? Přehrát v detailu filmu nebo dílu pak "
-                                                             "rovnou hledá streamy v Nokturnu.")):
-        # hodnota ve tvaru, jaký ukládá TMDb Helper sám (`<soubor> <režim>`, config/default.py)
-        tmdbh = xbmcaddon.Addon(TMDBH_ID)
-        tmdbh.setSetting("default_player_movies", "nokturno.json play_movie")
-        tmdbh.setSetting("default_player_episodes", "nokturno.json play_episode")
     notify(L(30412, "Nokturno je v TMDb Helperu"))
 
 

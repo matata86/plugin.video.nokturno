@@ -469,6 +469,28 @@ class TestTmdbHelperPlayer(unittest.TestCase):
         self.assertEqual(xbmcaddon.settings["default_player_episodes"], "nokturno.json play_episode")
         shutil.rmtree(tmp, ignore_errors=True)
 
+    def test_pruvodce_nabidne_player_jen_s_tmdb_helperem(self):
+        tmp = tempfile.mkdtemp()
+        dest = os.path.join(tmp, "players", "nokturno.json")
+        otazky = []
+
+        def yesno(heading, *a, **k):
+            otazky.append(heading)
+            return heading in ("Vítej v Nokturnu", "Přehrát z detailu filmu")   # jen úvod a krok TMDb Helperu
+
+        with mock.patch.object(default, "TMDBH_PLAYER", dest), mock.patch.object(xbmcgui.Dialog, "yesno", side_effect=yesno):
+            default.setup_wizard(force=True)
+            self.assertNotIn("Přehrát z detailu filmu", otazky, "bez TMDb Helperu se na player neptá")
+            self.assertFalse(os.path.exists(dest))
+            otazky.clear()
+            xbmc.cond_visible.add("System.HasAddon(plugin.video.themoviedb.helper)")
+            default.setup_wizard(force=True)
+        self.assertIn("Přehrát z detailu filmu", otazky)
+        self.assertEqual(pathlib.Path(dest).read_bytes(), (ROOT / "resources" / "players" / "nokturno.json").read_bytes())
+        self.assertEqual(xbmcaddon.settings["default_player_movies"], "nokturno.json play_movie")
+        self.assertEqual(xbmcaddon.settings["default_player_episodes"], "nokturno.json play_episode")
+        shutil.rmtree(tmp, ignore_errors=True)
+
     def test_sluzba_drzi_nainstalovany_player_aktualni(self):
         tmp = tempfile.mkdtemp()
         dest = os.path.join(tmp, "nokturno.json")
