@@ -436,6 +436,22 @@ class TestRouter(unittest.TestCase):
         self.assertEqual([params_of(u)["action"] for u in xbmcplugin.urls()], ["settings"])
         self.assertEqual([n[2] for n in xbmcgui.notifications], [xbmcgui.NOTIFICATION_WARNING])
 
+    def test_akce_bez_parametru_neshodi_plugin(self):
+        """Chybějící parametr (starý odkaz, ruční URL z HA) = upozornění a uzavřený handle,
+        ne neošetřená výjimka — ta 2026-09-14 na Office nechala otevřený handle a Kodi se
+        při souběhu s dalším dialogem samo ukončilo."""
+        for url in ("action=history_remove", "action=toggle_watched", "action=download_remove&x=1"):
+            reset_kodi()
+            default.router(url)
+            self.assertEqual(len(xbmcplugin.ended), 1, url)
+            self.assertFalse(xbmcplugin.ended[-1]["succeeded"], f"{url}: succeeded musí být False")
+            self.assertEqual(xbmcgui.notifications[-1][2], xbmcgui.NOTIFICATION_ERROR)
+        reset_kodi()
+        default.router("action=search&kind=any")   # HA a starší widgety posílají kind místo type
+        self.assertEqual(len(xbmcplugin.ended), 1)
+        self.assertTrue(xbmcplugin.ended[-1]["succeeded"])
+        self.assertFalse(xbmcgui.notifications)
+
     def test_hlavni_menu_se_zdroji(self):
         default.router("")
         akce = [params_of(u).get("action") for u in xbmcplugin.urls()]

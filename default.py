@@ -2716,7 +2716,7 @@ def router(query):
         "history_clear": lambda: history_clear(p["type"]),
         "toggle_watched": lambda: toggle_watched(p["id"]),
         "remove_progress": lambda: remove_progress(p["id"], p.get("series")),
-        "search": lambda: search_menu(p["type"]),
+        "search": lambda: search_menu(p.get("type") or p.get("kind") or "any"),
         "favourites": list_favourites,
         "recent": list_recent,
         "downloads": list_downloads,
@@ -2740,11 +2740,14 @@ def router(query):
         "ha_files": list_ha_files,
         "settings": lambda: (xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False), ADDON.openSettings()),
     }
-    if action in simple:
-        return simple[action]()
-
-    apis = get_apis()
     try:
+        if action in simple:
+            # stejná pojistka jako u výpisů níž: akce bez `type` (starý odkaz z widgetu, ruční
+            # URL z HA) dřív vyletěla KeyError mimo `_fail`, Kodi nechalo neuzavřený handle
+            # a při souběhu s dalším dialogem se celé ukončilo („two concurrent busydialogs")
+            simple[action]()
+            return
+        apis = get_apis()
         if not action:
             main_menu(apis)
         elif action == "catalogs":
