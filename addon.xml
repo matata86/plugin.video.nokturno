@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="3.1.12" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="4.0.0~beta1" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,7 +23,15 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>3.1.12 – Průvodce prvním nastavením se na čisté instalaci opravdu nabídne — jako položka nahoře v menu
+    <news>4.0.0~beta1 – BETA rodiny Nokturno 4.0: doplněk stojí nad sdíleným jádrem (stejná logika streamů jako Home Assistant a Stremio) — co se chová jinak než ve 3.1, nahlaste na GitHubu
+4.0.0~beta1 – Nalezené streamy se pamatují 72 hodin (jen úspěšný výsledek), další otevření titulu je rychlejší
+4.0.0~beta1 – Fulltext hledá i pod českým a originálním názvem (Wikidata, Cinemeta); k streamům bez titulků se přibalí titulky z WebShare
+4.0.0~beta1 – Rychlejší načítání: zdroje streamů souběžně, TMDB jedním dotazem, index seriálů Sosáče; hlavičky souborů se čtou až u seřazených streamů
+4.0.0~beta1 – Popisky bez češtiny natvrdo (žánry česky jen v české a slovenské Kodi), Novinky ukazují i beta verze
+4.0.0~beta1 – Výpisy se řadí podle skinu (rok, hodnocení); zahřívání cache po sobě uklidí prošlé soubory; Pokračovat ve sledování se načítá souběžně
+4.0.0~beta1 – Fronta stahování se stabilním id (soubor podruhé se nezařadí); Odebrat z Pokračovat i u souborů z úložiště
+4.0.0~beta1 – Tlačítko „Zkontrolovat aktualizace doplňků“ v nastavení — kontrola repozitářů hned, ne až podle plánu Kodi
+3.1.12 – Průvodce prvním nastavením se na čisté instalaci opravdu nabídne — jako položka nahoře v menu
 3.1.12 – Pokračovat ve sledování a Naposledy zhlédnuté fungují i u souborů z HellSpy a vlastního úložiště
 3.1.12 – Oprava: chyba uvnitř doplňku už nenechá Kodi čekat na timeout přehrání
 3.1.12 – Zahřívání cache bere aktuální nastavení (po zadání klíče TMDB se dál zahřívala Luna)

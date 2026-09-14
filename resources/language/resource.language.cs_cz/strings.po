@@ -354,7 +354,6 @@ msgctxt "#30115"
 msgid "Hide SD streams"
 msgstr "Skrýt SD streamy"
 
-
 msgctxt "#30117"
 msgid "Sort streams"
 msgstr "Řazení streamů"
@@ -386,8 +385,6 @@ msgstr "Streamuj.tv heslo"
 msgctxt "#30107"
 msgid "Open settings"
 msgstr "Otevřít nastavení"
-
-
 
 msgctxt "#30131"
 msgid "Prefer surround sound (5.1 and up)"
@@ -753,7 +750,6 @@ msgctxt "#30328"
 msgid "Must match the sync key shown in the Nokturno integration's settings in Home Assistant."
 msgstr "Musí sedět se synchronizačním klíčem z nastavení integrace Nokturno v Home Assistantu."
 
-
 msgctxt "#30238"
 msgid "Loading streams…"
 msgstr "Načítám streamy…"
@@ -1057,3 +1053,11 @@ msgstr "Úložiště"
 msgctxt "#30406"
 msgid "no Premium — playback will not work"
 msgstr "bez Premium — přehrávání nepůjde"
+
+msgctxt "#30407"
+msgid "Check for add-on updates"
+msgstr "Zkontrolovat aktualizace doplňků"
+
+msgctxt "#30408"
+msgid "Checking for add-on updates…"
+msgstr "Kontroluji aktualizace doplňků…"

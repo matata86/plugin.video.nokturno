@@ -140,7 +140,8 @@ class TestAddonXml(unittest.TestCase):
     def test_novinky_zacinaji_aktualni_verzi(self):
         lines = default.changelog_lines()
         self.assertTrue(lines)
-        self.assertEqual(lines[0][0], self.version.split("~")[0])
+        # u bety novinky nesou celé „4.0.0~beta1“ (build_repo.check bere i holé 4.0.0)
+        self.assertIn(lines[0][0], (self.version, self.version.split("~")[0]))
 
     def test_kazdy_radek_novinek_se_da_precist(self):
         news = self.root.find(".//news").text.strip().splitlines()

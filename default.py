@@ -1415,6 +1415,13 @@ def speedtest():
     notify(Lf(30223, f"{mbps:.0f}", f"{allowed_mbps:g}", f"{example_gb:.1f}"), xbmcgui.NOTIFICATION_INFO, 7000)
 
 
+def update_repos():
+    """Tlačítko v nastavení: kontrola repozitářů hned, ne až podle plánu Kodi — po
+    vydání (hlavně bety) se jinak čeká klidně den, než Kodi aktualizaci nabídne."""
+    xbmc.executebuiltin("UpdateAddonRepos")
+    notify(L(30408, "Kontroluji aktualizace doplňků…"))
+
+
 def prefetch(apis, kind):
     """Zahřátí cache — volá služba na pozadí, nic se nevypisuje ani nepočítá.
 
@@ -2799,6 +2806,7 @@ def router(query):
                                  xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
         "sub_status": sub_status,
         "speedtest": speedtest,
+        "update_repos": update_repos,
         "sync_now": sync_now,
         "whats_new": whats_new,
         "ha_files": list_ha_files,

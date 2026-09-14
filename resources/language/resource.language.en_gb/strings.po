@@ -354,7 +354,6 @@ msgctxt "#30115"
 msgid "Hide SD streams"
 msgstr ""
 
-
 msgctxt "#30117"
 msgid "Sort streams"
 msgstr ""
@@ -386,8 +385,6 @@ msgstr ""
 msgctxt "#30107"
 msgid "Open settings"
 msgstr ""
-
-
 
 msgctxt "#30131"
 msgid "Prefer surround sound (5.1 and up)"
@@ -753,7 +750,6 @@ msgctxt "#30328"
 msgid "Must match the sync key shown in the Nokturno integration's settings in Home Assistant."
 msgstr ""
 
-
 msgctxt "#30238"
 msgid "Loading streams…"
 msgstr ""
@@ -1056,4 +1052,12 @@ msgstr ""
 
 msgctxt "#30406"
 msgid "no Premium — playback will not work"
+msgstr ""
+
+msgctxt "#30407"
+msgid "Check for add-on updates"
+msgstr ""
+
+msgctxt "#30408"
+msgid "Checking for add-on updates…"
 msgstr ""
