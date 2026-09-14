@@ -28,6 +28,7 @@ HISTORY_MAX = 10
 WATCHED_MAX = 5000
 ITEMS_MAX = 2000
 INDEX_MAX = 3000
+INDEX_REFRESH = 86400   # s – jak často obnovit razítko u nezměněného snímku v rejstříku
 TMP_MAX_AGE = 3600   # s – starší rozepsané `*.tmp` po zabitém procesu se uklidí
 
 
@@ -486,10 +487,20 @@ class Index:
         with self.store._lock:
             data = self.store.load(self.name, {})
             ts = int(time.time())
+            changed = False
             for key, info in items.items():
                 info = dict(info)
+                old = data.get(str(key))
+                # opakované otevření téhož seznamu nic nového nepřinese — bez zápisu;
+                # razítko se obnoví jen jednou za den, aby `_trim` nevyhodil živé tituly
+                if old and ts - old.get("ts", 0) < INDEX_REFRESH and \
+                        {k: v for k, v in old.items() if k != "ts"} == json.loads(json.dumps(info)):
+                    continue
                 info["ts"] = ts
                 data[str(key)] = info
+                changed = True
+            if not changed:
+                return
             self.store._trim(data, INDEX_MAX)
             self.store.save(self.name, data)
 

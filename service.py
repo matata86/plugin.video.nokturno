@@ -408,18 +408,24 @@ class Syncer:
 # hlavní menu a seznam streamů). Streamy dalšího dílu má vlastní akci `prefetch`.
 
 def warm_urls():
-    """Katalogy, ze kterých žijí widgety a hlavní menu — jen pro zapnuté zdroje."""
+    """Tytéž výpisy, které otevírá menu Filmy / Seriály (`browse_menu()` v default.py).
+
+    Dřív se zahřívalo `src=sosac` a Luna, jenže menu od 3.1.6 bere seznamy z TMDB
+    (je-li klíč) a z veřejného katalogu `sosac_db` — zahřívání tak minulo všechno,
+    co uživatel otevírá, a první otevření nově přidaných trvalo na Office 12 s."""
     base = "plugin://plugin.video.nokturno/?action=catalog&src={src}&type={t}&catalog={c}"
     urls = []
-    if ADDON.getSetting("luna_enabled") != "false":
-        for t, c in (("movie", "tmdb.trending_movie"), ("series", "tmdb.trending_series")):
-            urls.append(base.format(src="luna", t=t, c=c) + "&genre=Week")
-        for t, c in (("movie", "tmdb.top_movie"), ("series", "tmdb.top_series")):
-            urls.append(base.format(src="luna", t=t, c=c))
-    if ADDON.getSetting("sosac_enabled") != "false":
-        for t, c in (("movie", "moviesmostpopular"), ("movie", "moviesrecentlyadded"),
-                     ("series", "tvshowsmostpopular"), ("series", "tvshowsrecentlyadded")):
-            urls.append(base.format(src="sosac", t=t, c=c))
+    for t in ("movie", "series"):
+        if ADDON.getSetting("tmdb_api_key").strip():
+            for c in ("popular", "trending", "top_rated"):
+                urls.append(base.format(src="tmdb", t=t, c=c))
+        elif ADDON.getSetting("luna_enabled") != "false":
+            urls.append(base.format(src="luna", t=t, c=f"tmdb.top_{t}"))
+            urls.append(base.format(src="luna", t=t, c=f"tmdb.trending_{t}") + "&genre=Week")
+            urls.append(base.format(src="luna", t=t, c=f"tmdb.top_rated_{t}"))
+    for t, c in (("movie", "moviesrecentlyadded_dub"), ("movie", "moviesrecentlyadded_subs"),
+                 ("series", "tvshowsrecentlyadded")):
+        urls.append(base.format(src="sosac_db", t=t, c=c))
     return urls
 
 

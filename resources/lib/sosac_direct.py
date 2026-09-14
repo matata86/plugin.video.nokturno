@@ -22,6 +22,7 @@ BASE = "http://tv.sosac.to"
 EXPORT = BASE + "/vystupy5981/"
 STREAMUJ_API = "https://www.streamuj.tv/json_api_player.php?"
 LIST_TTL = 3 * 3600   # žebříčky (nejpopulárnější, nově přidané)
+CATALOG_TTL = 86400   # žánry a písmena: tisíce titulů, mění se pomalu (dřív výchozích 10 min)
 IMAGE_MOVIE = "https://movies.sosac.tv/images/75x109/movie-"
 IMAGE_MOVIE_BIG = "https://movies.sosac.tv/images/558x313/movie-"
 IMAGE_SERIES = "https://movies.sosac.tv/images/558x313/serial-"
@@ -203,11 +204,11 @@ class SosacDirect:
             url = genres.get(genre) or ""
             if not url:
                 return []
-            raw, conv = self._get(url), self.movie_meta
+            raw, conv = self._get(url, ttl=CATALOG_TTL), self.movie_meta
         elif cid == "az":
-            raw, conv = self._get(EXPORT + f"pismena/{(genre or 'a').lower()}.json"), self.movie_meta
+            raw, conv = self._get(EXPORT + f"pismena/{(genre or 'a').lower()}.json", ttl=CATALOG_TTL), self.movie_meta
         elif cid == "tvaz":
-            raw, conv = self._get(EXPORT + f"tvpismena/{(genre or 'a').lower()}.json"), self.series_meta
+            raw, conv = self._get(EXPORT + f"tvpismena/{(genre or 'a').lower()}.json", ttl=CATALOG_TTL), self.series_meta
         elif cid in ("moviesrecentlyadded_dub", "moviesrecentlyadded_subs"):
             # export „nově přidané" míchá všechny jazyky (zhruba půlka s CZ dabingem,
             # půlka jen s CZ titulky, pár cizojazyčných bez titulků) — rozdělí se
