@@ -68,16 +68,7 @@ def is_salted_hash(value):
     return bool(re.fullmatch(r"[0-9a-f]{40}", (value or "").strip().lower()))
 
 
-def human_size(nbytes):
-    try:
-        n = float(nbytes)
-    except (TypeError, ValueError):
-        return ""
-    for unit in ("B", "kB", "MB", "GB", "TB"):
-        if n < 1024 or unit == "TB":
-            return f"{n:.1f} {unit}" if unit not in ("B", "kB") else f"{int(n)} {unit}"
-        n /= 1024
-    return ""
+from streams import human_size  # noqa: F401 – doplněk pro Kodi ho importuje odsud
 
 
 class WebshareError(Exception):
@@ -101,7 +92,7 @@ class WebshareApi:
         body = urllib.parse.urlencode(data).encode()
         req = urllib.request.Request(API + endpoint + "/", data=body, headers={
             "Accept": "text/xml; charset=UTF-8",
-            "User-Agent": "Kodi plugin.video.nokturno",
+            "User-Agent": "Nokturno (+https://github.com/matata86/nokturno-core)",
         })
         try:
             with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:

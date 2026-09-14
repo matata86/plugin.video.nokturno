@@ -102,10 +102,10 @@ repozitář nabízí i předchozí vydání.
 
 ## Nastavení zdrojů
 
-Zapni, co máš — jeden, víc, nebo všechny čtyři:
+Zapni, co máš — jeden, víc, nebo všech pět (plus vlastní úložiště):
 
 - **WebShare (přímo)** — jméno + heslo k WebShare (nebo 40znakový salted hash, který používá WebShare doplněk pro Stremio).
-- **Sosáč** — jméno + heslo ke **Streamuj.tv** (přehrávač Sosáče). Katalogy a hledání jdou z veřejných JSON exportů `tv.sosac.to`, streamy ze `streamuj.tv` — stejně jako oficiální Kodi doplněk Sosáče. Starší režim přes Stremio doplněk Sosáče (`userId`) zůstává v nastavení jako záloha.
+- **Sosáč** — jméno + heslo ke **Streamuj.tv** (přehrávač Sosáče). Katalogy a hledání jdou z veřejných JSON exportů `tv.sosac.to`, streamy ze `streamuj.tv` — stejně jako oficiální Kodi doplněk Sosáče.
 - **Luna** — otevři setup stránku Luny (`http://IP-Luny:7126/setup`), zkopíruj **adresu doplňku** (`…/e1.XXXX/manifest.json`) a vlož ji do pole *Adresa doplňku nebo token*; adresa serveru se z ní vezme sama.
 - **HellSpy** — jen přepínač v nastavení, rozhraní je veřejné a účet nepotřebuje.
 - **Sledujteto** — e-mail a heslo v kategorii *Sledujteto*. Hledá se s jakýmkoli účtem, přehrát jde jen s **Premium**; *Nastavení → Pokročilé → Otestovat zdroje* ukáže, jestli je aktivní.
@@ -120,18 +120,30 @@ resources/lib/luna_api.py     # klient API Luny (bez závislosti na Kodi, jde sp
 resources/lib/cinemeta_api.py # vlastní databáze: Cinemeta (Stremio), poslední záchrana bez klíče/účtu
 resources/lib/tmdb_api.py     # vlastní databáze: TMDB s vlastním klíčem uživatele (česky, s popisem)
 resources/lib/sosac_direct.py # Sosáč napřímo: veřejné JSONy tv.sosac.to + streamy/titulky ze streamuj.tv
-resources/lib/sosac_api.py    # starší režim přes Stremio API Sosáče + párování názvů pro hledání napříč
+resources/lib/sosac_api.py    # párování názvů (normalize, names_match) pro hledání napříč zdroji
 resources/lib/webshare_api.py # přímý klient WebShare API (login s md5crypt/sha1, hledání, odkaz)
+resources/lib/hellspy_api.py  # HellSpy (veřejné, bez účtu)
+resources/lib/sledujteto_api.py # Sledujteto (účet, Premium pro přehrání, zvuk a titulky z API)
+resources/lib/storage_api.py  # vlastní úložiště (WebDAV, až tři sloty)
+resources/lib/mediainfo.py    # čtení hlavičky souboru (MKV/MP4/AVI): zvuk, titulky, rozlišení
+resources/lib/enrich.py       # popisy titulů Sosáče z Luny/Cinemety
+resources/lib/wikidata_api.py # české a slovenské názvy z Wikidat pro fulltext
+resources/lib/source_errors.py # srozumitelné hlášky o výpadku zdroje (bez tokenů)
+resources/lib/sync.py         # synchronizace zhlédnuto/Můj seznam mezi Kodi přes HA
 resources/lib/stats.py        # čítače používání a jejich odesílání (bez závislosti na Kodi)
 resources/lib/store.py        # historie hledání + zhlédnuto/rozkoukáno (JSON v profilu)
 resources/lib/streams.py      # rozbor, filtr a řazení streamů
 resources/lib/trakt_api.py    # Trakt.tv (device code, scrobble, historie)
 service.py                    # služba: zhlédnuto/pozice, Trakt scrobble, stahování, statistiky
-repository.nokturno/          # repozitář pro automatické aktualizace
-tools/build_repo.py           # sestaví repo/ (addons.xml, md5, zipy) po změně verze
+repository.nokturno/          # repozitář pro automatické aktualizace (stable)
+repository.nokturno.beta/     # repozitář beta (repo/ + repo-beta/)
+tools/build_repo.py           # sestaví repo/ (addons.xml, md5, zipy) po změně verze; --beta → repo-beta/
+tests/                        # testy bez Kodi (stubs xbmc*), `python3 -m unittest discover -s tests`
 resources/settings.xml
-resources/language/…          # en_GB, cs_CZ
+resources/language/…          # en_GB, cs_CZ, sk_SK
 ```
+
+`resources/lib/` je vysypaná kopie sdíleného jádra [nokturno-core](https://github.com/matata86/nokturno-core) — opravy patří tam.
 
 Test klientů bez Kodi: `python3 resources/lib/luna_api.py http://IP:7126 e1.XXXX`, `python3 resources/lib/sosac_direct.py <streamuj_user> <streamuj_heslo>`
 

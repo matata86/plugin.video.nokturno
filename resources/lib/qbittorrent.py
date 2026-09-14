@@ -8,6 +8,7 @@ Bez závislostí na Home Assistantu — jde testovat samostatně:
 """
 import http.cookiejar
 import json
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -26,14 +27,13 @@ class QbitApi:
         self.timeout = timeout
         self._jar = http.cookiejar.CookieJar()
         self._opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self._jar))
-        self._logged = False
 
     def _call(self, path, data=None, retry=True):
         if not self.base:
             raise QbitError("qBittorrent není nastavený.")
         body = urllib.parse.urlencode(data).encode() if data else None
         req = urllib.request.Request(f"{self.base}{path}", data=body, headers={
-            "User-Agent": "Home Assistant Nokturno",
+            "User-Agent": "Nokturno (+https://github.com/matata86/nokturno-core)",
             # qBittorrent bez tohohle hlavičkového Referer odmítá zápisy jako CSRF
             "Referer": self.base,
         })
@@ -55,7 +55,6 @@ class QbitApi:
                          {"username": self.user, "password": self.password}, retry=False)
         if out.strip() != "Ok.":
             raise QbitError("qBittorrent nepřijal jméno a heslo.")
-        self._logged = True
 
     def version(self):
         return self._call("/api/v2/app/version").strip()

@@ -30,12 +30,7 @@ class HellspyError(Exception):
     pass
 
 
-def human_size(nbytes):
-    try:
-        gb = int(nbytes) / 2 ** 30
-    except (TypeError, ValueError):
-        return ""
-    return f"{gb:.1f} GB" if gb >= 1 else f"{int(nbytes) / 2 ** 20:.0f} MB"
+from streams import human_size  # noqa: F401
 
 
 class _KeepRedirect(urllib.request.HTTPRedirectHandler):

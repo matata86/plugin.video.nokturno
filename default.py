@@ -385,6 +385,24 @@ def describe_errors(errors):
 
 # --- položky ------------------------------------------------------------------
 
+SORTS = {
+    "movies": (xbmcplugin.SORT_METHOD_VIDEO_YEAR, xbmcplugin.SORT_METHOD_VIDEO_RATING),
+    "tvshows": (xbmcplugin.SORT_METHOD_VIDEO_YEAR, xbmcplugin.SORT_METHOD_VIDEO_RATING),
+    "episodes": (xbmcplugin.SORT_METHOD_EPISODE,),
+}
+
+
+def set_content(content):
+    """Typ obsahu + nabídka řazení. Bez `addSortMethod` skiny ukazovaly „Řazení: žádné“
+    a katalog nešel seřadit podle roku ani hodnocení, i když je `fill_info` plní.
+    První je „jak přišlo“ — pořadí ze zdroje (žebříček, seřazené streamy) zůstává výchozí."""
+    xbmcplugin.setContent(HANDLE, content)
+    xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_UNSORTED)
+    xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
+    for method in SORTS.get(content, ()):
+        xbmcplugin.addSortMethod(HANDLE, method)
+
+
 def folder_item(label, url, icon=None, context=None):
     li = xbmcgui.ListItem(label=label)
     li.setArt({"icon": icon or ICON, "thumb": icon or ICON})
@@ -1096,7 +1114,6 @@ def storage_streams(apis, meta, video, ctype, alt=None, strict=True, errors=None
     return out
 
 
-_ST_KEYS_LOGGED = []
 
 
 def sledujteto_streams(apis, meta, video, ctype, alt=None, strict=True, errors=None):
@@ -1118,11 +1135,6 @@ def sledujteto_streams(apis, meta, video, ctype, alt=None, strict=True, errors=N
             if getattr(e, "status", None) in (401, 403):
                 break   # špatný účet — další dotazy by dopadly stejně
             continue
-        if st.last_keys and not _ST_KEYS_LOGGED:
-            # velikost souboru jejich doplněk nepoužívá a klíč neznáme jistě — jednou do logu
-            _ST_KEYS_LOGGED.append(True)
-            xbmc.log(f"[{ADDON_ID}] Sledujteto: klíče výsledku hledání {st.last_keys}, "
-                     f"ukázka {getattr(st, 'last_sample', {})}", xbmc.LOGINFO)
         for f in files:
             name = f.get("name") or ""
             if f["id"] in seen or not relevant(name):
@@ -1760,7 +1772,7 @@ def list_ha_files():
         notify(f"{L(30188, 'Synchronizace selhala')}: {str(e)[:80]}", xbmcgui.NOTIFICATION_ERROR, 5000)
         xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
         return
-    xbmcplugin.setContent(HANDLE, "movies")
+    set_content("movies")
     for f in files:
         size = human_size(f.get("size") or 0)
         subs = f"  [COLOR {GREY}]tit.[/COLOR]" if f.get("subtitles") else ""
@@ -1908,7 +1920,6 @@ def test_sources():
     def check_sledujteto():
         # přihlášení samo nestačí — bez Premium Sledujteto odkaz na přehrání nevydá
         user = st.me()
-        xbmc.log(f"[{ADDON_ID}] Sledujteto: údaje o účtu {st.last_me_keys}", xbmc.LOGINFO)
         return "Premium" if user.get("is_premium") else "bez Premium — přehrávání nepůjde"
 
     checks = {
@@ -2064,7 +2075,28 @@ SEEN = "seen"   # seen.json v profilu: {"version": naposledy odbavená verze}
 
 
 def _vkey(text):
-    return tuple(int(x) if x.isdigit() else -1 for x in re.split(r"[.\-+]", text))
+    """Pořadí verzí jako v Kodi (`CAddonVersion`) a v `tools/build_repo.version_key`:
+    část za „~“ řadí před stejnou verzi bez ní — „3.2.0~beta1“ < „3.2.0“."""
+    main, _, tag = str(text or "").partition("~")
+    nums = tuple(int(x) if x.isdigit() else -1 for x in re.split(r"[.\-+]", main))
+    tag_key = tuple(int(p) if p.isdigit() else p for p in re.findall(r"\d+|\D+", tag))
+    return nums, (0, tag_key) if tag else (1, ())
+
+
+def parse_news(text, since=None):
+    """Řádky „verze – text“ z <news>, od nejnovější; se `since` jen novější než ta verze.
+    Beta verze (`3.2.0~beta1 – …`) se počítají taky — dřív je regex vynechal a beta
+    uživatelé Novinky neviděli."""
+    out = []
+    for line in (text or "").splitlines():
+        line = line.strip()
+        m = re.match(r"^(\d+(?:\.\d+)*(?:~[a-z]+\d*)?)\s*[–-]\s*(.+)$", line)
+        if not m:
+            continue
+        if since and _vkey(m.group(1)) <= _vkey(since):
+            continue
+        out.append((m.group(1), m.group(2)))
+    return out
 
 
 def changelog_lines(since=None):
@@ -2080,16 +2112,7 @@ def changelog_lines(since=None):
         text = (news.text or "") if news is not None else ""
     except Exception:  # noqa: BLE001 – bez changelogu se nic neděje
         return []
-    out = []
-    for line in text.splitlines():
-        line = line.strip()
-        m = re.match(r"^(\d+(?:\.\d+)*)\s*[–-]\s*(.+)$", line)
-        if not m:
-            continue
-        if since and _vkey(m.group(1)) <= _vkey(since):
-            continue
-        out.append((m.group(1), m.group(2)))
-    return out
+    return parse_news(text, since)
 
 
 def current_version():
@@ -2268,7 +2291,7 @@ def list_genres(apis, ctype, cid, src, show_all=True):
 
 
 def list_catalog(apis, ctype, cid, src, genre=None, search=None, skip=0):
-    xbmcplugin.setContent(HANDLE, "tvshows" if ctype == "series" else "movies")
+    set_content("tvshows" if ctype == "series" else "movies")
     metas = apis[src].catalog(ctype, cid, genre=genre, search=search, skip=skip)
     if src in ("sosac", "sosac_db", "cinemeta"):
         # exporty Sosáče a holé výpisy Cinemety nemají popis → dotáhnout podle IMDb id
@@ -2522,7 +2545,7 @@ def search_run(apis, kind, query, offset=0):
         movies, _ = results["movie"]
         series, _ = results["series"]
         if movies and series:
-            xbmcplugin.setContent(HANDLE, "files")
+            set_content("files")
             folder_item(f"{L(30012)} ({len(movies)})", build_url(action="search_run", type="movie", q=raw_query),
                        icon="DefaultMovies.png")
             folder_item(f"{L(30013)} ({len(series)})", build_url(action="search_run", type="series", q=raw_query),
@@ -2533,7 +2556,7 @@ def search_run(apis, kind, query, offset=0):
             return
         kind = "series" if series else "movie"
     ctype = kind
-    xbmcplugin.setContent(HANDLE, "tvshows" if ctype == "series" else "movies")
+    set_content("tvshows" if ctype == "series" else "movies")
     # vždy přes search_source() — i po volbě z Filmy/Seriály; holý katalog výše
     # je z vlastní cache (_search_merge) skoro zadarmo, teprve tady se čeká na popisy
     merged, mixed = search_source(apis, ctype, query, want_year, errors)
@@ -2578,7 +2601,7 @@ def list_ws_results(apis, query, offset=0):
     # „videos" je obecný typ a skiny k němu nabízejí jen základní seznam;
     # u konkrétního typu je na výběr celá sada zobrazení. Kodi si zobrazení
     # pamatuje podle typu obsahu, takže tyhle seznamy sdílejí nastavení s Filmy.
-    xbmcplugin.setContent(HANDLE, "movies")
+    set_content("movies")
     files, total = api.search(query, sort=SORTS[int(setting("ws_sort", "0"))], limit=WS_PAGE, offset=offset)
     remember_ws_token(api)
     for f in files:
@@ -2593,7 +2616,7 @@ def list_hs_results(apis, query, offset=0):
     api = apis.get("hs")
     if api is None:
         raise HellspyError(L(30104))
-    xbmcplugin.setContent(HANDLE, "movies")
+    set_content("movies")
     files, _next = api.search(query, limit=HS_PAGE, offset=offset)
     for f in files:
         add_hs_file(f)
@@ -2647,7 +2670,7 @@ def list_dav_browse(apis, slot=0, path=""):
         folder_item(f"{name}  [COLOR FF9A9A9A]{count}[/COLOR]",
                     build_url(action="dav_browse", slot=api.slot, path=prefix + name), icon="DefaultFolder.png")
     if files:
-        xbmcplugin.setContent(HANDLE, "movies")
+        set_content("movies")
     for f in sorted(files, key=lambda f: f["name"].casefold()):
         add_dav_file(api, f)
     if not folders and not files:
@@ -2659,7 +2682,7 @@ def list_dav_results(apis, query, offset=0):
     storages = apis.get("dav") or []
     if not storages:
         raise StorageError(L(30104))
-    xbmcplugin.setContent(HANDLE, "movies")
+    set_content("movies")
     errors, rows = [], []
     for api in storages:
         if _storage_ok(api, errors):
@@ -2746,7 +2769,7 @@ def list_favourites():
     # „videos" je obecný typ a skiny k němu nabízejí jen základní seznam;
     # u konkrétního typu je na výběr celá sada zobrazení. Kodi si zobrazení
     # pamatuje podle typu obsahu, takže tyhle seznamy sdílejí nastavení s Filmy.
-    xbmcplugin.setContent(HANDLE, "movies")
+    set_content("movies")
     for key in STORE.favourites():
         snap = STORE.item(key)
         if snap:
@@ -2762,7 +2785,7 @@ def list_recent():
     # „videos" je obecný typ a skiny k němu nabízejí jen základní seznam;
     # u konkrétního typu je na výběr celá sada zobrazení. Kodi si zobrazení
     # pamatuje podle typu obsahu, takže tyhle seznamy sdílejí nastavení s Filmy.
-    xbmcplugin.setContent(HANDLE, "movies")
+    set_content("movies")
     for key, _entry in STORE.recently_watched():
         snap = STORE.item(key)
         if snap:
@@ -2814,19 +2837,25 @@ def list_continue(apis):
     # „videos" je obecný typ a skiny k němu nabízejí jen základní seznam;
     # u konkrétního typu je na výběr celá sada zobrazení. Kodi si zobrazení
     # pamatuje podle typu obsahu, takže tyhle seznamy sdílejí nastavení s Filmy.
-    xbmcplugin.setContent(HANDLE, "movies")
+    set_content("movies")
     for key, _entry in STORE.in_progress():
         snap = STORE.item(key) or recover_snapshot(apis, key)
         if snap:
             add_snapshot_item(key, snap, [(L(30365, "Odebrat z Pokračovat ve sledování"),
                                           runplugin(action="remove_progress", id=key))])
     seen_series = set()
+    snaps = []
     for key, _entry in STORE.recently_watched(40):
         snap = STORE.item(key)
         if not snap or snap.get("season") is None or snap.get("series") in seen_series:
             continue
         seen_series.add(snap.get("series"))
-        found = next_episode(apis, snap)
+        snaps.append(snap)
+    # meta každého seriálu je dotaz na síť (Luna 10 min, TMDB 30 dní v cache) — souběžně,
+    # dřív se Pokračovat s deseti seriály otevíralo deset dotazů za sebou
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        nalezeno = list(pool.map(lambda s: next_episode(apis, s), snaps))
+    for snap, found in zip(snaps, nalezeno):
         if not found:
             continue
         video, meta = found
@@ -2852,7 +2881,7 @@ def list_seasons(apis, series_id, alt=None):
         enrich_one(meta, apis["luna"], STORE, "series")
     videos = meta.get("videos") or []
     seasons = sorted({int(v.get("season") or 0) for v in videos}, key=lambda s: (s == 0, s))
-    xbmcplugin.setContent(HANDLE, "seasons")
+    set_content("seasons")
     for s in seasons:
         tpl = L(30023)
         label = L(30022) if s == 0 else (tpl % s if "%d" in tpl else f"{tpl} {s}")
@@ -2872,7 +2901,7 @@ def list_seasons(apis, series_id, alt=None):
 
 def list_episodes(apis, series_id, season, alt=None):
     meta = meta_for(apis, "series", series_id)
-    xbmcplugin.setContent(HANDLE, "episodes")
+    set_content("episodes")
     videos = [v for v in meta.get("videos") or [] if int(v.get("season") or 0) == season]
     videos.sort(key=lambda v: int(v.get("episode") or 0))
     ep_ids = [v.get("id") or f"{series_id}:{season}:{v.get('episode')}" for v in videos]
@@ -2935,7 +2964,7 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None, fq="", flang=""
         if strict and has_fulltext_source:
             # rovnou selhat by uživateli vzalo možnost zkusit to uvolněněji —
             # nabídne se aspoň ta jedna položka místo prázdné/chybové obrazovky
-            xbmcplugin.setContent(HANDLE, "episodes")
+            set_content("episodes")
             fulltext_item(ctype, item_id, series_id, alt)
             xbmcplugin.endOfDirectory(HANDLE)
             return
@@ -2958,7 +2987,7 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None, fq="", flang=""
     # takže změna zobrazení na jedné přepnula i tu druhou. "episodes" sdílí
     # identitu jen s obrazovkou Epizody, na kterou se z hledání chodí přes
     # mezikrok — kolize je tam mnohem méně nápadná než přímo s hledáním.
-    xbmcplugin.setContent(HANDLE, "episodes")
+    set_content("episodes")
     title = (video or {}).get("title") or display_name(meta)
     year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
     # do statistik jde titul bez roku — ten se posílá zvlášť polem `year`,
@@ -3249,7 +3278,7 @@ def download_hs(apis, file_id, file_hash, name):
 def list_downloads():
     if sync_settings():
         folder_item(L(30190, "Staženo v HA"), build_url(action="ha_files"), icon="DefaultNetwork.png")
-    xbmcplugin.setContent(HANDLE, "videos")
+    set_content("videos")
     status_labels = {"queued": L(30078), "running": L(30079), "done": L(30080), "error": L(30081), "cancel": L(30082)}
     for d in STORE.downloads():
         status = d.get("status")

@@ -14,8 +14,7 @@ v úložišti jádra (`sledujteto_token.json`, klíč podle otisku účtu), ať 
 nepřihlašuje každý dotaz; po 401 se jednou přihlásí znovu.
 
 Velikost souboru jejich doplněk nepoužívá, takže není jisté, pod jakým klíčem
-chodí — `_size()` zkouší obvyklé varianty a `last_keys` si pamatuje, jaké klíče
-výsledek hledání měl (klienti je jednou zalogují, ať se to dá dohledat).
+chodí — `_size()` zkouší obvyklé varianty.
 """
 import hashlib
 import json
@@ -45,13 +44,7 @@ class SledujtetoError(Exception):
         self.status = status
 
 
-def human_size(num):
-    num = float(num or 0)
-    for unit in ("B", "KB", "MB", "GB", "TB"):
-        if num < 1024 or unit == "TB":
-            return f"{num:.0f} {unit}" if unit in ("B", "KB") else f"{num:.2f} {unit}"
-        num /= 1024
-    return ""
+from streams import human_size  # noqa: F401
 
 
 def _duration(text):
@@ -147,9 +140,6 @@ class SledujtetoApi:
         self.cache = cache
         self.cache_ttl = cache_ttl
         self._token = None
-        self.last_keys = []
-        self.last_me_keys = []
-        self.last_sample = {}
 
     # --- síť ----------------------------------------------------------------
     def _request(self, method, path, data=None, token=None):
@@ -231,21 +221,7 @@ class SledujtetoApi:
     def me(self):
         data = self._authed("GET", "v1/me").get("data") or {}
         user = data.get("user") or {}
-        # jaké údaje o účtu API posílá (jen názvy, ne hodnoty) — hledá se v nich
-        # konec Premium pro upozornění jako u WebShare; oficiální doplněk čte jen is_premium
-        self.last_me_keys = sorted({"data." + k for k in data} | {"user." + k for k in user})
-        sub = user.get("subscription")
-        if isinstance(sub, dict):
-            # tvar předplatného pro upozornění na konec Premium: názvy polí a u dat,
-            # čísel a přepínačů i hodnota (nic osobního — e-mail a jméno sem nejdou)
-            def ukazka(value):
-                if isinstance(value, (bool, int, float)) or value is None:
-                    return value
-                text = str(value)
-                return text if any(ch.isdigit() for ch in text) and len(text) <= 40 else type(value).__name__
-            self.last_me_keys.append("subscription=" + repr({k: ukazka(v) for k, v in sorted(sub.items())}))
-        elif sub is not None:
-            self.last_me_keys.append(f"subscription=<{type(sub).__name__}> {str(sub)[:40]}")
+        # oficiální doplněk čte jen is_premium; konec Premium API zatím neposílá čitelně
         return user
 
     def search(self, query, limit=25, offset=0):
@@ -253,15 +229,6 @@ class SledujtetoApi:
             qs = urllib.parse.urlencode({"query": query, "limit": limit, "offset": offset})
             inner = self._authed("GET", "v1/videos?" + qs).get("data") or {}
             results = inner.get("results") or []
-            if results and isinstance(results[0], dict):
-                first = results[0]
-                self.last_keys = sorted(set(first) | {"video." + k for k in (first.get("video") or {})})
-                # ukázka technických údajů (rozlišení, kodeky, kanály) — formát jejich
-                # doplněk nepoužívá a z dokumentace ho neznáme; žádné odkazy ani popis
-                video = first.get("video") or {}
-                self.last_sample = {k: v for k, v in video.items()
-                                    if k not in ("thumb_urls", "subtitles") and not isinstance(v, (dict, list))}
-                self.last_sample["filesize"] = first.get("filesize")
             files = [normalize(r) for r in results if isinstance(r, dict) and r.get("id")]
             return files, int(inner.get("total") or len(files))
         if self.cache is None:

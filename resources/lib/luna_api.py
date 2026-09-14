@@ -82,7 +82,7 @@ class LunaApi:
 
     # --- HTTP -------------------------------------------------------------
     def _get(self, url):
-        req = urllib.request.Request(url, headers={"User-Agent": "Kodi plugin.video.nokturno"})
+        req = urllib.request.Request(url, headers={"User-Agent": "Nokturno (+https://github.com/matata86/nokturno-core)"})
         try:
             with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
                 return json.loads(resp.read().decode("utf-8"))

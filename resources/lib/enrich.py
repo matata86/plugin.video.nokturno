@@ -30,7 +30,7 @@ FIELDS = ("description", "runtime", "director", "writer", "cast", "app_extras", 
 
 def _cinemeta(ctype, imdb):
     req = urllib.request.Request(CINEMETA.format(ctype=ctype, imdb=imdb),
-                                 headers={"User-Agent": "Kodi plugin.video.nokturno"})
+                                 headers={"User-Agent": "Nokturno (+https://github.com/matata86/nokturno-core)"})
     with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
         return json.loads(resp.read().decode("utf-8")).get("meta") or {}
 

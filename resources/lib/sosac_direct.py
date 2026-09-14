@@ -30,7 +30,7 @@ TIMEOUT = 40
 ID_PREFIX = "sosacd_"
 LETTERS = list("abcdefghijklmnopqrstuvwxyz") + ["0-9"]
 QUALITY_ORDER = ("UHD", "FHD", "HD", "SD")
-UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Kodi plugin.video.nokturno"
+UA = "Mozilla/5.0 (compatible; Nokturno/1.0; +https://github.com/matata86/nokturno-core)"
 
 MOVIE_LISTS = [
     ("moviesmostpopular", "Nejpopulárnější filmy"),
@@ -454,9 +454,7 @@ class SosacDirect:
             "location": 1,
         })
         data = self._get(url, ttl=120)
-        urls = data.get("URL") or {}
-        if not self.password and data.get("errormessage"):
-            pass  # bez účtu Streamuj hraje jen ukázka – hlásí se v popisku streamu
+        urls = data.get("URL") or {}   # bez účtu Streamuj hraje jen ukázka – hlásí se v popisku streamu
         streams = []
         for lang, quals in urls.items():
             if not isinstance(quals, dict):

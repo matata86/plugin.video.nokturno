@@ -32,7 +32,7 @@ class CinemetaApi:
         self.cache_ttl = cache_ttl
 
     def _get(self, url):
-        req = urllib.request.Request(url, headers={"User-Agent": "Nokturno"})
+        req = urllib.request.Request(url, headers={"User-Agent": "Nokturno (+https://github.com/matata86/nokturno-core)"})
         try:
             with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
                 return json.loads(resp.read().decode("utf-8"))

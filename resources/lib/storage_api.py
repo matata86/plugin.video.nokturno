@@ -27,7 +27,6 @@ import base64
 import hashlib
 import re
 import time
-import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -58,18 +57,7 @@ class StorageError(Exception):
         self.status = status
 
 
-def human_size(nbytes):
-    try:
-        gb = int(nbytes) / 2 ** 30
-    except (TypeError, ValueError):
-        return ""
-    if not nbytes:
-        return ""
-    return f"{gb:.1f} GB" if gb >= 1 else f"{int(nbytes) / 2 ** 20:.0f} MB"
-
-
-def _fold(text):
-    return unicodedata.normalize("NFKD", text or "").encode("ascii", "ignore").decode().lower()
+from streams import fold as _fold, human_size  # noqa: F401
 
 
 def normalize_url(url):

@@ -8,6 +8,7 @@ Bez závislostí na Home Assistantu — jde testovat samostatně:
 """
 import json
 import re
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -67,7 +68,7 @@ class ProwlarrApi:
             url += "?" + urllib.parse.urlencode(params, doseq=True)
         req = urllib.request.Request(url, headers={
             "X-Api-Key": self.key,
-            "User-Agent": "Home Assistant Nokturno",
+            "User-Agent": "Nokturno (+https://github.com/matata86/nokturno-core)",
         })
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:

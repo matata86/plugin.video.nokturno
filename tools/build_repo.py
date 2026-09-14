@@ -29,7 +29,9 @@ if not BETA:
     ADDONS["repository.nokturno"] = os.path.join(ROOT, "repository.nokturno")
     ADDONS["repository.nokturno.beta"] = os.path.join(ROOT, "repository.nokturno.beta")
 EXCLUDE = {".git", ".gitignore", "repo", "repo-beta", "tools", "tests", "repository.nokturno",
-           "repository.nokturno.beta", "__pycache__", ".github"}
+           "repository.nokturno.beta", "__pycache__", ".github",
+           # v zipu bez užitku: vánoční seznam a ikona nikde v kódu, torrenty jen v HA
+           "lists", "icon-vanoce.png", "prowlarr.py", "qbittorrent.py"}
 
 
 def addon_version(path):
@@ -114,12 +116,26 @@ def all_versions_xml(addon_id, out_dir):
     return [blocks[v] for v in sorted(blocks, key=version_key)]
 
 
+def check(version):
+    """Co se dřív hlídalo jen okem: <news> začíná vydávanou verzí a kopie jádra sedí."""
+    news = (ET.parse(os.path.join(ROOT, "addon.xml")).getroot().findtext(".//news") or "").lstrip()
+    if not news.startswith(version.split("~")[0]):
+        sys.exit(f"<news> v addon.xml nezačíná verzí {version} — doplň řádek s novinkami")
+    sync = os.path.join(ROOT, "..", "..", "nokturno-core", "tools", "sync_core.py")
+    if os.path.exists(sync):
+        import subprocess
+        out = subprocess.run([sys.executable, sync, "--check", "kodi"], capture_output=True, text=True)
+        if "ke změně: 0 souborů" not in out.stdout:
+            sys.exit(f"resources/lib neodpovídá jádru — spusť `python3 tools/sync_core.py kodi` v jádru\n{out.stdout}")
+
+
 def main():
     version = addon_version(ROOT)
     if BETA and "~" not in version:
         sys.exit(f"--beta chce verzi s „~“ (např. 3.2.0~beta1), addon.xml má {version}")
     if not BETA and "~" in version:
         sys.exit(f"{version} je beta — spusť s --beta (do stabilního repo/ nepatří)")
+    check(version)
     os.makedirs(REPO, exist_ok=True)
     parts = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>', "<addons>"]
     for addon_id, src in ADDONS.items():

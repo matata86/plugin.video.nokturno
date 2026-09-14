@@ -42,7 +42,7 @@ class TraktApi:
             "Content-Type": "application/json",
             "trakt-api-version": "2",
             "trakt-api-key": self.client_id,
-            "User-Agent": "Kodi plugin.video.nokturno",
+            "User-Agent": "Nokturno (+https://github.com/matata86/nokturno-core)",
         }
         if auth:
             if not self.tokens.get("access_token"):

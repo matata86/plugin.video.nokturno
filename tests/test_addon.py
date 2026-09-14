@@ -622,3 +622,38 @@ class TestFrontaAZahrivani(unittest.TestCase):
         mrtve = sorted(set(po_ids("cs_cz")) - used)
         self.assertEqual(mrtve, [], f"řetězce bez použití: {mrtve}")
         self.assertIn(30402, used, "průběh měření rychlosti má vlastní řetězec, ne label tlačítka")
+
+
+class TestUdrzbaKodi(unittest.TestCase):
+    def setUp(self):
+        reset_kodi()
+
+    def test_kazdy_vypis_nabizi_razeni(self):
+        src = (ROOT / "default.py").read_text(encoding="utf-8")
+        self.assertEqual(src.count("xbmcplugin.setContent(HANDLE, "), 1, "jen uvnitř set_content()")
+        default.set_content("movies")
+        self.assertEqual(xbmcplugin.contents, ["movies"])
+        self.assertEqual(xbmcplugin.sort_methods[:2], [xbmcplugin.SORT_METHOD_UNSORTED, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE])
+        self.assertIn(xbmcplugin.SORT_METHOD_VIDEO_YEAR, xbmcplugin.sort_methods)
+
+    def test_novinky_umi_beta_verzi(self):
+        radky = default.parse_news("3.2.0~beta1 – nová věc\n3.1.12 – oprava\nnesmysl bez verze\n3.1.10 – starší")
+        self.assertEqual([v for v, _t in radky], ["3.2.0~beta1", "3.1.12", "3.1.10"])
+        self.assertEqual([v for v, _t in default.parse_news("3.2.0~beta1 – x\n3.1.12 – y", since="3.1.12")], ["3.2.0~beta1"])
+        self.assertLess(default._vkey("3.2.0~beta1"), default._vkey("3.2.0"))
+        self.assertEqual(default._vkey("3.1.12"), build_repo.version_key("3.1.12"))
+
+    def test_zip_bez_balastu_a_build_hlida_novinky(self):
+        for f in ("lists", "icon-vanoce.png", "prowlarr.py", "qbittorrent.py", "tests"):
+            self.assertIn(f, build_repo.EXCLUDE)
+        build_repo.check(ET.parse(ROOT / "addon.xml").getroot().get("version"))   # aktuální stav projde
+        with self.assertRaises(SystemExit):
+            build_repo.check("9.9.9")
+
+    def test_readme_bez_zastaralych_tvrzeni(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        for zastarale in ("všechny čtyři", "userId", "Kodi (19", "en_GB, cs_CZ\n"):
+            self.assertNotIn(zastarale, readme, zastarale)
+        for lib in ("hellspy_api", "sledujteto_api", "storage_api", "mediainfo", "sk_SK", "tests/"):
+            self.assertIn(lib, readme, lib)
+        self.assertIn("github.com/matata86/plugin.video.nokturno/issues", (ROOT / "addon.xml").read_text(encoding="utf-8"))

@@ -70,6 +70,27 @@ def estimate_rank(size_gb):
     return 1
 
 
+def human_size(nbytes):
+    """Velikost jako text pro popisek streamu — jedna podoba pro všechny zdroje („4.2 GB",
+    „512 MB"). Dřív měl každý klient vlastní verzi s jiným zaokrouhlením (WebShare „4.5 GB",
+    Sledujteto „4.50 GB", HellSpy „4.5 GB"), a `_merge_direct` páruje soubory právě podle velikosti."""
+    try:
+        n = int(nbytes)
+    except (TypeError, ValueError):
+        return ""
+    if n <= 0:
+        return ""
+    gb = n / 2 ** 30
+    return f"{gb:.1f} GB" if gb >= 1 else f"{n / 2 ** 20:.0f} MB"
+
+
+def fold(text):
+    """Bez diakritiky, malá písmena — jedno místo pro porovnávání názvů souborů (dřív totéž
+    v engine i storage_api)."""
+    import unicodedata
+    return unicodedata.normalize("NFKD", text or "").encode("ascii", "ignore").decode().lower()
+
+
 def parse_size_gb(text):
     m = SIZE_RE.search(text or "")
     if not m:
