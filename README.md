@@ -141,6 +141,10 @@ Doplněk umí hlásit, jak se používá. Slouží to k jedinému: vědět, koli
 má, na čem běží a o co je zájem. Sběr je ve výchozím stavu zapnutý a vypíná se
 jedním přepínačem v *Nastavení → Statistiky*.
 
+**Po vypnutí** se dál jednou za 6 hodin posílá jen náhodné id instalace, typ
+a verze doplňku — aby bylo vidět, kolik instalací žije. Žádné tituly, zdroje,
+platforma, jazyk ani časy použití.
+
 **Co se posílá**
 
 | Údaj | K čemu |

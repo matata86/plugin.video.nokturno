@@ -19,6 +19,10 @@ K hlášení se přidává (neukládá se, klient ho skládá při každém odes
               „tmdb" a „trakt"; nic z účtů, jen jestli je zdroj zapnutý
   product     „kodi" / „ha" / „stremio" — dřív server odvozoval jen z platformy
 
+Při vypnutých statistikách klient místo hlášení posílá jen `ping_payload()`:
+náhodné id, produkt a verzi — aby bylo vidět, že instalace žije. Žádné tituly,
+zdroje, platforma, jazyk ani časy použití (dashboard u pingu nic dalšího nepřepíše).
+
 Posílá se kumulativní stav, ne přírůstky — server dělá upsert, takže výpadek
 sítě ani ztracená odpověď nic nerozhodí. Zapisuje jen služba na pozadí
 (`service.py`); plugin jí události předává přes vlastnost okna, aby dva procesy
@@ -118,8 +122,15 @@ class Stats:
             out["product"] = product
         return out
 
+    def ping_payload(self, version="", product=""):
+        """Jen „instalace žije" — při vypnutých statistikách."""
+        out = {"id": self.data["id"], "ping": True, "version": version}
+        if product:
+            out["product"] = product
+        return out
+
     def send(self, url, version="", platform="", kodi="", lang="", agent="Kodi plugin.video.nokturno",
-             sources=None, product=""):
+             sources=None, product="", ping=False):
         """Odešle stav. Vrací (True, "") nebo (False, důvod) — nikdy nevyhodí výjimku.
 
         `agent` odlišuje odesílatele v přístupovém logu serveru; tentýž modul
@@ -127,7 +138,9 @@ class Stats:
         """
         if not url:
             return False, "chybí adresa"
-        body = json.dumps(self.payload(version, platform, kodi, lang, sources, product)).encode("utf-8")
+        data = (self.ping_payload(version, product) if ping
+                else self.payload(version, platform, kodi, lang, sources, product))
+        body = json.dumps(data).encode("utf-8")
         req = urllib.request.Request(url, data=body, headers={
             "Content-Type": "application/json",
             "User-Agent": f"{agent}/" + (version or "?"),

@@ -434,8 +434,8 @@ msgid "Send statistics now"
 msgstr "Odeslat statistiky nyní"
 
 msgctxt "#30164"
-msgid "Sends a random installation id, add-on version, platform, last use and per-title stream view counts. Nothing else leaves the device."
-msgstr "Posílá se náhodné id instalace, verze doplňku, platforma, poslední použití a počty zobrazení streamů jednotlivých titulů. Nic dalšího zařízení neopouští."
+msgid "Sends a random installation id, add-on version, platform, last use and per-title stream view counts. Nothing else leaves the device. When switched off, only the random installation id and add-on version are still sent, so it is known the installation is alive."
+msgstr "Posílá se náhodné id instalace, verze doplňku, platforma, poslední použití a počty zobrazení streamů jednotlivých titulů. Nic dalšího zařízení neopouští. Po vypnutí se dál posílá jen náhodné id instalace a verze doplňku, aby bylo vidět, že instalace žije."
 
 msgctxt "#30165"
 msgid "Statistics sent"

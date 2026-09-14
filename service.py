@@ -523,9 +523,15 @@ def stats_tick(stats, force=False):
             stats.note_play(viewed["id"], viewed.get("title") or "",
                             viewed.get("year"), viewed.get("kind") or "movie")
     addon = fresh_addon()
-    if addon is None or addon.getSetting("stats_enabled") != "true":
+    if addon is None:
         return
     if not force and not stats.due():
+        return
+    if addon.getSetting("stats_enabled") != "true":
+        # vypnuté statistiky: jen „instalace žije" — id, produkt a verze, žádné tituly ani zdroje
+        ok, why = stats.send(COLLECT_URL, version=addon.getAddonInfo("version"), product="kodi", ping=True)
+        log("ping instalace odeslán" if ok else f"ping instalace neodeslán: {why}",
+            xbmc.LOGINFO if ok else xbmc.LOGWARNING)
         return
     ok, why = stats.send(COLLECT_URL, **stats_context(addon))
     log("statistiky odeslány" if ok else f"statistiky neodeslány: {why}",
