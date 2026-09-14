@@ -28,7 +28,7 @@ if not BETA:
     # i z „Nokturno repozitář“ a ze zrcadel, která repo-beta/ nemají
     ADDONS["repository.nokturno"] = os.path.join(ROOT, "repository.nokturno")
     ADDONS["repository.nokturno.beta"] = os.path.join(ROOT, "repository.nokturno.beta")
-EXCLUDE = {".git", ".gitignore", "repo", "repo-beta", "tools", "repository.nokturno",
+EXCLUDE = {".git", ".gitignore", "repo", "repo-beta", "tools", "tests", "repository.nokturno",
            "repository.nokturno.beta", "__pycache__", ".github"}
 
 

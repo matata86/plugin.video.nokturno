@@ -1,0 +1,503 @@
+"""Kontrola doplňku pro Kodi — bez Kodi, bez sítě a bez účtů.
+
+    python3 -m unittest discover -s tests -v
+
+Moduly `xbmc*` nahrazují podstrčené verze v `tests/stubs/`, které si jen
+pamatují, co po nich plugin chtěl. Ověřuje se to, co je vlastní doplňku (jádro
+má testy ve svém repu): přísný filtr názvů souborů, slučování streamů, router
+a to, jak končí při chybě zdroje, soulad zahřívání cache s menu, a konzistence
+souborů, které Kodi čte samo (strings.po, settings.xml, addon.xml).
+"""
+import os
+import pathlib
+import re
+import shutil
+import sys
+import tempfile
+import unittest
+import urllib.parse
+import xml.etree.ElementTree as ET
+from unittest import mock
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+CORE_LIB = ROOT.parent.parent / "nokturno-core" / "nokturno_core" / "lib"
+sys.path.insert(0, str(ROOT / "tests" / "stubs"))
+sys.path.insert(0, str(ROOT))
+
+import xbmc, xbmcaddon, xbmcgui, xbmcplugin   # noqa: E402,E401
+
+_PROFILE = tempfile.mkdtemp(prefix="nokturno-test-")
+xbmcaddon.info.update(path=str(ROOT), profile=_PROFILE,
+                      version=ET.parse(ROOT / "addon.xml").getroot().get("version"))
+# Kodi předává handle a adresu pluginu v argv — default.py je čte hned při importu
+sys.argv = ["plugin://plugin.video.nokturno/", "1", ""]
+
+import default                                # noqa: E402
+import service                                # noqa: E402
+from luna_api import LunaError                # noqa: E402
+from webshare_api import WebshareError        # noqa: E402
+
+sys.path.insert(0, str(ROOT / "tools"))
+import build_repo                             # noqa: E402
+
+HANDLE = 1
+LANG_DIR = ROOT / "resources" / "language"
+
+
+def tearDownModule():
+    shutil.rmtree(_PROFILE, ignore_errors=True)
+
+
+def reset_kodi():
+    for m in (xbmc, xbmcaddon, xbmcgui, xbmcplugin):
+        m.reset()
+
+
+def params_of(url):
+    return dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(url).query))
+
+
+def po_ids(lang):
+    text = (LANG_DIR / f"resource.language.{lang}" / "strings.po").read_text(encoding="utf-8")
+    return [int(m) for m in re.findall(r'^msgctxt "#(\d+)"', text, re.M)]
+
+
+def ids_in_code():
+    out = set()
+    for name in ("default.py", "service.py"):
+        out.update(int(m) for m in re.findall(r"\bLf?\((3\d{4})\b", (ROOT / name).read_text(encoding="utf-8")))
+    return out
+
+
+class TestKnihovnaJeKopieJadra(unittest.TestCase):
+    """`resources/lib/` se needituje tady — kdyby se rozešla s jádrem, sync ji přepíše."""
+
+    @unittest.skipUnless(CORE_LIB.is_dir(), "jádro není vedle doplňku")
+    def test_lib_odpovida_jadru(self):
+        # sync při rozesílání přepisuje relativní importy, prosté porovnání souborů nestačí —
+        # rozhoduje sám rozesílací skript
+        import subprocess
+        sync = CORE_LIB.parent.parent / "tools" / "sync_core.py"
+        out = subprocess.run([sys.executable, str(sync), "--check", "kodi"], capture_output=True, text=True)
+        self.assertIn("ke změně: 0 souborů", out.stdout, f"spusť `python3 tools/sync_core.py kodi` v jádru\n{out.stdout}")
+
+
+class TestRetezce(unittest.TestCase):
+    def test_kazdy_pouzity_retezec_ma_preklad(self):
+        used = ids_in_code()
+        for lang in ("cs_cz", "en_gb", "sk_sk"):
+            chybi = sorted(used - set(po_ids(lang)))
+            self.assertEqual(chybi, [], f"{lang}: chybí #{chybi}")
+
+    def test_bez_duplicit_a_stejna_sada_ve_vsech_jazycich(self):
+        sady = {}
+        for lang in ("cs_cz", "en_gb", "sk_sk"):
+            ids = po_ids(lang)
+            dup = sorted({i for i in ids if ids.count(i) > 1})
+            self.assertEqual(dup, [], f"{lang}: duplicitní #{dup}")
+            sady[lang] = set(ids)
+        self.assertEqual(sady["cs_cz"], sady["en_gb"])
+        self.assertEqual(sady["cs_cz"], sady["sk_sk"])
+
+    def test_zadny_prazdny_preklad(self):
+        # angličtina je zdrojový jazyk: text nese msgid a msgstr je podle zvyklostí Kodi prázdný
+        for lang, pole in (("cs_cz", "msgstr"), ("sk_sk", "msgstr"), ("en_gb", "msgid")):
+            text = (LANG_DIR / f"resource.language.{lang}" / "strings.po").read_text(encoding="utf-8")
+            bloky = re.findall(r'msgctxt "#(\d+)"\nmsgid "([^"]*)"\nmsgstr "([^"]*)"\n', text)
+            prazdne = [sid for sid, msgid, msgstr in bloky if not (msgid if pole == "msgid" else msgstr)]
+            self.assertEqual(prazdne, [], f"{lang}: prázdný {pole} u #{prazdne}")
+
+    def test_Lf_bez_zastupneho_symbolu_hodnoty_pripoji(self):
+        with mock.patch.object(default.ADDON, "getLocalizedString", return_value="Chyba: %s"):
+            self.assertEqual(default.Lf(30000, "x"), "Chyba: x")
+        with mock.patch.object(default.ADDON, "getLocalizedString", return_value="Chyba"):
+            self.assertEqual(default.Lf(30000, "x", 2), "Chyba x 2")
+
+
+class TestNastaveni(unittest.TestCase):
+    def test_kazdy_cteny_klic_je_v_settings_xml(self):
+        xml_ids = set(re.findall(r'<setting id="([a-z_0-9]+)"', (ROOT / "resources" / "settings.xml").read_text()))
+        used = set()
+        for name in ("default.py", "service.py"):
+            used.update(re.findall(r'\b(?:setting|on|getSetting)\("([a-z_0-9]+)"', (ROOT / name).read_text()))
+        # dav<slot>_* se skládají za běhu, ověří se zvlášť
+        chybi = sorted(k for k in used if k not in xml_ids)
+        self.assertEqual(chybi, [])
+        for slot in range(1, default.STORAGE_SLOTS + 1):
+            for suffix in ("url", "username", "password", "name"):
+                self.assertIn(f"dav{slot}_{suffix}", xml_ids)
+
+
+class TestAddonXml(unittest.TestCase):
+    def setUp(self):
+        self.root = ET.parse(ROOT / "addon.xml").getroot()
+        self.version = self.root.get("version")
+
+    def test_verze_ma_tvar_kodi(self):
+        self.assertRegex(self.version, r"^\d+\.\d+\.\d+(~[a-z]+\d*)?$")
+        self.assertEqual(build_repo.addon_version(str(ROOT)), self.version)
+
+    def test_novinky_zacinaji_aktualni_verzi(self):
+        lines = default.changelog_lines()
+        self.assertTrue(lines)
+        self.assertEqual(lines[0][0], self.version.split("~")[0])
+
+    def test_kazdy_radek_novinek_se_da_precist(self):
+        news = self.root.find(".//news").text.strip().splitlines()
+        self.assertEqual(len(default.changelog_lines()), len(news),
+                         "řádek <news> bez „verze – text“ by v Novinkách tiše zmizel")
+
+    def test_changelog_od_verze(self):
+        since = default.changelog_lines()[-1][0]   # nejstarší verze
+        self.assertTrue(all(default._vkey(v) > default._vkey(since) for v, _t in default.changelog_lines(since)))
+        self.assertEqual(default.changelog_lines(self.version), [])
+
+    def test_ikona_a_fanart_existuji(self):
+        for tag, rel in build_repo.addon_assets(str(ROOT)).items():
+            self.assertTrue((ROOT / rel).is_file(), f"{tag}: {rel}")
+
+
+class TestBuildRepo(unittest.TestCase):
+    def test_razeni_verzi_jako_kodi(self):
+        vk = build_repo.version_key
+        self.assertLess(vk("3.1.9"), vk("3.1.10"))
+        self.assertLess(vk("3.2.0~beta1"), vk("3.2.0"))
+        self.assertLess(vk("3.2.0~beta1"), vk("3.2.0~beta2"))
+        self.assertLess(vk("3.1.10"), vk("3.2.0~beta1"))
+        self.assertEqual(sorted(["3.2.0", "3.1.10", "3.2.0~beta1", "3.1.9"], key=vk),
+                         ["3.1.9", "3.1.10", "3.2.0~beta1", "3.2.0"])
+
+
+class TestPomocneFunkce(unittest.TestCase):
+    def test_split_episode_id(self):
+        self.assertEqual(default.split_episode_id("tt0903747:1:2"), ("tt0903747", 1, 2))
+        self.assertEqual(default.split_episode_id("sosac2_21849:3:12"), ("sosac2_21849", 3, 12))
+        self.assertEqual(default.split_episode_id("tt0133093"), ("tt0133093", None, None))
+        self.assertEqual(default.split_episode_id("tt1:x:2"), ("tt1:x:2", None, None))
+
+    def test_display_name(self):
+        self.assertEqual(default.display_name({"id": "tt1", "name": "Matrix", "releaseInfo": "1999-"}), "Matrix (1999)")
+        self.assertEqual(default.display_name({"id": "tt1", "name": "Matrix"}), "Matrix")
+        self.assertEqual(default.display_name({"id": "sosacd_5", "name": "Matrix CZ/EN (The Matrix)",
+                                               "_title": "Matrix", "year": 1999}), "Matrix (1999)")
+
+    def test_runtime_minutes(self):
+        self.assertEqual(default.runtime_minutes("2h42min"), 162)
+        self.assertEqual(default.runtime_minutes("1h"), 60)
+        self.assertEqual(default.runtime_minutes("42"), 42)
+        self.assertEqual(default.runtime_minutes("45 min"), 45)
+        self.assertEqual(default.runtime_minutes(""), 0)
+        self.assertEqual(default.runtime_minutes(None), 0)
+
+    def test_split_year(self):
+        self.assertEqual(default.split_year("Pět švestek 2026"), ("Pět švestek", "2026"))
+        self.assertEqual(default.split_year("2012"), ("2012", ""))
+        self.assertEqual(default.split_year("Blade Runner 2049"), ("Blade Runner 2049", ""))
+        self.assertEqual(default.split_year("  matrix  "), ("matrix", ""))
+
+    def test_filter_year(self):
+        merged = [({"name": "A", "year": 2026}, None), ({"name": "B", "releaseInfo": "1999-"}, None),
+                  ({"name": "C"}, None)]
+        self.assertEqual([m["name"] for m, _a in default.filter_year(merged, "2026")], ["A", "C"])
+        self.assertEqual(default.filter_year(merged, ""), merged)
+
+    def test_merge_results_spoji_stejny_titul(self):
+        luna = [{"id": "tt1", "name": "Matrix", "year": 1999}, {"id": "tt2", "name": "Jiný film", "year": 2000}]
+        sosac = [{"id": "sosacd_9", "_title": "Matrix", "_orig": "The Matrix", "year": 1999},
+                 {"id": "sosacd_8", "_title": "Matrix", "year": 2020},   # rok se liší → jiný titul
+                 {"id": "sosacd_7", "_title": "Jen v Sosáči", "year": 2001}]
+        merged = default.merge_results(luna, sosac)
+        self.assertEqual([(m["id"], alt) for m, alt in merged],
+                         [("tt1", "sosacd_9"), ("tt2", None), ("sosacd_8", None), ("sosacd_7", None)])
+
+    def test_build_url_vynecha_prazdne(self):
+        url = default.build_url(action="play", id="tt1", series=None, alt="", skip=0)
+        self.assertEqual(params_of(url), {"action": "play", "id": "tt1", "skip": "0"})
+        self.assertTrue(url.startswith("plugin://plugin.video.nokturno/?"))
+
+    def test_storage_first(self):
+        streams = [{"source": "ws"}, {"source": "dav"}, {"source": "hs"}, {"source": "dav", "n": 2}]
+        self.assertEqual([s["source"] for s in default.storage_first(streams)], ["dav", "dav", "ws", "hs"])
+
+
+class TestFiltrNazvuSouboru(unittest.TestCase):
+    """Přísný filtr fulltextových zdrojů (WebShare, HellSpy) — chyby tady se
+    projeví jako cizí film mezi streamy, nebo naopak prázdný seznam."""
+
+    def relevant(self, meta, video=None, ctype="movie", strict=True):
+        queries, relevant = default.title_queries({}, meta, video, ctype, strict=strict)
+        return queries, relevant
+
+    def test_idiom_se_stejnymi_slovy_neprojde(self):
+        queries, relevant = self.relevant({"_title": "Pět švestek", "year": 2026})
+        self.assertEqual(queries, ["Pět švestek 2026", "Pět švestek"])
+        self.assertTrue(relevant("Pet.svestek.2026.1080p.CZ.mkv"))
+        self.assertTrue(relevant("[WEB] Pět švestek (2026) FHD.mkv"))
+        self.assertFalse(relevant("Seber.si.svych.pet.svestek.1983.mkv"))
+        self.assertFalse(relevant("seber si svych pet svestek.mkv"))
+
+    def test_uvolneny_filtr_pusti_slova_kdekoli(self):
+        _q, relevant = self.relevant({"_title": "Pět švestek", "year": 2026}, strict=False)
+        self.assertTrue(relevant("seber si svych pet svestek.mkv"))
+        self.assertFalse(relevant("uplne jiny film.mkv"))
+
+    def test_rok_musi_sedet_na_rok_presne(self):
+        _q, relevant = self.relevant({"_title": "Pět švestek", "year": 2026})
+        self.assertTrue(relevant("Pet svestek 2025.mkv"))     # ±1 rok kvůli různým datům premiéry
+        self.assertFalse(relevant("Pet svestek 2020.mkv"))
+        self.assertTrue(relevant("Pet svestek.mkv"))          # bez roku se nevylučuje
+
+    def test_pokracovani_filmu_neprojde(self):
+        _q, relevant = self.relevant({"_title": "Jak vycvičit draka", "year": 2010})
+        self.assertTrue(relevant("Jak_vycvicit_draka_2010_CZ.mkv"))
+        self.assertTrue(relevant("Jak.vycvicit.draka.CZ.5.1.mkv"))       # 5.1 je zvuk, ne díl
+        self.assertFalse(relevant("Jak.vycvicit.draka.2.2014.mkv"))
+        self.assertFalse(relevant("Jak vycvicit draka II (2014).mkv"))
+
+    def test_dil_serialu_mezi_filmy_neprojde(self):
+        _q, relevant = self.relevant({"_title": "Avatar", "year": 2009})
+        self.assertFalse(relevant("Avatar.S01E03.mkv"))
+        self.assertFalse(relevant("Avatar 1x03 CZ.mkv"))
+        self.assertTrue(relevant("Avatar.2009.mkv"))
+
+    def test_kratky_nazev_musi_stat_na_zacatku(self):
+        queries, relevant = self.relevant({"_title": "To", "_orig": "It", "year": 2017})
+        self.assertIn("It 2017", queries)
+        self.assertTrue(relevant("To.2017.CZ.mkv"))
+        self.assertTrue(relevant("CZ To 2017.mkv"))
+        self.assertTrue(relevant("To - It (2017).mkv"))
+        self.assertFalse(relevant("Nekdo.to.rad.horke.1959.mkv"))
+        self.assertFalse(relevant("What.Happened.to.Monday.2017.mkv"))
+
+    def test_kratke_slovo_na_zacatku_patri_k_nazvu(self):
+        _q, relevant = self.relevant({"_title": "S čerty nejsou žerty", "year": 1984})
+        self.assertTrue(relevant("S certy nejsou zerty 1984 CZ.avi"))
+        self.assertTrue(relevant("S.certy.nejsou.zerty.mkv"))
+
+    def test_epizoda_potrebuje_znacku_dilu(self):
+        video = {"season": 1, "episode": 2}
+        queries, relevant = self.relevant({"_title": "Breaking Bad", "year": 2008}, video=video, ctype="series")
+        self.assertEqual(queries, ["Breaking Bad S01E02"])
+        self.assertTrue(relevant("Breaking.Bad.S01E02.CZ.mkv"))
+        self.assertTrue(relevant("Breaking Bad 1x02.mkv"))
+        self.assertTrue(relevant("Breaking Bad 01x02.mkv"))
+        self.assertFalse(relevant("Breaking.Bad.S01E03.mkv"))
+        self.assertFalse(relevant("Breaking.Bad.S11E02.mkv"))
+        self.assertFalse(relevant("Breaking.Bad.2008.mkv"))
+
+    def test_original_je_dalsi_varianta(self):
+        queries, relevant = self.relevant({"_title": "Vykoupení z věznice Shawshank", "_orig": "The Shawshank Redemption",
+                                           "year": 1994})
+        self.assertEqual(queries[2], "The Shawshank Redemption 1994")
+        self.assertTrue(relevant("The.Shawshank.Redemption.1994.CZ.mkv"))
+        self.assertTrue(relevant("Vykoupeni z veznice Shawshank.mkv"))
+        self.assertFalse(relevant("Redemption.2013.mkv"))
+
+
+class TestSlucovaniStreamu(unittest.TestCase):
+    def test_stejny_soubor_z_luny_a_napřímo_jen_jednou(self):
+        luna = {"source": "main", "label": "Matrix.1999.1080p.mkv", "detail": "4.2 GB | Zvuk: CZ 5.1", "url": "l"}
+        ws = {"source": "ws", "label": "Matrix.1999.1080p.mkv", "detail": "4.2 GB", "url": "ws:1"}
+        hs = {"source": "hs", "label": "Matrix.1999.1080p.mkv", "detail": "4.2 GB", "url": "hs:1"}
+        jiny = {"source": "ws", "label": "Matrix.1999.720p.mkv", "detail": "1.5 GB", "url": "ws:2"}
+        out = default.drop_duplicates([luna, ws, hs, jiny])
+        self.assertEqual([s["url"] for s in out], ["l", "ws:2"])
+
+    def test_dva_prime_zdroje_se_srovnaji_mezi_sebou(self):
+        ws = {"source": "ws", "label": "Film.mkv", "detail": "2.0 GB", "url": "ws:1"}
+        hs = {"source": "hs", "label": "Film.mkv", "detail": "2.0 GB", "url": "hs:1"}
+        self.assertEqual([s["url"] for s in default.drop_duplicates([ws, hs])], ["ws:1"])
+
+    def test_luna_bez_nazvu_se_paruje_podle_velikosti(self):
+        luna = {"source": "main", "label": "(WS) Full HD", "detail": "2.4 GB | Zvuk: CZ 2.0", "url": "l"}
+        search = {"source": "search", "label": "(WS) Full HD", "detail": "2.4 GB", "url": "s"}
+        ws = {"source": "ws", "label": "Extraktori.2x06.1080p.mkv", "detail": "2.5 GB", "url": "ws:1"}
+        daleko = {"source": "ws", "label": "Extraktori.2x06.jiny.1080p.mkv", "detail": "3.0 GB", "url": "ws:2"}
+        out = default.drop_duplicates([luna, search, ws, daleko])
+        self.assertEqual([s["url"] for s in out], ["l", "ws:2"])
+
+    def test_bez_luny_se_nic_neztrati(self):
+        streams = [{"source": "ws", "label": "a.mkv", "detail": "1 GB", "url": "1"},
+                   {"source": "hs", "label": "b.mkv", "detail": "1 GB", "url": "2"}]
+        self.assertEqual(len(default.drop_duplicates(streams)), 2)
+
+
+class TestRouter(unittest.TestCase):
+    def setUp(self):
+        reset_kodi()
+        default.STORE.save("wizard_done", True)
+
+    def test_hlavni_menu_bez_zdroju_nabidne_nastaveni(self):
+        with mock.patch.object(default, "get_apis", return_value={"luna": None, "sosac": None, "ws": None}):
+            default.router("")
+        self.assertEqual(len(xbmcplugin.ended), 1)
+        self.assertEqual([params_of(u)["action"] for u in xbmcplugin.urls()], ["settings"])
+        self.assertEqual([n[2] for n in xbmcgui.notifications], [xbmcgui.NOTIFICATION_WARNING])
+
+    def test_hlavni_menu_se_zdroji(self):
+        default.router("")
+        akce = [params_of(u).get("action") for u in xbmcplugin.urls()]
+        for a in ("search", "browse", "favourites", "settings"):
+            self.assertIn(a, akce)
+        self.assertEqual(akce.count("browse"), 2)
+        self.assertFalse(xbmcplugin.ended[-1]["cacheToDisc"], "menu se mění podle stavu, do cache nepatří")
+
+    def test_nastaveni_konci_bez_slozky(self):
+        default.router("?action=settings")
+        self.assertEqual(xbmcaddon.opened_settings, ["plugin.video.nokturno"])
+        self.assertFalse(xbmcplugin.ended[-1]["succeeded"])
+
+    def test_chyba_zdroje_u_vypisu_ukonci_slozku_neuspechem(self):
+        with mock.patch.object(default, "browse_menu", side_effect=LunaError("Luna neodpovídá")):
+            default.router("?action=browse&type=movie")
+        self.assertEqual(xbmcplugin.ended[-1]["succeeded"], False)
+        self.assertEqual(xbmcgui.notifications[-1][2], xbmcgui.NOTIFICATION_ERROR)
+        self.assertEqual(xbmcplugin.resolved, [])
+
+    def test_chyba_zdroje_u_prehrani_vrati_neuspech_prehravaci(self):
+        with mock.patch.object(default, "play", side_effect=WebshareError("bez účtu")):
+            default.router("?action=play&type=movie&id=tt1&url=ws:abc")
+        self.assertEqual(len(xbmcplugin.resolved), 1)
+        self.assertFalse(xbmcplugin.resolved[0][1])
+        self.assertEqual(xbmcplugin.ended, [], "po setResolvedUrl už endOfDirectory nepatří")
+
+    def test_chyba_u_akce_bez_vypisu_nic_neukoncuje(self):
+        with mock.patch.object(default, "download_stream", side_effect=WebshareError("x")):
+            default.router("?action=download&url=ws:1&id=tt1")
+        self.assertEqual(xbmcplugin.ended, [])
+        self.assertEqual(xbmcplugin.resolved, [])
+        self.assertEqual(xbmcgui.notifications[-1][2], xbmcgui.NOTIFICATION_ERROR)
+
+    def test_vymazani_cache_je_akce_ne_slozka(self):
+        default.STORE.save("cache_version", "x")
+        with mock.patch.object(default.STORE, "clear_cache") as clear:
+            default.router("?action=clear_cache")
+        clear.assert_called_once()
+        self.assertFalse(xbmcplugin.ended[-1]["succeeded"])
+
+
+class TestMenuAZahrivani(unittest.TestCase):
+    """`service.warm_urls()` musí zahřívat přesně ty výpisy, které `browse_menu()` nabízí —
+    jinak se zahřívá něco jiného a první otevření trvá desítky sekund (3.1.8)."""
+
+    def setUp(self):
+        reset_kodi()
+
+    def browse(self, apis):
+        out = []
+        for ctype in ("movie", "series"):
+            xbmcplugin.reset()
+            default.browse_menu(apis, ctype)
+            out.extend(params_of(u) for u in xbmcplugin.urls())
+        return {(p["src"], p["catalog"], p["type"], p.get("genre")) for p in out if p["action"] == "catalog"}
+
+    def warm(self):
+        return {(p["src"], p["catalog"], p["type"], p.get("genre")) for p in map(params_of, service.warm_urls())}
+
+    def test_s_klicem_tmdb(self):
+        xbmcaddon.settings["tmdb_api_key"] = "abc"
+        menu = self.browse({"tmdb": object(), "sosac_db": object(), "luna": None, "cinemeta": None})
+        self.assertTrue(self.warm() <= menu, self.warm() - menu)
+        self.assertIn(("sosac_db", "moviesrecentlyadded_dub", "movie", None), self.warm())
+        self.assertIn(("sosac_db", "moviesrecentlyadded_subs", "movie", None), self.warm())
+        self.assertIn(("sosac_db", "tvshowsrecentlyadded", "series", None), self.warm())
+
+    def test_s_lunou(self):
+        xbmcaddon.settings["token"] = "t"
+        menu = self.browse({"tmdb": None, "sosac_db": object(), "luna": object(), "cinemeta": None})
+        self.assertTrue(self.warm() <= menu, self.warm() - menu)
+
+    def test_bez_luny_i_tmdb_zahriva_jen_sosac(self):
+        xbmcaddon.settings["luna_enabled"] = "false"
+        self.assertEqual({p["src"] for p in map(params_of, service.warm_urls())}, {"sosac_db"})
+
+    def test_nove_dily_jen_u_serialu_a_nove_filmy_jen_u_filmu(self):
+        menu = self.browse({"tmdb": None, "sosac_db": object(), "luna": None, "cinemeta": object()})
+        self.assertIn(("sosac_db", "tvshowsrecentlyadded", "series", None), menu)
+        self.assertNotIn(("sosac_db", "tvshowsrecentlyadded", "movie", None), menu)
+        self.assertNotIn(("sosac_db", "moviesrecentlyadded_dub", "series", None), menu)
+        # bez TMDB i Luny drží Populární Cinemeta
+        self.assertIn(("cinemeta", "top", "movie", None), menu)
+
+
+class FakeStats:
+    def __init__(self, due=True):
+        self.uses, self.plays, self.sent = [], [], []
+        self._due = due
+
+    def note_use(self, ts):
+        self.uses.append(ts)
+
+    def note_play(self, key, title, year, kind):
+        self.plays.append((key, title, year, kind))
+
+    def due(self):
+        return self._due
+
+    def send(self, url, **kwargs):
+        self.sent.append((url, kwargs))
+        return True, ""
+
+
+class TestSluzbaStatistiky(unittest.TestCase):
+    def setUp(self):
+        reset_kodi()
+        xbmcaddon.settings.update(stats_enabled="true", ws_enabled="true", ws_username="u",
+                                  sosac_enabled="true", streamuj_username="s", tmdb_api_key="k")
+        xbmc.cond_visible.add("System.Platform.Android")
+
+    def test_kontext_hlasi_jen_zapnute_zdroje_bez_uctu(self):
+        ctx = service.stats_context(xbmcaddon.Addon())
+        self.assertEqual(ctx["sources"], ["sosac", "webshare", "tmdb"])
+        self.assertEqual(ctx["platform"], "Android")
+        self.assertEqual(ctx["product"], "kodi")
+        self.assertEqual(ctx["version"], xbmcaddon.info["version"])
+        for k, v in ctx.items():
+            self.assertNotIn("u", str(v) if k == "sources" else "", "jméno účtu nesmí do statistik")
+
+    def test_plne_hlaseni_kdyz_je_cas(self):
+        stats = FakeStats(due=True)
+        service.stats_tick(stats)
+        self.assertEqual(len(stats.sent), 1)
+        url, kwargs = stats.sent[0]
+        self.assertEqual(url, service.COLLECT_URL)
+        self.assertEqual(kwargs["product"], "kodi")
+        self.assertIn("webshare", kwargs["sources"])
+        self.assertNotIn("ping", kwargs)
+
+    def test_neni_cas_nic_neposila(self):
+        stats = FakeStats(due=False)
+        service.stats_tick(stats)
+        self.assertEqual(stats.sent, [])
+
+    def test_vypnute_statistiky_posilaji_jen_ping(self):
+        xbmcaddon.settings["stats_enabled"] = "false"
+        stats = FakeStats(due=True)
+        service.stats_tick(stats)
+        self.assertEqual(len(stats.sent), 1)
+        _url, kwargs = stats.sent[0]
+        self.assertIs(kwargs.get("ping"), True)
+        self.assertEqual(kwargs["product"], "kodi")
+        self.assertNotIn("sources", kwargs)
+        self.assertNotIn("platform", kwargs)
+
+    def test_udalosti_z_pluginu_se_prevezmou_a_smazou(self):
+        win = xbmcgui.Window(10000)
+        win.setProperty(service.USED_PROP, "1700000000")
+        win.setProperty(service.VIEWED_PROP, '{"id": "tt1", "title": "Matrix", "year": 1999, "kind": "movie"}')
+        stats = FakeStats(due=False)
+        service.stats_tick(stats)
+        self.assertEqual(stats.uses, [1700000000])
+        self.assertEqual(stats.plays, [("tt1", "Matrix", 1999, "movie")])
+        self.assertEqual(win.getProperty(service.USED_PROP), "")
+        self.assertEqual(win.getProperty(service.VIEWED_PROP), "")
+
+    def test_rozbity_json_udalosti_neshodi_sluzbu(self):
+        xbmcgui.Window(10000).setProperty(service.VIEWED_PROP, "{nic")
+        stats = FakeStats(due=False)
+        service.stats_tick(stats)
+        self.assertEqual(stats.plays, [])
+
+
+if __name__ == "__main__":
+    unittest.main()

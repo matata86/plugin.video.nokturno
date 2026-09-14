@@ -86,10 +86,6 @@ msgctxt "#30024"
 msgid "Choose stream"
 msgstr "Vyber stream"
 
-msgctxt "#30100"
-msgid "Paste the addon URL from Luna's setup page (http://IP:7126/setup) into the settings first."
-msgstr "Najprv vlož do nastavení adresu doplnku zo stránky nastavenia Luny (http://IP:7126/setup)."
-
 msgctxt "#30101"
 msgid "Luna server is not responding"
 msgstr "Server Luna neodpovedá"
