@@ -996,16 +996,18 @@ def apply_stream_filter(streams, fq="", flang="", fch="", fcodec="", fsub="", fs
     return out
 
 
-def streams_filter(apis, ctype, item_id, series_id, alt, fq, flang, fch, fcodec, fsub, fsrc):
-    """Dialog s nabídkou filtrů podle toho, co se u titulu doopravdy našlo.
+FILTER_KINDS = ("q", "lang", "ch", "codec", "sub", "src")
 
-    Nejde o samostatnou obrazovku — je to stejné volání GetDirectory jako
-    „streams", jen se mezi nimi otevře dialog. Zrušení (Esc) nebo prázdný výběr
-    beze změny vrátí předchozí filtr, potvrzení jede rovnou na `list_streams`
-    s novým, žádný mezikrok navíc.
-    """
-    meta, video = load_meta(apis, ctype, item_id, series_id)
-    streams = collect_streams(apis, ctype, item_id, meta, alt)
+
+def filter_params(filt):
+    """{"q": [...], "lang": [...], …} → parametry `apply_stream_filter` (`fq`, `flang`, …)."""
+    return {"f" + k: ",".join((filt or {}).get(k) or []) for k in FILTER_KINDS}
+
+
+def filter_dialog(streams, active=None):
+    """Výběr filtru podle toho, co se u titulu doopravdy našlo → {"q": [...], …}, nebo None
+    (zrušeno, nebo není podle čeho filtrovat). Sdílí ho složka se seznamem streamů
+    (`streams_filter`) i dialog výběru streamu (`choose_stream`)."""
     facets = [stream_facets(st) for st in streams]
     qualities = sorted({f["quality_rank"] for f in facets if f["quality_rank"]}, reverse=True)
     langs = sorted({c for f in facets for c in f["langs"]})
@@ -1034,33 +1036,101 @@ def streams_filter(apis, ctype, item_id, series_id, alt, fq, flang, fch, fcodec,
     for src in sources:
         options.append(f"{L(30211, 'Zdroj')}: {src}")
         kinds.append(("src", src))
-
     if not options:
         notify(L(30212, "Není podle čeho filtrovat"))
-        list_streams(apis, ctype, item_id, series_id, alt, fq, flang, fch, fcodec, fsub, fsrc)
-        return
+        return None
 
-    active = {"q": set(x for x in fq.split(",") if x), "lang": set(x for x in flang.split(",") if x),
-             "ch": set(x for x in fch.split(",") if x), "codec": set(x for x in fcodec.split(",") if x),
-             "sub": set(x for x in fsub.split(",") if x), "src": set(x for x in fsrc.split(",") if x)}
-    preselect = [i for i, (kind, val) in enumerate(kinds) if val in active[kind]]
-
+    active = active or {}
+    preselect = [i for i, (kind, val) in enumerate(kinds) if val in (active.get(kind) or [])]
     chosen = xbmcgui.Dialog().multiselect(L(30213, "Filtr streamů"), options, preselect=preselect)
     if chosen is None:
-        list_streams(apis, ctype, item_id, series_id, alt, fq, flang, fch, fcodec, fsub, fsrc)
-        return
-    new = {"q": [], "lang": [], "ch": [], "codec": [], "sub": [], "src": []}
+        return None
+    new = {k: [] for k in FILTER_KINDS}
     for i in chosen:
         kind, val = kinds[i]
         new[kind].append(val)
     if any(new.values()):
-        # zapamatovat jen skutečný filtr, ne jeho úplné zrušení — viz "Použít
-        # poslední filtr" v list_streams. Soubor je v profilu tohohle Kodi,
-        # takže si ho každá instalace pamatuje sama za sebe.
+        # zapamatovat jen skutečný filtr, ne jeho úplné zrušení — viz „Použít poslední filtr“.
+        # Soubor je v profilu tohohle Kodi, takže si ho každá instalace pamatuje sama za sebe.
         STORE.set_last_stream_filter(new)
-    list_streams(apis, ctype, item_id, series_id, alt, fq=",".join(new["q"]), flang=",".join(new["lang"]),
-                fch=",".join(new["ch"]), fcodec=",".join(new["codec"]),
-                fsub=",".join(new["sub"]), fsrc=",".join(new["src"]))
+    return new
+
+
+def streams_filter(apis, ctype, item_id, series_id, alt, fq, flang, fch, fcodec, fsub, fsrc):
+    """Dialog s nabídkou filtrů podle toho, co se u titulu doopravdy našlo.
+
+    Nejde o samostatnou obrazovku — je to stejné volání GetDirectory jako
+    „streams", jen se mezi nimi otevře dialog. Zrušení (Esc) nebo prázdný výběr
+    beze změny vrátí předchozí filtr, potvrzení jede rovnou na `list_streams`
+    s novým, žádný mezikrok navíc.
+    """
+    meta, video = load_meta(apis, ctype, item_id, series_id)
+    streams = collect_streams(apis, ctype, item_id, meta, alt)
+    active = {k: [x for x in v.split(",") if x] for k, v in zip(FILTER_KINDS, (fq, flang, fch, fcodec, fsub, fsrc))}
+    new = filter_dialog(streams, active)
+    if new is None:
+        list_streams(apis, ctype, item_id, series_id, alt, fq, flang, fch, fcodec, fsub, fsrc)
+        return
+    list_streams(apis, ctype, item_id, series_id, alt, **filter_params(new))
+
+
+def choose_stream(streams):
+    """Výběr streamu v dialogu — z detailu filmu, widgetu nebo TMDb Helperu, odkud se do složky
+    se seznamem přejít nedá (přehrání musí skončit `setResolvedUrl`). Nahoře stejné volby jako
+    ve složce: Filtr streamů, Zrušit filtr, Použít poslední filtr. Vrací stream, nebo None."""
+    active = {}
+    while True:
+        shown = apply_stream_filter(streams, **filter_params(active))
+        if not shown:
+            notify(L(30214, "Filtr nic nenechal, zobrazeny všechny streamy"), xbmcgui.NOTIFICATION_WARNING)
+            active, shown = {}, list(streams)
+        entries = []   # (popisek, volba) nad seznamem streamů
+        if len(streams) > 1:
+            on = any(active.values())
+            count = f"({len(shown)}/{len(streams)})" if on else f"({len(streams)})"
+            entries.append((f"[B]{L(30213, 'Filtr streamů')}[/B]  {count}", "filter"))
+            if on:
+                entries.append((L(30363, "Zrušit filtr"), "clear"))
+            last = STORE.last_stream_filter() or {}
+            last = {k: list(last.get(k) or []) for k in FILTER_KINDS}
+            if any(last.values()) and last != {k: list(active.get(k) or []) for k in FILTER_KINDS}:
+                last_count = len(apply_stream_filter(streams, **filter_params(last)))
+                if last_count:   # 0 shodných by bylo jen matoucí tlačítko do prázdna
+                    entries.append((f"{L(30364, 'Použít poslední filtr')}  ({last_count})", "last"))
+        idx = xbmcgui.Dialog().select(L(30024), [label for label, _v in entries] + [stream_label(st) for st in shown])
+        if idx < 0:
+            return None
+        if idx >= len(entries):
+            return shown[idx - len(entries)]
+        volba = entries[idx][1]
+        if volba == "filter":
+            new = filter_dialog(streams, active)
+            if new is not None:
+                active = new
+        elif volba == "clear":
+            active = {}
+        else:
+            active = last
+
+
+def browsing_nokturno():
+    """Běží plugin z výpisu Nokturna v okně Videa (klik na položku)? Z widgetu, domovské
+    obrazovky nebo detailu otevřeného odtamtud je aktivní jiné okno a kontejner není náš —
+    změřeno na Office 2026-09-14: klik ve výsledcích = okno 10025 + `plugin.video.nokturno`,
+    widget/domovská obrazovka = 10000 + prázdný `Container.PluginName`."""
+    return bool(xbmc.getCondVisibility("Window.IsMedia")) and xbmc.getInfoLabel("Container.PluginName") == ADDON_ID
+
+
+def open_stream_list(ctype, item_id, series_id=None, alt=None):
+    """Místo přehrání otevře složku se seznamem streamů. Přehrání se musí nejdřív zrušit
+    (`setResolvedUrl(False)`) — do té doby drží Kodi busy dialog a navigaci kontejneru nepustí."""
+    xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
+    for _ in range(50):   # nejvýš 5 s
+        if not xbmc.getCondVisibility("Window.IsActive(busydialog)"):
+            break
+        xbmc.sleep(100)
+    url = build_url(action="streams", type=ctype, id=item_id, series=series_id, alt=alt)
+    xbmc.executebuiltin(f"Container.Update({url})")
 
 
 def format_duration(seconds):
@@ -2485,9 +2555,16 @@ def upnext_notify(meta, video, series_id, alt=None):
 
 
 def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref="", ask=""):
-    """`ask=1` (player TMDb Helperu): v režimu „Zobrazit seznam streamů“ nabídnout výběr
-    dialogem — z detailu filmu se do složky se streamy přejít nedá, přehrání musí skončit
-    `setResolvedUrl`. V režimu „Přehrát nejlepší automaticky“ se hraje rovnou jako dřív."""
+    """`ask=1` = položka Nokturna nebo player TMDb Helperu v režimu „Vybrat ze seznamu streamů“.
+
+    Klik ve výpisu Nokturna otevře celý seznam streamů jako složku (podle nastavení). Odjinud —
+    detail z widgetu, domovská obrazovka, TMDb Helper — se do složky přejít nedá, tam se stream
+    vybírá dialogem s filtrem (`choose_stream`). „Přehrát nejlepší automaticky“ hraje rovnou,
+    „Zeptat se v dialogu“ se ptá vždy; bez `ask` (Up Next, HA) se v režimu 1 neptá."""
+    mode = setting("stream_mode", "1")
+    if ask and not url and mode == "1" and browsing_nokturno():
+        open_stream_list(ctype, item_id, series_id, alt)
+        return
     meta, video = load_meta(apis, ctype, item_id, series_id)
     # u seriálu si pamatujeme, jaký stream si uživatel vybral — další díl (Up Next,
     # Pokračovat, widget) pak jede stejně bez ptaní; klíč je seriál, ne díl
@@ -2516,13 +2593,12 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
             return
         remembered = preferred_stream(streams, STORE.stream_pref(pref_key)) if pref_key else None
         chosen = remembered or streams[0]
-        mode = setting("stream_mode", "1")
         if remembered is None and (mode == "2" or (ask and mode == "1")):
-            idx = xbmcgui.Dialog().select(L(30024), [stream_label(st) for st in streams])
-            if idx < 0:
+            picked = choose_stream(streams)
+            if picked is None:
                 xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
                 return
-            chosen = streams[idx]
+            chosen = picked
             if pref_key:
                 STORE.set_stream_pref(pref_key, stream_signature(chosen))
     title = (video or {}).get("title") or display_name(meta)

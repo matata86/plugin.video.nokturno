@@ -535,6 +535,69 @@ class TestPrehratelnePolozky(unittest.TestCase):
         self.assertEqual((menu["action"], menu["id"], menu["series"]), ("streams", "tt9:1:1", "tt9"))
 
 
+class TestVyberStreamu(unittest.TestCase):
+    """Klik v Nokturnu → seznam streamů jako složka; detail/widget/TMDb Helper → dialog s filtrem."""
+
+    def setUp(self):
+        reset_kodi()
+        xbmc.cond_visible.clear()
+        xbmc.info_labels.clear()
+        default.STORE.set_last_stream_filter({})
+
+    def tearDown(self):
+        xbmc.cond_visible.clear()
+        xbmc.info_labels.clear()
+
+    def test_klik_ve_vypisu_nokturna_otevre_seznam_streamu(self):
+        xbmcaddon.settings["stream_mode"] = "1"
+        xbmc.cond_visible.add("Window.IsMedia")
+        xbmc.info_labels["Container.PluginName"] = "plugin.video.nokturno"
+        with mock.patch.object(default, "load_meta") as load_meta, mock.patch.object(default, "collect_streams") as collect:
+            default.play({}, "movie", "tt1", alt="s1", ask="1")
+        self.assertFalse(load_meta.called or collect.called, "streamy načte až složka, ne přehrání")
+        self.assertFalse(xbmcplugin.resolved[-1][1], "přehrání se zruší")
+        update = [b for b in xbmc.builtins if b.startswith("Container.Update(")]
+        self.assertEqual(len(update), 1)
+        p = params_of(update[0][len("Container.Update("):-1])
+        self.assertEqual((p["action"], p["id"], p["alt"]), ("streams", "tt1", "s1"))
+
+    def test_mimo_nokturno_a_bez_ask_se_seznam_neotevira(self):
+        xbmcaddon.settings["stream_mode"] = "1"
+        for media, plugin, ask in ((False, "", "1"), (True, "plugin.video.youtube", "1"), (True, "plugin.video.nokturno", "")):
+            reset_kodi()
+            xbmc.cond_visible.clear()
+            if media:
+                xbmc.cond_visible.add("Window.IsMedia")
+            xbmc.info_labels["Container.PluginName"] = plugin
+            with mock.patch.object(default, "load_meta", side_effect=LunaError("stop")):
+                with self.assertRaises(LunaError):
+                    default.play({}, "movie", "tt1", ask=ask)
+            self.assertFalse([b for b in xbmc.builtins if b.startswith("Container.Update(")], (media, plugin, ask))
+
+    def test_dialog_nabidne_filtr_a_vrati_vybrany_stream(self):
+        streams = [{"url": "ws:1", "label": "Film.2020.1080p.CZ.Dabing.mkv", "detail": "2 GB", "source": "ws"},
+                   {"url": "ws:2", "label": "Film.2020.1080p.ENG.mkv", "detail": "2 GB", "source": "ws"}]
+        volani = []
+
+        def select(heading, labels, *a, **k):
+            volani.append(list(labels))
+            if len(volani) == 1:
+                return 0                                   # Filtr streamů
+            return next(i for i, l in enumerate(labels) if "Zrušit filtr" not in l and "Filtr" not in l)
+
+        def multiselect(heading, options, preselect=None):
+            return [next(i for i, o in enumerate(options) if o.endswith("Zvuk: CZ"))]
+
+        with mock.patch.object(xbmcgui.Dialog, "select", side_effect=select), \
+             mock.patch.object(xbmcgui.Dialog, "multiselect", side_effect=multiselect):
+            chosen = default.choose_stream(streams)
+        self.assertEqual(chosen["url"], "ws:1")
+        self.assertTrue(volani[0][0].startswith("[B]Filtr streamů[/B]"))
+        self.assertIn("Zrušit filtr", volani[1])
+        self.assertEqual(len(volani[1]), 3, "Filtr + Zrušit filtr + jediný CZ stream")
+        self.assertEqual(default.STORE.last_stream_filter()["lang"], ["CZ"])
+
+
 class TestRouter(unittest.TestCase):
     def setUp(self):
         reset_kodi()
