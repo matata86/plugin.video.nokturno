@@ -522,12 +522,30 @@ class TestPrehratelnePolozky(unittest.TestCase):
             menu = self.streams_menu(li)
             self.assertEqual((menu["action"], menu["type"], menu["id"], menu["alt"]), ("streams", "movie", "tt1", "sosacd_1"))
 
+    def test_ve_vypisu_nokturna_je_film_slozka_a_v_menu_vyber_dialogem(self):
+        xbmcaddon.settings["stream_mode"] = "1"
+        xbmc.cond_visible.add("Window.IsMedia")
+        xbmc.info_labels["Container.PluginName"] = "plugin.video.nokturno"
+        try:
+            default.add_meta_item({"id": "tt1", "name": "Film", "year": 2020}, "movie", alt="sosacd_1")
+        finally:
+            xbmc.cond_visible.clear()
+            xbmc.info_labels.clear()
+        _h, url, li, is_folder = xbmcplugin.items[-1]
+        self.assertTrue(is_folder, "klik ve výpisu otevře seznam streamů nativně")
+        self.assertEqual((params_of(url)["action"], params_of(url)["id"]), ("streams", "tt1"))
+        akce = dict(li.context).get("Vybrat stream a přehrát", "")
+        self.assertTrue(akce.startswith("PlayMedia(plugin://plugin.video.nokturno/?"), akce)
+        p = params_of(akce[len("PlayMedia("):-1])
+        self.assertEqual((p["action"], p["id"], p["alt"], p["ask"]), ("play", "tt1", "sosacd_1", "1"))
+
     def test_dil_serie_prehratelny_s_id_serialu(self):
         xbmcaddon.settings["stream_mode"] = "1"
         meta = {"id": "tt9", "name": "Seriál", "videos": [{"season": 1, "episode": 1, "title": "Pilot"}]}
         with mock.patch.object(default, "meta_for", return_value=meta):
             default.list_episodes({}, "tt9", 1)
         _h, url, li, is_folder = xbmcplugin.items[-1]
+        self.assertFalse(xbmcplugin.ended[-1]["cacheToDisc"], "widget a výpis sdílí adresu, položky se liší podle okna")
         self.assertFalse(is_folder)
         p = params_of(url)
         self.assertEqual((p["action"], p["type"], p["id"], p["series"], p["ask"]), ("play", "series", "tt9:1:1", "tt9", "1"))
@@ -548,31 +566,18 @@ class TestVyberStreamu(unittest.TestCase):
         xbmc.cond_visible.clear()
         xbmc.info_labels.clear()
 
-    def test_klik_ve_vypisu_nokturna_otevre_seznam_streamu(self):
+    def test_play_z_vypisu_nokturna_ukaze_dialog_bez_zruseneho_prehrani(self):
+        """Kontextové menu „Vybrat stream a přehrát“ ve výpisu → dialog; žádné přesměrování na složku."""
         xbmcaddon.settings["stream_mode"] = "1"
         xbmc.cond_visible.add("Window.IsMedia")
         xbmc.info_labels["Container.PluginName"] = "plugin.video.nokturno"
-        with mock.patch.object(default, "load_meta") as load_meta, mock.patch.object(default, "collect_streams") as collect:
-            default.play({}, "movie", "tt1", alt="s1", ask="1")
-        self.assertFalse(load_meta.called or collect.called, "streamy načte až složka, ne přehrání")
-        self.assertFalse(xbmcplugin.resolved[-1][1], "přehrání se zruší")
-        update = [b for b in xbmc.builtins if b.startswith("Container.Update(")]
-        self.assertEqual(len(update), 1)
-        p = params_of(update[0][len("Container.Update("):-1])
-        self.assertEqual((p["action"], p["id"], p["alt"]), ("streams", "tt1", "s1"))
-
-    def test_mimo_nokturno_a_bez_ask_se_seznam_neotevira(self):
-        xbmcaddon.settings["stream_mode"] = "1"
-        for media, plugin, ask in ((False, "", "1"), (True, "plugin.video.youtube", "1"), (True, "plugin.video.nokturno", "")):
-            reset_kodi()
-            xbmc.cond_visible.clear()
-            if media:
-                xbmc.cond_visible.add("Window.IsMedia")
-            xbmc.info_labels["Container.PluginName"] = plugin
-            with mock.patch.object(default, "load_meta", side_effect=LunaError("stop")):
-                with self.assertRaises(LunaError):
-                    default.play({}, "movie", "tt1", ask=ask)
-            self.assertFalse([b for b in xbmc.builtins if b.startswith("Container.Update(")], (media, plugin, ask))
+        streams = [{"url": "ws:1", "label": "Film.2020.1080p.mkv", "detail": "2 GB", "source": "ws"}]
+        with mock.patch.object(default, "load_meta", return_value=({"name": "Film", "year": 2020}, None)), \
+             mock.patch.object(default, "collect_streams", return_value=streams), \
+             mock.patch.object(xbmcgui.Dialog, "select", return_value=-1) as select:
+            default.play({}, "movie", "tt1", ask="1")
+        self.assertTrue(select.called)
+        self.assertFalse([b for b in xbmc.builtins if b.startswith("Container.Update(")])
 
     def test_dialog_nabidne_filtr_a_vrati_vybrany_stream(self):
         streams = [{"url": "ws:1", "label": "Film.2020.1080p.CZ.Dabing.mkv", "detail": "2 GB", "source": "ws"},

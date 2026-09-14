@@ -1081,3 +1081,7 @@ msgstr "Nokturno je v TMDb Helperi"
 msgctxt "#30413"
 msgid "Adding to TMDb Helper failed"
 msgstr "Pridanie do TMDb Helpera zlyhalo"
+
+msgctxt "#30414"
+msgid "Choose stream and play"
+msgstr "Vybrať stream a prehrať"

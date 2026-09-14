@@ -1081,3 +1081,7 @@ msgstr ""
 msgctxt "#30413"
 msgid "Adding to TMDb Helper failed"
 msgstr ""
+
+msgctxt "#30414"
+msgid "Choose stream and play"
+msgstr ""

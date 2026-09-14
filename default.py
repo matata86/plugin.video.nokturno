@@ -685,29 +685,46 @@ def add_meta_item(meta, ctype, alt=None, tag_source=False):
         add_playable(li, "movie", meta["id"], alt=alt)
 
 
-def add_playable(li, ctype, item_id, series_id=None, alt=None):
-    """Film nebo díl jako přehratelná položka — `play()` podle nastavení pustí nejlepší
-    stream, nebo nabídne výběr. Celý seznam streamů (filtr, uvolněný fulltext) je
-    v kontextovém menu: `streams_context()` přidává volající do téhož `addContextMenuItems`.
+def folder_mode():
+    """Režim „Vybrat ze seznamu streamů“ ve výpisu Nokturna → film a díl jako složka."""
+    return setting("stream_mode", "1") == "1" and browsing_nokturno()
 
-    Dřív byl v režimu „Zobrazit seznam streamů“ film složkou `action=streams`. Skiny ale
-    film berou podle DBType jako soubor: Přehrát v detailu (Arctic Fuse) zavolalo `PlayMedia`
-    na tu složku, streamy se načetly a nepřehrálo se nic (Office 2026-09-14).
+
+def add_playable(li, ctype, item_id, series_id=None, alt=None):
+    """Film nebo díl — ve výpisu Nokturna podle nastavení, jinde přehratelný.
+
+    V režimu „Vybrat ze seznamu streamů“ je ve výpisu Nokturna složkou `action=streams` — klik
+    otevře seznam nativně. Ve widgetu, na domovské obrazovce a v detailu otevřeném odtamtud je
+    přehratelný s `ask=1`: skiny berou film podle DBType jako soubor a Přehrát v detailu (Arctic
+    Fuse) volá `PlayMedia` na cestu položky. Složka tam nepřehrála nic, přehratelná položka ukáže
+    dialog s filtrem (`choose_stream`). Přesměrovat z přehratelné položky ve výpisu na složku
+    přes zrušené přehrání nešlo: Kodi hlásilo „položku se nepodařilo přehrát“ a seznam otevřený
+    přes `Container.Update` ukazoval místo streamů název filmu (Office 2026-09-14).
 
     U epizod se předává i id seriálu — Sosáč dává epizodám vlastní id
     (`sosac2_1877:1:1`), ze kterého se meta seriálu nedá odvodit.
     """
+    if folder_mode():
+        url = build_url(action="streams", type=ctype, id=item_id, series=series_id, alt=alt)
+        xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
+        return
     li.setProperty("IsPlayable", "true")
-    # „1“ = výběr ze seznamu streamů dialogem; „2“ se ptá sám v play(), „0“ pustí nejlepší.
-    # Bez `ask` (Up Next, HA) se v režimu 1 hraje zapamatovaný nebo nejlepší stream bez ptaní.
+    # „1“ = výběr dialogem; „2“ se ptá sám v play(), „0“ pustí nejlepší. Bez `ask` (Up Next, HA)
+    # se v režimu 1 hraje zapamatovaný nebo nejlepší stream bez ptaní.
     ask = "1" if setting("stream_mode", "1") == "1" else None
     url = build_url(action="play", type=ctype, id=item_id, series=series_id, alt=alt, ask=ask)
     xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=False)
 
 
 def streams_context(ctype, item_id, series_id=None, alt=None):
-    """Kontextové menu „Seznam streamů“ — složka se streamy, filtrem a uvolněným fulltextem.
-    `ActivateWindow` funguje i z widgetu na domovské obrazovce (`Container.Update` jen ve Videích)."""
+    """Druhá cesta ke streamům v kontextovém menu — ta, kterou nenabízí klik na položku.
+
+    Složka (výpis Nokturna) → „Vybrat stream a přehrát“: dialog s filtrem, hodí se i v detailu,
+    kde Přehrát na složce nefunguje. Přehratelná položka (widget) → „Seznam streamů“ jako složka;
+    `ActivateWindow` jde i z domovské obrazovky (`Container.Update` jen ve Videích)."""
+    if folder_mode():
+        url = build_url(action="play", type=ctype, id=item_id, series=series_id, alt=alt, ask="1")
+        return (L(30414, "Vybrat stream a přehrát"), f"PlayMedia({url})")
     url = build_url(action="streams", type=ctype, id=item_id, series=series_id, alt=alt)
     return (L(30201, "Seznam streamů"), f"ActivateWindow(Videos,{url},return)")
 
@@ -1119,18 +1136,6 @@ def browsing_nokturno():
     změřeno na Office 2026-09-14: klik ve výsledcích = okno 10025 + `plugin.video.nokturno`,
     widget/domovská obrazovka = 10000 + prázdný `Container.PluginName`."""
     return bool(xbmc.getCondVisibility("Window.IsMedia")) and xbmc.getInfoLabel("Container.PluginName") == ADDON_ID
-
-
-def open_stream_list(ctype, item_id, series_id=None, alt=None):
-    """Místo přehrání otevře složku se seznamem streamů. Přehrání se musí nejdřív zrušit
-    (`setResolvedUrl(False)`) — do té doby drží Kodi busy dialog a navigaci kontejneru nepustí."""
-    xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
-    for _ in range(50):   # nejvýš 5 s
-        if not xbmc.getCondVisibility("Window.IsActive(busydialog)"):
-            break
-        xbmc.sleep(100)
-    url = build_url(action="streams", type=ctype, id=item_id, series=series_id, alt=alt)
-    xbmc.executebuiltin(f"Container.Update({url})")
 
 
 def format_duration(seconds):
@@ -1821,7 +1826,8 @@ def list_catalog(apis, ctype, cid, src, genre=None, search=None, skip=0):
     if len(metas) >= PAGE // 2:
         folder_item(L(30021), build_url(action="catalog", type=ctype, catalog=cid, src=src, genre=genre,
                                         search=search, skip=skip + len(metas)), icon="DefaultFolder.png")
-    xbmcplugin.endOfDirectory(HANDLE)
+    # widget a výpis v Nokturnu mívají stejnou adresu, položky se ale liší podle okna (add_playable)
+    xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
 # --- hledání + historie -----------------------------------------------------------
@@ -2377,7 +2383,8 @@ def list_episodes(apis, series_id, season, alt=None):
         apply_watched(li, ep_id, [fav_context(ep_id, "series", series_id, alt),
                                   streams_context("series", ep_id, series_id, alt)])
         add_playable(li, "series", ep_id, series_id=series_id, alt=alt)
-    xbmcplugin.endOfDirectory(HANDLE)
+    # widget a výpis v Nokturnu mívají stejnou adresu, položky se ale liší podle okna (add_playable)
+    xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
 # --- přehrávání ------------------------------------------------------------------
@@ -2555,16 +2562,12 @@ def upnext_notify(meta, video, series_id, alt=None):
 
 
 def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref="", ask=""):
-    """`ask=1` = položka Nokturna nebo player TMDb Helperu v režimu „Vybrat ze seznamu streamů“.
-
-    Klik ve výpisu Nokturna otevře celý seznam streamů jako složku (podle nastavení). Odjinud —
-    detail z widgetu, domovská obrazovka, TMDb Helper — se do složky přejít nedá, tam se stream
-    vybírá dialogem s filtrem (`choose_stream`). „Přehrát nejlepší automaticky“ hraje rovnou,
-    „Zeptat se v dialogu“ se ptá vždy; bez `ask` (Up Next, HA) se v režimu 1 neptá."""
+    """`ask=1` = přehratelná položka Nokturna (widget, detail, kontextové menu) nebo player TMDb
+    Helperu v režimu „Vybrat ze seznamu streamů“ → výběr dialogem s filtrem (`choose_stream`).
+    Ve výpisu Nokturna je v tom režimu film složkou (`add_playable`), klik sem nevede.
+    „Přehrát nejlepší automaticky“ hraje rovnou, „Zeptat se v dialogu“ se ptá vždy; bez `ask`
+    (Up Next, HA) se v režimu 1 neptá."""
     mode = setting("stream_mode", "1")
-    if ask and not url and mode == "1" and browsing_nokturno():
-        open_stream_list(ctype, item_id, series_id, alt)
-        return
     meta, video = load_meta(apis, ctype, item_id, series_id)
     # u seriálu si pamatujeme, jaký stream si uživatel vybral — další díl (Up Next,
     # Pokračovat, widget) pak jede stejně bez ptaní; klíč je seriál, ne díl
