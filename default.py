@@ -31,7 +31,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "res
 from luna_api import LunaApi, LunaError, parse_base_url, parse_token  # noqa: E402
 from cinemeta_api import CinemetaApi, CinemetaError  # noqa: E402
 from tmdb_api import TmdbApi, TmdbError  # noqa: E402
-from sosac_api import SosacError, is_sosac_id as _is_stremio_sosac_id, names_match  # noqa: E402
+from sosac_api import SosacError, is_sosac_id as _is_stremio_sosac_id  # noqa: E402
 from sosac_direct import EXPORT as SOSAC_EXPORT, SosacDirect, is_direct_id  # noqa: E402
 from enrich import enrich, enrich_one  # noqa: E402
 from hellspy_api import HellspyApi, HellspyError  # noqa: E402
@@ -1757,56 +1757,30 @@ def search_new(apis, kind):
     search_run(apis, kind, query)
 
 
+# pomocné metody jádra bez stavu (porovnání názvů, sloučení, rok) — nepotřebují klienty ani úložiště
+_JADRO = Engine.__new__(Engine)
+
+
 def same_title(luna_meta, sosac_meta):
-    """Stejný film/seriál v obou zdrojích: shoda názvu nebo originálu + rok ±1 (je-li znám)."""
-    name = luna_meta.get("name") or ""
-    if not (names_match(name, sosac_meta.get("_title")) or names_match(name, sosac_meta.get("_orig"))):
-        return False
-    y1 = str(luna_meta.get("year") or luna_meta.get("releaseInfo") or "")[:4]
-    y2 = str(sosac_meta.get("year") or "")[:4]
-    if y1.isdigit() and y2.isdigit() and abs(int(y1) - int(y2)) > 1:
-        return False
-    return True
+    """Stejný film/seriál v obou zdrojích (viz `Engine._same_title`)."""
+    return _JADRO._same_title(luna_meta, sosac_meta)
 
 
 def merge_results(luna_metas, sosac_metas):
-    """Vrátí [(meta, alt)] – titul z Luny s přibaleným id Sosáče, zbylé položky Sosáče zvlášť."""
-    merged, used = [], set()
-    for lm in luna_metas:
-        alt = None
-        for sm in sosac_metas:
-            if sm["id"] not in used and same_title(lm, sm):
-                alt = sm["id"]
-                used.add(sm["id"])
-                break
-        merged.append((lm, alt))
-    merged.extend((sm, None) for sm in sosac_metas if sm["id"] not in used)
-    return merged
-
-
-YEAR_RE = re.compile(r"\b(19\d{2}|20\d{2})\b")
+    """[(meta, alt)] – titul z Luny s přibaleným id Sosáče, zbylé položky Sosáče zvlášť (jádro)."""
+    return _JADRO._merge(luna_metas, sosac_metas)
 
 
 def split_year(query):
-    """„Pět švestek 2026“ → („Pět švestek“, „2026“). Zdroje hledají jen v názvu,
-    rok v dotazu je zmate — odřízneme ho a profiltrujeme jím výsledky."""
-    query = (query or "").strip()
-    m = YEAR_RE.search(query)
-    if not m:
-        return query, ""
-    base = (query[: m.start()] + " " + query[m.end():]).strip()
-    # „2012“ nebo „Blade Runner 2049“ — číslo je součást názvu, ne rok vydání
-    if not base or int(m.group(1)) > time.localtime().tm_year + 2:
-        return query, ""
-    return base, m.group(1)
+    """„Pět švestek 2026“ → („Pět švestek“, „2026“) — jako `Engine.split_year`, rok jako text
+    (jde do odkazů a klíčů cache)."""
+    base, year = Engine.split_year(query)
+    return base, str(year) if year else ""
 
 
 def filter_year(merged, year):
     """Rok v dotazu je filtr: projdou jen tituly z toho roku (a ty, kde ho zdroj neuvádí)."""
-    if not year:
-        return merged
-    return [(m, a) for m, a in merged
-            if str(m.get("year") or m.get("releaseInfo") or "")[:4] in (year, "")]
+    return _JADRO._by_year(merged, int(year) if str(year).isdigit() else None)
 
 
 class SearchProgress:
@@ -1847,71 +1821,25 @@ class SearchProgress:
 def _search_merge(apis, ctype, query, want_year, errors, tick=None):
     """Sloučené výsledky primárního zdroje a přihlášeného Sosáče pro jeden typ
     (film / seriál), BEZ popisů — stačí na počty pro volbu Filmy/Seriály.
-    Kešuje se 5 minut.
-
-    Primární zdroj: TMDB, jakmile má uživatel vlastní klíč — má přednost i před
-    Lunou (umí česky i to, co Luna neřekne o titulech odjinud). Bez klíče je
-    primární Luna, když je dostupná (beze změny). Bez obojího zaskočí veřejný
-    katalog Sosáče (česky, bez účtu, ale bez popisu), teprve když ani ten nic
-    nenajde, Cinemeta (anglicky, ale nejširší pokrytí). Přihlášený Sosáč se
-    přidává vždycky navíc, nezávisle na tom, co je primární zdroj metadat."""
-    def step():
-        if tick:
-            tick()
-
-    def load():
-        # řetězec zdrojů, v pořadí priority — každý se zkusí, jen když předchozí
-        # nic nevrátil (chybí, spadl, nebo prostě nic nenašel)
-        luna_metas, sosac_metas = [], []
-        if apis["tmdb"]:
-            try:
-                luna_metas = apis["tmdb"].catalog(ctype, "popular", search=query)
-            except TmdbError as e:
-                errors.append(e)
-        if not luna_metas and apis["luna"]:
-            try:
-                cid = "search.movie" if ctype == "movie" else "search.series"
-                luna_metas = apis["luna"].catalog(ctype, cid, search=query)
-            except LunaError as e:
-                errors.append(e)
-        if not luna_metas:
-            try:
-                luna_metas = apis["sosac_db"].catalog(ctype, "top", search=query)
-            except SosacError as e:
-                errors.append(e)
-        if not luna_metas and apis["cinemeta"]:
-            try:
-                luna_metas = apis["cinemeta"].catalog(ctype, "top", search=query)
-            except CinemetaError as e:
-                errors.append(e)
-        step()
-        if apis["sosac"]:
-            try:
-                sosac_metas = apis["sosac"].search(ctype, query)
-            except SosacError as e:
-                errors.append(e)
-            step()
-        merged = filter_year(merge_results(luna_metas, sosac_metas), want_year)
-        return merged, bool(luna_metas) and bool(sosac_metas)
-    key = f"search2:{ctype}:{query.strip().lower()}:{want_year or ''}"
-    return STORE.cached(key, SEARCH_TTL, load)
+    Řetězec zdrojů (TMDB → Luna → veřejný Sosáč → Cinemeta, + přihlášený Sosáč)
+    a cache jsou v jádru, viz `Engine.search_pairs`."""
+    failures = []
+    try:
+        return engine_of(apis).search_pairs(ctype, query, int(want_year) if want_year else None, on_tick=tick,
+                                            failures=failures, with_enrich=False)
+    finally:
+        errors.extend(SourceFailure(label, err) for label, err in failures)
 
 
 def search_source(apis, ctype, query, want_year, errors):
-    """`_search_merge()` + doplněné popisy — pro skutečné zobrazení seznamu.
-
-    Enrich (u Sosáče dotažení popisu, fronta vláken, čekání na dokončení) se
-    kešuje zvlášť od holého katalogu: volba Filmy/Seriály potřebuje jen počty,
-    ne popisy, a nesmí na ně čekat — ty se dotáhnou až tady, těsně předtím,
-    než se seznam skutečně vypisuje."""
-    def load():
-        merged, mixed = _search_merge(apis, ctype, query, want_year, errors)
-        # dřív jen položky Sosáče (ty jediné popis neměly) — bez Luny ho ale
-        # nemají ani ty z Cinemety, `enrich()` si sama vybere, co doopravdy chybí
-        enrich([m for m, _alt in merged], apis["luna"], STORE, ctype)
-        return merged, mixed
-    key = f"searchfull2:{ctype}:{query.strip().lower()}:{want_year or ''}"
-    return STORE.cached(key, SEARCH_TTL, load)
+    """`_search_merge()` + doplněné popisy — pro skutečné zobrazení seznamu (jádro
+    cachuje holý katalog a doplněný výsledek zvlášť, volba Filmy/Seriály na popisy nečeká)."""
+    failures = []
+    try:
+        return engine_of(apis).search_pairs(ctype, query, int(want_year) if want_year else None,
+                                            failures=failures)
+    finally:
+        errors.extend(SourceFailure(label, err) for label, err in failures)
 
 
 def search_run(apis, kind, query, offset=0):
@@ -1981,7 +1909,7 @@ def search_run(apis, kind, query, offset=0):
         add_meta_item(meta, ctype, alt=alt, tag_source=mixed)
     # bez Luny (nebo když zrovna neodpovídá) nabídneme rovnou soubory z WebShare
     # (jinak je má Luna: Search u titulu — tam by šlo o duplicitu)
-    luna_down = any(isinstance(e, LunaError) for e in errors)
+    luna_down = any(error_label(e) == "Luna" for e in errors)
     if apis["ws"] and (not apis["luna"] or luna_down):
         try:
             files, _total = apis["ws"].search(query, sort=SORTS[int(setting("ws_sort", "0"))], limit=WS_PAGE)

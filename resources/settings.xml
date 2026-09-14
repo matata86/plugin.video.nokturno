@@ -390,14 +390,6 @@
           <data>RunPlugin(plugin://plugin.video.nokturno/?action=speedtest)</data>
           <control format="action" type="button"/>
         </setting>
-        <setting id="update_repos_action" type="action" label="30407">
-          <level>0</level>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <data>RunPlugin(plugin://plugin.video.nokturno/?action=update_repos)</data>
-          <control format="action" type="button"/>
-        </setting>
         <setting id="sort_streams" type="integer" label="30117" help="30316">
           <level>0</level>
           <!-- 2026-09-13: nové instalace řadí streamy podle velikosti (2 = Největší první), ne podle pořadí od zdrojů -->
@@ -622,6 +614,14 @@
             <allowempty>true</allowempty>
           </constraints>
           <data>RunPlugin(plugin://plugin.video.nokturno/?action=test_sources)</data>
+          <control format="action" type="button"/>
+        </setting>
+        <setting id="update_repos_action" type="action" label="30407">
+          <level>0</level>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=update_repos)</data>
           <control format="action" type="button"/>
         </setting>
       </group>

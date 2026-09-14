@@ -538,13 +538,99 @@ class Engine:
     # TMDB/Cinemetu položku po položce), na něm se dopočítá reálný zbytek do 100 %
     SEARCH_SOURCE_STEPS = 2
 
-    def search(self, ctype="movie", query="", limit=20, on_progress=None):
-        """Sloučené výsledky z Luny a Sosáče (stejný titul jen jednou).
+    def search_pairs(self, ctype, query, want_year=None, limit=None, on_tick=None, on_count=None,
+                     failures=None, with_enrich=True, force=False):
+        """Sloučené výsledky primárního zdroje metadat a přihlášeného Sosáče:
+        `([(meta, alt)], mixed)`. Základ `search()` (HA, Stremio) i hledání v Kodi.
 
-        Sosáč vrací u položek vždy mrtvý náhled (`movies.sosac.tv`), takže `_needs()`
-        v `enrich()` je pro ně TRUE napořád — cachovat jen dílčí Luna/Sosáč volání by
-        `enrich()` nechalo běžet (a diskové I/O na jeho vlastní cache × N položek dělat)
-        při každém hledání znovu. Cachuje se proto rovnou celý výsledek PO enrichi.
+        Řetězec zdrojů metadat v pořadí priority — každý se zkusí, jen když předchozí
+        nic nevrátil (chybí, nemá klíč, spadl, nebo prostě nic nenašel): TMDB má přednost
+        i před Lunou, jakmile má uživatel vlastní klíč (jediný zdroj s českým popisem
+        i obsazením bez Luny); Luna zůstává zdrojem streamů nezávisle na tom. Bez obojího
+        zaskočí veřejný katalog Sosáče (česky, bez popisu), pak Cinemeta (anglicky,
+        nejširší pokrytí). Přihlášený Sosáč se přidává vždycky navíc.
+
+        `with_enrich=False` vrátí holý katalog bez popisů — Kodi z něj bere jen počty
+        pro volbu Filmy/Seriály a nesmí na popisy čekat; holý a doplněný výsledek se
+        proto cachují zvlášť (a doplněný staví na holém). `limit` ořízne PŘED enrichem
+        (HA doplňuje jen to, co ukáže; Kodi vypisuje vše). `failures` dostane
+        `(zdroj, chyba)` za každý výpadek; výsledek s výpadkem se necachuje (jako u
+        streams). `mixed` = našel primární zdroj i přihlášený Sosáč — Kodi pak u položek
+        jen ze Sosáče ukáže značku zdroje.
+        """
+        failures = [] if failures is None else failures
+        errors = []   # jen za tenhle běh — rozhoduje o cachování
+
+        def tick():
+            if on_tick:
+                on_tick()
+
+        def _fetch_bare():
+            luna_metas, sosac_metas = [], []
+            del errors[:]
+            if self.tmdb:
+                try:
+                    luna_metas = self.tmdb.catalog(ctype, "popular", search=query)
+                    for m in luna_metas:
+                        m["source"] = "tmdb"
+                except TmdbError as err:
+                    errors.append(("TMDB", err))
+            if not luna_metas and self.luna:
+                try:
+                    cid = "search.movie" if ctype == "movie" else "search.series"
+                    # LunaApi s `cache=self.store` si hledání pamatuje sama (SEARCH_TTL)
+                    luna_metas = self.luna.catalog(ctype, cid, search=query)
+                except LunaError as err:
+                    errors.append(("Luna", err))
+            if not luna_metas:
+                try:
+                    luna_metas = self.sosac_db.catalog(ctype, "top", search=query)
+                    for m in luna_metas:
+                        m["source"] = "sosac"
+                except SosacError as err:
+                    errors.append(("Sosáč", err))
+            if not luna_metas:
+                try:
+                    luna_metas = self.cinemeta.catalog(ctype, "top", search=query)
+                    for m in luna_metas:
+                        m["source"] = "cinemeta"
+                except CinemetaError as err:
+                    errors.append(("Cinemeta", err))
+            tick()
+            # přihlášený Sosáč vždycky navíc — najde i tituly, které TMDB/Luna/Cinemeta nemá
+            if self.sosac:
+                try:
+                    sosac_metas = self.sosac.search(ctype, query)
+                except SosacError as err:
+                    errors.append(("Sosáč", err))
+            tick()
+            merged = self._by_year(self._merge(luna_metas, sosac_metas), want_year)
+            if limit:
+                merged = merged[: int(limit)]
+            return {"pairs": [[m, alt] for m, alt in merged], "mixed": bool(luna_metas) and bool(sosac_metas)}
+
+        ttl = 0 if force else SEARCH_CACHE_TTL
+        tail = f"{ctype}:{query}:{int(limit) if limit else ''}:{want_year or ''}"
+        ok = lambda data: bool(data and data.get("pairs")) and not errors  # noqa: E731
+        bare = self.store.cached_if(f"searchbare:{tail}", ttl, _fetch_bare, ok=ok)
+        if not with_enrich:
+            failures.extend(errors)
+            return [(m, alt) for m, alt in bare["pairs"]], bare["mixed"]
+
+        def _fetch_full():
+            # dřív jen položky Sosáče (ty jediné popis neměly) — bez Luny ho ale nemají ani
+            # ty z Cinemety/veřejného Sosáče, `enrich()` si sama vybere, co doopravdy chybí.
+            # Sosáč posílá vždy mrtvý náhled, takže by enrich bez vlastní cache běžel při
+            # každém hledání znovu — proto se cachuje až výsledek PO enrichi.
+            data = {"pairs": [[m, alt] for m, alt in bare["pairs"]], "mixed": bare["mixed"]}
+            enrich([m for m, _alt in data["pairs"]], self.luna, self.store, ctype, on_tick=on_tick, on_count=on_count)
+            return data
+        full = self.store.cached_if(f"searchfull:{tail}", ttl, _fetch_full, ok=ok)
+        failures.extend(errors)
+        return [(m, alt) for m, alt in full["pairs"]], full["mixed"]
+
+    def search(self, ctype="movie", query="", limit=20, on_progress=None):
+        """Sloučené výsledky z Luny a Sosáče (stejný titul jen jednou), popsané pro HA/Stremio.
 
         Dotaz zakončený `*` obejde cache a vynutí čerstvá data (hvězdička se před
         hledáním odřízne) — výsledek se přesto zapíše do cache pro příští normální dotaz.
@@ -575,69 +661,14 @@ class Engine:
             if on_progress:
                 on_progress(min(done[0], total), total)
 
-        errors = []   # mimo _fetch: výsledek s výpadkem zdroje se nesmí pamatovat 12 h (viz cached_if níž)
-
-        def _fetch():
-            luna_metas, sosac_metas = [], []
-            del errors[:]
-            # Řetězec zdrojů metadat, v pořadí priority — každý se zkusí, jen když
-            # předchozí nic nevrátil (chybí, nemá klíč, spadl, nebo prostě nic nenašel).
-            # TMDB má přednost i před Lunou, jakmile má uživatel vlastní klíč — je to
-            # jediný zdroj, co umí česky popis i obsazení bez závislosti na Luně běžet.
-            # Luna zůstává zdrojem streamů (viz api_for/cross_streams) nezávisle na tomhle.
-            if self.tmdb:
-                try:
-                    luna_metas = self.tmdb.catalog(ctype, "popular", search=query)
-                    for m in luna_metas:
-                        m["source"] = "tmdb"
-                except TmdbError as err:
-                    errors.append(f"TMDB: {err}")
-            if not luna_metas and self.luna:
-                try:
-                    cid = "search.movie" if ctype == "movie" else "search.series"
-                    # LunaApi s `cache=self.store` si hledání pamatuje sama (SEARCH_TTL) — druhá
-                    # vrstva tady dřív ukládala tentýž JSON pod druhým klíčem
-                    luna_metas = self.luna.catalog(ctype, cid, search=query)
-                except LunaError as err:
-                    errors.append(f"Luna: {err}")
-            if not luna_metas:
-                try:
-                    luna_metas = self.sosac_db.catalog(ctype, "top", search=query)
-                    for m in luna_metas:
-                        m["source"] = "sosac"
-                except SosacError as err:
-                    errors.append(f"Sosáč: {err}")
-            if not luna_metas:
-                try:
-                    luna_metas = self.cinemeta.catalog(ctype, "top", search=query)
-                    for m in luna_metas:
-                        m["source"] = "cinemeta"
-                except CinemetaError as err:
-                    errors.append(f"Cinemeta: {err}")
-            tick()
-            # přihlášený Sosáč se přidává vždycky, nezávisle na tom, co je primární
-            # zdroj metadat výš — najde tak i tituly, které tam TMDB/Luna/Cinemeta nemá
-            if self.sosac:
-                try:
-                    sosac_metas = self.sosac.search(ctype, query)
-                except SosacError as err:
-                    errors.append(f"Sosáč: {err}")
-            tick()
-            if not luna_metas and not sosac_metas and errors:
-                raise NokturnoError("; ".join(errors))
-            merged = self._by_year(self._merge(luna_metas, sosac_metas), want_year)[: int(limit or 20)]
-            # dřív jen položky Sosáče (ty jediné popis neměly) — bez Luny ho ale
-            # nemají ani ty z Cinemety/veřejného Sosáče, `enrich()` si sama vybere,
-            # co doopravdy chybí (TMDB/tt… položky už popis většinou mají)
-            enrich([m for m, _alt in merged], self.luna, self.store, ctype,
-                   on_tick=tick, on_count=on_count)
-            return [self._item(meta, ctype, alt) for meta, alt in merged]
-
-        cache_key = f"search:{ctype}:{query}:{int(limit or 20)}:{want_year or ''}"
-        # jako u streams(): když TMDB/Luna spadne a Sosáč něco najde, je to degradovaný seznam —
-        # ukázat ano, pamatovat 12 h ne
-        found = self.store.cached_if(cache_key, 0 if force else SEARCH_CACHE_TTL, _fetch,
-                                     ok=lambda data: bool(data) and not errors)
+        failures = []
+        pairs, _mixed = self.search_pairs(ctype, query, want_year, limit=int(limit or 20), on_tick=tick,
+                                          on_count=on_count, failures=failures, force=force)
+        if not pairs and failures:
+            # jako dřív: když TMDB/Luna spadne a Sosáč něco najde, je to degradovaný seznam
+            # (ukáže se, nepamatuje); bez jediného výsledku je to chyba
+            raise NokturnoError("; ".join(f"{label}: {err}" for label, err in failures))
+        found = [self._item(meta, ctype, alt) for meta, alt in pairs]
         if on_progress and done[0] < total:
             done[0] = total
             on_progress(done[0], total)

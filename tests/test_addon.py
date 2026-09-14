@@ -394,6 +394,29 @@ class TestJadroVKodi(unittest.TestCase):
             default.resolve_url({"engine": default.KodiEngine()}, "ws:abc")   # bez účtu
         self.assertIn(default.NokturnoError, default.Errors)
 
+    def test_hledani_pres_jadro(self):
+        """`_search_merge`/`search_source` jsou obálky nad `Engine.search_pairs` — holý katalog
+        bez popisů pro volbu Filmy/Seriály, výpadky jako `SourceFailure` pro dialog."""
+        engine = default.KodiEngine()
+        volani = []
+        def search_pairs(ctype, query, want_year=None, limit=None, on_tick=None, on_count=None,
+                         failures=None, with_enrich=True, force=False):
+            volani.append((ctype, query, want_year, with_enrich))
+            failures.append(("Luna", ConnectionRefusedError("[Errno 111]")))
+            if on_tick:
+                on_tick()
+            return [({"id": "sosacd_1", "_title": "Film", "year": 2020}, None)], False
+        engine.search_pairs = search_pairs
+        errors = []
+        merged, mixed = default._search_merge({"engine": engine}, "movie", "Film", "2020", errors, tick=lambda: None)
+        self.assertEqual((volani[-1], mixed, len(merged)), (("movie", "Film", 2020, False), False, 1))
+        merged, _ = default.search_source({"engine": engine}, "movie", "Film", "", errors)
+        self.assertEqual(volani[-1], ("movie", "Film", None, True))
+        self.assertEqual([default.error_label(e) for e in errors], ["Luna", "Luna"])
+        # rok z dotazu jako text pro odkazy, filtr a sloučení přes jádro
+        self.assertEqual(default.split_year("Pět švestek 2026"), ("Pět švestek", "2026"))
+        self.assertEqual(default.filter_year([({"name": "A", "year": 2026}, None), ({"name": "B"}, None)], "2026")[1][0]["name"], "B")
+
     def test_popisek_s_odhadnutou_kvalitou_z_jadra(self):
         s = {"url": "ws:1", "label": "Film.mkv", "detail": "9 GB", "source": "ws", "quality_rank": 4, "_estimated": True}
         self.assertIn("~4K", default.stream_label(s))
