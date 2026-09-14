@@ -136,13 +136,18 @@ class ProwlarrApi:
         out = [row for row in out if row["url"]]
         if season is not None:
             out = [row for row in out if episode_match(row["title"], season, episode)]
-            if episode is not None:
-                # konkrétní díl napřed, balík celé sezóny až za ním — stahovat
-                # kvůli jednomu dílu deset hodin videa nemá smysl
-                out.sort(key=lambda r: (bool(EP_RE.search(r["title"]) or X_RE.search(r["title"])),
-                                        r["seeders"]), reverse=True)
-        out.sort(key=lambda r: (r["seeders"], r["size_gb"] or 0), reverse=True)
-        return out[:limit]
+        return self._order(out, episode)[:limit]
+
+    @staticmethod
+    def _order(rows, episode=None):
+        """Nejlíp dostupné první; u konkrétního dílu napřed řádky s číslem dílu, balík celé
+        sezóny až za nimi — stahovat kvůli jednomu dílu deset hodin videa nemá smysl.
+        Jeden sort: dřív druhý sort podle seedů první přepsal a balík S02 s 50 seedy
+        předběhl S02E01 s pěti (audit 2026-09-14)."""
+        def key(r):
+            dil = bool(EP_RE.search(r["title"]) or X_RE.search(r["title"])) if episode is not None else 0
+            return (dil, r["seeders"], r["size_gb"] or 0)
+        return sorted(rows, key=key, reverse=True)
 
     @staticmethod
     def _item(row):

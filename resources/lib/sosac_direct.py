@@ -76,6 +76,15 @@ def bez_uctu(url):
     return urllib.parse.urlunsplit(parts._replace(query=urllib.parse.urlencode(query)))
 
 
+def _seznam(data, url):
+    """Export musí být seznam — jiný tvar (chybová stránka jako JSON, přestavba exportu) dřív
+    propadl jako AttributeError z `v.get` a shodil celé hledání ve všech zdrojích, protože
+    Engine chytá jen SosacError (audit 2026-09-14)."""
+    if not isinstance(data, list):
+        raise SosacError(f"neočekávaný tvar exportu ({type(data).__name__}) {bez_uctu(url)}")
+    return data
+
+
 # SosacError se dědí ze sosac_api — dvě stejnojmenné třídy by se navzájem nechytaly
 class SosacDirect:
     def __init__(self, streamuj_user="", streamuj_pass="", cache=None, cache_ttl=600, index_store=None, fresh=False):
@@ -251,8 +260,8 @@ class SosacDirect:
         # převádět jen zobrazenou stránku: každý převod plní rejstřík a písmeno
         # či žánr mají tisíce titulů — na ARM boxu se seznam „D" (2224) načítal přes 10 minut
         items = []
-        for v in raw:
-            m = conv(v)
+        for v in _seznam(raw, cid):
+            m = conv(v) if isinstance(v, dict) else None
             if not m:
                 continue
             items.append(m)
@@ -287,8 +296,9 @@ class SosacDirect:
 
     def _search(self, ctype, query):
         if ctype == "movie":
-            data = self._get(BASE + "/jsonsearchapi.php?q=" + urllib.parse.quote_plus(query), ttl=12 * 3600)
-            return [self.movie_meta(v) for v in data if v.get("l")]
+            url = BASE + "/jsonsearchapi.php?q=" + urllib.parse.quote_plus(query)
+            data = _seznam(self._get(url, ttl=12 * 3600), url)
+            return [self.movie_meta(v) for v in data if isinstance(v, dict) and v.get("l")]
         # seriály nemají vyhledávací endpoint → projít písmena (cache 1 den) a filtrovat podle názvu
         q = normalize(query)
         found = []
@@ -297,7 +307,9 @@ class SosacDirect:
                 data = self._get(EXPORT + f"tvpismena/{letter}.json", ttl=86400)
             except SosacError:
                 continue
-            for v in data:
+            for v in _seznam(data, letter):
+                if not isinstance(v, dict):
+                    continue
                 names = [normalize(self._name(v.get("n"))), normalize(self._orig(v.get("n")))]
                 if any(q and q in n for n in names):
                     found.append(self.series_meta(v))
@@ -376,15 +388,25 @@ class SosacDirect:
         }
 
     def episodes(self, sid):
-        data = self._get(EXPORT + f"serialy/{sid}.json")
+        url = EXPORT + f"serialy/{sid}.json"
+        data = _seznam(self._get(url), url)
         videos = []
         for block in data:
+            if not isinstance(block, dict):
+                continue
             for season, eps in block.items():
+                if not isinstance(eps, dict):
+                    continue
                 for ep, v in eps.items():
+                    try:
+                        se, e = int(season), int(ep)
+                    except (TypeError, ValueError):
+                        continue   # klíč exportu, který není číslo dílu („speciály“)
+                    v = v if isinstance(v, dict) else {}
                     videos.append({
-                        "id": f"{ID_PREFIX}s_{sid}:{int(season)}:{int(ep)}",
-                        "season": int(season),
-                        "episode": int(ep),
+                        "id": f"{ID_PREFIX}s_{sid}:{se}:{e}",
+                        "season": se,
+                        "episode": e,
                         "title": v.get("n") or f"Epizoda {ep}",
                         "thumbnail": BASE + v["i"] if v.get("i") else "",
                         "_link": v.get("l") or "",

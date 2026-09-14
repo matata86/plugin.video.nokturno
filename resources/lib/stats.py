@@ -30,6 +30,7 @@ nepsaly do stejného souboru.
 """
 import json
 import os
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -48,8 +49,12 @@ TIMEOUT = 10
 
 
 class Stats:
+    """Čítače v `stats.json`. Zámek: HA volá `note_play`/`note_use` z executoru souběžně
+    a `json.dump` nad měněným slovníkem padal na „dictionary changed size during iteration"."""
+
     def __init__(self, directory):
         self.path = os.path.join(directory, "stats.json")
+        self._lock = threading.RLock()
         self.data = self._load()
 
     def _load(self):
@@ -64,23 +69,28 @@ class Stats:
         return data
 
     def _save(self):
-        plays = self.data.get("plays") or {}
-        if len(plays) > PLAYS_MAX:
-            keep = sorted(plays.items(), key=lambda kv: kv[1].get("l") or 0, reverse=True)[:PLAYS_MAX]
-            self.data["plays"] = dict(keep)
-        tmp = self.path + ".tmp"
-        try:
-            with open(tmp, "w", encoding="utf-8") as f:
-                json.dump(self.data, f, ensure_ascii=False)
-            os.replace(tmp, self.path)
-        except OSError:
-            pass
+        with self._lock:
+            plays = self.data.get("plays") or {}
+            if len(plays) > PLAYS_MAX:
+                keep = sorted(plays.items(), key=lambda kv: kv[1].get("l") or 0, reverse=True)[:PLAYS_MAX]
+                self.data["plays"] = dict(keep)
+            tmp = f"{self.path}.{os.getpid()}.{threading.get_ident()}.tmp"   # unikátní i pro dvě vlákna
+            try:
+                with open(tmp, "w", encoding="utf-8") as f:
+                    json.dump(self.data, f, ensure_ascii=False)
+                os.replace(tmp, self.path)
+            except OSError:
+                try:
+                    os.remove(tmp)
+                except OSError:
+                    pass
 
     # --- sběr ---------------------------------------------------------------------
 
     def note_use(self, when=None):
-        self.data["last_used"] = int(when or time.time())
-        self._save()
+        with self._lock:
+            self.data["last_used"] = int(when or time.time())
+            self._save()
 
     def note_play(self, key, title="", year=None, kind="movie"):
         """Titul, u kterého se právě zobrazily streamy — nezávisle na tom, jestli si
@@ -89,15 +99,16 @@ class Stats:
         o dohled nad tímtéž.
         """
         now = int(time.time())
-        rec = self.data["plays"].setdefault(str(key), {})
-        rec["l"] = now
-        if title:
-            rec["t"] = title[:150]
-        if year:
-            rec["y"] = int(year)
-        rec["k"] = kind
-        self.data["last_used"] = now
-        self._save()
+        with self._lock:
+            rec = self.data["plays"].setdefault(str(key), {})
+            rec["l"] = now
+            if title:
+                rec["t"] = title[:150]
+            if year:
+                rec["y"] = int(year)
+            rec["k"] = kind
+            self.data["last_used"] = now
+            self._save()
 
     # --- odesílání ----------------------------------------------------------------
 
@@ -138,8 +149,9 @@ class Stats:
         """
         if not url:
             return False, "chybí adresa"
-        data = (self.ping_payload(version, product) if ping
-                else self.payload(version, platform, kodi, lang, sources, product))
+        with self._lock:
+            data = (self.ping_payload(version, product) if ping
+                    else self.payload(version, platform, kodi, lang, sources, product))
         body = json.dumps(data).encode("utf-8")
         req = urllib.request.Request(url, data=body, headers={
             "Content-Type": "application/json",
@@ -156,9 +168,10 @@ class Stats:
         if code and code >= 400:
             return self._failed(f"HTTP {code}")
         now = int(time.time())
-        self.data["last_sent"] = now
-        self.data["next_try"] = now + SEND_EVERY
-        self._save()
+        with self._lock:
+            self.data["last_sent"] = now
+            self.data["next_try"] = now + SEND_EVERY
+            self._save()
         return True, ""
 
     def _failed(self, why):
