@@ -322,6 +322,84 @@ class TestSlucovaniStreamu(unittest.TestCase):
         self.assertEqual(len(default.drop_duplicates(streams)), 2)
 
 
+class TestJadroVKodi(unittest.TestCase):
+    """`default.py` stojí nad `Engine` z jádra — `KodiEngine` mu jen podstrkuje klienty
+    podle přepínačů v nastavení a překládá předvolby z indexů na hodnoty jádra."""
+
+    def setUp(self):
+        reset_kodi()
+
+    def test_volby_z_nastaveni(self):
+        xbmcaddon.settings.update(pref_lang="1", sort_streams="2", hide_sd="true", max_bitrate_mbps="12,5",
+                                  audio_probe="5", cross_search="false", ws_enabled="false", ws_username="u")
+        opts = default.engine_options()
+        self.assertEqual((opts["pref_lang"], opts["sort_streams"], opts["hide_sd"]), ("CZ", "size_desc", True))
+        self.assertEqual((opts["audio_probe"], opts["cross_search"], opts["search_streams"]), ("5", False, True))
+        self.assertEqual(opts["ws_username"], "", "vypnutý zdroj se jádru nehlásí ani při vyplněném účtu")
+        engine = default.KodiEngine()
+        self.assertAlmostEqual(engine._effective_max_gb({"runtime": "1h"}), 12.5e6 * 3600 / 8 / 2 ** 30, places=3)
+        self.assertIs(engine.store, default.STORE, "jedno úložiště pro celý plugin")
+
+    def test_klienty_podle_prepinacu(self):
+        xbmcaddon.settings.update(ws_enabled="false", ws_username="u", ws_password="p",
+                                  hs_enabled="true", st_enabled="true", st_email="a@b", st_password="x",
+                                  dav1_url="http://nas.lan/dav/", dav1_username="u", dav1_password="p")
+        engine = default.KodiEngine()
+        self.assertIsNone(engine.ws, "WebShare vypnutý přepínačem, i když je účet vyplněný")
+        self.assertIsNotNone(engine.hs)
+        self.assertIsNotNone(engine.st)
+        self.assertEqual([s.slot for s in engine.storages], [1])
+        self.assertIs(engine.hs, engine.hs, "klient se staví jednou za volání pluginu")
+        apis = default.get_apis()
+        self.assertIs(apis["engine"], default.engine_of(apis))
+        self.assertIs(apis["dav"], apis["engine"].storages)
+        holy = {}
+        self.assertIsInstance(default.engine_of(holy), default.KodiEngine)
+        self.assertIs(default.engine_of(holy), holy["engine"])
+
+    def test_collect_streams_prevadi_vypadky_na_upozorneni(self):
+        engine = default.KodiEngine()
+        def raw_streams(ctype, item_id, alt=None, series_id=None, on_progress=None, failures=None, strict=True,
+                        meta_video=None):
+            failures.append(("Luna", ConnectionRefusedError("[Errno 111] Connection refused")))
+            failures.append(("WebShare", WebshareError("login: Wrong password")))
+            on_progress(3, 8)
+            self.assertEqual(meta_video, ({"name": "Film"}, None))
+            self.assertFalse(strict)
+            return [{"url": "ws:1", "label": "Film.mkv", "source": "ws", "_direct": True, "_loose": True}]
+        engine.raw_streams = raw_streams
+        bar = mock.Mock()
+        progress = default.SearchProgress(bar, 30)
+        errors = []
+        out = default.collect_streams({"engine": engine}, "movie", "tt1", {"name": "Film"}, progress=progress,
+                                      strict=False, errors=errors)
+        self.assertEqual(out[0]["url"], "ws:1")
+        self.assertEqual([type(e).__name__ for e in errors], ["SourceFailure", "SourceFailure"])
+        self.assertEqual(default.skipped_notice(errors),
+                         "Luna neodpovídá; WebShare: login: Wrong password — přeskočeno")
+        bar.update.assert_called_with(int(3 / 8 * 100))
+        # chyba jádra v hlášce nese zdroj sama
+        self.assertEqual(default.describe_error(default.NokturnoError("WebShare: soubor není")), "WebShare: soubor není")
+        self.assertEqual(default.error_label(default.NokturnoError("Chybí odkaz na stream.")), "Nokturno")
+
+    def test_resolve_url_pres_jadro_a_token(self):
+        engine = default.KodiEngine()
+        engine.resolve = lambda url, prefer_external=False: "https://cdn/x.mkv"
+        api = mock.Mock(token="tok")
+        engine._clients["ws"] = api
+        self.assertEqual(default.resolve_url({"engine": engine}, "ws:abc"), "https://cdn/x.mkv")
+        self.assertEqual(xbmcgui.Window(10000).getProperty("nokturno.ws_token"), "tok")
+        with self.assertRaises(default.NokturnoError):
+            default.resolve_url({"engine": default.KodiEngine()}, "ws:abc")   # bez účtu
+        self.assertIn(default.NokturnoError, default.Errors)
+
+    def test_popisek_s_odhadnutou_kvalitou_z_jadra(self):
+        s = {"url": "ws:1", "label": "Film.mkv", "detail": "9 GB", "source": "ws", "quality_rank": 4, "_estimated": True}
+        self.assertIn("~4K", default.stream_label(s))
+        s = {"url": "ws:1", "label": "Film.mkv", "detail": "9 GB", "source": "ws", "quality_rank": 4}
+        self.assertNotIn("~", default.stream_label(s).split("[/B]")[0])
+
+
 class TestRouter(unittest.TestCase):
     def setUp(self):
         reset_kodi()
@@ -644,8 +722,10 @@ class TestUdrzbaKodi(unittest.TestCase):
         self.assertEqual(default._vkey("3.1.12"), build_repo.version_key("3.1.12"))
 
     def test_zip_bez_balastu_a_build_hlida_novinky(self):
-        for f in ("lists", "icon-vanoce.png", "prowlarr.py", "qbittorrent.py", "tests"):
+        for f in ("lists", "icon-vanoce.png", "tests"):
             self.assertIn(f, build_repo.EXCLUDE)
+        # engine.py je importuje — v zipu chybět nesmí (dřív byly vyjmuté jako „jen HA")
+        self.assertFalse({"prowlarr.py", "qbittorrent.py", "engine.py"} & build_repo.EXCLUDE)
         build_repo.check(ET.parse(ROOT / "addon.xml").getroot().get("version"))   # aktuální stav projde
         with self.assertRaises(SystemExit):
             build_repo.check("9.9.9")

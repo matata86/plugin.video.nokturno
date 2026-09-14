@@ -401,15 +401,16 @@ class Store:
     def cached(self, key, ttl, loader):
         return self.cached_if(key, ttl, loader)
 
-    def cached_if(self, key, ttl, loader, ok=bool):
+    def cached_if(self, key, ttl, loader, ok=bool, fresh=False):
         """Jako `cached()`, ale na disk zapíše jen když `ok(data)` je pravda — pro
         věci, co se mají zapamatovat jen při úspěchu (např. nalezené streamy),
-        ne prázdný/neúspěšný výsledek, který má jít zkusit znovu hned příště."""
+        ne prázdný/neúspěšný výsledek, který má jít zkusit znovu hned příště.
+        `fresh=True` cache jen zapíše, nečte (zahřívání na pozadí obnoví, co už tam je)."""
         # nezávislé na self._cache (soubor per hash klíče) — nepotřebuje self._lock,
         # nejhorší případ při souběhu je zbytečné dvojí stažení, ne pád
         path = os.path.join(self.dir, "cache", hashlib.md5(key.encode("utf-8")).hexdigest() + ".json")
         try:
-            if time.time() - os.path.getmtime(path) < ttl:
+            if not fresh and time.time() - os.path.getmtime(path) < ttl:
                 with open(path, encoding="utf-8") as f:
                     return json.load(f)
         except (OSError, ValueError):

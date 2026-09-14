@@ -20,7 +20,6 @@ import threading
 import time
 import urllib.parse
 import urllib.request
-import unicodedata
 
 import xbmc
 import xbmcaddon
@@ -37,14 +36,14 @@ from sosac_direct import EXPORT as SOSAC_EXPORT, SosacDirect, is_direct_id  # no
 from enrich import enrich, enrich_one  # noqa: E402
 from hellspy_api import HellspyApi, HellspyError  # noqa: E402
 from sledujteto_api import SledujtetoApi, SledujtetoError  # noqa: E402
-from storage_api import SLOTS as STORAGE_SLOTS, StorageApi, StorageError, match_texts, parse_ref  # noqa: E402
-from mediainfo import describe as describe_media, probe as probe_media, quality_from_size  # noqa: E402
+from storage_api import SLOTS as STORAGE_SLOTS, StorageApi, StorageError, parse_ref  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
 from source_errors import describe_failure, summarize as summarize_failures  # noqa: E402
 from sync import sync_once  # noqa: E402
-from streams import arrange, estimate_rank, langs_from_name, parse_stream, subs_from_name  # noqa: E402
+from streams import estimate_rank, langs_from_name, parse_stream, subs_from_name  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
 from webshare_api import SORTS, WebshareApi, WebshareError, human_size  # noqa: E402
+from engine import AUDIO_PROBE_MAX, DEFAULT_RUNTIME_S, Engine, NokturnoError, runtime_minutes  # noqa: E402
 
 ADDON = xbmcaddon.Addon()
 ADDON_ID = ADDON.getAddonInfo("id")
@@ -119,7 +118,7 @@ if _old_settings:
         xbmc.log(f"[{ADDON_ID}] migrace nastavení: {_e}", xbmc.LOGWARNING)
 STORE = Store(PROFILE)
 Errors = (LunaError, CinemetaError, TmdbError, SosacError, WebshareError, HellspyError, SledujtetoError, TraktError,
-          StorageError)
+          StorageError, NokturnoError)
 
 # po aktualizaci doplňku (i downgradu) smazat cache API — jinak by staré verze
 # odpovědí (chybějící pole, jiný tvar dat po změně kódu) přežily klidně týdny,
@@ -204,33 +203,17 @@ def get_sosac_db():
 
 
 def resolve_url(apis, url):
-    """'streamuj:…' (Sosáč) a 'ws:<ident>' (soubor přímo z WebShare) se mění na
-    finální odkaz až při přehrání — odkazy WebShare vyprší po pár hodinách."""
+    """'streamuj:…' (Sosáč), 'ws:<ident>' (WebShare), 'hs:', 'st:' a 'dav:' se mění na
+    finální odkaz až při přehrání — odkazy zdrojů vyprší po pár hodinách. Rozklíčování
+    dělá jádro (`Engine.resolve`); tady navíc přežije token WebShare mezi voláními."""
+    if url and url.startswith("streamuj:") and not isinstance(apis.get("sosac"), SosacDirect):
+        # Sosáč v nastavení vypnutý, ale účet Streamuj vyplněný — rozkoukaný titul z dřívějška
+        return SosacDirect(setting("streamuj_username"), setting("streamuj_password"), cache=STORE).resolve(url)
+    engine = engine_of(apis)
+    link = engine.resolve(url)
     if url and url.startswith("ws:"):
-        api = apis.get("ws")
-        if api is None:
-            raise WebshareError(L(30104))
-        link = api.file_link(url[3:])
-        remember_ws_token(api)
-        return link
-    if url and url.startswith("hs:"):
-        api = apis.get("hs") or HellspyApi(cache=STORE)
-        file_id, _sep, file_hash = url[3:].partition(":")
-        return api.file_link(file_id, file_hash)
-    if url and url.startswith("st:"):
-        api = apis.get("st")
-        if api is None:
-            raise SledujtetoError(L(30104))
-        return api.file_link(url[3:])
-    if url and url.startswith("dav:"):
-        api, path = storage_for(apis, url)
-        return api.kodi_url(path)
-    if url and url.startswith("streamuj:"):
-        api = apis.get("sosac")
-        if not isinstance(api, SosacDirect):
-            api = SosacDirect(setting("streamuj_username"), setting("streamuj_password"), cache=STORE)
-        return api.resolve(url)
-    return url
+        remember_ws_token(engine.ws)
+    return link
 
 
 def get_webshare():
@@ -314,9 +297,76 @@ def get_tmdb():
     return TmdbApi(key, cache=STORE) if key else None
 
 
+def engine_options():
+    """Nastavení doplňku ve tvaru, kterému rozumí jádro: výběry z indexu na hodnotu,
+    přepínače na bool, účty jen když je zdroj zapnutý (klienty ale staví `KodiEngine`
+    z `get_*()` výš, tady jsou hlavně předvolby řazení a chování)."""
+    return {
+        "pref_lang": PREF_LANGS[int(setting("pref_lang", "0"))],
+        "sort_streams": STREAM_ORDERS[int(setting("sort_streams", "0"))],
+        "hide_sd": on("hide_sd", "false"),
+        "pref_surround": on("pref_surround", "false"),
+        "max_bitrate_mbps": setting("max_bitrate_mbps", "0"),
+        "audio_probe": setting("audio_probe", str(AUDIO_PROBE_MAX)),
+        "cross_search": on("cross_search"),
+        "search_streams": on("search_streams"),
+        "fresh": warming(),
+        "luna_url": setting("luna_url", "http://192.168.1.10:7126"),
+        "ws_username": setting("ws_username") if on("ws_enabled", "false") else "",
+        "st_email": setting("st_email") if on("st_enabled", "false") else "",
+        "hs_enabled": on("hs_enabled", "false"),
+        "tmdb_api_key": setting("tmdb_api_key"),
+    }
+
+
+class KodiEngine(Engine):
+    """Sdílené jádro nad nastavením doplňku.
+
+    Klienty zdrojů staví z `get_luna()` a spol., ne z holých voleb jako HA a Stremio:
+    Kodi má u každého zdroje přepínač, zahřívání na pozadí (`warming()` → cache jen
+    zapisovat), delší TTL Luny a token WebShare v okně mezi voláními pluginu. Hledání
+    streamů, párování duplicit, čtení hlaviček, dotazy pro fulltext i rozklíčování
+    odkazů jsou už jen v jádru — dřív to samé leželo podruhé tady v `default.py`.
+    """
+
+    FACTORIES = {"luna": get_luna, "sosac": get_sosac, "sosac_db": get_sosac_db, "ws": get_webshare,
+                 "hs": get_hellspy, "st": get_sledujteto, "storages": get_storages, "tmdb": get_tmdb,
+                 "cinemeta": get_cinemeta}
+
+    def __init__(self):
+        self._clients = {}
+        super().__init__(engine_options(), PROFILE, store=STORE)
+
+    def _client(self, name):
+        if name not in self._clients:
+            self._clients[name] = self.FACTORIES[name]()
+        return self._clients[name]
+
+    luna = property(lambda self: self._client("luna"))
+    sosac = property(lambda self: self._client("sosac"))
+    sosac_db = property(lambda self: self._client("sosac_db"))
+    ws = property(lambda self: self._client("ws"))
+    hs = property(lambda self: self._client("hs"))
+    st = property(lambda self: self._client("st"))
+    storages = property(lambda self: self._client("storages"))
+    tmdb = property(lambda self: self._client("tmdb"))
+    cinemeta = property(lambda self: self._client("cinemeta"))
+
+
 def get_apis():
-    return {"luna": get_luna(), "sosac": get_sosac(), "ws": get_webshare(), "hs": get_hellspy(), "st": get_sledujteto(),
-            "dav": get_storages(), "cinemeta": get_cinemeta(), "sosac_db": get_sosac_db(), "tmdb": get_tmdb()}
+    """Klienty zdrojů pod jmény, na která je zvyklý zbytek doplňku, plus jádro pod `engine`."""
+    engine = KodiEngine()
+    return {"engine": engine, "luna": engine.luna, "sosac": engine.sosac, "ws": engine.ws, "hs": engine.hs,
+            "st": engine.st, "dav": engine.storages, "cinemeta": engine.cinemeta, "sosac_db": engine.sosac_db,
+            "tmdb": engine.tmdb}
+
+
+def engine_of(apis):
+    """Jádro k `apis` z `get_apis()`; holý slovník (testy, starší volání) dostane vlastní."""
+    engine = apis.get("engine")
+    if engine is None:
+        engine = apis["engine"] = KodiEngine()
+    return engine
 
 
 def source_for(item_id):
@@ -349,11 +399,17 @@ SOURCE_LABELS = {
 def describe_error(e):
     """Jméno zdroje před chybovou hláškou — ať je jasné, který přesně selhal
     (dřív se u víc-zdrojového hledání hlásilo natvrdo „Server Luna neodpovídá“
-    i při chybě jinde, třeba na WebShare)."""
+    i při chybě jinde, třeba na WebShare). Hlášky jádra už zdroj nesou samy."""
+    if isinstance(e, NokturnoError):
+        return str(e)
     return f"{error_label(e)}: {e}"
 
 
 def error_label(e):
+    if isinstance(e, NokturnoError):
+        # „WebShare: …“, „Úložiště: …“ — zdroj je v hlášce, jinak je to obecná chyba jádra
+        head, sep, _rest = str(e).partition(":")
+        return head.strip() if sep and len(head) <= 20 else L(30000, "Nokturno")
     return getattr(e, "source_label", None) or next(
         (v for k, v in SOURCE_LABELS.items() if isinstance(e, k)), type(e).__name__)
 
@@ -743,574 +799,32 @@ def add_hs_file(f, extra_context=None):
 # --- meta a streamy -------------------------------------------------------------
 
 def meta_for(apis, meta_type, item_id):
-    """Detail titulu — u tt… id má TMDB přednost i před Lunou, jakmile má uživatel
-    vlastní klíč (stejná priorita jako v `_search_merge`); Luna zůstává zdroj
-    streamů, ne metadat. Bez TMDB/Luny zaskočí veřejný katalog Sosáče (u
-    sosac-native id), nebo Cinemeta (poslední záchrana, anglicky)."""
-    if not is_sosac_id(item_id) and apis["tmdb"]:
-        try:
-            return apis["tmdb"].meta(meta_type, item_id)
-        except TmdbError:
-            pass
-    try:
-        return api_for(apis, item_id).meta(meta_type, item_id)
-    except LunaError:
-        if is_sosac_id(item_id) and apis["sosac_db"]:
-            return apis["sosac_db"].meta(meta_type, item_id)
-        if str(item_id).startswith("tt"):
-            if apis["tmdb"]:
-                try:
-                    return apis["tmdb"].meta(meta_type, item_id)
-                except TmdbError:
-                    pass
-            if apis["cinemeta"]:
-                return apis["cinemeta"].meta(meta_type, item_id)
-        raise
+    """Detail titulu — TMDB, Luna/Sosáč, veřejný katalog Sosáče, Cinemeta (viz `Engine._meta_for`)."""
+    return engine_of(apis)._meta_for(meta_type, item_id)
 
 
 def load_meta(apis, ctype, item_id, series_id=None):
     """Meta titulu (u epizody meta seriálu + konkrétní video) pro popis a OSD."""
-    base_id, season, episode = split_episode_id(item_id)
-    if season is not None and series_id:
-        base_id = series_id
-    meta_type = "series" if season is not None else ctype
-    meta = meta_for(apis, meta_type, base_id)
-    if is_sosac_id(base_id):
-        enrich_one(meta, apis["luna"], STORE, meta_type)
-    video = None
-    if season is not None:
-        video = next((v for v in meta.get("videos") or []
-                      if int(v.get("season") or 0) == season and int(v.get("episode") or 0) == episode), None)
-    return meta, video
-
-
-def cross_streams(apis, ctype, item_id, meta, alt=None, errors=None):
-    """Streamy z druhého zdroje pro stejný titul (Luna ↔ Sosáč).
-
-    `alt` = id protějšku v Sosáči už známé z hledání (sloučený výsledek) – bez dohledávání.
-    """
-    if not on("cross_search"):
-        return []
-    base_id, season, episode = split_episode_id(item_id)
-    if alt and apis["sosac"] and not is_sosac_id(base_id):
-        try:
-            target = alt if season is None else apis["sosac"].episode_id(alt, season, episode)
-            return apis["sosac"].streams(ctype, target) if target else []
-        except SosacError as e:
-            log_error(f"cross-search (alt): {e}")
-            if errors is not None:
-                errors.append(e)
-            return []
-    title = meta.get("_title") or meta.get("name") or ""
-    year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
-    orig = meta.get("_orig") or None
-    meta_type = "series" if season is not None else ctype
-    try:
-        if is_sosac_id(base_id):
-            luna = apis["luna"]
-            if luna is None:
-                return []
-            for cand in luna.catalog(meta_type, "search.movie" if meta_type == "movie" else "search.series",
-                                     search=title)[:10]:
-                cand_year = str(cand.get("year") or cand.get("releaseInfo") or "")[:4]
-                if not (names_match(cand.get("name"), title) or (orig and names_match(cand.get("name"), orig))):
-                    continue
-                if year and cand_year and abs(int(year) - int(cand_year)) > 1:
-                    continue
-                target = f"{cand['id']}:{season}:{episode}" if season is not None else cand["id"]
-                return luna.streams(ctype, target, include_search=on("search_streams"))
-        else:
-            sosac = apis["sosac"]
-            if sosac is None:
-                return []
-            match = sosac.find_match(meta_type, title, year or None, orig)
-            if not match:
-                return []
-            target = match["id"]
-            if season is not None:
-                target = sosac.episode_id(match["id"], season, episode)
-                if not target:
-                    return []
-            return sosac.streams(ctype, target)
-    except Errors as e:
-        log_error(f"cross-search: {e}")
-        if errors is not None:
-            errors.append(e)
-    return []
-
-
-WS_LIMIT = 25
-HS_LIMIT = 25
-ST_LIMIT = 25
-# značka dílu v názvu souboru: „S01E03", „s1 e3", „1x03"
-EPISODE_ANY_RE = re.compile(r"(?<![a-z0-9])s\d{1,2}\s?e\d{1,2}(?!\d)|(?<!\d)\d{1,2}x\d{2}(?!\d)", re.I)
-AUDIO_PROBE_MAX = 24          # u kolika streamů se ještě vyplatí číst hlavičku souboru
-AUDIO_TTL = 30 * 24 * 3600    # obsah souboru se nemění, stačí zjistit jednou
-YEAR_RE = re.compile(r"\b(19\d{2}|20\d{2})\b")
-# číslo dílu hned za názvem („Já, padouch 2", „How.to.Train.Your.Dragon.3") — ne
-# zvuk 5.1/7.1, ten má za tečkou jedinou číslici; rok za tečkou („draka.2.2014") dílem je
-SEQUEL_AFTER_RE = re.compile(r"[\s._\-:,(\[]*(?:[2-9]|ii|iii|iv|vi|vii|viii)(?![a-z0-9])(?![.,]\d(?!\d))")
-# značky, které smí stát kolem krátkého názvu („To", „It") místo dalšího slova
-RELEASE_TAGS = frozenset((
-    "cz", "sk", "en", "eng", "cze", "czech", "cesky", "dabing", "dab", "dub", "titulky", "tit",
-    "cztit", "sktit", "subs", "hd", "fullhd", "uhd", "bluray", "bdrip", "brrip", "webrip", "web",
-    "webdl", "dl", "dvdrip", "hdtv", "remux", "hevc", "avc", "film", "movie", "mkv", "avi", "mp4",
-))
-
-
-def _years(folded):
-    """Roky v názvu souboru. `\\b` mezi číslicí a podtržítkem hranici nevidí
-    („Jak_vycvicit_draka_2025"), proto se podtržítka napřed mění na mezery."""
-    text = folded.replace("_", " ")
-    # rok slepený s „r“/„rok“ („Seber si svých pět švestek r1983“) \b nepozná
-    glued = re.findall(r"(?<![a-z0-9])r(?:ok)?[ .-]?(19\d{2}|20\d{2})(?!\d)", text)
-    return {int(y) for y in YEAR_RE.findall(text) + glued}
-
-
-def _title_pattern(text):
-    """(slova, ocas, krátký) jedné varianty názvu pro přísný filtr.
-
-    Slova jsou ta delší než dva znaky („Harry Potter a Kámen mudrců" → bez „a"),
-    ocas je všechno za posledním z nich („Toy Story 5" → „5"), aby se dalo poznat
-    jiný díl. Název jen z krátkých slov („To", „It") by bez slov neměl žádný
-    filtr, takže bere všechna a hlídá se zvlášť (viz `_title_leads`).
-    """
-    raw = re.findall(r"[a-z0-9]+", _fold(text))
-    long_idx = [i for i, t in enumerate(raw) if len(t) > 2]
-    if long_idx:
-        return [raw[i] for i in long_idx], raw[long_idx[-1] + 1:], False
-    return raw, [], True
-
-
-def _prefix_ok(folded, spans, first):
-    """Smí název titulu v souboru stát až za textem před ním? (viz `_title_leads`)"""
-    before = [t for t, _e in spans[:first]]
-    # krátká slova (≤ 2 znaky) patří k názvu — „S čerty nejsou žerty“ začíná krátkým „S“,
-    # které filtr slov neřeší; bez téhle výjimky zmizely všechny jeho soubory
-    if all(t in RELEASE_TAGS or t.isdigit() or len(t) <= 2 for t in before):
-        return True
-    start = spans[first][1] - len(spans[first][0])
-    prefix = folded[:start].rstrip(" ._")
-    return prefix.endswith(("-", "–", "|", ":", "]", ")"))
-
-
-def _title_leads(folded, pattern, movie, variants=()):
-    """Začíná název souboru tímhle názvem titulu? (přísný filtr)
-
-    Slova názvu musí být v souboru za sebou a skoro na začátku. Pouhé „všechna
-    slova někde v názvu" propustí i úplně jiný titul, který ta slova jen náhodou
-    obsahuje — např. český idiom „Seber si svých pět švestek" vs. film „Pět
-    švestek": obě slova tam jsou, ale patří k jiné větě. Skutečný název souboru
-    na nich vždycky začíná (nejvýš za značkou webu/edicí v závorce), balíček
-    zdrojů (rok, kvalita, kodek…) přijde až za ním.
-
-    U filmu nesmí za názvem hned následovat číslo jiného dílu („Jak vycvičit
-    draka 2" u jedničky). Krátký název („To") musí stát úplně na začátku a za
-    ním smí být jen rok, kvalita nebo značka jazyka — jinak projde „What
-    Happened to Monday" i „Někdo to rád horké". Výjimkou je jiná varianta
-    téhož názvu hned za ním („To - It (2017)").
-    """
-    group, tail, short = pattern
-    spans = [(m.group(), m.end()) for m in re.finditer(r"[a-z0-9]+", folded)]
-    n = len(group)
-    if short:
-        start = 0
-        while start < len(spans) and spans[start][0] in RELEASE_TAGS:
-            start += 1
-        if [t for t, _e in spans[start:start + n]] != group:
-            return False
-        after = spans[start + n:]
-        for other in variants:
-            if other != group and [t for t, _e in after[:len(other)]] == other:
-                after = after[len(other):]
-                break
-        if after and after[0][0].isalpha() and after[0][0] not in RELEASE_TAGS:
-            return False
-        end = spans[start + n - 1][1]
-    else:
-        long_spans = [(i, t) for i, (t, _e) in enumerate(spans) if len(t) > 2]
-        tokens = [t for _i, t in long_spans]
-        for i in range(min(3, len(tokens) - n + 1)):
-            if tokens[i:i + n] != group:
-                continue
-            first = long_spans[i][0]
-            # Název smí začínat až za jiným textem jen tehdy, když je to značka (webu,
-            # jazyka, kvality) nebo předpona oddělená závorkou či pomlčkou. Jinak prošel
-            # český idiom „Seber si svých pět švestek“ u filmu „Pět švestek“ (2026).
-            if first and not _prefix_ok(folded, spans, first):
-                continue
-            last = long_spans[i + n - 1][0]
-            break
-        else:
-            return False
-        after = spans[last + 1:]
-        if tail and [t for t, _e in after[:len(tail)]] == tail:
-            last += len(tail)
-        end = spans[last][1]
-    return not (movie and SEQUEL_AFTER_RE.match(folded, end))
-
-
-RUNTIME_RE = re.compile(r"(?:(\d+)\s*h)?\s*(?:(\d+)\s*min)?", re.I)
-
-
-def runtime_minutes(text):
-    """Stopáž v minutách. Luna/Cinemeta posílají „2h42min“, epizody bývají
-    holé číslo („42“) — bez rozlišení formátu by prosté vytažení číslic
-    z „2h42min“ dalo „242“ a z dvouapůlhodinového filmu udělalo čtyřhodinový.
-    """
-    text = str(text or "")
-    m = RUNTIME_RE.search(text)
-    if m and (m.group(1) or m.group(2)):
-        return int(m.group(1) or 0) * 60 + int(m.group(2) or 0)
-    digits = "".join(ch for ch in text if ch.isdigit())
-    return int(digits) if digits else 0
-
-
-def _fold(text):
-    """Bez diakritiky, malá písmena — pro porovnávání názvů souborů."""
-    return unicodedata.normalize("NFKD", text or "").encode("ascii", "ignore").decode().lower()
+    return engine_of(apis).meta(ctype, item_id, series_id)
 
 
 def title_queries(apis, meta, video, ctype, alt=None, strict=True):
-    """Dotazy pro fulltextové zdroje a filtr, který z výsledku nechá jen ten titul.
-
-    Sdílí to WebShare i HellSpy — oba hledají v názvech souborů, takže potřebují
-    totéž: víc variant názvu (originál, rok, u dílu značku sezóny) a pak zahodit
-    všechno, co se jen podobá. Luna se WebShare ptá jedním dotazem a část souborů
-    jí uteče, proto se tu hledá ve víc variantách, stejně jako v integraci pro HA.
-
-    `strict=False` (ruční „Zkusit fulltext" ze seznamu streamů) vrací k poloze
-    v názvu shovívavější filtr — stačí, aby soubor obsahoval všechna slova
-    kdekoli. Používá se jen na výslovné vyžádání, kdy uživatel vidí i výsledky,
-    které by přísný filtr zahodil (a počítá s tím, že mezi nimi může být omyl).
-    """
-    title = meta.get("_title") or meta.get("name") or ""
-    origs = [o for o in [meta.get("_orig") or ""] if o]
-    if alt and apis.get("sosac"):
-        try:
-            alt_meta = apis["sosac"].meta(ctype, alt)
-            origs += [o for o in (alt_meta.get("_orig") or "", alt_meta.get("_title") or "") if o]
-        except Errors:
-            pass
-    origs = [o for o in dict.fromkeys(origs) if _fold(o) != _fold(title)]
-    year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
-    year = int(year) if year.isdigit() else None
-    if video:
-        se, ep = int(video.get("season") or 0), int(video.get("episode") or 0)
-        tag = f"S{se:02d}E{ep:02d}"
-        queries = [f"{title} {tag}"] + [f"{o} {tag}" for o in origs]
-        episode_re = re.compile(rf"s{se:02d}e{ep:02d}|(?<!\d){se:02d}?x{ep:02d}(?!\d)|(?<!\d){se}x{ep:02d}(?!\d)")
-        want_year = None
-    else:
-        queries = [f"{title} {year}" if year else title, title] + [f"{o} {year}" if year else o for o in origs]
-        episode_re, want_year = None, year
-
-    wanted = [p for p in [_title_pattern(title)] + [_title_pattern(o) for o in origs] if p[0]]
-    variants = [group for group, _tail, _short in wanted]
-    title_years = _years(_fold(title) + " " + " ".join(_fold(o) for o in origs))
-
-    def relevant(name):
-        folded = _fold(name)
-        if wanted:
-            if strict:
-                if not any(_title_leads(folded, pattern, not video, variants) for pattern in wanted):
-                    return False
-            elif not any(all(w in folded for w in group) for group, _tail, _short in wanted):
-                return False
-        if not video and EPISODE_ANY_RE.search(folded):
-            # u filmu nemá soubor se značkou dílu co dělat. Jednoslovný název
-            # („Avatar") projde kontrolou slov a díly seriálu rok v názvu nemají,
-            # takže by se do seznamu streamů filmu nasypal celý seriál.
-            return False
-        if want_year:
-            years = _years(folded) - (title_years - {want_year})
-            if years and not any(abs(y - want_year) <= 1 for y in years):
-                return False
-        return not episode_re or bool(episode_re.search(folded))
-
-    return [q.strip() for q in dict.fromkeys(queries) if q.strip()], relevant
-
-
-def webshare_streams(apis, meta, video, ctype, alt=None, strict=True, errors=None):
-    """Tytéž soubory přímo z WebShare, navíc k tomu, co našla Luna."""
-    ws = apis.get("ws")
-    if ws is None:
-        return []
-    queries, relevant = title_queries(apis, meta, video, ctype, alt, strict)
-    out, seen = [], set()
-    for query in queries:
-        try:
-            files, _total = ws.search(query, limit=WS_LIMIT)
-        except WebshareError as e:
-            log_error(f"WebShare „{query}“: {e}")
-            if errors is not None:
-                errors.append(e)
-            continue
-        for f in files:
-            if f["ident"] in seen or not relevant(f.get("name") or ""):
-                continue
-            seen.add(f["ident"])
-            # velikost do `detail` — odtud ji parse_stream čte; stejné jednotky jako u Luny
-            out.append({"url": "ws:" + f["ident"], "label": f.get("name") or "",
-                        "detail": f.get("size_h") or human_size(f.get("size") or 0), "source": "ws",
-                        "_loose": not strict})
-    remember_ws_token(ws)
-    return out
-
-
-def hellspy_streams(apis, meta, video, ctype, alt=None, strict=True, errors=None):
-    """Tentýž titul na HellSpy. Nabízí se původní soubor, ne překódování, takže
-    název i velikost popisují to, co se opravdu přehraje — viz `hellspy_api`."""
-    hs = apis.get("hs")
-    if hs is None:
-        return []
-    queries, relevant = title_queries(apis, meta, video, ctype, alt, strict)
-    out, seen = [], set()
-    for query in queries:
-        try:
-            files, _next = hs.search(query, limit=HS_LIMIT)
-        except HellspyError as e:
-            log_error(f"HellSpy „{query}“: {e}")
-            if errors is not None:
-                errors.append(e)
-            continue
-        for f in files:
-            name = f.get("name") or ""
-            # Táž nahrávka bývá na HellSpy vícekrát pod prakticky stejným názvem.
-            # _fold zahodí cizí písmo úplně, takže se dvě jinak shodná jména liší
-            # jen zbylou mezerou — proto se mezery ještě srovnají.
-            key = (" ".join(_fold(name).split()), f["size"])
-            if f["hash"] in seen or key in seen or not relevant(name):
-                continue
-            seen.add(f["hash"])
-            seen.add(key)
-            out.append({"url": f"hs:{f['id']}:{f['hash']}", "label": name,
-                        "detail": f.get("size_h") or "", "source": "hs", "_loose": not strict})
-    return out
-
-
-def storage_streams(apis, meta, video, ctype, alt=None, strict=True, errors=None):
-    """Tentýž titul ve vlastních úložištích — stejný přísný filtr jako fulltext, jen
-    nad zapamatovaným seznamem souborů. Soubor se přiřadí i podle složky nad ním
-    („Sherlock/Season 1/S01E02.mkv"), viz `storage_api.match_texts`."""
-    storages = apis.get("dav") or []
-    if not storages:
-        return []
-    _queries, relevant = title_queries(apis, meta, video, ctype, alt, strict)
-    out = []
-    for api in storages:
-        try:
-            files = api.files()
-        except StorageError as e:
-            log_error(f"úložiště {api.name}: {e}")
-            if errors is not None:
-                errors.append(SourceFailure(api.name, e))
-            continue
-        for f in files:
-            if any(relevant(text) for text in match_texts(f["path"])):
-                out.append({"url": f"dav:{api.slot}:{f['path']}", "label": f["name"],
-                            "detail": f.get("size_h") or "", "source": "dav", "_storage": api.name,
-                            "_loose": not strict})
-    return out
-
-
-
-
-def sledujteto_streams(apis, meta, video, ctype, alt=None, strict=True, errors=None):
-    """Tentýž titul na Sledujteto — stejné dotazy a přísný filtr jako HellSpy, jen
-    přes přihlášený účet. Hledání jde i bez Premium, přehrání ne — to se ozve až
-    při přehrání (viz `resolve_url`)."""
-    st = apis.get("st")
-    if st is None:
-        return []
-    queries, relevant = title_queries(apis, meta, video, ctype, alt, strict)
-    out, seen = [], set()
-    for query in queries:
-        try:
-            files, _total = st.search(query, limit=ST_LIMIT)
-        except SledujtetoError as e:
-            log_error(f"Sledujteto „{query}“: {e}")
-            if errors is not None:
-                errors.append(e)
-            if getattr(e, "status", None) in (401, 403):
-                break   # špatný účet — další dotazy by dopadly stejně
-            continue
-        for f in files:
-            name = f.get("name") or ""
-            if f["id"] in seen or not relevant(name):
-                continue
-            seen.add(f["id"])
-            info = f.get("media") or {}
-            # technické údaje dává přímo API — jako přečtená hlavička (viz fill_audio)
-            text = describe_media(info) if info.get("audio") else ""
-            real = quality_from_size(info.get("width") or 0, info.get("height") or 0)
-            stream = {"url": f"st:{f['id']}", "label": name,
-                      "detail": " | ".join(x for x in (f.get("size_h") or "", text) if x),
-                      "quality": real or f.get("quality") or "", "source": "st",
-                      "subtitles": list(f.get("subtitles") or []), "_duration": f.get("duration") or 0,
-                      "_loose": not strict}
-            if info.get("audio") or info.get("height"):
-                stream.update(_tracks=info.get("audio") or [], _media=info, _from_file=True)
-            out.append(stream)
-    return out
+    """Dotazy pro fulltextové zdroje a filtr názvu souboru — viz `Engine._title_queries`.
+    `strict=False` (ruční „Zkusit uvolněný fulltext") pustí soubor se slovy kdekoli v názvu."""
+    return engine_of(apis)._title_queries(meta, video, ctype, alt, strict)
 
 
 DIRECT_SOURCES = ("ws", "hs", "st")   # fulltextové zdroje, kde bývá tentýž soubor jako u Luny
 
 
-def media_from_file(apis, url):
-    """Co se o souboru dá přečíst z jeho hlavičky. Prázdné, když to nejde."""
-    def load():
-        try:
-            return probe_media(resolve_url(apis, url))
-        except Exception as e:  # noqa: BLE001 – čtení hlavičky je bonus, nikdy nesmí shodit výpis
-            log_error(f"hlavička {url[:28]}: {e}")
-            return {}
-    # `probe()` při selhání vrací slovník s nulami — ten se nesmí pamatovat 30 dní,
-    # jinak stream po jednom timeoutu měsíc nemá zvuk ani rozlišení (stejně jako v jádru)
-    return STORE.cached_if(f"media:{url}", AUDIO_TTL, load,
-                           ok=lambda d: bool(d.get("audio") or d.get("height") or d.get("size"))) or {}
-
-
-def fill_audio(apis, streams, progress=None):
-    """Doplní zvuk tam, kde ho zdroj neřekl, a ověří ho tam, kde řekl jen název souboru.
-
-    HellSpy o zvuku nemá ve svém rozhraní vůbec nic a u souborů z fulltextu je
-    jen to, co si někdo napsal do názvu. Údaj přitom leží v hlavičce souboru
-    a servery umí vydat jen její výřez, takže se přečte pár desítek kB. Běží to
-    souběžně a výsledek se pamatuje, takže se za soubor platí jednou.
-
-    Tahle část trvá nejdýl ze všeho při načítání streamů, proto `progress`
-    (je-li dán) dostane `tick()` za každý dočtený soubor, ne až na konci.
-    """
-    try:
-        limit = int(setting("audio_probe", str(AUDIO_PROBE_MAX)) or AUDIO_PROBE_MAX)
-    except ValueError:
-        limit = AUDIO_PROBE_MAX
-    if limit <= 0:
-        return streams
-    # streamy bez počtu kanálů v názvu jdou první — tam chybí úplně všechno.
-    # Streamy, které už jazyk podle názvu mají („CZ Dabing"), se ale taky ověří:
-    # uploader se může splést nebo zkopírovat popisek z jiného souboru, takže
-    # název sám o sobě není důkaz — jen se čeká, až na ně dojde řada v limitu.
-    candidates = [s for s in streams if not s.get("_tracks")
-                  and str(s.get("url") or "").startswith(("hs:", "ws:", "streamuj:", "dav:"))]
-    todo = sorted(candidates, key=lambda s: bool(s.get("channels")))[:limit]
-    if not todo:
-        return streams
-    with ThreadPoolExecutor(max_workers=8) as pool:
-        futures = {pool.submit(media_from_file, apis, s["url"]): s for s in todo}
-        results = {}
-        for future in as_completed(futures):
-            results[id(futures[future])] = future.result()
-            if progress:
-                progress.tick()
-    for stream, info in ((s, results[id(s)]) for s in todo):
-        if not info:
-            continue
-        text = describe_media(info)
-        if text:
-            stream["detail"] = f"{stream['detail']} | {text}" if stream.get("detail") else text
-        stream["_from_file"] = True
-        stream["_tracks"] = info.get("audio") or []
-        stream["_media"] = info
-        if info.get("duration"):
-            # z hlavičky je i skutečná délka streamu, ne jen titulu — přesnější
-            # základ pro datový tok než odhad ze stopáže v `ensure_bitrate()`
-            stream["_duration"] = info["duration"]
-        # parse_stream je idempotentní podle `quality_rank`; po změně popisku
-        # se musí přepočítat, jinak by jazyky a kanály zůstaly prázdné
-        stream.pop("quality_rank", None)
-        parse_stream(stream)
-        # rozlišení ze souboru přebíjí název: ten u řady souborů slibuje „4k",
-        # a přitom je uvnitř 1080p
-        real = quality_from_size(info.get("width") or 0, info.get("height") or 0)
-        if real:
-            stream["quality_rank"] = {"4K": 4, "Full HD": 3, "HD": 2, "SD": 1}[real]
-        if not stream.get("size_gb") and info.get("size"):
-            # Sosáč velikost vůbec neříká — server ji ale poslal v hlavičce HTTP
-            # odpovědi (Content-Range), když se sahalo pro zvuk. `parse_stream`
-            # výše by nastavené GB zase přepsalo z (prázdného) popisku, proto
-            # se to dopisuje až tady, po něm.
-            stream["size_gb"] = info["size"] / 2 ** 30
-    return streams
-
-
 def drop_duplicates(streams):
-    """Soubor nalezený přes Lunu i napřímo je jeden soubor — dvakrát ho neukazovat.
-    Odkaz je pokaždé jiný (Luna vs. CDN), proto se dvojice pozná podle názvu a velikosti.
-    Stejně se tak srovnají i WebShare s HellSpy mezi sebou, kde bývá táž nahrávka."""
+    """Soubor nalezený přes Lunu i napřímo je jeden soubor — párování podle názvu a
+    velikosti dělá jádro (`Engine._merge_direct`); tady se jen označí přímé nálezy."""
     for s in streams:
         parse_stream(s)
-
-    def key(s):
-        return " ".join(_fold(s.get("label")).split()), round(s.get("size_gb") or 0, 1)
-
-    known = {key(s) for s in streams if s.get("source") not in DIRECT_SOURCES}
-    out = []
-    # Lunino vlastní "Search" (source "search") umí tentýž soubor vrátit i víckrát —
-    # všechny kopie mají generický popisek beze jména ("(WS) Full HD"), takže mají
-    # stejný `key()` navzájem, ne jen proti přímému nálezu výše
-    seen_search = set()
-    for s in streams:
-        if s.get("source") == "search":
-            k = key(s)
-            if k in seen_search:
-                continue
-            seen_search.add(k)
-        if s.get("source") not in DIRECT_SOURCES:
-            out.append(s)
-            continue
-        if key(s) in known:
-            continue
-        known.add(key(s))
-        out.append(s)
-    return pair_with_luna(out)
-
-
-LUNA_SIZE_TOLERANCE = 0.25   # GB — Luna a WebShare zaokrouhlují velikost jinak (stejně jako jádro)
-
-
-def pair_with_luna(streams):
-    """Tentýž soubor dvakrát kvůli Luně → jen jeden řádek.
-
-    `drop_duplicates` páruje podle názvu, jenže Luna název souboru neposílá, jen svůj
-    popis. Dvojice se tak nepoznaly ve dvou případech (Extraktoři 2x06, FHD, CZ 2.0,
-    2.4 GB, 57 min):
-    - řádek Luny (`main`) a výsledek Lunina vlastního hledání (`search`, štítek WebShare,
-      odkaz ale taky na Lunu),
-    - řádek Luny a přímý nález z WebShare/HellSpy/Sledujteto.
-    Páruje se proto jako v jádře (`Engine._merge_direct`) podle velikosti: stejná kvalita
-    s tolerancí 0,25 GB, o stupeň jiná jen do 0,05 GB. Zůstává řádek Luny `main` (nese
-    titulky a jazyky), jinak Lunino hledání. Každý ponechaný řádek spáruje nejvýš jednu kopii
-    z Lunina hledání a jeden přímý nález (nejbližší velikost), ať nezmizí různé soubory podobné velikosti."""
-    keepers = [s for s in streams if s.get("source") == "main" and (s.get("size_gb") or 0) > 0] + \
-              [s for s in streams if s.get("source") == "search" and (s.get("size_gb") or 0) > 0]
-    if not keepers:
-        return streams
-    drop = set()
-    for stream in keepers:
-        if id(stream) in drop:
-            continue
-        # řádek Luny sloučí zvlášť jednu kopii z Lunina hledání a zvlášť jeden přímý nález —
-        # tentýž soubor bývá ve všech třech (Luna, její hledání, WebShare)
-        groups = [DIRECT_SOURCES] + ([("search",)] if stream.get("source") == "main" else [])
-        size = stream["size_gb"]
-        for droppable in groups:
-            best, closest = None, None
-            for cand in streams:
-                if cand is stream or cand.get("source") not in droppable or id(cand) in drop or not cand.get("size_gb"):
-                    continue
-                rank_diff = abs((cand.get("quality_rank") or 0) - (stream.get("quality_rank") or 0))
-                if rank_diff > 1:
-                    continue
-                limit = LUNA_SIZE_TOLERANCE if rank_diff == 0 else 0.05
-                delta = abs(cand["size_gb"] - size)
-                if delta < limit and (closest is None or delta < closest):
-                    best, closest = cand, delta
-            if best is not None:
-                drop.add(id(best))
-    return [s for s in streams if id(s) not in drop]
+        if s.get("source") in DIRECT_SOURCES:
+            s["_direct"] = True
+    return Engine._merge_direct(streams)
 
 
 def load_meta_video(meta, item_id):
@@ -1322,89 +836,25 @@ def load_meta_video(meta, item_id):
                  if int(v.get("season") or 0) == season and int(v.get("episode") or 0) == episode), None)
 
 
-def all_streams(apis, ctype, item_id):
-    try:
-        api = api_for(apis, split_episode_id(item_id)[0])
-    except LunaError:
-        # titul přišel z Cinemety (nebo Sosáč zrovna vypnutý) — chybí hlavní
-        # zdroj úplně, ne že by selhal za běhu (to se hlásí dál jako dřív);
-        # cross/WebShare/HellSpy v `collect_streams()` to samy doženou
-        return []
-    if isinstance(api, LunaApi):
-        return api.streams(ctype, item_id, include_search=on("search_streams"))
-    return api.streams(ctype, item_id)
-
-
 def collect_streams(apis, ctype, item_id, meta, alt=None, progress=None, strict=True, errors=None):
-    """Streamy ze zdroje titulu + z druhého zdroje, vyfiltrované a seřazené podle nastavení.
+    """Streamy ze všech zdrojů, vyfiltrované a seřazené podle nastavení — `Engine.raw_streams`.
 
-    Oba dotazy běží souběžně — dřív šly za sebou a čas byl jejich součet. Chyba
-    hlavního zdroje se hlásí dál jako dřív; dohledání v druhém zdroji si chyby
-    jen zaloguje (viz `cross_streams`), takže výsledek druhého vlákna nikdy nechybí.
-
-    `progress`, je-li dán, dostane jeden `tick()` za každý dokončený zdroj —
-    vidět aspoň nějaký pohyb dřív, než začne (mnohem delší) čtení hlaviček
-    v `fill_audio()`.
-
-    Každý zdroj běží pod vlastní pojistkou: když selže (vypnutý addon Luny,
-    výpadek WebShare…), jeho chyba se zapíše do `errors` a hledá se dál
-    v ostatních. Dřív chyba hlavního zdroje shodila celý výpis, i když ostatní
-    zdroje streamy měly. Co s chybami udělat (upozornit), řeší volající.
+    Každý zdroj běží pod vlastní pojistkou jádra: když selže (vypnutý addon Luny,
+    výpadek WebShare…), jeho chyba přijde do `errors` jako `SourceFailure` a hledá
+    se dál v ostatních; co s tím udělat (upozornit), řeší volající. `progress`,
+    je-li dán, dostává `set(done, total)` po každé fázi — čtení hlaviček je
+    z nich zdaleka nejdelší.
     """
     errors = [] if errors is None else errors
-
-    def guarded(label, fn, *args, **kwargs):
-        try:
-            return fn(*args, **kwargs)
-        except Errors as e:
-            log_error(f"{label}: {e}")
-            errors.append(e)
-        except Exception as e:  # noqa: BLE001 – ani nečekaná chyba jednoho zdroje nesmí shodit ostatní
-            log_error(f"{label}: {e!r}")
-            errors.append(SourceFailure(label, e))
-        return []
-
-    main_label = "Sosáč" if is_sosac_id(split_episode_id(item_id)[0]) else "Luna"
-    cross_label = "Luna" if main_label == "Sosáč" else "Sosáč"
-    # WebShare se do streamů dohledává vždy, když je účet vyplněný (stejně jako HA) —
-    # není to zdvojení Luny: Luna pošle jeden dotaz, tohle víc variant (rok, originál)
-    direct = apis.get("ws") is not None
-    video = load_meta_video(meta, item_id)
-    with ThreadPoolExecutor(max_workers=6) as pool:
-        main = pool.submit(guarded, main_label, all_streams, apis, ctype, item_id)
-        cross = pool.submit(guarded, cross_label, cross_streams, apis, ctype, item_id, meta, alt, errors)
-        ws = pool.submit(guarded, "WebShare", webshare_streams, apis, meta, video, ctype, alt, strict,
-                         errors) if direct else None
-        hs = pool.submit(guarded, "HellSpy", hellspy_streams, apis, meta, video, ctype, alt, strict,
-                         errors) if apis.get("hs") else None
-        st = pool.submit(guarded, "Sledujteto", sledujteto_streams, apis, meta, video, ctype, alt, strict,
-                         errors) if apis.get("st") else None
-        dav = pool.submit(guarded, L(30405, "Úložiště"), storage_streams, apis, meta, video, ctype, alt, strict,
-                          errors) if apis.get("dav") else None
-        if progress:
-            for _ in as_completed([f for f in (main, cross, ws, hs, st, dav) if f is not None]):
-                progress.tick()
-        extra = cross.result() + (ws.result() if ws else []) + (hs.result() if hs else []) \
-            + (st.result() if st else []) + (dav.result() if dav else [])
-        streams = drop_duplicates(main.result() + extra)
-    max_gb = effective_max_gb(video or meta)
-
-    def order(items):
-        return arrange(
-            items,
-            pref_lang=PREF_LANGS[int(setting("pref_lang", "0"))],
-            hide_sd=on("hide_sd", "false"),
-            max_size_gb=max_gb,
-            order=STREAM_ORDERS[int(setting("sort_streams", "0"))],
-            pref_surround=on("pref_surround", "false"),
-        )
-
-    # Hlavičky se čtou až po seřazení. Kandidátů bývá víc, než se vyplatí číst,
-    # a před seřazením se rozpočet utratil za řádky, které skončí dole; teď padne
-    # na začátek seznamu, tedy na to, co má uživatel před očima. Po doplnění
-    # kanálů se řadí znovu, protože 5.1 může pořadím pohnout.
-    ordered = order(ensure_bitrate(fill_audio(apis, order(storage_first(streams)), progress), video or meta))
-    return storage_first(ordered)
+    failures = []
+    engine = engine_of(apis)
+    try:
+        streams = engine.raw_streams(ctype, item_id, alt, on_progress=progress.set if progress else None,
+                                     failures=failures, strict=strict, meta_video=(meta, load_meta_video(meta, item_id)))
+    finally:
+        errors.extend(SourceFailure(label, err) for label, err in failures)
+        remember_ws_token(engine.ws)
+    return streams
 
 
 def storage_first(streams):
@@ -1414,39 +864,6 @@ def storage_first(streams):
     dovolené byl 5. z 61 a uživatel ho nenašel) — přitom je to ten, kvůli kterému
     úložiště má, a přehrává se bez závislosti na cizí službě."""
     return [s for s in streams if s.get("source") == "dav"] + [s for s in streams if s.get("source") != "dav"]
-
-
-def ensure_bitrate(streams, meta_or_video):
-    """Datový tok a délka má mít úplně každý stream, ne jen ten, co je zdroj sám řekl.
-
-    Přesnost podle toho, odkud se vzala délka. Nejlepší je ta, kterou přímo
-    posílá zdroj (`duration`, z popisku Luny). Pak hlavička souboru
-    (`_duration`, z `fill_audio`) — z obojího je datový tok stejně přesný
-    jako velikost. Bez nich (mimo rozpočet čtení hlavičky, nebo zdroj bez
-    vlastního údaje) se počítá se stopáží titulu — to je odhad, stejný,
-    se kterým počítá i `effective_max_gb()`, proto se značí vlnovkou stejně
-    jako ostatní odhadnuté věci v popisku.
-
-    AVI hlavičky lžou často — `dwTotalFrames` v `avih` je jeden z nejčastěji
-    poškozených nebo neaktualizovaných údajů po přebalení souboru. Soubor pak
-    tvrdí, že devadesátiminutový film má 14 minut, a datový tok vyjde
-    několikanásobně nadsazený. Když je titul znám, přečtená délka ze souboru
-    se proto porovná s jeho stopáží — liší-li se o víc než polovinu,
-    nedůvěřuje se jí a použije se odhad ze stopáže titulu.
-    """
-    minutes = runtime_minutes((meta_or_video or {}).get("runtime"))
-    fallback_s = minutes * 60 if minutes else DEFAULT_RUNTIME_S
-    for s in streams:
-        duration = s.get("duration") or s.get("_duration") or 0
-        if duration and minutes and not (0.5 <= duration / fallback_s <= 2.0):
-            duration = 0   # hlavička zjevně lže (typicky poškozený avih u AVI)
-        length = duration or fallback_s
-        s["_length_s"] = length
-        s["_length_est"] = not duration
-        if not s.get("bitrate") and s.get("size_gb"):
-            s["bitrate"] = round(s["size_gb"] * 2 ** 30 * 8 / length / 1_000_000, 1)
-            s["_bitrate_est"] = not duration
-    return streams
 
 
 def stream_signature(s):
@@ -1664,7 +1081,9 @@ def stream_label(s):
         raw = raw.replace(junk, "")
     raw = raw.strip()
     quality = QUALITY_NAMES.get(s.get("quality_rank", 0), "")
-    if not quality and s.get("size_gb"):
+    if quality and s.get("_estimated"):
+        quality = "~" + quality   # jádro kvalitu odhadlo z velikosti (název ji neřekl)
+    elif not quality and s.get("size_gb"):
         # soubor bez kvality v názvu (typicky přímo z WebShare): odhad podle velikosti, s vlnovkou
         quality = "~" + QUALITY_NAMES.get(estimate_rank(s["size_gb"]), "")
     import re as _re
@@ -1954,34 +1373,12 @@ def test_sources():
 SPEEDTEST_URL = "https://speed.cloudflare.com/__down?bytes=52428800"  # 50 MB, i na rychlém připojení stačí pár vteřin
 SPEEDTEST_SECONDS = 8       # déle nemá smysl čekat, průměr se stejně ustálí dřív
 SPEEDTEST_RESERVE = 0.25    # rezerva, aby přehrávání nezasekávalo při kolísání rychlosti
-DEFAULT_RUNTIME_S = 7200    # dvouhodinový film — odhad stopáže, jen když ji titul sám neřekne
-
-
-def effective_max_gb(meta_or_video):
-    """Max. velikost streamu pro TENHLE titul, spočtená z nastaveného datového toku.
-
-    Velikost souboru sama o sobě neříká, jestli přehrávání poteče plynule —
-    rozhoduje datový tok, tedy velikost dělená stopáží. Pevné GB v Nastavení
-    proto nedávaly smysl: devadesátiminutová pohádka a tříhodinový epos se
-    stejným tokem vyjdou na docela jinou velikost. Když titul stopáž neřekne
-    (typicky holé hledání na WebShare bez metadat), použije se dvouhodinový
-    odhad — přesně to, s čím počítalo i samotné měření.
-    """
-    try:
-        mbps = float(setting("max_bitrate_mbps", "0").replace(",", ".") or 0)
-    except ValueError:
-        mbps = 0.0
-    if not mbps:
-        return 0.0
-    minutes = runtime_minutes((meta_or_video or {}).get("runtime"))
-    seconds = minutes * 60 if minutes else DEFAULT_RUNTIME_S
-    return mbps * 1_000_000 * seconds / 8 / 2 ** 30
 
 
 def speedtest():
     """Tlačítko v nastavení: změří rychlost stahování a uloží ji jako
-    dovolený datový tok s 25% rezervou — viz `effective_max_gb`, kde se
-    teprve pro konkrétní titul a jeho stopáž mění na GB.
+    dovolený datový tok s 25% rezervou — viz `Engine._effective_max_gb`, kde
+    se teprve pro konkrétní titul a jeho stopáž mění na GB.
     """
     dialog = xbmcgui.DialogProgress()
     dialog.create(L(30000), L(30402, "Měřím rychlost stahování…"))
@@ -2431,6 +1828,13 @@ class SearchProgress:
             if value > self.done:
                 self.done = min(value, self.total)
                 self._show()
+
+    def set(self, done, total):
+        """`on_progress` jádra: to si počet kroků upravuje za běhu (kolik hlaviček se čte)."""
+        with self.lock:
+            self.total = max(1, total)
+            self.done = min(done, self.total)
+            self._show()
 
 
 def _search_merge(apis, ctype, query, want_year, errors, tick=None):
@@ -2935,7 +2339,7 @@ def list_episodes(apis, series_id, season, alt=None):
 
 def fulltext_item(ctype, item_id, series_id, alt):
     """Odkaz na tuhle obrazovku znovu, ale s uvolněným filtrem WebShare/HellSpy
-    (viz `title_queries`, `strict=False`) — pro případ, že přísný automatický
+    (viz `Engine._title_queries`, `strict=False`) — pro případ, že přísný automatický
     filtr skutečnou shodu zahodil, protože název souboru je neobvyklý."""
     folder_item(L(30335, "Zkusit uvolněný fulltext (WebShare, HellSpy, Sledujteto)"),
                 build_url(action="streams", type=ctype, id=item_id, series=series_id, alt=alt, fulltext="1"),
@@ -2948,16 +2352,11 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None, fq="", flang=""
     strict = fulltext != "1"
     has_fulltext_source = bool(apis.get("ws") or apis.get("hs") or apis.get("st"))
     # ukazatel průběhu: pár kroků na dotazy zdrojům, pak (obvykle nejdelší část)
-    # jeden na každý soubor, kterému se čte hlavička v `fill_audio()`
-    try:
-        probe_limit = int(setting("audio_probe", str(AUDIO_PROBE_MAX)) or AUDIO_PROBE_MAX)
-    except ValueError:
-        probe_limit = AUDIO_PROBE_MAX
-    num_sources = 2 + sum(1 for k in ("ws", "hs", "st") if apis.get(k))
+    # jeden na každý soubor, kterému jádro čte hlavičku — přesný počet si jádro upraví
     bar = xbmcgui.DialogProgressBG()
     bar.create(L(30000, "Nokturno"), L(30238, "Načítám streamy…"))
     bar.update(0)
-    progress = SearchProgress(bar, num_sources + max(probe_limit, 0))
+    progress = SearchProgress(bar, Engine.STREAM_SOURCE_STEPS + AUDIO_PROBE_MAX)
     errors = []
     try:
         streams = collect_streams(apis, ctype, item_id, meta, alt, progress, strict, errors)

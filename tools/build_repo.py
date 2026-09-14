@@ -30,8 +30,9 @@ if not BETA:
     ADDONS["repository.nokturno.beta"] = os.path.join(ROOT, "repository.nokturno.beta")
 EXCLUDE = {".git", ".gitignore", "repo", "repo-beta", "tools", "tests", "repository.nokturno",
            "repository.nokturno.beta", "__pycache__", ".github",
-           # v zipu bez užitku: vánoční seznam a ikona nikde v kódu, torrenty jen v HA
-           "lists", "icon-vanoce.png", "prowlarr.py", "qbittorrent.py"}
+           # v zipu bez užitku: vánoční seznam a ikona nikde v kódu (torrenty bere jen HA,
+           # ale engine.py je importuje, takže prowlarr.py a qbittorrent.py v zipu být musí)
+           "lists", "icon-vanoce.png"}
 
 
 def addon_version(path):
