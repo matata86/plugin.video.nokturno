@@ -17,7 +17,7 @@ Video doplněk pro Kodi (20 Nexus a novější — `InfoTagVideo`, testováno na
 | **Luna: Absolute Cinema** | TMDB katalogy (trendy, populární, podle roku, žánru…), streamy z WebShare s rozpoznanou kvalitou a jazyky | běžící server [Luna](https://stremio.cz/d/47-luna-absolute-cinema-addon-pro-prehravani-sifrovaneho-obsahu-z-webshare) v LAN (např. jako [addon Home Assistantu](https://github.com/matata86/ha-addons)) |
 | **HellSpy** | fulltextové hledání souborů na hellspy.to a přehrávání původních souborů | nic, rozhraní je veřejné |
 | **Sledujteto** (od 3.0.0) | fulltextové hledání na sledujteto.cz a přehrávání; rozlišení, kanály a kodek zvuku posílá přímo jejich API | účet Sledujteto (e-mail + heslo), k přehrání **Premium** |
-| **FastShare** (od 5.0.0) | fulltextové hledání na fastshare.cz a přehrávání; rozlišení a stopáž posílá jejich API, zvuk se dočte z hlavičky souboru (pár set kB z kreditu, jednou za 30 dní) | účet FastShare (jméno + heslo), přehrání z **kreditu** nebo neomezeného tarifu |
+| **FastShare** (od 5.1.0) | fulltextové hledání na fastshare.cz a přehrávání; rozlišení a stopáž posílá jejich API, zvuk se dočte z hlavičky souboru (pár set kB z kreditu, jednou za 30 dní) | účet FastShare (jméno + heslo), přehrání z **kreditu** nebo neomezeného tarifu |
 | **Vlastní úložiště** (od 3.1.0) | tvoje soubory z NAS, Nextcloudu nebo serveru — až tři WebDAV složky; u titulů mezi streamy vždy první, v menu **Moje úložiště** | adresa složky na WebDAV, případně jméno a heslo |
 
 Přihlašovací údaje zůstávají v Kodi — doplněk je posílá jen službě, ke které patří (WebShare, Streamuj, Luna, Sledujteto, FastShare).
