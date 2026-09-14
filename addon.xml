@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="3.1.8" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="3.1.10" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.0"/>
   </requires>
@@ -23,7 +23,9 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>3.1.8 – Filmy: nově přidané zvlášť s CZ dabingem a s CZ titulky
+    <news>3.1.10 – Beta verze: volitelný „Nokturno repozitář (beta)“ pro novinky dřív
+3.1.10 – Vypnuté statistiky posílají už jen náhodné id instalace a verzi (že instalace žije), žádné tituly ani zdroje
+3.1.8 – Filmy: nově přidané zvlášť s CZ dabingem a s CZ titulky
 3.1.8 – Seznamy ze Sosáče se i na slabších zařízeních načtou za pár sekund místo minuty a víc
 3.1.8 – Zahřívání cache na pozadí připraví seznamy, které menu opravdu otevírá
 3.1.7 – Oprava: tituly začínající krátkým slovem („S čerty nejsou žerty“) zase dostanou všechny streamy
