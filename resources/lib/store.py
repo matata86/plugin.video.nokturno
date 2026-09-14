@@ -474,12 +474,22 @@ class Index:
             self.store.save("items", items)
 
     def remember_item(self, key, info):
+        self.remember_items({key: info})
+
+    def remember_items(self, items):
+        """Celý výpis jedním zápisem. Soubor má přes megabajt a zápis po položkách
+        znamenal u seznamu 47 filmů 47× načíst a uložit celý rejstřík — na Office
+        (32bit ARM) 45 s místo dvou (2026-09-14)."""
+        if not items:
+            return
         self._migrate()
         with self.store._lock:
             data = self.store.load(self.name, {})
-            info = dict(info)
-            info["ts"] = int(time.time())
-            data[str(key)] = info
+            ts = int(time.time())
+            for key, info in items.items():
+                info = dict(info)
+                info["ts"] = ts
+                data[str(key)] = info
             self.store._trim(data, INDEX_MAX)
             self.store.save(self.name, data)
 
