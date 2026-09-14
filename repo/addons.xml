@@ -5557,4 +5557,34 @@
     </assets>
   </extension>
 </addon>
+<addon id="repository.nokturno.beta" name="Nokturno repozitář (beta)" version="1.0.0" provider-name="matata86">
+  <extension point="xbmc.addon.repository" name="Nokturno repozitář (beta)">
+    <!-- stabilní verze i bety: Kodi nabídne vždy nejvyšší, a „3.2.0~beta1“ je nižší než „3.2.0“,
+         takže po vydání stabilní verze se beta sama přepíše na ni -->
+    <dir>
+      <info compressed="false">https://raw.githubusercontent.com/matata86/plugin.video.nokturno/main/repo/addons.xml</info>
+      <checksum>https://raw.githubusercontent.com/matata86/plugin.video.nokturno/main/repo/addons.xml.md5</checksum>
+      <datadir zip="true">https://raw.githubusercontent.com/matata86/plugin.video.nokturno/main/repo/</datadir>
+    </dir>
+    <dir>
+      <info compressed="false">https://raw.githubusercontent.com/matata86/plugin.video.nokturno/main/repo-beta/addons.xml</info>
+      <checksum>https://raw.githubusercontent.com/matata86/plugin.video.nokturno/main/repo-beta/addons.xml.md5</checksum>
+      <datadir zip="true">https://raw.githubusercontent.com/matata86/plugin.video.nokturno/main/repo-beta/</datadir>
+    </dir>
+  </extension>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="cs_CZ">Beta verze doplňku Nokturno – novinky dřív, ale můžou obsahovat chyby</summary>
+    <summary lang="sk_SK">Beta verzie doplnku Nokturno – novinky skôr, ale môžu obsahovať chyby</summary>
+    <summary lang="en_GB">Nokturno add-on beta versions – new features earlier, may contain bugs</summary>
+    <description lang="cs_CZ">Nabízí stabilní verze i bety doplňku Nokturno; Kodi vždy nainstaluje tu nejnovější. Po vydání stabilní verze se beta sama nahradí stabilní. Pro návrat jen na stabilní verze tento repozitář odinstaluj (stabilní „Nokturno repozitář“ nech). Zdroj: github.com/matata86/plugin.video.nokturno</description>
+    <description lang="sk_SK">Ponúka stabilné verzie aj bety doplnku Nokturno; Kodi vždy nainštaluje tú najnovšiu. Po vydaní stabilnej verzie sa beta sama nahradí stabilnou. Pre návrat len na stabilné verzie tento repozitár odinštaluj (stabilný „Nokturno repozitář“ nechaj). Zdroj: github.com/matata86/plugin.video.nokturno</description>
+    <description lang="en_GB">Offers both stable and beta versions of the Nokturno add-on; Kodi always installs the newest. Once a stable version is released, the beta is replaced by it automatically. To go back to stable only, uninstall this repository (keep the stable "Nokturno repozitář"). Source: github.com/matata86/plugin.video.nokturno</description>
+    <platform>all</platform>
+    <license>MIT</license>
+    <source>https://github.com/matata86/plugin.video.nokturno</source>
+    <assets>
+      <icon>resources/icon.png</icon>
+    </assets>
+  </extension>
+</addon>
 </addons>

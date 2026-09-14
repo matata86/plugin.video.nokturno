@@ -84,6 +84,13 @@ Od té doby Kodi nové verze stahuje samo (nebo je nabídne, podle nastavení
 aktualizací). Kontrola běží jednou denně; hned si ji vyžádáš místní nabídkou na
 **Nokturno repozitář** → *Zkontrolovat aktualizace*.
 
+**Beta verze (novinky dřív, můžou obsahovat chyby):** Doplňky → Instalovat
+z repozitáře → **Nokturno repozitář** → Repozitáře doplňků → **Nokturno
+repozitář (beta)** → Instalovat. Kodi pak nabízí stabilní verze i bety a vždy
+nainstaluje tu nejnovější; po vydání stabilní verze se beta sama nahradí
+stabilní. Zpět jen na stabilní verze: beta repozitář odinstaluj a v Informacích
+o doplňku vyber poslední stabilní verzi (nebo počkej na další).
+
 **Ručně, bez repozitáře:** stáhni `plugin.video.nokturno-x.y.z.zip` z
 [Releases](https://github.com/matata86/plugin.video.nokturno/releases) → Kodi →
 Doplňky → Instalovat ze souboru ZIP.

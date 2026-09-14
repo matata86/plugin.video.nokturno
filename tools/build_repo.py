@@ -2,7 +2,10 @@
 """Sestaví Kodi repozitář do složky repo/ (addons.xml, addons.xml.md5, zipy).
 
 Spouštět z kořene repozitáře po každé změně verze v addon.xml:
-    python3 tools/build_repo.py
+    python3 tools/build_repo.py          # stabilní verze → repo/
+    python3 tools/build_repo.py --beta   # beta („3.2.0~beta1“) → repo-beta/
+Stabilní repozitář (`repository.nokturno`) čte jen repo/, beta repozitář
+(`repository.nokturno.beta`) repo/ i repo-beta/ a Kodi vezme nejvyšší verzi.
 Kodi si pak z raw.githubusercontent.com stáhne addons.xml, porovná verze
 a nabídne/provede aktualizaci.
 """
@@ -10,16 +13,23 @@ import hashlib
 import os
 import re
 import shutil
+import sys
 import xml.etree.ElementTree as ET
 import zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-REPO = os.path.join(ROOT, "repo")
+BETA = "--beta" in sys.argv[1:]
+REPO = os.path.join(ROOT, "repo-beta" if BETA else "repo")
 ADDONS = {
     "plugin.video.nokturno": ROOT,                                   # samotný doplněk = kořen repozitáře
-    "repository.nokturno": os.path.join(ROOT, "repository.nokturno"),
 }
-EXCLUDE = {".git", ".gitignore", "repo", "tools", "repository.nokturno", "__pycache__", ".github"}
+if not BETA:
+    # repozitáře jen ve stabilním repo/ — beta repozitář se tak dá nainstalovat
+    # i z „Nokturno repozitář“ a ze zrcadel, která repo-beta/ nemají
+    ADDONS["repository.nokturno"] = os.path.join(ROOT, "repository.nokturno")
+    ADDONS["repository.nokturno.beta"] = os.path.join(ROOT, "repository.nokturno.beta")
+EXCLUDE = {".git", ".gitignore", "repo", "repo-beta", "tools", "repository.nokturno",
+           "repository.nokturno.beta", "__pycache__", ".github"}
 
 
 def addon_version(path):
@@ -78,8 +88,12 @@ def zip_addon(addon_id, src, version):
 
 
 def version_key(text):
-    """'1.5.36' → (1, 5, 36); nečíselné části jdou dozadu."""
-    return tuple(int(p) if p.isdigit() else -1 for p in re.split(r"[.\-+]", text))
+    """Pořadí jako v Kodi (`CAddonVersion`): '1.5.36' → ((1, 5, 36), …) a část
+    za „~“ řadí verzi před stejnou bez ní — '3.2.0~beta1' < '3.2.0'."""
+    main, _, tag = text.partition("~")
+    nums = tuple(int(p) if p.isdigit() else -1 for p in re.split(r"[.\-+]", main))
+    tag_key = tuple(int(p) if p.isdigit() else p for p in re.findall(r"\d+|\D+", tag))
+    return nums, (0, tag_key) if tag else (1, ())
 
 
 def all_versions_xml(addon_id, out_dir):
@@ -101,6 +115,11 @@ def all_versions_xml(addon_id, out_dir):
 
 
 def main():
+    version = addon_version(ROOT)
+    if BETA and "~" not in version:
+        sys.exit(f"--beta chce verzi s „~“ (např. 3.2.0~beta1), addon.xml má {version}")
+    if not BETA and "~" in version:
+        sys.exit(f"{version} je beta — spusť s --beta (do stabilního repo/ nepatří)")
     os.makedirs(REPO, exist_ok=True)
     parts = ['<?xml version="1.0" encoding="UTF-8" standalone="yes"?>', "<addons>"]
     for addon_id, src in ADDONS.items():
@@ -115,7 +134,7 @@ def main():
         f.write(addons_xml)
     with open(os.path.join(REPO, "addons.xml.md5"), "w") as f:
         f.write(hashlib.md5(addons_xml.encode("utf-8")).hexdigest())
-    print("repo/addons.xml + md5 hotovo")
+    print(f"{os.path.basename(REPO)}/addons.xml + md5 hotovo")
 
 
 if __name__ == "__main__":
