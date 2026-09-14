@@ -81,7 +81,11 @@ def human_size(nbytes):
 
 
 class WebshareError(Exception):
-    pass
+    """Síť, DNS, rozbitá odpověď — dočasné."""
+
+
+class WebshareApiError(WebshareError):
+    """Server odpověděl, ale odmítl (špatné heslo, prošlý token, soubor nenalezen)."""
 
 
 class WebshareApi:
@@ -105,7 +109,7 @@ class WebshareApi:
         except Exception as e:  # noqa: BLE001
             raise WebshareError(f"{endpoint}: {e}") from e
         if root.findtext("status") != "OK":
-            raise WebshareError(f"{endpoint}: {root.findtext('message') or root.findtext('code') or 'chyba'}")
+            raise WebshareApiError(f"{endpoint}: {root.findtext('message') or root.findtext('code') or 'chyba'}")
         return root
 
     # --- login ------------------------------------------------------------
@@ -125,12 +129,14 @@ class WebshareApi:
         return self.token
 
     def _with_token(self, endpoint, **data):
-        """Zavolá endpoint; při neplatném tokenu se jednou přihlásí znovu."""
+        """Zavolá endpoint; při odmítnutí serverem (typicky prošlý token) se jednou
+        přihlásí znovu. Síťová chyba (timeout, DNS) se nezkouší znovu — dřív to
+        znamenalo salt + login + opakování, tedy tři požadavky a dvojí čekání navíc."""
         if not self.token:
             self.login()
         try:
             return self._call(endpoint, wst=self.token, **data)
-        except WebshareError:
+        except WebshareApiError:
             self.login()
             return self._call(endpoint, wst=self.token, **data)
 
