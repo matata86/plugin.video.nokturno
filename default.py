@@ -2486,9 +2486,13 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None, fq="", flang=""
     for s in filtered:
         li = xbmcgui.ListItem(label=stream_label(s))
         li.setArt(art_for(meta, video))
-        # název titulu do InfoTagu → v OSD přehrávače je jméno filmu/epizody, ne popis streamu;
-        # stopáž a hodnocení ne — skin by z nich udělal sloupce a ukrojil šířku popisku streamu
+        # popis a obrázky titulu do InfoTagu (panel s detailem); stopáž a hodnocení ne — skin by
+        # z nich udělal sloupce a ukrojil šířku popisku streamu
         fill_info(li, meta, "series" if video else ctype, video=video, tech=False)
+        # Title = popis streamu: část zobrazení Arctic Fuse kreslí v řádku `ListItem.Title`, ne popisek,
+        # a pak byl celý seznam jen „Matrix“ pod sebou (Office 2026-09-14). Název filmu v OSD dává
+        # přehrávaná položka z play(), ne tahle.
+        li.getVideoInfoTag().setTitle(li.getLabel())
         fill_streamdetails(li, s)
         apply_watched(li, item_id, [(L(30070), runplugin(action="download", url=s["url"], name=f"{title} [{s['label']}]",
                                                          id=item_id, type=ctype, series=series_id, alt=alt))])

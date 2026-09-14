@@ -603,6 +603,26 @@ class TestVyberStreamu(unittest.TestCase):
         self.assertEqual(default.STORE.last_stream_filter()["lang"], ["CZ"])
 
 
+class TestSeznamStreamu(unittest.TestCase):
+    def setUp(self):
+        reset_kodi()
+
+    def test_title_polozky_streamu_je_popis_streamu(self):
+        """Arctic Fuse v některých zobrazeních kreslí ListItem.Title — dřív tam byl u všech streamů název filmu."""
+        streams = [{"url": "ws:1", "label": "Matrix.1999.2160p.CZ.mkv", "detail": "47.8 GB", "source": "ws"},
+                   {"url": "ws:2", "label": "Matrix.1999.1080p.EN.mkv", "detail": "9.1 GB", "source": "ws"}]
+        with mock.patch.object(default, "load_meta", return_value=({"id": "tt1", "name": "Matrix", "year": 1999}, None)), \
+             mock.patch.object(default, "collect_streams", return_value=streams), \
+             mock.patch.object(default, "mark_viewed"):
+            default.list_streams({}, "movie", "tt1")
+        rows = [(url, li) for _h, url, li, folder in xbmcplugin.items if not folder]
+        self.assertEqual(len(rows), 2)
+        for _url, li in rows:
+            titles = [c[1][0] for c in li.tag.calls if c[0] == "setTitle"]
+            self.assertEqual(titles[-1], li.getLabel(), "poslední setTitle = popis streamu")
+            self.assertNotEqual(titles[-1], "Matrix")
+
+
 class TestRouter(unittest.TestCase):
     def setUp(self):
         reset_kodi()
