@@ -839,7 +839,9 @@ def _title_pattern(text):
 def _prefix_ok(folded, spans, first):
     """Smí název titulu v souboru stát až za textem před ním? (viz `_title_leads`)"""
     before = [t for t, _e in spans[:first]]
-    if all(t in RELEASE_TAGS or t.isdigit() for t in before):
+    # krátká slova (≤ 2 znaky) patří k názvu — „S čerty nejsou žerty“ začíná krátkým „S“,
+    # které filtr slov neřeší; bez téhle výjimky zmizely všechny jeho soubory
+    if all(t in RELEASE_TAGS or t.isdigit() or len(t) <= 2 for t in before):
         return True
     start = spans[first][1] - len(spans[first][0])
     prefix = folded[:start].rstrip(" ._")
