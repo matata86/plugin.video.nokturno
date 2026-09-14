@@ -1077,3 +1077,7 @@ msgstr "Najlepšie hodnotené"
 msgctxt "#30400"
 msgid "New episodes with Czech dubbing"
 msgstr "Nové diely s CZ dabingom"
+
+msgctxt "#30401"
+msgid "New with Czech subtitles"
+msgstr "Novo pridané s CZ titulkami"

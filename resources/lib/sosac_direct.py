@@ -34,7 +34,10 @@ UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Kodi plugin.video.nokturno"
 MOVIE_LISTS = [
     ("moviesmostpopular", "Nejpopulárnější filmy"),
     ("moviesrecentlyadded", "Nově přidané filmy"),
+    ("moviesrecentlyadded_dub", "Nově přidané s CZ dabingem"),
+    ("moviesrecentlyadded_subs", "Nově přidané s CZ titulky"),
 ]
+CZECH = ("cs", "sk")
 SERIES_LISTS = [
     ("tvshowsmostpopular", "Nejpopulárnější seriály"),
     ("tvshowsrecentlyadded", "Nově přidané epizody"),
@@ -174,20 +177,40 @@ class SosacDirect:
             url = genres.get(genre) or ""
             if not url:
                 return []
-            items = [self.movie_meta(v) for v in self._get(url)]
+            raw, conv = self._get(url), self.movie_meta
         elif cid == "az":
-            items = [self.movie_meta(v) for v in self._get(EXPORT + f"pismena/{(genre or 'a').lower()}.json")]
+            raw, conv = self._get(EXPORT + f"pismena/{(genre or 'a').lower()}.json"), self.movie_meta
         elif cid == "tvaz":
-            items = [self.series_meta(v) for v in self._get(EXPORT + f"tvpismena/{(genre or 'a').lower()}.json")]
+            raw, conv = self._get(EXPORT + f"tvpismena/{(genre or 'a').lower()}.json"), self.series_meta
+        elif cid in ("moviesrecentlyadded_dub", "moviesrecentlyadded_subs"):
+            # export „nově přidané" míchá všechny jazyky (zhruba půlka s CZ dabingem,
+            # půlka jen s CZ titulky, pár cizojazyčných bez titulků) — rozdělí se
+            # na dva seznamy bez překryvu, cizojazyčné bez titulků vypadnou
+            want_dub = cid.endswith("_dub")
+
+            def conv(v):
+                dub = any(x in CZECH for x in v.get("d") or [])
+                subs = any(x in CZECH for x in v.get("s") or [])
+                return self.movie_meta(v) if (dub if want_dub else subs and not dub) else None
+            raw = self._get(EXPORT + "moviesrecentlyadded.json", ttl=LIST_TTL)
         # žebříčky se mění pomalu a služba je na pozadí zahřívá po třech hodinách —
         # kratší TTL by znamenalo, že uživatel stejně trefí studenou cache
         elif cid == "tvshowsrecentlyadded":
-            items = [self.episode_meta(v) for v in self._get(EXPORT + cid + ".json", ttl=LIST_TTL)]
+            raw, conv = self._get(EXPORT + cid + ".json", ttl=LIST_TTL), self.episode_meta
         elif ctype == "series":
-            items = [self.series_meta(v) for v in self._get(EXPORT + cid + ".json", ttl=LIST_TTL)]
+            raw, conv = self._get(EXPORT + cid + ".json", ttl=LIST_TTL), self.series_meta
         else:
-            items = [self.movie_meta(v) for v in self._get(EXPORT + cid + ".json", ttl=LIST_TTL)]
-        items = [m for m in items if m]
+            raw, conv = self._get(EXPORT + cid + ".json", ttl=LIST_TTL), self.movie_meta
+        # převádět jen zobrazenou stránku: každý převod zapisuje do rejstříku a písmeno
+        # či žánr mají tisíce titulů — na ARM boxu se seznam „D" (2224) načítal přes 10 minut
+        items = []
+        for v in raw:
+            m = conv(v)
+            if not m:
+                continue
+            items.append(m)
+            if len(items) >= skip + page:
+                break
         return items[skip:skip + page]
 
     def episode_meta(self, v):

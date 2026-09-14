@@ -2164,9 +2164,12 @@ def browse_menu(apis, ctype):
          pick("trending", f"tmdb.trending_{kind}", None, luna_genre="Week"), "DefaultRecentlyAddedMovies.png"),
         (L(30399, "Nejlépe hodnocené"), "catalog", pick("top_rated", f"tmdb.top_rated_{kind}", "imdbRating"),
          "DefaultMusicTop100.png"),
-        (L(30400, "Nové díly s CZ dabingem") if kind == "series" else L(30394, "Nově přidané s CZ dabingem"),
-         "catalog", ("sosac_db", "tvshowsrecentlyadded" if kind == "series" else "moviesrecentlyadded", None)
-         if sosac else None, "DefaultRecentlyAddedEpisodes.png"),
+        (L(30400, "Nové díly s CZ dabingem"), "catalog", ("sosac_db", "tvshowsrecentlyadded", None)
+         if sosac and kind == "series" else None, "DefaultRecentlyAddedEpisodes.png"),
+        (L(30394, "Nově přidané s CZ dabingem"), "catalog", ("sosac_db", "moviesrecentlyadded_dub", None)
+         if sosac and kind == "movie" else None, "DefaultRecentlyAddedMovies.png"),
+        (L(30401, "Nově přidané s CZ titulky"), "catalog", ("sosac_db", "moviesrecentlyadded_subs", None)
+         if sosac and kind == "movie" else None, "DefaultRecentlyAddedMovies.png"),
         (L(30395, "Podle žánru"), "genres",
          pick("popular", f"tmdb.top_{kind}", "top", sosac_cid="genre" if kind == "movie" else None), "DefaultGenre.png"),
         (L(30396, "Podle roku"), "genres", pick("year", f"tmdb.year_{kind}", "year"), "DefaultYear.png"),
