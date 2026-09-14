@@ -6,6 +6,8 @@
 
 Podrobný návod (instalace, nastavení každého zdroje, používání, řešení problémů) je ve [wiki](https://github.com/matata86/plugin.video.nokturno/wiki).
 
+> **Patří k sobě:** stejné zdroje nabízí i [**Nokturno pro Home Assistant**](https://github.com/matata86/nokturno-ha) (HACS integrace, přehrává právě přes tenhle doplněk) a [**Nokturno pro Stremio**](https://github.com/matata86/nokturno-stremio) (i Nuvio). Všechny tři stojí na společném jádru [nokturno-core](https://github.com/matata86/nokturno-core).
+
 Video doplněk pro Kodi (19+ / Python 3, testováno na Kodi 21 Omega, CoreELEC). Pět rovnocenných zdrojů streamů a vlastní úložiště, každý jde zapnout samostatně:
 
 | zdroj | co dává | co potřebuje |
@@ -193,6 +195,12 @@ Stejné zdroje umí i [**integrace Nokturno pro Home Assistant**](https://github
 Tlačítka otevřou tvoji instanci: první přidá integraci do HACS, druhé spustí její nastavení, třetí přidá repozitář s addony (server **Luna** jako doplněk HA).
 
 Účty se nastavují stejné jako tady; obě aplikace sdílejí knihovny zdrojů, takže se chovají shodně.
+
+## Nokturno ve Stremiu
+
+Stejné zdroje (WebShare, Sosáč, Sledujteto, HellSpy) jsou i jako [**doplněk pro Stremio**](https://github.com/matata86/nokturno-stremio) — funguje i v Nuviu a dalších klientech Stremia. Na rozdíl od tohoto doplňku nemá vlastní katalogy ani knihovnu — dohledává jen streamy k titulům, které si Stremio najde samo.
+
+**Přidat do Stremia:** [nokturno.tailf0014.ts.net/configure](https://nokturno.tailf0014.ts.net/configure).
 
 ## Licence
 
