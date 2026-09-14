@@ -124,7 +124,11 @@ class _Links(HTMLParser):
 
 
 class StorageApi:
-    def __init__(self, url, username="", password="", name="", slot=1, cache=None, index_ttl=INDEX_TTL):
+    def __init__(self, url, username="", password="", name="", slot=1, cache=None, index_ttl=INDEX_TTL,
+                 opener=None):
+        """`opener` je volitelný `urllib.request.OpenerDirector` — veřejná instance
+        (doplněk pro Stremio) jím hlídá, kam se smí připojit; bez něj se používá
+        výchozí `urlopen`."""
         self.base = normalize_url(url)
         if not self.base:
             raise StorageError("neplatná adresa úložiště")
@@ -136,6 +140,7 @@ class StorageApi:
         self._base_path = urllib.parse.unquote(urllib.parse.urlsplit(self.base).path)
         self.cache = cache
         self.index_ttl = index_ttl
+        self.opener = opener
 
     @property
     def key(self):
@@ -166,7 +171,7 @@ class StorageApi:
         req = urllib.request.Request(url, data=data, method=method,
                                      headers={"User-Agent": UA, **self.headers(), **(headers or {})})
         try:
-            return urllib.request.urlopen(req, timeout=TIMEOUT)
+            return (self.opener.open if self.opener else urllib.request.urlopen)(req, timeout=TIMEOUT)
         except urllib.error.HTTPError as e:
             e.close()
             if e.code in (401, 403):
