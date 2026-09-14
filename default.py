@@ -681,28 +681,35 @@ def add_meta_item(meta, ctype, alt=None, tag_source=False):
         li.addContextMenuItems([fav])
         xbmcplugin.addDirectoryItem(HANDLE, build_url(action="seasons", id=meta["id"], alt=alt), li, isFolder=True)
     else:
-        apply_watched(li, meta["id"], [fav])
+        apply_watched(li, meta["id"], [fav, streams_context("movie", meta["id"], alt=alt)])
         add_playable(li, "movie", meta["id"], alt=alt)
 
 
 def add_playable(li, ctype, item_id, series_id=None, alt=None):
-    """Podle nastavení buď rovnou přehrát nejlepší stream, nebo otevřít výběr.
+    """Film nebo díl jako přehratelná položka — `play()` podle nastavení pustí nejlepší
+    stream, nebo nabídne výběr. Celý seznam streamů (filtr, uvolněný fulltext) je
+    v kontextovém menu: `streams_context()` přidává volající do téhož `addContextMenuItems`.
+
+    Dřív byl v režimu „Zobrazit seznam streamů“ film složkou `action=streams`. Skiny ale
+    film berou podle DBType jako soubor: Přehrát v detailu (Arctic Fuse) zavolalo `PlayMedia`
+    na tu složku, streamy se načetly a nepřehrálo se nic (Office 2026-09-14).
 
     U epizod se předává i id seriálu — Sosáč dává epizodám vlastní id
     (`sosac2_1877:1:1`), ze kterého se meta seriálu nedá odvodit.
     """
-    if setting("stream_mode", "1") == "1":
-        # jediný režim, kde má smysl vlastní složka: seznam streamů k proklikání
-        url = build_url(action="streams", type=ctype, id=item_id, series=series_id, alt=alt)
-        xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
-    else:
-        # „0“ (přehrát nejlepší) i „2“ (zeptat se dialogem) jdou rovnou na play() bez
-        # url — teprve tam se podle stejného nastavení buď vezme streams[0], nebo
-        # otevře Dialog().select(). Dřív oba tyhle režimy místo toho vedly do složky
-        # se seznamem streamů, takže „Zeptat se v dialogu“ se nikdy neukázalo.
-        li.setProperty("IsPlayable", "true")
-        url = build_url(action="play", type=ctype, id=item_id, series=series_id, alt=alt)
-        xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=False)
+    li.setProperty("IsPlayable", "true")
+    # „1“ = výběr ze seznamu streamů dialogem; „2“ se ptá sám v play(), „0“ pustí nejlepší.
+    # Bez `ask` (Up Next, HA) se v režimu 1 hraje zapamatovaný nebo nejlepší stream bez ptaní.
+    ask = "1" if setting("stream_mode", "1") == "1" else None
+    url = build_url(action="play", type=ctype, id=item_id, series=series_id, alt=alt, ask=ask)
+    xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=False)
+
+
+def streams_context(ctype, item_id, series_id=None, alt=None):
+    """Kontextové menu „Seznam streamů“ — složka se streamy, filtrem a uvolněným fulltextem.
+    `ActivateWindow` funguje i z widgetu na domovské obrazovce (`Container.Update` jen ve Videích)."""
+    url = build_url(action="streams", type=ctype, id=item_id, series=series_id, alt=alt)
+    return (L(30201, "Seznam streamů"), f"ActivateWindow(Videos,{url},return)")
 
 
 def add_snapshot_item(key, snap, extra_context=None):
@@ -740,9 +747,9 @@ def add_snapshot_item(key, snap, extra_context=None):
         li.addContextMenuItems(ctx)
         xbmcplugin.addDirectoryItem(HANDLE, build_url(action="seasons", id=key, alt=snap.get("alt")), li, isFolder=True)
         return
-    apply_watched(li, key, ctx)
-    add_playable(li, "series" if snap.get("season") is not None else "movie", key,
-                 series_id=snap.get("series"), alt=snap.get("alt"))
+    kind = "series" if snap.get("season") is not None else "movie"
+    apply_watched(li, key, ctx + [streams_context(kind, key, snap.get("series"), snap.get("alt"))])
+    add_playable(li, kind, key, series_id=snap.get("series"), alt=snap.get("alt"))
 
 
 def add_ws_file(f, extra_context=None):
@@ -2244,7 +2251,8 @@ def list_continue(apis):
         fill_info(li, meta, "series", video=video)
         apply_watched(li, ep_id, [fav_context(ep_id, "series", snap["series"], snap.get("alt")),
                                   (L(30365, "Odebrat z Pokračovat ve sledování"),
-                                   runplugin(action="remove_progress", id=ep_id, series=snap["series"]))])
+                                   runplugin(action="remove_progress", id=ep_id, series=snap["series"])),
+                                  streams_context("series", ep_id, snap["series"], snap.get("alt"))])
         add_playable(li, "series", ep_id, series_id=snap["series"], alt=snap.get("alt"))
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
@@ -2296,7 +2304,8 @@ def list_episodes(apis, series_id, season, alt=None):
         li.setArt(art_for(meta, v))
         fill_info(li, meta, "series", video=v)
         ep_id = ep_ids[i]
-        apply_watched(li, ep_id, [fav_context(ep_id, "series", series_id, alt)])
+        apply_watched(li, ep_id, [fav_context(ep_id, "series", series_id, alt),
+                                  streams_context("series", ep_id, series_id, alt)])
         add_playable(li, "series", ep_id, series_id=series_id, alt=alt)
     xbmcplugin.endOfDirectory(HANDLE)
 

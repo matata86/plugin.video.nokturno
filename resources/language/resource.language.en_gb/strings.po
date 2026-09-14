@@ -39,7 +39,7 @@ msgid "Play best quality automatically"
 msgstr ""
 
 msgctxt "#30007"
-msgid "Show list of streams"
+msgid "Choose from the stream list"
 msgstr ""
 
 msgctxt "#30008"
@@ -683,7 +683,7 @@ msgid "Luna can also full-text search WebShare (its own Search feature) — find
 msgstr ""
 
 msgctxt "#30312"
-msgid "What happens after you pick a title: auto-play the best quality, browse a list, or choose in a dialog."
+msgid "What happens after you pick a title: auto-play the best quality, or choose the stream in a dialog. The full stream list with filters is always in the item's context menu (Stream list)."
 msgstr ""
 
 msgctxt "#30313"

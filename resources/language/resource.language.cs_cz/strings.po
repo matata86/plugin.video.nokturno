@@ -39,8 +39,8 @@ msgid "Play best quality automatically"
 msgstr "Přehrát nejlepší kvalitu automaticky"
 
 msgctxt "#30007"
-msgid "Show list of streams"
-msgstr "Zobrazit seznam streamů"
+msgid "Choose from the stream list"
+msgstr "Vybrat ze seznamu streamů"
 
 msgctxt "#30008"
 msgid "Ask in a dialog"
@@ -683,8 +683,8 @@ msgid "Luna can also full-text search WebShare (its own Search feature) — find
 msgstr "Luna umí i fulltext přes WebShare (vlastní funkce Search) – najde víc, ale hledání trvá déle."
 
 msgctxt "#30312"
-msgid "What happens after you pick a title: auto-play the best quality, browse a list, or choose in a dialog."
-msgstr "Co se stane po výběru titulu: automaticky se přehraje nejlepší kvalita, zobrazí se seznam k procházení, nebo se zeptá dialog."
+msgid "What happens after you pick a title: auto-play the best quality, or choose the stream in a dialog. The full stream list with filters is always in the item's context menu (Stream list)."
+msgstr "Co se stane po výběru titulu: automaticky se přehraje nejlepší kvalita, nebo se stream vybere v dialogu. Celý seznam streamů s filtrem je vždy v kontextovém menu položky (Seznam streamů)."
 
 msgctxt "#30313"
 msgid "Streams with this audio language are sorted higher up. Nothing gets hidden, just reordered."

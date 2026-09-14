@@ -495,6 +495,46 @@ class TestTmdbHelperPlayer(unittest.TestCase):
             self.assertEqual(select.called, asked, f"stream_mode={mode} ask={ask!r}")
 
 
+class TestPrehratelnePolozky(unittest.TestCase):
+    """Film a díl jsou přehratelné v každém režimu výběru streamu. Přehrát v detailu (Arctic Fuse)
+    volá PlayMedia na cestu položky — složka se streamy tam nic nepřehrála (Office 2026-09-14)."""
+
+    def setUp(self):
+        reset_kodi()
+
+    def streams_menu(self, li):
+        akce = dict(li.context).get("Seznam streamů", "")
+        self.assertTrue(akce.startswith("ActivateWindow(Videos,plugin://plugin.video.nokturno/?"), akce)
+        self.assertTrue(akce.endswith(",return)"), akce)
+        self.assertTrue(any("toggle_watched" in a for _l, a in li.context), "menu se skládá jedním voláním")
+        return params_of(akce[len("ActivateWindow(Videos,"):-len(",return)")])
+
+    def test_film_prehratelny_v_kazdem_rezimu_se_seznamem_v_menu(self):
+        for mode, ask in (("0", None), ("1", "1"), ("2", None)):
+            reset_kodi()
+            xbmcaddon.settings["stream_mode"] = mode
+            default.add_meta_item({"id": "tt1", "name": "Film", "year": 2020}, "movie", alt="sosacd_1")
+            _h, url, li, is_folder = xbmcplugin.items[-1]
+            self.assertFalse(is_folder, f"stream_mode={mode}")
+            self.assertEqual(li.properties.get("IsPlayable"), "true")
+            p = params_of(url)
+            self.assertEqual((p["action"], p["id"], p.get("alt"), p.get("ask")), ("play", "tt1", "sosacd_1", ask))
+            menu = self.streams_menu(li)
+            self.assertEqual((menu["action"], menu["type"], menu["id"], menu["alt"]), ("streams", "movie", "tt1", "sosacd_1"))
+
+    def test_dil_serie_prehratelny_s_id_serialu(self):
+        xbmcaddon.settings["stream_mode"] = "1"
+        meta = {"id": "tt9", "name": "Seriál", "videos": [{"season": 1, "episode": 1, "title": "Pilot"}]}
+        with mock.patch.object(default, "meta_for", return_value=meta):
+            default.list_episodes({}, "tt9", 1)
+        _h, url, li, is_folder = xbmcplugin.items[-1]
+        self.assertFalse(is_folder)
+        p = params_of(url)
+        self.assertEqual((p["action"], p["type"], p["id"], p["series"], p["ask"]), ("play", "series", "tt9:1:1", "tt9", "1"))
+        menu = self.streams_menu(li)
+        self.assertEqual((menu["action"], menu["id"], menu["series"]), ("streams", "tt9:1:1", "tt9"))
+
+
 class TestRouter(unittest.TestCase):
     def setUp(self):
         reset_kodi()
