@@ -437,6 +437,27 @@ class Store:
             except OSError:
                 pass
 
+    def prune_cache(self, max_age=72 * 3600):
+        """Smaže soubory cache starší než `max_age` — TTL se hlídá jen při čtení, takže
+        prošlé záznamy (hledání, streamy, katalogy) dřív ležely na disku navždy; v HA
+        v `.storage`, tedy i v každé záloze. Vrací počet smazaných."""
+        cdir = os.path.join(self.dir, "cache")
+        hranice = time.time() - max_age
+        smazano = 0
+        try:
+            names = os.listdir(cdir)
+        except OSError:
+            return 0
+        for name in names:
+            path = os.path.join(cdir, name)
+            try:
+                if os.path.getmtime(path) < hranice:
+                    os.remove(path)
+                    smazano += 1
+            except OSError:
+                pass
+        return smazano
+
 
 
 class Index:

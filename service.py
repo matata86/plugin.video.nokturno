@@ -493,6 +493,10 @@ def warm_caches(monitor, what="all"):
                 xbmcgui.Window(10000).clearProperty(WARM_PROP)
         if what in ("all", "next"):
             rpc_directory("plugin://plugin.video.nokturno/?action=prefetch&kind=next")
+        if what == "all":
+            smazano = Store(PROFILE).prune_cache()   # prošlé soubory cache dřív ležely v profilu navždy
+            if smazano:
+                log(f"cache: smazáno {smazano} prošlých souborů")
         log(f"cache zahřáta ({what})")
     except Exception as e:  # noqa: BLE001 – zahřívání nesmí nikdy nic shodit
         log(f"zahřívání cache: {e}", xbmc.LOGWARNING)

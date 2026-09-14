@@ -657,3 +657,17 @@ class TestUdrzbaKodi(unittest.TestCase):
         for lib in ("hellspy_api", "sledujteto_api", "storage_api", "mediainfo", "sk_SK", "tests/"):
             self.assertIn(lib, readme, lib)
         self.assertIn("github.com/matata86/plugin.video.nokturno/issues", (ROOT / "addon.xml").read_text(encoding="utf-8"))
+
+
+class TestProrezavaniCacheKodi(unittest.TestCase):
+    def test_zahrivani_promaze_prosle(self):
+        import os
+        import time
+        reset_kodi()
+        default.STORE.cached("stary", 10, lambda: {"x": 1})
+        cache = pathlib.Path(_PROFILE) / "cache"
+        for f in cache.glob("*.json"):
+            os.utime(f, (time.time() - 5 * 86400,) * 2)
+        with mock.patch.object(service, "rpc_directory"):
+            service.warm_caches(xbmc.Monitor(), "all")
+        self.assertEqual(list(cache.glob("*.json")), [])
