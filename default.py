@@ -341,7 +341,7 @@ def log_error(err):
 SOURCE_LABELS = {
     LunaError: "Luna", CinemetaError: "Cinemeta", TmdbError: "TMDB",
     SosacError: "Sosáč", WebshareError: "WebShare", HellspyError: "HellSpy", SledujtetoError: "Sledujteto",
-    StorageError: "Úložiště",
+    StorageError: L(30405, "Úložiště"),
     TraktError: "Trakt.tv",
 }
 
@@ -494,7 +494,7 @@ def fill_info(li, meta, ctype="movie", video=None, tech=True):
     if ctype == "series":
         tag.setTvShowTitle(meta.get("_title") or meta.get("name") or "")
     plot = (video or {}).get("overview") or meta.get("description") or ""
-    genres = ", ".join(GENRES_CS.get(str(g), str(g)) for g in (meta.get("genres") or []))
+    genres = ", ".join(genre_label(g) for g in (meta.get("genres") or []))
     if genres:
         # žánr na stejný řádek jako popis — s prázdným řádkem za ním zabral v panelu
         # skinu (Arctic Fuse, tři řádky) dva ze tří řádků a na popis zbyl jeden
@@ -1379,7 +1379,7 @@ def collect_streams(apis, ctype, item_id, meta, alt=None, progress=None, strict=
                          errors) if apis.get("hs") else None
         st = pool.submit(guarded, "Sledujteto", sledujteto_streams, apis, meta, video, ctype, alt, strict,
                          errors) if apis.get("st") else None
-        dav = pool.submit(guarded, "Úložiště", storage_streams, apis, meta, video, ctype, alt, strict,
+        dav = pool.submit(guarded, L(30405, "Úložiště"), storage_streams, apis, meta, video, ctype, alt, strict,
                           errors) if apis.get("dav") else None
         if progress:
             for _ in as_completed([f for f in (main, cross, ws, hs, st, dav) if f is not None]):
@@ -1490,7 +1490,7 @@ def pref_from_param(value):
 
 
 SOURCE_GROUP = {"main": "Luna", "search": "WebShare", "ws": "WebShare",
-                "sosac": "Sosáč", "hs": "HellSpy", "st": "Sledujteto", "dav": "Úložiště"}
+                "sosac": "Sosáč", "hs": "HellSpy", "st": "Sledujteto", "dav": L(30405, "Úložiště")}
 
 
 def stream_tracks(s):
@@ -1920,7 +1920,7 @@ def test_sources():
     def check_sledujteto():
         # přihlášení samo nestačí — bez Premium Sledujteto odkaz na přehrání nevydá
         user = st.me()
-        return "Premium" if user.get("is_premium") else "bez Premium — přehrávání nepůjde"
+        return "Premium" if user.get("is_premium") else L(30406, "bez Premium — přehrávání nepůjde")
 
     checks = {
         "Luna": (lambda: len((luna._get(luna._meta_url("manifest.json")) or {}).get("catalogs", []))) if luna else None,
@@ -2271,7 +2271,13 @@ def list_catalogs(apis, ctype, src):
 
 
 # u „Trendy" nejsou v roli žánru žánry, ale časové okno TMDB — hodnota musí zůstat anglicky
-GENRE_LABELS = {"Day": "Za den", "Week": "Za týden"}
+GENRE_LABELS = {"Day": L(30403, "Za den"), "Week": L(30404, "Za týden")}
+# žánry česky jen pro češtinu a slovenštinu — anglické Kodi dřív dostávalo české názvy natvrdo
+GENRES_LOCAL = xbmc.getLanguage(xbmc.ISO_639_1) in ("cs", "sk")
+
+
+def genre_label(g):
+    return GENRES_CS.get(str(g), str(g)) if GENRES_LOCAL else str(g)
 
 
 def list_genres(apis, ctype, cid, src, show_all=True):
@@ -2284,7 +2290,7 @@ def list_genres(apis, ctype, cid, src, show_all=True):
         folder_item(L(30020), build_url(action="catalog", type=ctype, catalog=cid, src=src),
                    icon="DefaultVideoPlaylists.png")
     for g in cat["genres"]:
-        folder_item(GENRE_LABELS.get(g, GENRES_CS.get(g, g)),
+        folder_item(GENRE_LABELS.get(g, genre_label(g)),
                     build_url(action="catalog", type=ctype, catalog=cid, genre=g, src=src),
                     icon="DefaultGenre.png")
     xbmcplugin.endOfDirectory(HANDLE)
@@ -2520,7 +2526,7 @@ def search_run(apis, kind, query, offset=0):
         # Jen holý katalog (_search_merge), bez popisů — na volbu Filmy/Seriály
         # stačí počty a čekání na enrich by ji zbytečně zdrželo.
         bar = xbmcgui.DialogProgressBG()
-        bar.create("Nokturno", L(30150, "Hledat"))
+        bar.create(L(30000, "Nokturno"), L(30150, "Hledat"))
         bar.update(0)
         # primární zdroj je vždy jeden krok (TMDB/Luna, nebo za ně zaskočí sosac_db/Cinemeta
         # — viz _search_merge); přihlášený Sosáč se sčítá zvlášť, běží nezávisle na primárním zdroji
@@ -2949,7 +2955,7 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None, fq="", flang=""
         probe_limit = AUDIO_PROBE_MAX
     num_sources = 2 + sum(1 for k in ("ws", "hs", "st") if apis.get(k))
     bar = xbmcgui.DialogProgressBG()
-    bar.create("Nokturno", L(30238, "Načítám streamy…"))
+    bar.create(L(30000, "Nokturno"), L(30238, "Načítám streamy…"))
     bar.update(0)
     progress = SearchProgress(bar, num_sources + max(probe_limit, 0))
     errors = []

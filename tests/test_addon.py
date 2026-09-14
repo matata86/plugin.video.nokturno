@@ -671,3 +671,16 @@ class TestProrezavaniCacheKodi(unittest.TestCase):
         with mock.patch.object(service, "rpc_directory"):
             service.warm_caches(xbmc.Monitor(), "all")
         self.assertEqual(list(cache.glob("*.json")), [])
+
+
+class TestJazykRozhrani(unittest.TestCase):
+    def test_zanry_cesky_jen_pro_cs_sk(self):
+        self.assertEqual(default.genre_label("Action"), "Akční")   # stub hlásí jazyk cs
+        with mock.patch.object(default, "GENRES_LOCAL", False):
+            self.assertEqual(default.genre_label("Action"), "Action")
+
+    def test_bez_cestiny_natvrdo(self):
+        src = (ROOT / "default.py").read_text(encoding="utf-8")
+        for natvrdo in ('bar.create("Nokturno"', '"Day": "Za den"', 'StorageError: "Úložiště"', '"dav": "Úložiště"',
+                        'else "bez Premium'):
+            self.assertNotIn(natvrdo, src, natvrdo)

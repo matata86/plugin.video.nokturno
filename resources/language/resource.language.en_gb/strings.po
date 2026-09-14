@@ -1041,3 +1041,19 @@ msgstr ""
 msgctxt "#30402"
 msgid "Measuring download speed…"
 msgstr ""
+
+msgctxt "#30403"
+msgid "Per day"
+msgstr ""
+
+msgctxt "#30404"
+msgid "Per week"
+msgstr ""
+
+msgctxt "#30405"
+msgid "Storage"
+msgstr ""
+
+msgctxt "#30406"
+msgid "no Premium — playback will not work"
+msgstr ""
