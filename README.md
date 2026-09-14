@@ -60,6 +60,15 @@ Streamy samotné (WebShare/HellSpy/Sledujteto/Luna) se pak hledají stejně jako
 - **Žánr v popisu titulu** — tučně na začátku, přeložený do češtiny i u titulů z anglicky mluvících zdrojů
 - **Nápověda ke každé volbě v nastavení** — dole v dialogu se zobrazí, co položka dělá, ne jen její název
 
+### Přehrát z detailu filmu (TMDb Helper, Arctic Fuse)
+
+Skiny jako Arctic Fuse ukazují detail filmu nebo dílu přes doplněk TMDb Helper. Jeho
+tlačítko **Přehrát** umí spustit Nokturno: *Nastavení doplňku → Pokročilé → Přidat
+Nokturno do TMDb Helperu*. Doplněk tam uloží player a nabídne ho jako výchozí —
+Přehrát pak podle IMDb id najde streamy v Nokturnu (v režimu *Zobrazit seznam
+streamů* se zeptá, který pustit). V nabídce playerů TMDb Helperu je navíc
+*Hledat Nokturno*, které otevře celý seznam streamů s filtrem.
+
 ## Předpoklady
 
 Katalog a hledání titulů fungují i úplně bez nastavení (vlastní databáze, viz výš). Pro skutečné streamy je ale potřeba aspoň jeden zdroj z tabulky výše — účet WebShare, účet Sosáče, server Luna v LAN, nebo prostě zapnout HellSpy (veřejný, nic nepotřebuje).

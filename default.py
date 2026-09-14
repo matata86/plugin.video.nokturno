@@ -1422,6 +1422,37 @@ def update_repos():
     notify(L(30408, "Kontroluji aktualizace doplňků…"))
 
 
+TMDBH_ID = "plugin.video.themoviedb.helper"
+# složka vlastních playerů TMDb Helperu (`PLAYERS_BASEDIR_USER` v jeho lib/addon/consts.py)
+TMDBH_PLAYER = f"special://profile/addon_data/{TMDBH_ID}/players/nokturno.json"
+TMDBH_PLAYER_SRC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "players", "nokturno.json")
+
+
+def tmdbhelper_player():
+    """Tlačítko v nastavení: „Přehrát“ v detailu filmu nebo dílu z TMDb Helperu (Arctic Fuse
+    a další skiny ho používají pro info stránky) pustí hledání streamů v Nokturnu.
+
+    TMDb Helper přehrává přes JSON „playery“ ve své složce — bez nich Přehrát v detailu nic
+    z Nokturna nevyvolá. Player jde podle IMDb id (u dílu id seriálu + sezóna a díl), takže
+    nehledá podle názvu. Nainstalovaný soubor pak po aktualizacích drží aktuální služba."""
+    if not xbmc.getCondVisibility(f"System.HasAddon({TMDBH_ID})"):
+        notify(L(30410, "TMDb Helper není nainstalovaný"), xbmcgui.NOTIFICATION_WARNING)
+        return
+    dest = xbmcvfs.translatePath(TMDBH_PLAYER)
+    xbmcvfs.mkdirs(os.path.dirname(dest))
+    if not xbmcvfs.copy(TMDBH_PLAYER_SRC, dest):
+        notify(L(30413, "Přidání do TMDb Helperu selhalo"), xbmcgui.NOTIFICATION_ERROR)
+        return
+    if xbmcgui.Dialog().yesno(L(30000, "Nokturno"), L(30411, "Nastavit Nokturno jako výchozí přehrávač v TMDb "
+                                                             "Helperu? Přehrát v detailu filmu nebo dílu pak "
+                                                             "rovnou hledá streamy v Nokturnu.")):
+        # hodnota ve tvaru, jaký ukládá TMDb Helper sám (`<soubor> <režim>`, config/default.py)
+        tmdbh = xbmcaddon.Addon(TMDBH_ID)
+        tmdbh.setSetting("default_player_movies", "nokturno.json play_movie")
+        tmdbh.setSetting("default_player_episodes", "nokturno.json play_episode")
+    notify(L(30412, "Nokturno je v TMDb Helperu"))
+
+
 def prefetch(apis, kind):
     """Zahřátí cache — volá služba na pozadí, nic se nevypisuje ani nepočítá.
 
@@ -2444,7 +2475,10 @@ def upnext_notify(meta, video, series_id, alt=None):
         "sender": f"{ADDON_ID}.SIGNAL", "message": "upnext_data", "data": [encoded]}}))
 
 
-def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref=""):
+def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref="", ask=""):
+    """`ask=1` (player TMDb Helperu): v režimu „Zobrazit seznam streamů“ nabídnout výběr
+    dialogem — z detailu filmu se do složky se streamy přejít nedá, přehrání musí skončit
+    `setResolvedUrl`. V režimu „Přehrát nejlepší automaticky“ se hraje rovnou jako dřív."""
     meta, video = load_meta(apis, ctype, item_id, series_id)
     # u seriálu si pamatujeme, jaký stream si uživatel vybral — další díl (Up Next,
     # Pokračovat, widget) pak jede stejně bez ptaní; klíč je seriál, ne díl
@@ -2465,7 +2499,8 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
             return
         remembered = preferred_stream(streams, STORE.stream_pref(pref_key)) if pref_key else None
         chosen = remembered or streams[0]
-        if setting("stream_mode", "1") == "2" and remembered is None:
+        mode = setting("stream_mode", "1")
+        if remembered is None and (mode == "2" or (ask and mode == "1")):
             idx = xbmcgui.Dialog().select(L(30024), [stream_label(st) for st in streams])
             if idx < 0:
                 xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
@@ -2735,6 +2770,7 @@ def router(query):
         "sub_status": sub_status,
         "speedtest": speedtest,
         "update_repos": update_repos,
+        "tmdbhelper_player": tmdbhelper_player,
         "sync_now": sync_now,
         "whats_new": whats_new,
         "ha_files": list_ha_files,
@@ -2784,7 +2820,7 @@ def router(query):
                           p.get("fsub", ""), p.get("fsrc", ""))
         elif action == "play":
             play(apis, p["type"], p["id"], p.get("series"), url=p.get("url"), alt=p.get("alt"), subs=p.get("subs", ""),
-                 pref=p.get("pref", ""))
+                 pref=p.get("pref", ""), ask=p.get("ask", ""))
         elif action == "play_ws":
             play_ws(apis, p["ident"], p.get("name", ""))
         elif action == "play_hs":

@@ -1061,3 +1061,23 @@ msgstr "Skontrolovať aktualizácie doplnkov"
 msgctxt "#30408"
 msgid "Checking for add-on updates…"
 msgstr "Kontrolujem aktualizácie doplnkov…"
+
+msgctxt "#30409"
+msgid "Add Nokturno to TMDb Helper (Play on movie details)"
+msgstr "Pridať Nokturno do TMDb Helpera (Prehrať v detaile filmu)"
+
+msgctxt "#30410"
+msgid "TMDb Helper is not installed"
+msgstr "TMDb Helper nie je nainštalovaný"
+
+msgctxt "#30411"
+msgid "Set Nokturno as the default player in TMDb Helper? Play on a movie or episode details page will then search streams in Nokturno."
+msgstr "Nastaviť Nokturno ako predvolený prehrávač v TMDb Helperi? Prehrať v detaile filmu alebo dielu potom rovno hľadá streamy v Nokturne."
+
+msgctxt "#30412"
+msgid "Nokturno added to TMDb Helper"
+msgstr "Nokturno je v TMDb Helperi"
+
+msgctxt "#30413"
+msgid "Adding to TMDb Helper failed"
+msgstr "Pridanie do TMDb Helpera zlyhalo"

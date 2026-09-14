@@ -65,10 +65,29 @@ WARM_PROP = "nokturno.warm"    # plugin při zahřívání cache API jen zapisuj
 WARM_RETRY = 10 * 60      # když se zrovna přehrává, zahřívání počká
 CHUNK = 1024 * 1024
 PROFILE = xbmcvfs.translatePath(ADDON.getAddonInfo("profile"))
+TMDBH_PLAYER = "special://profile/addon_data/plugin.video.themoviedb.helper/players/nokturno.json"
 
 
 def log(msg, level=xbmc.LOGINFO):
     xbmc.log(f"[plugin.video.nokturno/service] {msg}", level)
+
+
+def refresh_tmdbhelper_player():
+    """Player pro TMDb Helper přidává jen tlačítko v nastavení (`default.tmdbhelper_player`).
+    Když už nainstalovaný je, drží se po aktualizaci doplňku aktuální — jinak by v TMDb
+    Helperu zůstal starý odkaz i po změně parametrů pluginu."""
+    dest = xbmcvfs.translatePath(TMDBH_PLAYER)
+    src = os.path.join(xbmcvfs.translatePath(ADDON.getAddonInfo("path")), "resources", "players", "nokturno.json")
+    try:
+        if not (os.path.exists(dest) and os.path.exists(src)):
+            return
+        with open(src, "rb") as new, open(dest, "rb") as old:
+            if new.read() == old.read():
+                return
+        xbmcvfs.copy(src, dest)
+        log("player pro TMDb Helper aktualizován")
+    except OSError as e:
+        log(f"player pro TMDb Helper: {e}", xbmc.LOGWARNING)
 
 
 def fresh_addon():
@@ -609,6 +628,7 @@ def main():
     syncer = Syncer(store)
     sub_checker = SubscriptionChecker(store)
     log("start")
+    refresh_tmdbhelper_player()
     while not monitor.abortRequested():
         player.tick()
         stats_tick(stats)

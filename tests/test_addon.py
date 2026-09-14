@@ -424,6 +424,79 @@ class TestJadroVKodi(unittest.TestCase):
         self.assertNotIn("~", default.stream_label(s).split("[/B]")[0])
 
 
+class TestTmdbHelperPlayer(unittest.TestCase):
+    """„Přehrát“ v detailu filmu z TMDb Helperu (Arctic Fuse) → hledání streamů v Nokturnu."""
+
+    SAMPLE = {"imdb": "tt1", "season": 1, "episode": 2}
+
+    def setUp(self):
+        reset_kodi()
+        import json
+        self.player = json.loads((ROOT / "resources" / "players" / "nokturno.json").read_text(encoding="utf-8"))
+
+    def query(self, mode):
+        url = self.player[mode].format_map(self.SAMPLE)
+        self.assertTrue(url.startswith("plugin://plugin.video.nokturno/?"), url)
+        return url.split("/?", 1)[1]
+
+    def test_player_vede_na_akce_nokturna(self):
+        self.assertEqual(self.player["plugin"], "plugin.video.nokturno")
+        self.assertEqual(self.player["is_resolvable"], "true")
+        for mode in ("play_movie", "search_movie", "play_episode", "search_episode"):
+            self.assertIn("imdb", self.player["assert"][mode], "bez IMDb id se player nemá nabízet")
+        with mock.patch.object(default, "get_apis", return_value={}), \
+             mock.patch.object(default, "play") as play, mock.patch.object(default, "list_streams") as streams:
+            default.router(self.query("play_movie"))
+            self.assertEqual(play.call_args.args[1:4], ("movie", "tt1", None))
+            self.assertEqual(play.call_args.kwargs["ask"], "1")
+            default.router(self.query("play_episode"))
+            self.assertEqual(play.call_args.args[1:4], ("series", "tt1:1:2", "tt1"), "díl = id seriálu:sezóna:díl")
+            default.router(self.query("search_movie"))
+            self.assertEqual(streams.call_args.args[1:4], ("movie", "tt1", None))
+            default.router(self.query("search_episode"))
+            self.assertEqual(streams.call_args.args[1:4], ("series", "tt1:1:2", "tt1"))
+
+    def test_tlacitko_nainstaluje_player_a_nastavi_vychozi(self):
+        tmp = tempfile.mkdtemp()
+        dest = os.path.join(tmp, "players", "nokturno.json")
+        with mock.patch.object(default, "TMDBH_PLAYER", dest):
+            default.tmdbhelper_player()   # TMDb Helper chybí
+            self.assertFalse(os.path.exists(dest))
+            self.assertEqual(xbmcgui.notifications[-1][2], xbmcgui.NOTIFICATION_WARNING)
+            xbmc.cond_visible.add("System.HasAddon(plugin.video.themoviedb.helper)")
+            with mock.patch.object(xbmcgui.Dialog, "yesno", return_value=True):
+                default.tmdbhelper_player()
+        self.assertEqual(pathlib.Path(dest).read_bytes(), (ROOT / "resources" / "players" / "nokturno.json").read_bytes())
+        self.assertEqual(xbmcaddon.settings["default_player_movies"], "nokturno.json play_movie")
+        self.assertEqual(xbmcaddon.settings["default_player_episodes"], "nokturno.json play_episode")
+        shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_sluzba_drzi_nainstalovany_player_aktualni(self):
+        tmp = tempfile.mkdtemp()
+        dest = os.path.join(tmp, "nokturno.json")
+        with mock.patch.object(service, "TMDBH_PLAYER", dest), mock.patch.dict(xbmcaddon.info, path=str(ROOT)):
+            service.refresh_tmdbhelper_player()
+            self.assertFalse(os.path.exists(dest), "bez tlačítka se do TMDb Helperu nic nezapisuje")
+            pathlib.Path(dest).write_text("{}", encoding="utf-8")
+            service.refresh_tmdbhelper_player()
+        self.assertEqual(pathlib.Path(dest).read_bytes(), (ROOT / "resources" / "players" / "nokturno.json").read_bytes())
+        shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_ask_nabidne_vyber_jen_v_rezimu_seznamu(self):
+        streams = [{"url": "ws:1", "label": "Film.2020.1080p.mkv", "detail": "2 GB", "source": "ws"}]
+        common = [mock.patch.object(default, "load_meta", return_value=({"name": "Film", "year": 2020}, None)),
+                  mock.patch.object(default, "collect_streams", return_value=streams)]
+        for mode, ask, asked in (("1", "1", True), ("1", "", False), ("0", "1", False), ("2", "", True)):
+            reset_kodi()
+            xbmcaddon.settings["stream_mode"] = mode
+            with common[0], common[1], mock.patch.object(xbmcgui.Dialog, "select", return_value=-1) as select, \
+                 mock.patch.object(default, "resolve_url", return_value="https://cdn/x.mkv"), \
+                 mock.patch.object(default, "fill_info"), mock.patch.object(default, "mark_playing"), \
+                 mock.patch.object(default.STORE, "remember_item"):
+                default.play({}, "movie", "tt1", ask=ask)
+            self.assertEqual(select.called, asked, f"stream_mode={mode} ask={ask!r}")
+
+
 class TestRouter(unittest.TestCase):
     def setUp(self):
         reset_kodi()

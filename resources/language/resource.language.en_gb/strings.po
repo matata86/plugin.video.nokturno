@@ -1061,3 +1061,23 @@ msgstr ""
 msgctxt "#30408"
 msgid "Checking for add-on updates…"
 msgstr ""
+
+msgctxt "#30409"
+msgid "Add Nokturno to TMDb Helper (Play on movie details)"
+msgstr ""
+
+msgctxt "#30410"
+msgid "TMDb Helper is not installed"
+msgstr ""
+
+msgctxt "#30411"
+msgid "Set Nokturno as the default player in TMDb Helper? Play on a movie or episode details page will then search streams in Nokturno."
+msgstr ""
+
+msgctxt "#30412"
+msgid "Nokturno added to TMDb Helper"
+msgstr ""
+
+msgctxt "#30413"
+msgid "Adding to TMDb Helper failed"
+msgstr ""

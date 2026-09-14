@@ -624,6 +624,14 @@
           <data>RunPlugin(plugin://plugin.video.nokturno/?action=update_repos)</data>
           <control format="action" type="button"/>
         </setting>
+        <setting id="tmdbhelper_player_action" type="action" label="30409">
+          <level>0</level>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=tmdbhelper_player)</data>
+          <control format="action" type="button"/>
+        </setting>
       </group>
     </category>
   </section>
