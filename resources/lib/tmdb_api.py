@@ -82,25 +82,25 @@ class TmdbApi:
              "genres": years},
         ]
 
-    def _imdb_id(self, ctype, tmdb_id):
-        kind = self._kind(ctype)
-        data = self._cached(f"tmdb:ext:{kind}:{tmdb_id}", DETAIL_TTL,
-                            lambda: self._get(f"/{kind}/{tmdb_id}/external_ids"))
-        return (data or {}).get("imdb_id") or ""
+    def _details(self, kind, tmdb_id):
+        """Detail titulu s `external_ids` a `images` jedním dotazem (`append_to_response`) —
+        dřív dva dotazy na položku, stránka katalogu = 1 + 40 požadavků, teď 1 + 20."""
+        return self._cached(f"tmdb:detail:{kind}:{tmdb_id}", DETAIL_TTL,
+                            lambda: self._get(f"/{kind}/{tmdb_id}", append_to_response="external_ids,images",
+                                              include_image_language="cs,en,null")) or {}
 
-    def _art(self, kind, tmdb_id, background_path=""):
+    def _imdb_id(self, ctype, tmdb_id, details=None):
+        data = details if details is not None else self._details(self._kind(ctype), tmdb_id)
+        return ((data.get("external_ids") or {}).get("imdb_id")) or ""
+
+    def _art(self, kind, tmdb_id, background_path="", images=None):
         """Náhled (`landscapePoster`) a logo z obrázků TMDB.
 
         Skin (Arctic Fuse) kreslí v náhledu `landscape`, a když chybí, vezme tentýž
         obrázek jako na pozadí — u titulů Nokturna tak byl stejný obrázek dvakrát
         (Sám doma). Náhled je obrázek z filmu s názvem (jazyk cs/en), jinak nejlépe
         hodnocený jiný než pozadí; logo přednostně české. Obrázky se nemění, cache dlouhá."""
-        def load():
-            try:
-                return self._get(f"/{kind}/{tmdb_id}/images", include_image_language="cs,en,null")
-            except TmdbError:
-                return {}
-        data = self._cached(f"tmdb:images:{kind}:{tmdb_id}", DETAIL_TTL, load) or {}
+        data = images if images is not None else (self._details(kind, tmdb_id).get("images") or {})
 
         def best(items, langs):
             for lang in langs:
@@ -118,7 +118,12 @@ class TmdbApi:
         }
 
     def _item(self, ctype, raw, genre_map):
-        imdb_id = self._imdb_id(ctype, raw["id"])
+        kind = self._kind(ctype)
+        try:
+            details = self._details(kind, raw["id"])
+        except TmdbError:
+            return None   # jeden nedostupný titul nesmí shodit stránku katalogu
+        imdb_id = self._imdb_id(ctype, raw["id"], details)
         if not imdb_id:
             return None
         name = raw.get("title") or raw.get("name") or ""
@@ -136,7 +141,7 @@ class TmdbApi:
             "description": raw.get("overview") or "",
             "genres": genres,
             "imdbRating": raw.get("vote_average") or None,
-            **self._art(self._kind(ctype), raw["id"], raw.get("backdrop_path") or ""),
+            **self._art(kind, raw["id"], raw.get("backdrop_path") or "", images=details.get("images") or {}),
         }
 
     def catalog(self, ctype, cid, genre=None, search=None, skip=0):
@@ -181,7 +186,8 @@ class TmdbApi:
             if not results:
                 raise TmdbError(f"titul {imdb_id} v TMDB nenalezen")
             tmdb_id = results[0]["id"]
-            data = self._get(f"/{kind}/{tmdb_id}", append_to_response="credits")
+            data = self._get(f"/{kind}/{tmdb_id}", append_to_response="credits,images",
+                             include_image_language="cs,en,null")
             crew = (data.get("credits") or {}).get("crew") or []
             cast = [c["name"] for c in (data.get("credits") or {}).get("cast", [])[:10]]
             director = [c["name"] for c in crew if c.get("job") == "Director"][:3]
@@ -189,15 +195,18 @@ class TmdbApi:
             year = (data.get("release_date") or data.get("first_air_date") or "")[:4]
             videos = []
             if kind == "tv":
-                for season in data.get("seasons") or []:
-                    sn = season.get("season_number")
-                    if sn is None:
-                        continue
+                numbers = [s.get("season_number") for s in data.get("seasons") or [] if s.get("season_number") is not None]
+
+                def season(sn):
                     try:
-                        sdata = self._cached(f"tmdb:season:{tmdb_id}:{sn}", DETAIL_TTL,
-                                             lambda sn=sn: self._get(f"/tv/{tmdb_id}/season/{sn}"))
+                        return sn, self._cached(f"tmdb:season:{tmdb_id}:{sn}", DETAIL_TTL,
+                                                lambda: self._get(f"/tv/{tmdb_id}/season/{sn}"))
                     except TmdbError:
-                        continue
+                        return sn, {}
+                # sezóny souběžně — seriál s 20 sezónami dřív znamenal 20 dotazů za sebou
+                with ThreadPoolExecutor(max_workers=WORKERS) as pool:
+                    seasons = list(pool.map(season, numbers))
+                for sn, sdata in seasons:
                     for ep in sdata.get("episodes") or []:
                         videos.append({
                             "id": f"{imdb_id}:{sn}:{ep.get('episode_number')}",
@@ -221,7 +230,7 @@ class TmdbApi:
                 "imdbRating": data.get("vote_average") or None,
                 "runtime": data.get("runtime") or next(iter(data.get("episode_run_time") or []), None),
                 "videos": videos,
-                **self._art(kind, tmdb_id, data.get("backdrop_path") or ""),
+                **self._art(kind, tmdb_id, data.get("backdrop_path") or "", images=data.get("images") or {}),
             }
         return self._cached(f"tmdb:meta2:{kind}:{imdb_id}", DETAIL_TTL, load)
 

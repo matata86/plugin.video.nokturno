@@ -12,7 +12,8 @@ se procházejí po jedné. Seznam se pamatuje hodinu (`INDEX_TTL`), takže nový
 se ve výsledcích objeví nejpozději do hodiny.
 
 Dřív, když úložiště nese značku změny `.nokturno-rev` v kořeni: její obsah je
-součástí klíče seznamu, takže jakmile se změní, seznam se načte znovu hned.
+součástí klíče seznamu, takže jakmile se změní, seznam se načte znovu — značka se
+čte nejvýš jednou za `REV_TTL` (minutu), nový soubor se tedy objeví do minuty.
 Dashboard Nokturna ji přepisuje po každém nahrání, přesunu a smazání a na
 tlačítko „Přeindexovat“. Jiná úložiště ji nemají a platí jen hodinová paměť.
 
@@ -25,6 +26,7 @@ v adrese (`kodi_url`), Stremio přes proxy doplňku (`request`).
 import base64
 import hashlib
 import re
+import time
 import unicodedata
 import urllib.error
 import urllib.parse
@@ -36,6 +38,7 @@ SLOTS = 3                   # kolik vlastních úložišť jde nastavit
 TIMEOUT = 20
 INDEX_TTL = 3600            # jak dlouho platí seznam souborů
 REV_FILE = ".nokturno-rev"  # značka změny v kořeni úložiště (viz docstring)
+REV_TTL = 60                # jak často se značka čte znovu — každý výpis streamů ji jinak četl po síti
 MAX_DIRS = 3000             # pojistka proti nekonečnému procházení
 MAX_FILES = 50000
 UA = "Mozilla/5.0 (compatible; Nokturno/1.0)"
@@ -141,6 +144,7 @@ class StorageApi:
         self.cache = cache
         self.index_ttl = index_ttl
         self.opener = opener
+        self._rev = (0.0, "")   # (kdy, hodnota) — viz revision()
 
     @property
     def key(self):
@@ -263,12 +267,19 @@ class StorageApi:
         return {"ok": True, "files": files, "truncated": bool(queue)}
 
     def revision(self):
-        """Obsah značky změny, prázdný řetězec, když ji úložiště nemá nebo nejde přečíst."""
+        """Obsah značky změny, prázdný řetězec, když ji úložiště nemá nebo nejde přečíst.
+        Čte se nejvýš jednou za `REV_TTL` — dřív při každém `streams()` jeden HTTP dotaz na slot,
+        u NAS v režimu spánku čekání na timeout 20 s."""
+        kdy, hodnota = self._rev
+        if time.time() - kdy < REV_TTL:
+            return hodnota
         try:
             with self._open(self.base + REV_FILE, headers={"Cache-Control": "no-cache"}) as resp:
-                return resp.read(64).decode("ascii", "ignore").strip()
+                hodnota = resp.read(64).decode("ascii", "ignore").strip()
         except StorageError:
-            return ""
+            hodnota = ""
+        self._rev = (time.time(), hodnota)
+        return hodnota
 
     def index(self):
         """Seznam videí v úložišti, z paměti nejvýš `INDEX_TTL` starý — nebo čerstvý,

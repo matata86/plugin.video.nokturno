@@ -299,21 +299,32 @@ class SosacDirect:
             url = BASE + "/jsonsearchapi.php?q=" + urllib.parse.quote_plus(query)
             data = _seznam(self._get(url, ttl=12 * 3600), url)
             return [self.movie_meta(v) for v in data if isinstance(v, dict) and v.get("l")]
-        # seriály nemají vyhledávací endpoint → projít písmena (cache 1 den) a filtrovat podle názvu
+        # seriály nemají vyhledávací endpoint → hledá se v předpřipraveném indexu (viz _series_index)
         q = normalize(query)
         found = []
-        for letter in LETTERS:
-            try:
-                data = self._get(EXPORT + f"tvpismena/{letter}.json", ttl=86400)
-            except SosacError:
-                continue
-            for v in _seznam(data, letter):
-                if not isinstance(v, dict):
-                    continue
-                names = [normalize(self._name(v.get("n"))), normalize(self._orig(v.get("n")))]
-                if any(q and q in n for n in names):
-                    found.append(self.series_meta(v))
+        for name, orig, v in self._series_index():
+            if q and (q in name or q in orig):
+                found.append(self.series_meta(v))
         return found[:60]
+
+    def _series_index(self):
+        """[(normalizovaný název, normalizovaný originál, položka)] přes všechna písmena, jednou
+        denně do cache. Dřív se při každém hledání seriálu (i z `find_match`, tedy 4× za výpis
+        streamů) procházelo 27 souborů a normalizovaly tisíce názvů — na ARM boxu CPU, ne síť."""
+        def build():
+            rows = []
+            for letter in LETTERS:
+                try:
+                    data = self._get(EXPORT + f"tvpismena/{letter}.json", ttl=86400)
+                except SosacError:
+                    continue
+                for v in _seznam(data, letter):
+                    if isinstance(v, dict):
+                        rows.append([normalize(self._name(v.get("n"))), normalize(self._orig(v.get("n"))), v])
+            return rows
+        if self.cache is None:
+            return build()
+        return self.cache.cached("sosac:tvindex", 0 if self.fresh else 86400, build)
 
     @staticmethod
     def _short_title(title):

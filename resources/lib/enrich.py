@@ -6,6 +6,7 @@ podle IMDb id: přednostně z Luny (česky, TMDB), bez Luny z Cinemety (Stremio,
 Výsledek se ukládá do cache doplňku na 30 dní, takže seznam se zdrží jen napoprvé.
 """
 import json
+import threading
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError, as_completed
 
@@ -15,6 +16,11 @@ TIMEOUT = 8
 WORKERS = 8
 DEAD_IMAGES = "movies.sosac.tv"  # jejich náhledy jsou od 2026-09 pryč (404)
 DEADLINE = 6.0  # s – déle seznam nezdržovat; zbytek se dotáhne na pozadí do cache
+# jeden executor pro celý proces: dřív nový na každé hledání s `shutdown(wait=False)`, takže po
+# několika hledáních za sebou běžely desítky visících vláken (Luna má timeout 40 s)
+_POOL = ThreadPoolExecutor(max_workers=WORKERS, thread_name_prefix="nokturno-enrich")
+_INFLIGHT = {}          # (ctype, klíč titulu) → future — tentýž titul se nedotahuje dvakrát naráz
+_INFLIGHT_LOCK = threading.Lock()
 FIELDS = ("description", "runtime", "director", "writer", "cast", "app_extras", "released", "country", "imdb_id",
           # veřejné exporty Sosáče mívají žánry jako syrové anglické tagy s velkými
           # a malými písmeny na hromádce (a občas i vyloženě smetí typu "html5") —
@@ -125,27 +131,47 @@ def enrich(metas, luna=None, store=None, ctype="movie", deadline=DEADLINE, on_ti
         on_count(len(todo))
     if not todo:
         return 0
-    pool = ThreadPoolExecutor(max_workers=WORKERS)
-    futures = {pool.submit(_lookup, luna, store, ctype, m): m for m in todo}
+    by_future = {}
+    for m in todo:
+        by_future.setdefault(_submit(luna, store, ctype, m), []).append(m)
     filled = 0
     try:
         # jako dřívější wait(timeout=deadline) — po timeoutu se přestane čekat,
         # nedokončené doběhnou na pozadí a zapíšou se do cache; tady navíc tiká
         # ukazatel průběhu po každé položce, která stihla doběhnout včas
-        for fut in as_completed(futures, timeout=deadline):
-            if on_tick:
-                on_tick()
+        for fut in as_completed(list(by_future), timeout=deadline):
+            for _ in by_future[fut]:
+                if on_tick:
+                    on_tick()
             try:
                 extra = fut.result()
             except Exception:  # noqa: BLE001
                 continue
             if extra:
-                _apply(futures[fut], extra)
-                filled += 1
+                for m in by_future[fut]:
+                    _apply(m, extra)
+                    filled += 1
     except FuturesTimeoutError:
         pass
-    pool.shutdown(wait=False)  # nedokončené doběhnou na pozadí a zapíšou se do cache
     return filled
+
+
+def _submit(luna, store, ctype, meta):
+    """Dotaz na titul ve sdíleném executoru; běží-li už pro tentýž titul, vrátí jeho future."""
+    key = (ctype, meta.get("imdb_id") or _norm(meta.get("_title") or meta.get("name")), str(meta.get("year") or "")[:4])
+    with _INFLIGHT_LOCK:
+        fut = _INFLIGHT.get(key)
+        if fut is not None and not fut.done():
+            return fut
+        fut = _POOL.submit(_lookup, luna, store, ctype, meta)
+        _INFLIGHT[key] = fut
+
+        def hotovo(f, key=key):
+            with _INFLIGHT_LOCK:
+                if _INFLIGHT.get(key) is f:
+                    del _INFLIGHT[key]
+        fut.add_done_callback(hotovo)
+        return fut
 
 
 def enrich_one(meta, luna=None, store=None, ctype="movie"):
