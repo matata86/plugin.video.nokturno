@@ -1236,18 +1236,21 @@ class TestLangCatalogMenu(unittest.TestCase):
         default.lang_catalog_menu(self.apis, "movie", "dub")
         self.assertEqual({params_of(u).get("id") for u in xbmcplugin.urls()}, {"sosacd_m_0"})
 
-    def test_cizi_vypocet_uz_bezi_jde_rovnou_cekat_na_vysledek(self):
+    def test_cizi_vypocet_uz_bezi_neceka_jen_ohlasi(self):
+        """Dřív šlo rovnou do `list_lang_catalog()`, která na cizí zámek čeká
+        až `LANG_LOCK_WAIT` (90 s) — kratší než reálná doba běhu (až ~4 min),
+        takže skoro vždycky skončilo tichým prázdným seznamem (2026-09-15,
+        nahlásil uživatel). Teď se na nic nečeká, jen se to ohlásí."""
         prop = f"{default.LANG_LOCK_PROP}:lang_catalog:movie"
         xbmcgui.Window(10000).setProperty(prop, str(time.time()))
         try:
-            with mock.patch.object(default, "_wait_for_lang_catalog"):
-                xbmcplugin.reset()
-                default.lang_catalog_menu(self.apis, "movie", "dub")
+            xbmcplugin.reset()
+            default.lang_catalog_menu(self.apis, "movie", "dub")
         finally:
             xbmcgui.Window(10000).clearProperty(prop)
-        # zámek pořád drží (mockli jsme čekání) → `list_lang_catalog` se spolehne
-        # na starý/prázdný výsledek, ne na položku ke spuštění
-        self.assertEqual(xbmcplugin.urls(), [])
+        urls = xbmcplugin.urls()
+        self.assertEqual(len(urls), 1)
+        self.assertEqual(params_of(urls[0])["action"], "lang_catalog_menu")
 
 
 class TestLangCatalogTrigger(unittest.TestCase):
@@ -1276,6 +1279,22 @@ class TestLangCatalogTrigger(unittest.TestCase):
         default.lang_catalog_trigger(self.apis, "movie", "dub")
         self.assertEqual({params_of(u).get("id") for u in xbmcplugin.urls()}, {"sosacd_m_0"})
         self.assertEqual(xbmcgui.Window(10000).getProperty(f"{default.LANG_TRIGGER_PROP}:movie"), "")
+
+    def test_cizi_vypocet_uz_bezi_neceka_a_nezada_znovu(self):
+        """Dřív šlo v tomhle případě rovnou do `list_lang_catalog()` — stejný
+        blokující bug jako v `lang_catalog_menu()` (viz tam)."""
+        prop = f"{default.LANG_LOCK_PROP}:lang_catalog:movie"
+        xbmcgui.Window(10000).setProperty(prop, str(time.time()))
+        try:
+            xbmcplugin.reset()
+            default.lang_catalog_trigger(self.apis, "movie", "dub")
+        finally:
+            xbmcgui.Window(10000).clearProperty(prop)
+        # nová žádost se nezapisuje, výpočet už běží
+        self.assertEqual(xbmcgui.Window(10000).getProperty(f"{default.LANG_TRIGGER_PROP}:movie"), "")
+        urls = xbmcplugin.urls()
+        self.assertEqual(len(urls), 1)
+        self.assertEqual(params_of(urls[0])["action"], "lang_catalog_menu")
 
 
 class FakeStats:

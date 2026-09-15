@@ -2012,23 +2012,29 @@ def lang_catalog_menu(apis, ctype, want):
     uživatele jít dál (`lang_catalog_trigger()`, s notifikací až bude hotovo),
     místo aby ho nutil čekat na místě.
 
-    Přepočet se nabízí ke schválení, jen když ho nikdo jiný zrovna nepočítá:
-    cache je hotová → rovnou seznam. Cizí výpočet už běží (zámek, ať zahřívač,
-    nebo dřívější požadavek přes `lang_catalog_trigger()`) → jeho výsledek se
-    stejně nedá zrušit, takže i tady rovnou do `list_lang_catalog()`, ta si
-    poradí sama (postup v bublině, viz `_wait_for_lang_catalog()`)."""
+    Cache hotová → rovnou seznam. Nic jiného ale NEjde přes `list_lang_catalog()`
+    (jak to bylo dřív, „ať si počká na cizí zámek") — `LANG_LOCK_WAIT` (90 s) bývá
+    kratší než reálná doba běhu (až ~4 min u 60 kandidátů, viz `LANG_LOCK_STALE`),
+    takže tohle čekání skoro vždycky vypršelo dřív, než cizí výpočet doběhl, a
+    `_lang_catalog_locked()` pak vrátil tichý prázdný seznam (2026-09-15, nahlásil
+    uživatel — „zahřívání nových dílů a filmů", „prázdné seznam"). Cizí výpočet
+    (zahřívač, nebo dřívější `lang_catalog_trigger()`) proto jen ohlásíme stejnou
+    zprávou jako čerstvě zadanou žádost — doběhne sám, notifikace přijde, až bude
+    hotovo, tady se na nic nečeká."""
     key = f"lang_catalog:{ctype}"
     win = xbmcgui.Window(10000)
     age = _lang_lock_age(win, f"{LANG_LOCK_PROP}:{key}")
-    ready_or_running = STORE.peek_cached(key, LANG_CATALOG_TTL) is not None or \
-        (age is not None and age < LANG_LOCK_STALE)
-    if ready_or_running:
+    if STORE.peek_cached(key, LANG_CATALOG_TTL) is not None:
         list_lang_catalog(apis, ctype, want)
         return
     set_content("tvshows" if ctype == "series" else "movies")
-    folder_item(L(30437, "Data aren't ready — checking dubbing/subtitles across your sources can take a "
-                          "few minutes. Tap to start."),
-                build_url(action="lang_catalog_trigger", type=ctype, want=want), icon="DefaultAddonsSearch.png")
+    if age is not None and age < LANG_LOCK_STALE:
+        folder_item(L(30438, "Started in the background — you'll get a notification when it's ready."),
+                    build_url(action="lang_catalog_menu", type=ctype, want=want), icon="DefaultAddonsSearch.png")
+    else:
+        folder_item(L(30437, "Data aren't ready — checking dubbing/subtitles across your sources can take a "
+                              "few minutes. Tap to start."),
+                    build_url(action="lang_catalog_trigger", type=ctype, want=want), icon="DefaultAddonsSearch.png")
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
@@ -2038,15 +2044,20 @@ def lang_catalog_trigger(apis, ctype, want):
     jen požádá `service.py` o přepočet na pozadí zápisem do `LANG_TRIGGER_PROP`
     (`lang_trigger_watcher()` tam ji čte a hned reaguje, ne až za `LANG_WARM_EVERY`)
     a hned se vrátí. Až bude hotovo, přijde `xbmcgui.Dialog().notification()`
-    (nemodální, bezpečná odkudkoli i z pozadí)."""
+    (nemodální, bezpečná odkudkoli i z pozadí).
+
+    NE `list_lang_catalog()`, i kdyby cache mezitím zůstala prázdná a zámek byl
+    cizí — to je přesně ta blokující cesta s tichým prázdným seznamem, co řeší
+    `lang_catalog_menu()` (viz tam, `LANG_LOCK_WAIT` vs. reálná doba běhu)."""
     key = f"lang_catalog:{ctype}"
     win = xbmcgui.Window(10000)
     age = _lang_lock_age(win, f"{LANG_LOCK_PROP}:{key}")
-    if STORE.peek_cached(key, LANG_CATALOG_TTL) is not None or (age is not None and age < LANG_LOCK_STALE):
-        # mezitím (jiný klik, zahřívač) už hotovo nebo se počítá — netřeba žádat znovu
+    if STORE.peek_cached(key, LANG_CATALOG_TTL) is not None:
         list_lang_catalog(apis, ctype, want)
         return
-    win.setProperty(f"{LANG_TRIGGER_PROP}:{ctype}", "1")
+    if age is None or age >= LANG_LOCK_STALE:
+        # nikdo to zrovna nepočítá (zahřívač ani dřívější žádost) — teprve teď o to požádat
+        win.setProperty(f"{LANG_TRIGGER_PROP}:{ctype}", "1")
     set_content("tvshows" if ctype == "series" else "movies")
     folder_item(L(30438, "Started in the background — you'll get a notification when it's ready."),
                 build_url(action="lang_catalog_menu", type=ctype, want=want), icon="DefaultAddonsSearch.png")
