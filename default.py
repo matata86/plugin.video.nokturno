@@ -80,6 +80,9 @@ LANG_CATALOG_TARGET = 30   # kolik položek chceme v každém seznamu (dabing/ti
 LANG_CATALOG_CAP = 60      # kolik kandidátů nejvýš prozkoumat, i kdyby se cíl nenaplnil
 LANG_CATALOG_TTL = 8 * 3600  # rychlost ověřena (30/30 do minuty) — teď už se to smí cachovat
 LANG_LOCK_PROP = "nokturno.lang_busy"  # zámek přes okno (sdílené mezi procesy) proti souběžnému přepočtu
+LANG_PROGRESS_PROP = "nokturno.lang_progress"  # živý postup přepočtu (viz _build_lang_catalog), sdílený
+                                                # stejně jako zámek — kdo na zámek čeká, si z něj přečte,
+                                                # jak daleko je proces, co ho drží
 LANG_LOCK_WAIT = 90    # s – radši počkat na cizí přepočet, než ho spustit podruhé souběžně
 LANG_LOCK_POLL = 1     # s – jak často se během čekání kontroluje, jestli zámek zase zmizel
 LANG_LOCK_STALE = 8 * 60  # s – nejdelší pozorovaný běh byl pod 4 min (60 kandidátů); zámek starší
@@ -2070,11 +2073,14 @@ def _lang_lock_age(win, prop):
 def _lang_catalog_locked(apis, ctype, key):
     win = xbmcgui.Window(10000)
     prop = f"{LANG_LOCK_PROP}:{key}"
+    progress_prop = f"{LANG_PROGRESS_PROP}:{key}"
     age = _lang_lock_age(win, prop)
     if age is not None and age < LANG_LOCK_STALE:
         _diag(f"{key}: zamčeno cizím výpočtem ({age:.0f}s), čekám")
         t0 = time.time()
-        _wait_for_lang_catalog(win, prop)
+        # bublina s postupem jen když čekání vidí uživatel — zahřívání na pozadí
+        # (`warming()`) na výsledek nikdy nečeká vizuálně, jen ať se cache naplní
+        _wait_for_lang_catalog(win, prop, progress_prop, show_bar=not warming())
         _diag(f"{key}: čekání skončilo po {time.time() - t0:.1f} s")
         age = _lang_lock_age(win, prop)
         if age is not None and age < LANG_LOCK_STALE:
@@ -2100,25 +2106,61 @@ def _lang_catalog_locked(apis, ctype, key):
         _diag(f"{key}: _lang_catalog_locked() hotovo za {time.time() - t0:.1f} s")
 
 
-def _wait_for_lang_catalog(win, prop):
+def _wait_for_lang_catalog(win, prop, progress_prop, show_bar):
     """Čeká, dokud zámek drží živý (dost čerstvý) proces — vrátí se hned, jakmile
-    zmizí (normální dokončení) nebo zestárne (mrtvý proces), jinak nejdéle `LANG_LOCK_WAIT`."""
+    zmizí (normální dokončení) nebo zestárne (mrtvý proces), jinak nejdéle `LANG_LOCK_WAIT`.
+
+    `show_bar=True` k tomu navíc ukazuje nemodální bublinu s postupem cizího
+    výpočtu — ten svůj postup průběžně píše do `progress_prop` (`_build_lang_catalog()`),
+    tady se jen čte a promítá, ať uživatel neschne u prázdné obrazovky beze zprávy."""
     monitor = xbmc.Monitor()
-    waited = 0
-    while waited < LANG_LOCK_WAIT:
-        age = _lang_lock_age(win, prop)
-        if age is None or age >= LANG_LOCK_STALE:
-            return
-        if monitor.waitForAbort(LANG_LOCK_POLL):
-            return
-        waited += LANG_LOCK_POLL
+    bar = None
+    if show_bar:
+        bar = xbmcgui.DialogProgressBG()
+        bar.create(L(30000, "Nokturno"), L(30436, "The list is being built in the background right now, "
+                                                    "following the progress…"))
+        bar.update(0)
+    try:
+        waited = 0
+        while waited < LANG_LOCK_WAIT:
+            age = _lang_lock_age(win, prop)
+            if age is None or age >= LANG_LOCK_STALE:
+                return
+            if bar:
+                _update_lang_bar(bar, win.getProperty(progress_prop))
+            if monitor.waitForAbort(LANG_LOCK_POLL):
+                return
+            waited += LANG_LOCK_POLL
+    finally:
+        if bar:
+            bar.close()
+
+
+def _update_lang_bar(bar, raw):
+    """`raw` = `"{dab}/{cíl}|{titulky}/{cíl}"`, jak ho píše `_build_lang_catalog()`.
+    Prázdné/nerozpoznatelné (výpočet ještě nezapsal první hodnotu, nebo mezitím
+    zmizelo) beze změny přeskočí — bublina zůstane na posledním známém stavu."""
+    if not raw:
+        return
+    try:
+        dub_part, subs_part = raw.split("|")
+        dub_done, target = (int(x) for x in dub_part.split("/"))
+        subs_done, _ = (int(x) for x in subs_part.split("/"))
+    except (TypeError, ValueError):
+        return
+    percent = int((dub_done + subs_done) / (2 * target) * 100) if target else 0
+    dub_label = L(30394, "Nově přidané s CZ dabingem")
+    subs_label = L(30401, "Nově přidané s CZ titulky")
+    bar.update(min(percent, 100), message=f"{dub_label} {dub_done}/{target} · {subs_label} {subs_done}/{target}")
 
 
 def _build_lang_catalog(apis, ctype):
     """Živý výpočet pro `list_lang_catalog()` — samotné dohledání kandidátů se
-    posílá do `Store.cached_if()`, proto je vytažené zvlášť. Progres se ukazuje
-    jen při skutečném, na uživateli viditelném přepočtu — při zahřívání na
-    pozadí (`warming()`) by jen zbytečně blikal.
+    posílá do `Store.cached_if()`, proto je vytažené zvlášť. Bublina s postupem se
+    ukazuje jen při skutečném, na uživateli viditelném přepočtu — při zahřívání na
+    pozadí (`warming()`) by jen zbytečně blikala. I tehdy ale postup píšeme do
+    `LANG_PROGRESS_PROP` (`win.setProperty` níž) — kdyby přesně v tu chvíli kliknul
+    uživatel a čekal na zámek (`_wait_for_lang_catalog()`), potřebuje odkud číst.
 
     Dabing i titulky v JEDNOM průchodu (2026-09-15) — `raw_streams()` u kandidáta
     řekne obojí (`langs` i `subs`) za stejnou cenu, dělit to na dva běhy by jen
@@ -2132,6 +2174,8 @@ def _build_lang_catalog(apis, ctype):
     _diag(f"{ctype}: {len(candidates)} kandidátů za {time.time() - t_start:.1f} s")
     dub_label = L(30394, "Nově přidané s CZ dabingem")
     subs_label = L(30401, "Nově přidané s CZ titulky")
+    win = xbmcgui.Window(10000)
+    progress_prop = f"{LANG_PROGRESS_PROP}:lang_catalog:{ctype}"
     bar = None if warming() else xbmcgui.DialogProgressBG()
     if bar:
         bar.create(L(30000, "Nokturno"), L(30435, "This list is normally built in the background, but the "
@@ -2161,12 +2205,15 @@ def _build_lang_catalog(apis, ctype):
                 matched["dub"].append(cand)
             if has_subs and not has_dub and len(matched["subs"]) < LANG_CATALOG_TARGET:
                 matched["subs"].append(cand)
+            win.setProperty(progress_prop, f"{len(matched['dub'])}/{LANG_CATALOG_TARGET}|"
+                                            f"{len(matched['subs'])}/{LANG_CATALOG_TARGET}")
             if bar:
                 done = len(matched["dub"]) + len(matched["subs"])
                 bar.update(int(done / (2 * LANG_CATALOG_TARGET) * 100),
                           message=f"{dub_label} {len(matched['dub'])}/{LANG_CATALOG_TARGET} · "
                                   f"{subs_label} {len(matched['subs'])}/{LANG_CATALOG_TARGET}")
     finally:
+        win.clearProperty(progress_prop)
         if bar:
             bar.close()
     _diag(f"{ctype}: hotovo, dab {len(matched['dub'])} / tit {len(matched['subs'])} "

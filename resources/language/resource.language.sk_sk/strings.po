@@ -1157,3 +1157,7 @@ msgstr "Tu sa dá podporiť projekt alebo sledovať novinky. Rodina Nokturno má
 msgctxt "#30435"
 msgid "This list is normally built in the background, but the data isn't ready yet. Checking dubbing/subtitles across your sources, this can take a few minutes…"
 msgstr "Tento zoznam sa štandardne zostavuje na pozadí, teraz ale nie sú dáta pripravené. Zisťujem dabing/titulky naprieč tvojimi zdrojmi, môže to trvať pár minút…"
+
+msgctxt "#30436"
+msgid "The list is being built in the background right now, following the progress…"
+msgstr "Zoznam sa práve zostavuje na pozadí, sledujem priebeh…"
