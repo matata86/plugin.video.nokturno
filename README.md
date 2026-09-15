@@ -217,16 +217,18 @@ Očekávaná odpověď je `{"ok": true}`.
 
 ## Odeslání logu
 
-V *Nastavení → Statistiky* je vedle přepínače statistik i tlačítko **Odeslat
-log Kodi**. Pošle poslední ~500 KB souboru `kodi.log` (gzip) na server, aby šel
-nahlášený problém rozklíčovat — nic dalšího zařízení neopouští. Funguje i při
-vypnutých statistikách, protože jde o jednorázovou diagnostickou akci na
-vyžádání, ne o průběžný sběr.
+V *Nastavení → Pokročilé* je (úplně dole) tlačítko **Odeslat log Kodi**. Po
+potvrzení („Opravdu odeslat log?") pošle poslední ~500 KB souboru `kodi.log`
+(gzip) na server, aby šel nahlášený problém rozklíčovat — nic dalšího zařízení
+neopouští. Funguje i při vypnutých statistikách, protože jde o jednorázovou
+diagnostickou akci na vyžádání, ne o průběžný sběr.
 
 Log se posílá na `https://nokturno.tailf0014.ts.net/logs?id=<id instalace>&version=<verze>`
 jako syrová gzip data v těle POST požadavku (stejné `id` jako u statistik).
 Očekávaná odpověď je HTTP 200; při chybě (síť, server, moc časté odeslání)
-doplněk zobrazí notifikaci s důvodem.
+doplněk zobrazí notifikaci s důvodem. Nahlášené logy vidí administrátor v
+[dashboardu statistik](https://github.com/matata86/plugin.video.nokturno/wiki/Reseni-problemu#jak-nahlásit-chybu),
+starší 30 dní se mažou automaticky.
 
 ## Nokturno v Home Assistantu
 
