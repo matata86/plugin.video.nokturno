@@ -1153,3 +1153,7 @@ msgstr "Web Nokturno"
 msgctxt "#30434"
 msgid "Support the project or follow news here. Besides this Kodi add-on, the Nokturno family also has a Stremio add-on and a Home Assistant integration/card."
 msgstr "Zde jde podpořit projekt nebo sledovat novinky. Rodina Nokturno má kromě doplňku pro Kodi i doplněk pro Stremio a integraci/kartu pro Home Assistant."
+
+msgctxt "#30435"
+msgid "This list is normally built in the background, but the data isn't ready yet. Checking dubbing/subtitles across your sources, this can take a few minutes…"
+msgstr "Tenhle seznam se standardně sestavuje na pozadí, teď ale nejsou data připravená. Zjišťuji dabing/titulky napříč tvými zdroji, může to trvat pár minut…"

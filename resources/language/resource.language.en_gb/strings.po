@@ -1153,3 +1153,7 @@ msgstr ""
 msgctxt "#30434"
 msgid "Support the project or follow news here. Besides this Kodi add-on, the Nokturno family also has a Stremio add-on and a Home Assistant integration/card."
 msgstr ""
+
+msgctxt "#30435"
+msgid "This list is normally built in the background, but the data isn't ready yet. Checking dubbing/subtitles across your sources, this can take a few minutes…"
+msgstr ""

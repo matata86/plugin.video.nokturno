@@ -2134,7 +2134,9 @@ def _build_lang_catalog(apis, ctype):
     subs_label = L(30401, "Nově přidané s CZ titulky")
     bar = None if warming() else xbmcgui.DialogProgressBG()
     if bar:
-        bar.create(L(30000, "Nokturno"), dub_label)
+        bar.create(L(30000, "Nokturno"), L(30435, "This list is normally built in the background, but the "
+                                                    "data isn't ready yet. Checking dubbing/subtitles across "
+                                                    "your sources, this can take a few minutes…"))
         bar.update(0)
     matched = {"dub": [], "subs": []}
     try:
