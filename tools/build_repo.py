@@ -56,9 +56,14 @@ def addon_assets(path):
 
 
 def zip_addon(addon_id, src, version):
+    is_repo = addon_id.startswith("repository.")
     out_dir = os.path.join(REPO, addon_id)
     os.makedirs(out_dir, exist_ok=True)
-    out = os.path.join(out_dir, f"{addon_id}-{version}.zip")
+    # Repozitářové doplňky se sotva kdy vydávají v nové verzi, takže staré
+    # verzované zipy nemají smysl retenovat (jen matou při ručním prohlížení
+    # repa) — u nich zůstává vždy jediný soubor `{addon_id}.zip`. U samotného
+    # pluginu (níž) jde o víc verzí zůstávajících záměrně, viz komentář dole.
+    out = os.path.join(out_dir, f"{addon_id}.zip" if is_repo else f"{addon_id}-{version}.zip")
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zf:
         for base, dirs, files in os.walk(src):
             dirs[:] = [d for d in dirs if d not in EXCLUDE]
@@ -67,13 +72,14 @@ def zip_addon(addon_id, src, version):
                     continue
                 full = os.path.join(base, f)
                 zf.write(full, os.path.join(addon_id, os.path.relpath(full, src)))
-    if addon_id.startswith("repository."):
-        # stabilní název pro odkaz v README (verzovaný zip zůstává pro Kodi)
-        shutil.copy(out, os.path.join(out_dir, f"{addon_id}.zip"))
-    # Staré verzované zipy se nemažou — zůstávají v repu všechny (jde se k nim
-    # vrátit ruční instalací ze ZIPu, kdyby nová verze něco pokazila) a navíc
-    # to řeší i past 2026-09-10: klient s čerstvě staženou addons.xml, co ještě
-    # ukazuje na starou verzi (GitHub raw content se propaguje pár minut),
+    if is_repo:
+        for name in os.listdir(out_dir):
+            if name.startswith(f"{addon_id}-") and name.endswith(".zip"):
+                os.remove(os.path.join(out_dir, name))
+    # Staré verzované zipy pluginu se nemažou — zůstávají v repu všechny (jde se
+    # k nim vrátit ruční instalací ze ZIPu, kdyby nová verze něco pokazila) a
+    # navíc to řeší i past 2026-09-10: klient s čerstvě staženou addons.xml, co
+    # ještě ukazuje na starou verzi (GitHub raw content se propaguje pár minut),
     # by jinak po starém zipu sáhl a dostal 404.
     # Ikona/fanart musí ležet přesně na cestě, kterou addon.xml deklaruje
     # (u pluginu „resources/icon.png“, u repozitáře jen „icon.png“) — Kodi si
@@ -108,7 +114,9 @@ def all_versions_xml(addon_id, out_dir):
     """
     blocks = {}
     for name in os.listdir(out_dir):
-        if not (name.startswith(f"{addon_id}-") and name.endswith(".zip")):
+        # repozitářové doplňky mají jen `{addon_id}.zip` (viz zip_addon), plugin
+        # verzované `{addon_id}-{verze}.zip`
+        if name != f"{addon_id}.zip" and not (name.startswith(f"{addon_id}-") and name.endswith(".zip")):
             continue
         with zipfile.ZipFile(os.path.join(out_dir, name)) as zf:
             xml = zf.read(f"{addon_id}/addon.xml").decode("utf-8")
