@@ -880,7 +880,7 @@ class TestMenuAZahrivani(unittest.TestCase):
             xbmcplugin.reset()
             default.browse_menu(apis, ctype)
             out.extend(params_of(u) for u in xbmcplugin.urls())
-        return {(p["want"], p["type"]) for p in out if p["action"] == "lang_catalog"}
+        return {(p["want"], p["type"]) for p in out if p["action"] == "lang_catalog_menu"}
 
     def warm(self):
         return {(p["src"], p["catalog"], p["type"], p.get("genre")) for p in map(params_of, service.warm_urls())}
@@ -1203,6 +1203,51 @@ class TestLangCatalog(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 default.list_lang_catalog(apis, "movie", "dub")
         self.assertEqual(xbmcgui.Window(10000).getProperty(prop), "")
+
+
+class TestLangCatalogMenu(unittest.TestCase):
+    """`lang_catalog_menu()` (2026-09-15) — vstupní bod z menu Filmy/Seriály.
+    Na rozdíl od `list_lang_catalog()` nespouští drahý živý přepočet automaticky,
+    jen když je jasné, že se nic nezpozdí (cache hotová, nebo to už počítá někdo
+    jiný) — jinak nabídne obyčejnou položku seznamu, kterou musí uživatel sám
+    kliknout, žádný modální dialog (ten nejde, cesta jde spustit i z widgetu)."""
+
+    def setUp(self):
+        reset_kodi()
+        default.STORE.clear_cache()
+        self.engine = default.KodiEngine()
+        self.apis = {"engine": self.engine, "sosac_db": FakeSosacDb([]), "luna": None}
+
+    def test_bez_cache_a_bez_zamku_nabidne_jen_polozku_ke_spusteni(self):
+        xbmcplugin.reset()
+        default.lang_catalog_menu(self.apis, "movie", "dub")
+        urls = xbmcplugin.urls()
+        self.assertEqual(len(urls), 1)
+        params = params_of(urls[0])
+        self.assertEqual(params["action"], "lang_catalog")
+        self.assertEqual(params["want"], "dub")
+        self.assertEqual(params["type"], "movie")
+
+    def test_hotova_cache_jde_rovnou_do_seznamu(self):
+        default.STORE.cached_if("lang_catalog:movie", default.LANG_CATALOG_TTL,
+                                 lambda: {"dub": [{"id": "sosacd_m_0", "type": "movie", "name": "Film"}],
+                                          "subs": []})
+        xbmcplugin.reset()
+        default.lang_catalog_menu(self.apis, "movie", "dub")
+        self.assertEqual({params_of(u).get("id") for u in xbmcplugin.urls()}, {"sosacd_m_0"})
+
+    def test_cizi_vypocet_uz_bezi_jde_rovnou_cekat_na_vysledek(self):
+        prop = f"{default.LANG_LOCK_PROP}:lang_catalog:movie"
+        xbmcgui.Window(10000).setProperty(prop, str(time.time()))
+        try:
+            with mock.patch.object(default, "_wait_for_lang_catalog"):
+                xbmcplugin.reset()
+                default.lang_catalog_menu(self.apis, "movie", "dub")
+        finally:
+            xbmcgui.Window(10000).clearProperty(prop)
+        # zámek pořád drží (mockli jsme čekání) → `list_lang_catalog` se spolehne
+        # na starý/prázdný výsledek, ne na položku ke spuštění
+        self.assertEqual(xbmcplugin.urls(), [])
 
 
 class FakeStats:

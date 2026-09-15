@@ -1161,3 +1161,7 @@ msgstr "Tento zoznam sa štandardne zostavuje na pozadí, teraz ale nie sú dát
 msgctxt "#30436"
 msgid "The list is being built in the background right now, following the progress…"
 msgstr "Zoznam sa práve zostavuje na pozadí, sledujem priebeh…"
+
+msgctxt "#30437"
+msgid "Data aren't ready — checking dubbing/subtitles across your sources can take a few minutes. Tap to start."
+msgstr "Dáta nie sú pripravené — zistenie dabingu/titulkov naprieč tvojimi zdrojmi môže trvať pár minút. Ťuknutím spustíš."

@@ -430,6 +430,20 @@ class Store:
                 pass
         return data
 
+    def peek_cached(self, key, ttl):
+        """Vrátí, co pro `key` uložil `cached()`/`cached_if()`, jen když je to ještě
+        v `ttl` — beze spuštění loaderu. Pro rozhodnutí předem (bez placení ceny
+        výpočtu), jestli je něco vůbec připravené, např. než se nabídne drahý
+        přepočet uživateli ke schválení místo automatického spuštění."""
+        path = os.path.join(self.dir, "cache", hashlib.md5(key.encode("utf-8")).hexdigest() + ".json")
+        try:
+            if time.time() - os.path.getmtime(path) < ttl:
+                with open(path, encoding="utf-8") as f:
+                    return json.load(f)
+        except (OSError, ValueError):
+            pass
+        return None
+
     def clear_cache(self):
         cdir = os.path.join(self.dir, "cache")
         for name in os.listdir(cdir):

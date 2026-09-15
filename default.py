@@ -1921,8 +1921,10 @@ def browse_menu(apis, ctype):
         if not target:
             continue
         if action == "lang_catalog":
+            # `lang_catalog_menu` (ne rovnou `lang_catalog`) — z menu nechceme spustit
+            # drahý živý přepočet automaticky, viz `lang_catalog_menu()` níž
             want, _, _ = target
-            folder_item(label, build_url(action=action, type=ctype, want=want), icon=icon)
+            folder_item(label, build_url(action="lang_catalog_menu", type=ctype, want=want), icon=icon)
             continue
         src, cid, genre = target
         params = {"action": action, "type": ctype, "catalog": cid, "src": src}
@@ -1988,6 +1990,37 @@ def list_catalog(apis, ctype, cid, src, genre=None, search=None, skip=0):
         folder_item(L(30021), build_url(action="catalog", type=ctype, catalog=cid, src=src, genre=genre,
                                         search=search, skip=skip + len(metas)), icon="DefaultFolder.png")
     # widget a výpis v Nokturnu mívají stejnou adresu, položky se ale liší podle okna (add_playable)
+    xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
+def lang_catalog_menu(apis, ctype, want):
+    """Vstupní bod z menu (`browse_menu()`) pro „Nově přidané s CZ dabingem/titulky" —
+    NE rovnou `list_lang_catalog()`. Ten dřív spouštěl živý přepočet (klidně několik
+    minut) automaticky, jen s bublinou postupu — uživatel se ale sám ptal, ať to
+    potvrdí, ne aby to vidí až za pochodu (2026-09-15).
+
+    Modální ano/ne dialog nejde použít (viz pravidlo v CLAUDE.md — cesta jde
+    spustit i z widgetu/JSON-RPC, `warming()` pozná jen náš vlastní zahřívač na
+    pozadí, ne cizí volání), takže se místo otázky nabídne obyčejná položka
+    seznamu — klik na ni sám spustí `list_lang_catalog()` (`action="lang_catalog"`,
+    beze změny, tu pořád volá i `lang_warmer()` ve `service.py`).
+
+    Přepočet se nabízí ke schválení, jen když ho nikdo jiný zrovna nepočítá:
+    cache je hotová → rovnou seznam. Cizí výpočet už běží (zámek) → jeho výsledek
+    se stejně nedá zrušit, takže i tady rovnou do `list_lang_catalog()`, ta si
+    poradí sama (postup v bublině, viz `_wait_for_lang_catalog()`)."""
+    key = f"lang_catalog:{ctype}"
+    win = xbmcgui.Window(10000)
+    age = _lang_lock_age(win, f"{LANG_LOCK_PROP}:{key}")
+    ready_or_running = STORE.peek_cached(key, LANG_CATALOG_TTL) is not None or \
+        (age is not None and age < LANG_LOCK_STALE)
+    if ready_or_running:
+        list_lang_catalog(apis, ctype, want)
+        return
+    set_content("tvshows" if ctype == "series" else "movies")
+    folder_item(L(30437, "Data aren't ready — checking dubbing/subtitles across your sources can take a "
+                          "few minutes. Tap to start."),
+                build_url(action="lang_catalog", type=ctype, want=want), icon="DefaultAddonsSearch.png")
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
@@ -3301,6 +3334,8 @@ def router(query):
         elif action == "catalog":
             list_catalog(apis, p["type"], p["catalog"], p.get("src", "luna"), genre=p.get("genre"),
                          search=p.get("search"), skip=int(p.get("skip") or 0))
+        elif action == "lang_catalog_menu":
+            lang_catalog_menu(apis, p.get("type", "movie"), p.get("want", "dub"))
         elif action == "lang_catalog":
             list_lang_catalog(apis, p.get("type", "movie"), p.get("want", "dub"))
         elif action == "search_new":
