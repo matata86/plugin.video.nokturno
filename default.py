@@ -83,6 +83,9 @@ LANG_LOCK_PROP = "nokturno.lang_busy"  # zámek přes okno (sdílené mezi proce
 LANG_PROGRESS_PROP = "nokturno.lang_progress"  # živý postup přepočtu (viz _build_lang_catalog), sdílený
                                                 # stejně jako zámek — kdo na zámek čeká, si z něj přečte,
                                                 # jak daleko je proces, co ho drží
+LANG_TRIGGER_PROP = "nokturno.lang_trigger"  # žádost o okamžitý přepočet na pozadí (viz lang_catalog_trigger
+                                              # tady a lang_trigger_watcher ve service.py) — stejný literál
+                                              # v obou souborech, stejně jako WARM_PROP
 LANG_LOCK_WAIT = 90    # s – radši počkat na cizí přepočet, než ho spustit podruhé souběžně
 LANG_LOCK_POLL = 1     # s – jak často se během čekání kontroluje, jestli zámek zase zmizel
 LANG_LOCK_STALE = 8 * 60  # s – nejdelší pozorovaný běh byl pod 4 min (60 kandidátů); zámek starší
@@ -2002,12 +2005,14 @@ def lang_catalog_menu(apis, ctype, want):
     Modální ano/ne dialog nejde použít (viz pravidlo v CLAUDE.md — cesta jde
     spustit i z widgetu/JSON-RPC, `warming()` pozná jen náš vlastní zahřívač na
     pozadí, ne cizí volání), takže se místo otázky nabídne obyčejná položka
-    seznamu — klik na ni sám spustí `list_lang_catalog()` (`action="lang_catalog"`,
-    beze změny, tu pořád volá i `lang_warmer()` ve `service.py`).
+    seznamu — klik na ni požádá `service.py` o přepočet na pozadí a nechá
+    uživatele jít dál (`lang_catalog_trigger()`, s notifikací až bude hotovo),
+    místo aby ho nutil čekat na místě.
 
     Přepočet se nabízí ke schválení, jen když ho nikdo jiný zrovna nepočítá:
-    cache je hotová → rovnou seznam. Cizí výpočet už běží (zámek) → jeho výsledek
-    se stejně nedá zrušit, takže i tady rovnou do `list_lang_catalog()`, ta si
+    cache je hotová → rovnou seznam. Cizí výpočet už běží (zámek, ať zahřívač,
+    nebo dřívější požadavek přes `lang_catalog_trigger()`) → jeho výsledek se
+    stejně nedá zrušit, takže i tady rovnou do `list_lang_catalog()`, ta si
     poradí sama (postup v bublině, viz `_wait_for_lang_catalog()`)."""
     key = f"lang_catalog:{ctype}"
     win = xbmcgui.Window(10000)
@@ -2020,7 +2025,28 @@ def lang_catalog_menu(apis, ctype, want):
     set_content("tvshows" if ctype == "series" else "movies")
     folder_item(L(30437, "Data aren't ready — checking dubbing/subtitles across your sources can take a "
                           "few minutes. Tap to start."),
-                build_url(action="lang_catalog", type=ctype, want=want), icon="DefaultAddonsSearch.png")
+                build_url(action="lang_catalog_trigger", type=ctype, want=want), icon="DefaultAddonsSearch.png")
+    xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
+def lang_catalog_trigger(apis, ctype, want):
+    """Klik na položku „Klepni pro spuštění" z `lang_catalog_menu()` — sám nic
+    nepočítá (to by uživatele nechalo čekat přesně tomu, čemu se chtěl vyhnout),
+    jen požádá `service.py` o přepočet na pozadí zápisem do `LANG_TRIGGER_PROP`
+    (`lang_trigger_watcher()` tam ji čte a hned reaguje, ne až za `LANG_WARM_EVERY`)
+    a hned se vrátí. Až bude hotovo, přijde `xbmcgui.Dialog().notification()`
+    (nemodální, bezpečná odkudkoli i z pozadí)."""
+    key = f"lang_catalog:{ctype}"
+    win = xbmcgui.Window(10000)
+    age = _lang_lock_age(win, f"{LANG_LOCK_PROP}:{key}")
+    if STORE.peek_cached(key, LANG_CATALOG_TTL) is not None or (age is not None and age < LANG_LOCK_STALE):
+        # mezitím (jiný klik, zahřívač) už hotovo nebo se počítá — netřeba žádat znovu
+        list_lang_catalog(apis, ctype, want)
+        return
+    win.setProperty(f"{LANG_TRIGGER_PROP}:{ctype}", "1")
+    set_content("tvshows" if ctype == "series" else "movies")
+    folder_item(L(30438, "Started in the background — you'll get a notification when it's ready."),
+                build_url(action="lang_catalog_menu", type=ctype, want=want), icon="DefaultAddonsSearch.png")
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
@@ -3336,6 +3362,8 @@ def router(query):
                          search=p.get("search"), skip=int(p.get("skip") or 0))
         elif action == "lang_catalog_menu":
             lang_catalog_menu(apis, p.get("type", "movie"), p.get("want", "dub"))
+        elif action == "lang_catalog_trigger":
+            lang_catalog_trigger(apis, p.get("type", "movie"), p.get("want", "dub"))
         elif action == "lang_catalog":
             list_lang_catalog(apis, p.get("type", "movie"), p.get("want", "dub"))
         elif action == "search_new":

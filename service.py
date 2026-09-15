@@ -67,6 +67,9 @@ WARM_PROP = "nokturno.warm"    # plugin při zahřívání cache API jen zapisuj
 WARM_RETRY = 10 * 60      # když se zrovna přehrává, zahřívání počká
 LANG_WARM_DELAY = 300     # živé ověřování zdrojů je dražší než ostatní zahřívání, ať nestartuje současně s ním
 LANG_WARM_EVERY = 6 * 3600     # pod `LANG_CATALOG_TTL` (8 h) v default.py, ať uživatel nenarazí na živý přepočet
+LANG_TRIGGER_PROP = "nokturno.lang_trigger"  # stejný literál jako v default.py (lang_catalog_trigger) —
+                                              # žádost o okamžitý přepočet, viz lang_trigger_watcher
+LANG_TRIGGER_POLL = 2     # s – jak často se čeká na žádost z lang_catalog_trigger (klik uživatele)
 CHUNK = 1024 * 1024
 PROFILE = xbmcvfs.translatePath(ADDON.getAddonInfo("profile"))
 TMDBH_PLAYER = "special://profile/addon_data/plugin.video.themoviedb.helper/players/nokturno.json"
@@ -586,6 +589,41 @@ def lang_warmer(monitor):
             return
 
 
+def lang_trigger_watcher(monitor):
+    """Vlákno: reaguje na klik uživatele na „Klepni pro spuštění" u „Nově přidané
+    s CZ dabingem/titulky" (`lang_catalog_trigger()` v `default.py`), když data
+    nejsou připravená a nic je zrovna nepočítá. Na rozdíl od `lang_warmer()`
+    (pravidelně, ať uživatel nenarazí na živý přepočet) tohle čeká na výslovnou
+    žádost a reaguje rychle (`LANG_TRIGGER_POLL`), ne až za `LANG_WARM_EVERY`.
+
+    Samotný přepočet dělá stejná cesta jako zahřívání (`rpc_directory` na
+    `action=lang_catalog`, `want=dub` stačí — dabing i titulky se počítají
+    v jednom průchodu), jen pro ten jeden typ (film/seriál), co si uživatel
+    vyžádal, ne pro oba. Po dokončení notifikace — uživatel mezitím odešel
+    jinam, na místě nikdo nečeká."""
+    win = xbmcgui.Window(10000)
+    labels = {"movie": L(30012), "series": L(30013)}
+    while not monitor.abortRequested():
+        for ctype in ("movie", "series"):
+            prop = f"{LANG_TRIGGER_PROP}:{ctype}"
+            if win.getProperty(prop) != "1":
+                continue
+            win.clearProperty(prop)
+            try:
+                xbmcgui.Window(10000).setProperty(WARM_PROP, "1")
+                try:
+                    rpc_directory(f"plugin://plugin.video.nokturno/?action=lang_catalog&type={ctype}&want=dub")
+                finally:
+                    xbmcgui.Window(10000).clearProperty(WARM_PROP)
+                xbmcgui.Dialog().notification(L(30000), Lf(30439, labels.get(ctype, ctype)),
+                                              ADDON.getAddonInfo("icon"), 5000)
+                log(f"lang_catalog:{ctype}: přepočet na žádost hotový")
+            except Exception as e:  # noqa: BLE001 – žádost o přepočet nesmí shodit celou službu
+                log(f"lang_catalog:{ctype}: přepočet na žádost selhal: {e}", xbmc.LOGWARNING)
+        if monitor.waitForAbort(LANG_TRIGGER_POLL):
+            return
+
+
 def prefetch_next_later():
     """Po dokoukání dílu předstáhnout streamy toho dalšího — Up Next se pak neptá sítě."""
     def run():
@@ -692,6 +730,7 @@ def main():
     Downloader(store, monitor).start()
     threading.Thread(target=warmer, args=(monitor,), daemon=True).start()
     threading.Thread(target=lang_warmer, args=(monitor,), daemon=True).start()
+    threading.Thread(target=lang_trigger_watcher, args=(monitor,), daemon=True).start()
     syncer = Syncer(store)
     sub_checker = SubscriptionChecker(store)
     log("start")

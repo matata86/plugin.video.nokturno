@@ -1165,3 +1165,11 @@ msgstr "Zoznam sa práve zostavuje na pozadí, sledujem priebeh…"
 msgctxt "#30437"
 msgid "Data aren't ready — checking dubbing/subtitles across your sources can take a few minutes. Tap to start."
 msgstr "Dáta nie sú pripravené — zistenie dabingu/titulkov naprieč tvojimi zdrojmi môže trvať pár minút. Ťuknutím spustíš."
+
+msgctxt "#30438"
+msgid "Started in the background — you'll get a notification when it's ready."
+msgstr "Spustené na pozadí — až to bude hotové, príde upozornenie."
+
+msgctxt "#30439"
+msgid "Newly added with CZ dubbing/subtitles (%s) is ready"
+msgstr "Novo pridané s CZ dabingom/titulkami (%s) je pripravené"

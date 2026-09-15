@@ -1224,7 +1224,7 @@ class TestLangCatalogMenu(unittest.TestCase):
         urls = xbmcplugin.urls()
         self.assertEqual(len(urls), 1)
         params = params_of(urls[0])
-        self.assertEqual(params["action"], "lang_catalog")
+        self.assertEqual(params["action"], "lang_catalog_trigger")
         self.assertEqual(params["want"], "dub")
         self.assertEqual(params["type"], "movie")
 
@@ -1248,6 +1248,34 @@ class TestLangCatalogMenu(unittest.TestCase):
         # zámek pořád drží (mockli jsme čekání) → `list_lang_catalog` se spolehne
         # na starý/prázdný výsledek, ne na položku ke spuštění
         self.assertEqual(xbmcplugin.urls(), [])
+
+
+class TestLangCatalogTrigger(unittest.TestCase):
+    """`lang_catalog_trigger()` (2026-09-15, druhé kolo) — klik na „Klepni pro
+    spuštění" nepočítá nic sám, jen požádá `service.py` (`LANG_TRIGGER_PROP`)
+    a hned se vrátí, ať uživatel nemusí čekat na místě."""
+
+    def setUp(self):
+        reset_kodi()
+        default.STORE.clear_cache()
+        self.apis = {"engine": default.KodiEngine(), "sosac_db": FakeSosacDb([]), "luna": None}
+
+    def test_zapise_zadost_a_nespocita_nic_sam(self):
+        xbmcplugin.reset()
+        default.lang_catalog_trigger(self.apis, "movie", "dub")
+        self.assertEqual(xbmcgui.Window(10000).getProperty(f"{default.LANG_TRIGGER_PROP}:movie"), "1")
+        urls = xbmcplugin.urls()
+        self.assertEqual(len(urls), 1)
+        self.assertEqual(params_of(urls[0])["action"], "lang_catalog_menu")
+
+    def test_mezitim_hotovo_jde_rovnou_do_seznamu_bez_zadosti(self):
+        default.STORE.cached_if("lang_catalog:movie", default.LANG_CATALOG_TTL,
+                                 lambda: {"dub": [{"id": "sosacd_m_0", "type": "movie", "name": "Film"}],
+                                          "subs": []})
+        xbmcplugin.reset()
+        default.lang_catalog_trigger(self.apis, "movie", "dub")
+        self.assertEqual({params_of(u).get("id") for u in xbmcplugin.urls()}, {"sosacd_m_0"})
+        self.assertEqual(xbmcgui.Window(10000).getProperty(f"{default.LANG_TRIGGER_PROP}:movie"), "")
 
 
 class FakeStats:
