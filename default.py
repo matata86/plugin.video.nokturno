@@ -480,7 +480,7 @@ def describe_errors(errors):
 
 # --- položky ------------------------------------------------------------------
 
-SORTS = {
+CONTENT_SORTS = {
     "movies": (xbmcplugin.SORT_METHOD_VIDEO_YEAR, xbmcplugin.SORT_METHOD_VIDEO_RATING),
     "tvshows": (xbmcplugin.SORT_METHOD_VIDEO_YEAR, xbmcplugin.SORT_METHOD_VIDEO_RATING),
     "episodes": (xbmcplugin.SORT_METHOD_EPISODE,),
@@ -494,7 +494,7 @@ def set_content(content):
     xbmcplugin.setContent(HANDLE, content)
     xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_UNSORTED)
     xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
-    for method in SORTS.get(content, ()):
+    for method in CONTENT_SORTS.get(content, ()):
         xbmcplugin.addSortMethod(HANDLE, method)
 
 
@@ -1980,8 +1980,11 @@ def list_genres(apis, ctype, cid, src, show_all=True):
 
 
 def list_catalog(apis, ctype, cid, src, genre=None, search=None, skip=0):
+    api = apis[src]
+    if api is None:
+        raise LunaError(L(30104))
     set_content("tvshows" if ctype == "series" else "movies")
-    metas = apis[src].catalog(ctype, cid, genre=genre, search=search, skip=skip)
+    metas = api.catalog(ctype, cid, genre=genre, search=search, skip=skip)
     if src in ("sosac", "sosac_db", "cinemeta"):
         # exporty Sosáče a holé výpisy Cinemety nemají popis → dotáhnout podle IMDb id
         # (Luna, jinak Cinemeta sama — viz `_fetch()` v enrich.py — cache)
