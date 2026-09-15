@@ -23,7 +23,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>5.1.4~beta1 – Nastavení → Statistiky: tlačítko „Odeslat log Kodi“ pošle posledních ~500 KB kodi.logu na server (funguje i s vypnutými statistikami), pomůže rozklíčovat nahlášené pády
+    <news>5.1.4~beta1 – Nastavení přeuspořádané (WebShare/Sosáč/HellSpy/Sledujteto/FastShare/Luna/Vlastní úložiště/TMDB API); Odeslat log Kodi přesunuto do Pokročilé a žádá potvrzení; nová kategorie Info s odkazem na web rodiny Nokturno
+5.1.4~beta1 – Nastavení → Pokročilé: tlačítko „Odeslat log Kodi“ pošle posledních ~500 KB kodi.logu na server (funguje i s vypnutými statistikami), pomůže rozklíčovat nahlášené pády
 5.1.3 – Detail filmu z TMDB: obsazení s fotkami a rolemi, počet hlasů, trailer a věkový rating (jen s vlastním klíčem TMDB); scénárista
 5.1.3 – Oprava: FastShare u některých titulů spadl na vadně zakódovaném bajtu v odpovědi; pojistka proti prázdnému hledání mimo dialog
 5.1.0 – FastShare jako šestý zdroj: hledání i bez účtu, přehrávání z kreditu nebo s neomezeným stahováním, přetáčení; zvuk z hlavičky souboru jen s neomezeným stahováním
