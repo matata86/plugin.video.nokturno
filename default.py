@@ -490,6 +490,21 @@ def bare_title(meta):
     return meta.get("name") or meta.get("id") or ""
 
 
+# Cinemeta/TMDB u epizod bez vlastního (přeloženého) názvu vrací místo prázdné
+# hodnoty doslovný placeholder "Episode 3" – jako `or` fallback ho nic nechytí,
+# je to neprázdný řetězec. Do statistik tak šlo "Episode 3" místo názvu seriálu.
+_EPISODE_PLACEHOLDER_RE = re.compile(r"^episode\s+\d+$", re.IGNORECASE)
+
+
+def episode_stats_title(video, meta):
+    """Titul epizody do statistik – `video["title"]`, ale jen když není generický
+    placeholder (viz výše); jinak název seriálu jako u filmu/seriálu bez epizody."""
+    t = (video or {}).get("title")
+    if t and not _EPISODE_PLACEHOLDER_RE.match(t):
+        return t
+    return bare_title(meta)
+
+
 def display_name(meta):
     """Název s rokem – „Matrix (1999)“; u Sosáče jen titul bez jazyků a originálu."""
     title = bare_title(meta)
@@ -1671,6 +1686,9 @@ def log_send():
     v dashboardu spárovat s instalací. Vlastní endpoint (`/logs`, ne `/collect`)
     bere syrová gzip data v těle, ne JSON — soubor je řádově větší.
     """
+    if not xbmcgui.Dialog().yesno(L(30000, "Nokturno"), L(30431, "Opravdu odeslat log?")):
+        return
+
     import gzip
     from stats import COLLECT_URL, Stats
 
@@ -1700,6 +1718,11 @@ def log_send():
         notify(L(30429), xbmcgui.NOTIFICATION_INFO, 5000)
     except Exception as e:  # noqa: BLE001 – HTTPError, URLError, timeout… vše skončí stejně
         notify(f"{L(30430)}: {e}", xbmcgui.NOTIFICATION_ERROR, 5000)
+
+
+def website_info():
+    """Zobrazí odkaz na web rodiny Nokturno (podpora, Stremio, Home Assistant)."""
+    xbmcgui.Dialog().ok(L(30432, "Info"), f"https://nokturno.tailf0014.ts.net/\n\n{L(30434)}")
 
 
 # --- novinky ve verzi -------------------------------------------------------------
@@ -2570,7 +2593,7 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None, fq="", flang=""
     year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
     # do statistik jde titul bez roku — ten se posílá zvlášť polem `year`,
     # display_name() ho bafá přímo do řetězce a v dashboardu by se zdvojil
-    stats_title = (video or {}).get("title") or bare_title(meta)
+    stats_title = episode_stats_title(video, meta)
     mark_viewed(item_id, stats_title, year if year.isdigit() else None, "series" if video else ctype)
     if len(streams) > 1:
         active = bool(fq or flang or fch or fcodec or fsub or fsrc)
@@ -2740,7 +2763,7 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
     STORE.remember_item(item_id, snapshot(meta, ctype, video, series_id, alt))
     year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
     # bez roku – ten se posílá zvlášť polem `year`, display_name() by ho zdvojil
-    stats_title = (video or {}).get("title") or bare_title(meta)
+    stats_title = episode_stats_title(video, meta)
     mark_playing(item_id, stats_title, year if year.isdigit() else None, "series" if video else ctype)
     xbmcplugin.setResolvedUrl(HANDLE, True, li)
     if video:
@@ -2986,6 +3009,7 @@ def router(query):
                                 xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
         "stats_send": stats_send,
         "log_send": log_send,
+        "website_info": website_info,
         "test_sources": test_sources,
         "setup_wizard": lambda: (setup_wizard(force=True),
                                  xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),

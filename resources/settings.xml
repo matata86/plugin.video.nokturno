@@ -78,6 +78,48 @@
         </setting>
       </group>
     </category>
+    <category id="sosac" label="30030">
+      <group id="1">
+        <setting id="sosac_enabled" type="boolean" label="30031" help="30304">
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle"/>
+        </setting>
+        <setting id="streamuj_username" type="string" label="30128" help="30305">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="sosac_enabled">true</dependency>
+          </dependencies>
+          <control type="edit" format="string">
+          </control>
+        </setting>
+        <setting id="streamuj_password" type="string" label="30129" help="30306">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="sosac_enabled">true</dependency>
+          </dependencies>
+          <control type="edit" format="string">
+            <hidden>true</hidden>
+          </control>
+        </setting>
+        <setting id="cross_search" type="boolean" label="30034" help="30307">
+          <level>0</level>
+          <default>true</default>
+          <dependencies>
+            <dependency type="enable" setting="sosac_enabled">true</dependency>
+          </dependencies>
+          <control type="toggle"/>
+        </setting>
+      </group>
+    </category>
     <category id="hs" label="30194">
       <group id="1">
         <setting id="hs_enabled" type="boolean" label="30195" help="30196">
@@ -152,6 +194,47 @@
           <control type="edit" format="string">
             <hidden>true</hidden>
           </control>
+        </setting>
+      </group>
+    </category>
+    <category id="luna" label="30001">
+      <group id="1">
+        <setting id="luna_enabled" type="boolean" label="30014" help="30308">
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle"/>
+        </setting>
+        <setting id="luna_url" type="string" label="30002" help="30309">
+          <level>0</level>
+          <default>http://192.168.1.10:7126</default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="luna_enabled">true</dependency>
+          </dependencies>
+          <control type="edit" format="string">
+          </control>
+        </setting>
+        <setting id="token" type="string" label="30003" help="30310">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="luna_enabled">true</dependency>
+          </dependencies>
+          <control type="edit" format="string">
+          </control>
+        </setting>
+        <setting id="search_streams" type="boolean" label="30009" help="30311">
+          <level>0</level>
+          <default>true</default>
+          <dependencies>
+            <dependency type="enable" setting="luna_enabled">true</dependency>
+          </dependencies>
+          <control type="toggle"/>
         </setting>
       </group>
     </category>
@@ -271,89 +354,6 @@
           </constraints>
           <control type="edit" format="string">
           </control>
-        </setting>
-      </group>
-    </category>
-    <category id="sosac" label="30030">
-      <group id="1">
-        <setting id="sosac_enabled" type="boolean" label="30031" help="30304">
-          <level>0</level>
-          <default>true</default>
-          <control type="toggle"/>
-        </setting>
-        <setting id="streamuj_username" type="string" label="30128" help="30305">
-          <level>0</level>
-          <default></default>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <dependencies>
-            <dependency type="enable" setting="sosac_enabled">true</dependency>
-          </dependencies>
-          <control type="edit" format="string">
-          </control>
-        </setting>
-        <setting id="streamuj_password" type="string" label="30129" help="30306">
-          <level>0</level>
-          <default></default>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <dependencies>
-            <dependency type="enable" setting="sosac_enabled">true</dependency>
-          </dependencies>
-          <control type="edit" format="string">
-            <hidden>true</hidden>
-          </control>
-        </setting>
-        <setting id="cross_search" type="boolean" label="30034" help="30307">
-          <level>0</level>
-          <default>true</default>
-          <dependencies>
-            <dependency type="enable" setting="sosac_enabled">true</dependency>
-          </dependencies>
-          <control type="toggle"/>
-        </setting>
-      </group>
-    </category>
-    <category id="luna" label="30001">
-      <group id="1">
-        <setting id="luna_enabled" type="boolean" label="30014" help="30308">
-          <level>0</level>
-          <default>true</default>
-          <control type="toggle"/>
-        </setting>
-        <setting id="luna_url" type="string" label="30002" help="30309">
-          <level>0</level>
-          <default>http://192.168.1.10:7126</default>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <dependencies>
-            <dependency type="enable" setting="luna_enabled">true</dependency>
-          </dependencies>
-          <control type="edit" format="string">
-          </control>
-        </setting>
-        <setting id="token" type="string" label="30003" help="30310">
-          <level>0</level>
-          <default></default>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <dependencies>
-            <dependency type="enable" setting="luna_enabled">true</dependency>
-          </dependencies>
-          <control type="edit" format="string">
-          </control>
-        </setting>
-        <setting id="search_streams" type="boolean" label="30009" help="30311">
-          <level>0</level>
-          <default>true</default>
-          <dependencies>
-            <dependency type="enable" setting="luna_enabled">true</dependency>
-          </dependencies>
-          <control type="toggle"/>
         </setting>
       </group>
     </category>
@@ -622,14 +622,6 @@
           <data>RunPlugin(plugin://plugin.video.nokturno/?action=stats_send)</data>
           <control format="action" type="button"/>
         </setting>
-        <setting id="log_send_action" type="action" label="30427" help="30428">
-          <level>0</level>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <data>RunPlugin(plugin://plugin.video.nokturno/?action=log_send)</data>
-          <control format="action" type="button"/>
-        </setting>
       </group>
     </category>
     <category id="advanced" label="30105" help="30329">
@@ -658,6 +650,14 @@
           <data>RunPlugin(plugin://plugin.video.nokturno/?action=test_sources)</data>
           <control format="action" type="button"/>
         </setting>
+        <setting id="tmdbhelper_player_action" type="action" label="30409">
+          <level>0</level>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=tmdbhelper_player)</data>
+          <control format="action" type="button"/>
+        </setting>
         <setting id="update_repos_action" type="action" label="30407">
           <level>0</level>
           <constraints>
@@ -666,12 +666,24 @@
           <data>RunPlugin(plugin://plugin.video.nokturno/?action=update_repos)</data>
           <control format="action" type="button"/>
         </setting>
-        <setting id="tmdbhelper_player_action" type="action" label="30409">
+        <setting id="log_send_action" type="action" label="30427" help="30428">
           <level>0</level>
           <constraints>
             <allowempty>true</allowempty>
           </constraints>
-          <data>RunPlugin(plugin://plugin.video.nokturno/?action=tmdbhelper_player)</data>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=log_send)</data>
+          <control format="action" type="button"/>
+        </setting>
+      </group>
+    </category>
+    <category id="info" label="30432">
+      <group id="1">
+        <setting id="website_action" type="action" label="30433" help="30434">
+          <level>0</level>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=website_info)</data>
           <control format="action" type="button"/>
         </setting>
       </group>

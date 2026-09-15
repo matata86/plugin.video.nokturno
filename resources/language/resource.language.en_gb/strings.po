@@ -755,7 +755,7 @@ msgid "Loading streams…"
 msgstr ""
 
 msgctxt "#30332"
-msgid "Own movie/series database"
+msgid "TMDB API"
 msgstr ""
 
 msgctxt "#30333"
@@ -1148,4 +1148,20 @@ msgstr ""
 
 msgctxt "#30430"
 msgid "Log could not be sent"
+msgstr ""
+
+msgctxt "#30431"
+msgid "Really send the log?"
+msgstr ""
+
+msgctxt "#30432"
+msgid "Info"
+msgstr ""
+
+msgctxt "#30433"
+msgid "Nokturno website"
+msgstr ""
+
+msgctxt "#30434"
+msgid "Support the project or follow news here. Besides this Kodi add-on, the Nokturno family also has a Stremio add-on and a Home Assistant integration/card."
 msgstr ""

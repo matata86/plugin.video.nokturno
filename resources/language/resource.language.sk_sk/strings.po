@@ -755,8 +755,8 @@ msgid "Loading streams…"
 msgstr "Načítavam streamy…"
 
 msgctxt "#30332"
-msgid "Own movie/series database"
-msgstr "Vlastná databáza filmov a seriálov"
+msgid "TMDB API"
+msgstr "TMDB API"
 
 msgctxt "#30333"
 msgid "TMDB API key"
@@ -1149,3 +1149,19 @@ msgstr "Log odoslaný"
 msgctxt "#30430"
 msgid "Log could not be sent"
 msgstr "Log sa nepodarilo odoslať"
+
+msgctxt "#30431"
+msgid "Really send the log?"
+msgstr "Naozaj odoslať log?"
+
+msgctxt "#30432"
+msgid "Info"
+msgstr "Info"
+
+msgctxt "#30433"
+msgid "Nokturno website"
+msgstr "Web Nokturno"
+
+msgctxt "#30434"
+msgid "Support the project or follow news here. Besides this Kodi add-on, the Nokturno family also has a Stremio add-on and a Home Assistant integration/card."
+msgstr "Tu sa dá podporiť projekt alebo sledovať novinky. Rodina Nokturno má okrem doplnku pre Kodi aj doplnok pre Stremio a integráciu/kartu pre Home Assistant."
