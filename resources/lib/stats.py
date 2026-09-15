@@ -27,6 +27,13 @@ Posílá se kumulativní stav, ne přírůstky — server dělá upsert, takže 
 sítě ani ztracená odpověď nic nerozhodí. Zapisuje jen služba na pozadí
 (`service.py`); plugin jí události předává přes vlastnost okna, aby dva procesy
 nepsaly do stejného souboru.
+
+Odpověď serveru může nést `message` — zprávu napsanou v dashboardu (obrazovka
+Zprávy), kterou má klient ukázat uživateli. `send()` ji jen zachytí do
+`self.last_message`, zobrazení je na klientovi (tahle knihovna je bez vazby na
+hostitele, žádné UI). Po zobrazení klient zavolá `mark_message_seen(id)` —
+`msg_seen` je kumulativní stav jako zbytek `stats.json`, posílá se při každém
+hlášení (i pingu), server podle něj pozná, jestli má zprávu poslat znovu.
 """
 import json
 import os
@@ -56,6 +63,7 @@ class Stats:
         self.path = os.path.join(directory, "stats.json")
         self._lock = threading.RLock()
         self.data = self._load()
+        self.last_message = None
 
     def _load(self):
         try:
@@ -131,6 +139,8 @@ class Stats:
             out["sources"] = sorted({str(x) for x in sources if x})
         if product:
             out["product"] = product
+        if self.data.get("msg_seen"):
+            out["msg_seen"] = self.data["msg_seen"]
         return out
 
     def ping_payload(self, version="", product=""):
@@ -138,7 +148,17 @@ class Stats:
         out = {"id": self.data["id"], "ping": True, "version": version}
         if product:
             out["product"] = product
+        if self.data.get("msg_seen"):
+            out["msg_seen"] = self.data["msg_seen"]
         return out
+
+    def mark_message_seen(self, message_id):
+        """Volá klient po zobrazení `last_message` — příští hlášení už tuhle
+        zprávu (ani žádnou starší) nepřipomene."""
+        with self._lock:
+            if message_id > (self.data.get("msg_seen") or 0):
+                self.data["msg_seen"] = int(message_id)
+                self._save()
 
     def send(self, url, version="", platform="", kodi="", lang="", agent="Kodi plugin.video.nokturno",
              sources=None, product="", ping=False):
@@ -149,6 +169,7 @@ class Stats:
         """
         if not url:
             return False, "chybí adresa"
+        self.last_message = None
         with self._lock:
             data = (self.ping_payload(version, product) if ping
                     else self.payload(version, platform, kodi, lang, sources, product))
@@ -159,7 +180,7 @@ class Stats:
         })
         try:
             with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
-                resp.read(1024)
+                raw = resp.read(8192)
                 code = resp.getcode()
         except urllib.error.HTTPError as e:
             return self._failed(f"HTTP {e.code}")
@@ -167,6 +188,12 @@ class Stats:
             return self._failed(str(e)[:120])
         if code and code >= 400:
             return self._failed(f"HTTP {code}")
+        try:
+            msg = json.loads(raw).get("message")
+        except ValueError:
+            msg = None
+        if isinstance(msg, dict) and isinstance(msg.get("id"), int) and isinstance(msg.get("text"), str):
+            self.last_message = msg
         now = int(time.time())
         with self._lock:
             self.data["last_sent"] = now

@@ -8,6 +8,7 @@ ALPHANUM_HIDE_INPUT = 2
 
 notifications = []   # (nadpis, zpráva, druh)
 textviewers = []     # (nadpis, text)
+oks = []             # (nadpis, zpráva) — Dialog().ok()
 _window_props = {}
 
 
@@ -75,6 +76,7 @@ class Dialog:
         textviewers.append((heading, text))
 
     def ok(self, heading, message):
+        oks.append((heading, message))
         return True
 
     def yesno(self, *args, **kwargs):
@@ -118,5 +120,5 @@ class Window:
 
 
 def reset():
-    del notifications[:], textviewers[:]
+    del notifications[:], textviewers[:], oks[:]
     _window_props.clear()

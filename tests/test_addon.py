@@ -891,8 +891,9 @@ class TestMenuAZahrivani(unittest.TestCase):
 
 class FakeStats:
     def __init__(self, due=True):
-        self.uses, self.plays, self.sent = [], [], []
+        self.uses, self.plays, self.sent, self.seen = [], [], [], []
         self._due = due
+        self.last_message = None
 
     def note_use(self, ts):
         self.uses.append(ts)
@@ -906,6 +907,9 @@ class FakeStats:
     def send(self, url, **kwargs):
         self.sent.append((url, kwargs))
         return True, ""
+
+    def mark_message_seen(self, message_id):
+        self.seen.append(message_id)
 
 
 class TestSluzbaStatistiky(unittest.TestCase):
@@ -949,6 +953,27 @@ class TestSluzbaStatistiky(unittest.TestCase):
         self.assertEqual(kwargs["product"], "kodi")
         self.assertNotIn("sources", kwargs)
         self.assertNotIn("platform", kwargs)
+
+    def test_zprava_z_dashboardu_se_zobrazi_a_oznaci_precteno(self):
+        stats = FakeStats(due=True)
+        stats.last_message = {"id": 7, "text": "Nová verze je venku"}
+        service.stats_tick(stats)
+        self.assertEqual(len(xbmcgui.oks), 1)
+        self.assertEqual(xbmcgui.oks[0][1], "Nová verze je venku")
+        self.assertEqual(stats.seen, [7])
+
+    def test_zprava_prijde_i_pri_vypnutych_statistikach(self):
+        xbmcaddon.settings["stats_enabled"] = "false"
+        stats = FakeStats(due=True)
+        stats.last_message = {"id": 3, "text": "ahoj"}
+        service.stats_tick(stats)
+        self.assertEqual(stats.seen, [3])
+
+    def test_bez_zpravy_se_nic_nezobrazi(self):
+        stats = FakeStats(due=True)
+        service.stats_tick(stats)
+        self.assertEqual(xbmcgui.oks, [])
+        self.assertEqual(stats.seen, [])
 
     def test_udalosti_z_pluginu_se_prevezmou_a_smazou(self):
         win = xbmcgui.Window(10000)

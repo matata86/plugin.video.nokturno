@@ -584,6 +584,17 @@ def stats_context(addon):
     }
 
 
+def _show_pending_message(stats):
+    """Zpráva napsaná v dashboardu (obrazovka Zprávy) — `stats.send()` ji zachytil
+    do `last_message`. `Dialog().ok()` je tady bezpečný: běží ze služby na pozadí,
+    ne z cesty, kterou může spustit widget nebo JSON-RPC (viz pravidlo v CLAUDE.md)."""
+    msg = stats.last_message
+    if not msg:
+        return
+    xbmcgui.Dialog().ok(L(30000), msg.get("text") or "")
+    stats.mark_message_seen(msg["id"])
+
+
 def stats_tick(stats, force=False):
     """Sebere „doplněk byl otevřen“ a „u titulu se zobrazily streamy“, jednou za čas odešle čítače."""
     used = xbmcgui.Window(10000).getProperty(USED_PROP)
@@ -607,13 +618,16 @@ def stats_tick(stats, force=False):
         return
     if addon.getSetting("stats_enabled") != "true":
         # vypnuté statistiky: jen „instalace žije" — id, produkt a verze, žádné tituly ani zdroje
+        # (zpráva z dashboardu se pošle i tak — viz _show_pending_message níže)
         ok, why = stats.send(COLLECT_URL, version=addon.getAddonInfo("version"), product="kodi", ping=True)
         log("ping instalace odeslán" if ok else f"ping instalace neodeslán: {why}",
             xbmc.LOGINFO if ok else xbmc.LOGWARNING)
+        _show_pending_message(stats)
         return
     ok, why = stats.send(COLLECT_URL, **stats_context(addon))
     log("statistiky odeslány" if ok else f"statistiky neodeslány: {why}",
         xbmc.LOGINFO if ok else xbmc.LOGWARNING)
+    _show_pending_message(stats)
 
 
 # --- hlavní smyčka ------------------------------------------------------------------
