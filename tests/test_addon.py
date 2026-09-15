@@ -14,6 +14,7 @@ import re
 import shutil
 import sys
 import tempfile
+import time
 import unittest
 import urllib.parse
 import xml.etree.ElementTree as ET
@@ -714,6 +715,23 @@ class TestSeznamStreamu(unittest.TestCase):
             self.assertEqual(titles[-1], li.getLabel(), "poslední setTitle = popis streamu")
             self.assertNotEqual(titles[-1], "Matrix")
 
+    def test_title_polozky_sezony_je_cislo_sezony_ne_nazev_serialu(self):
+        """Stejná chyba jako u streamů výš, tentokrát u výběru sezóny — `fill_info()`
+        nastaví Title na název seriálu (správně pro epizody/film), skin ale u řádku
+        sezón kreslí `ListItem.Title`, takže bez přepsání byly všechny položky
+        pojmenované stejně jako seriál (2026-09-15, nahlásil uživatel screenshotem
+        z Kodi: „Lupin Lupin Lupin“ místo „1. série“/„2. série“/„3. série“)."""
+        meta = {"id": "tt123", "name": "Lupin", "_title": "Lupin",
+                "videos": [{"season": s, "episode": 1} for s in (1, 2, 3)]}
+        with mock.patch.object(default, "meta_for", return_value=meta):
+            default.list_seasons({}, "tt123")
+        rows = [li for _h, _u, li, _f in xbmcplugin.items]
+        self.assertEqual(len(rows), 3)
+        for li in rows:
+            titles = [c[1][0] for c in li.tag.calls if c[0] == "setTitle"]
+            self.assertEqual(titles[-1], li.getLabel())
+            self.assertNotEqual(titles[-1], "Lupin")
+
 
 class TestRouter(unittest.TestCase):
     def setUp(self):
@@ -851,7 +869,18 @@ class TestMenuAZahrivani(unittest.TestCase):
             xbmcplugin.reset()
             default.browse_menu(apis, ctype)
             out.extend(params_of(u) for u in xbmcplugin.urls())
-        return {(p["src"], p["catalog"], p["type"], p.get("genre")) for p in out if p["action"] == "catalog"}
+        # „Populární na TMDB“/„Nejlépe hodnocené“ jdou přes action=genres (2026-09-15) —
+        # stejný src/catalog/type jako dřív, jen se nejdřív nabídne výběr žánru
+        # („Vše“ = beze změny výsledná adresa), zahřívání pořád warmuje přímo katalog
+        return {(p["src"], p["catalog"], p["type"], p.get("genre")) for p in out if p["action"] in ("catalog", "genres")}
+
+    def browse_lang(self, apis):
+        out = []
+        for ctype in ("movie", "series"):
+            xbmcplugin.reset()
+            default.browse_menu(apis, ctype)
+            out.extend(params_of(u) for u in xbmcplugin.urls())
+        return {(p["want"], p["type"]) for p in out if p["action"] == "lang_catalog"}
 
     def warm(self):
         return {(p["src"], p["catalog"], p["type"], p.get("genre")) for p in map(params_of, service.warm_urls())}
@@ -860,40 +889,49 @@ class TestMenuAZahrivani(unittest.TestCase):
         xbmcaddon.settings["tmdb_api_key"] = "abc"
         menu = self.browse({"tmdb": object(), "sosac_db": object(), "luna": None, "cinemeta": None})
         self.assertTrue(self.warm() <= menu, self.warm() - menu)
-        self.assertIn(("sosac_db", "moviesrecentlyadded_dub", "movie", None), self.warm())
-        self.assertIn(("sosac_db", "moviesrecentlyadded_subs", "movie", None), self.warm())
-        self.assertIn(("sosac_db", "tvshowsrecentlyadded", "series", None), self.warm())
 
     def test_zahrivani_bere_aktualni_nastaveni(self):
         """Modulový ADDON služby nevidí změny — po zadání klíče TMDB se dál zahřívala Luna."""
         xbmcaddon.settings["token"] = "t"
-        self.assertEqual({p["src"] for p in map(params_of, service.warm_urls())}, {"luna", "sosac_db", "trend"})
+        self.assertEqual({p["src"] for p in map(params_of, service.warm_urls())}, {"luna", "trend"})
         xbmcaddon.settings["tmdb_api_key"] = "abc"
-        self.assertEqual({p["src"] for p in map(params_of, service.warm_urls())}, {"tmdb", "sosac_db", "trend"})
+        self.assertEqual({p["src"] for p in map(params_of, service.warm_urls())}, {"tmdb", "trend"})
 
     def test_s_lunou(self):
         xbmcaddon.settings["token"] = "t"
         menu = self.browse({"tmdb": None, "sosac_db": object(), "luna": object(), "cinemeta": None})
         self.assertTrue(self.warm() <= menu, self.warm() - menu)
 
-    def test_bez_luny_i_tmdb_zahriva_jen_sosac(self):
+    def test_bez_luny_i_tmdb_zahriva_jen_trend(self):
         xbmcaddon.settings["luna_enabled"] = "false"
-        # vlastní žebříček (trend) nepotřebuje ani jedno z nich, zahřívá se vždycky
-        self.assertEqual({p["src"] for p in map(params_of, service.warm_urls())}, {"sosac_db", "trend"})
+        # vlastní žebříček (trend) nepotřebuje ani jedno z nich, zahřívá se vždycky;
+        # „s CZ dabingem/titulky“ (lang_catalog) se nezahřívá vůbec — nemá cache (2026-09-15)
+        self.assertEqual({p["src"] for p in map(params_of, service.warm_urls())}, {"trend"})
 
-    def test_nove_dily_jen_u_serialu_a_nove_filmy_jen_u_filmu(self):
-        menu = self.browse({"tmdb": None, "sosac_db": object(), "luna": None, "cinemeta": object()})
-        self.assertIn(("sosac_db", "tvshowsrecentlyadded", "series", None), menu)
-        self.assertNotIn(("sosac_db", "tvshowsrecentlyadded", "movie", None), menu)
-        self.assertNotIn(("sosac_db", "moviesrecentlyadded_dub", "series", None), menu)
+    def test_dabing_a_titulky_jsou_u_filmu_i_serialu(self):
+        """Živá kontrola jazyka (2026-09-15) nahradila Sosáčův export — dřív měly
+        filmy dabing i titulky a seriály jen (mylně pojmenovaný) dabing, teď mají
+        oba typy obě položky stejně, protože se jazyk zjišťuje stejně pro oba."""
+        menu = self.browse_lang({"tmdb": None, "sosac_db": object(), "luna": None, "cinemeta": object()})
+        self.assertIn(("dub", "movie"), menu)
+        self.assertIn(("subs", "movie"), menu)
+        self.assertIn(("dub", "series"), menu)
+        self.assertIn(("subs", "series"), menu)
         # bez TMDB i Luny drží Populární Cinemeta
-        self.assertIn(("cinemeta", "top", "movie", None), menu)
+        menu_catalog = self.browse({"tmdb": None, "sosac_db": object(), "luna": None, "cinemeta": object()})
+        self.assertIn(("cinemeta", "top", "movie", None), menu_catalog)
+
+    def test_bez_sosac_db_zadny_dabing_ani_titulky(self):
+        menu = self.browse_lang({"tmdb": None, "sosac_db": None, "luna": None, "cinemeta": None})
+        self.assertEqual(menu, set())
 
     def test_nejsledovanejsi_je_vzdycky_v_menu_zanr_a_rok_uz_ne(self):
         """Vlastní žebříček (dashboard) nepotřebuje TMDB ani Lunu, na rozdíl od
-        ostatních řádků není za `pick()` — je v menu vždycky. „Podle žánru“/„Podle
-        roku“ vypadly z hlavního menu Filmy/Seriály (2026-09-15) — s TMDB klíčem
-        by za `pick()` byly, takže je to skutečná zkouška, ne jen chybějící zdroj."""
+        ostatních řádků není za `pick()` — je v menu vždycky. Samostatná položka
+        „Podle roku“ z hlavního menu Filmy/Seriály vypadla (2026-09-15) a zpátky
+        nepřibyla — na rozdíl od „Podle žánru“, ta se od 2026-09-15 (druhé kolo)
+        vrátila zabudovaná do „Populární na TMDB“/„Nejlépe hodnocené“
+        (`action="genres"`, viz `test_popularni_a_nejlepe_hodnocene_jdou_pres_genres`)."""
         menu = self.browse({"tmdb": None, "sosac_db": None, "luna": None, "cinemeta": None})
         self.assertIn(("trend", "nejsledovanejsi", "movie", None), menu)
         self.assertIn(("trend", "nejsledovanejsi", "series", None), menu)
@@ -901,8 +939,270 @@ class TestMenuAZahrivani(unittest.TestCase):
         xbmcaddon.settings["tmdb_api_key"] = "abc"
         xbmcplugin.reset()
         default.browse_menu({"tmdb": object(), "sosac_db": None, "luna": None, "cinemeta": None}, "movie")
-        akce = {params_of(u)["action"] for u in xbmcplugin.urls()}
-        self.assertNotIn("genres", akce)
+        katalogy = {params_of(u).get("catalog") for u in xbmcplugin.urls()}
+        self.assertNotIn("year", katalogy)
+
+    def test_popularni_a_nejlepe_hodnocene_jdou_pres_genres(self):
+        """2026-09-15 (druhé kolo): obě jdou přes `list_genres()` — uživatel dřív
+        neměl jak si Populární/Nejlépe hodnocené přefiltrovat podle žánru."""
+        default.browse_menu({"tmdb": object(), "sosac_db": None, "luna": None, "cinemeta": None}, "movie")
+        podle_katalogu = {params_of(u)["catalog"]: params_of(u)["action"] for u in xbmcplugin.urls()}
+        self.assertEqual(podle_katalogu.get("popular"), "genres")
+        self.assertEqual(podle_katalogu.get("top_rated"), "genres")
+
+
+class FakeSosacDb:
+    """Kandidáti pro `list_lang_catalog` — místo skutečného exportu Sosáče jen
+    surový seznam bez jazyka, ten se zjišťuje živě přes `raw_streams()`."""
+    def __init__(self, items):
+        self.items = items
+        self.calls = []
+
+    def catalog(self, ctype, cid, genre=None, search=None, skip=0, page=100):
+        self.calls.append((ctype, cid, skip, page))
+        return self.items[:page]
+
+
+class TestLangCatalog(unittest.TestCase):
+    """`list_lang_catalog` (2026-09-15) — živá kontrola CZ dabingu/titulků napříč
+    aktivními zdroji uživatele, náhrada za nespolehlivý/chybějící export Sosáče."""
+
+    def setUp(self):
+        reset_kodi()
+        default.STORE.clear_cache()   # `list_lang_catalog` teď cachuje na 8 h — sdílený STORE napříč testy
+        self.engine = default.KodiEngine()
+
+    def kandidati(self, n, ctype="movie"):
+        return [{"id": f"sosacd_m_{i}", "type": ctype, "name": f"Film {i}", "year": "2026"} for i in range(n)]
+
+    def test_rozdeli_podle_jazyka(self):
+        cand = self.kandidati(3)
+
+        def raw_streams(ctype, item_id, **kw):
+            return {
+                "sosacd_m_0": [{"langs": ["CZ"], "subs": []}],          # dabing
+                "sosacd_m_1": [{"langs": [], "subs": ["CZ"]}],          # jen titulky
+                "sosacd_m_2": [{"langs": [], "subs": []}],              # ani jedno
+            }[item_id]
+        self.engine.raw_streams = raw_streams
+        apis = {"engine": self.engine, "sosac_db": FakeSosacDb(cand), "luna": None}
+
+        xbmcplugin.reset()
+        default.list_lang_catalog(apis, "movie", "dub")
+        dabing = {params_of(u).get("id") for u in xbmcplugin.urls()}
+        self.assertEqual(dabing, {"sosacd_m_0"})
+
+        xbmcplugin.reset()
+        default.list_lang_catalog(apis, "movie", "subs")
+        titulky = {params_of(u).get("id") for u in xbmcplugin.urls()}
+        self.assertEqual(titulky, {"sosacd_m_1"})
+
+    def test_dabing_ma_prednost_pred_titulky(self):
+        """Titul s dabingem i titulky patří jen do seznamu dabingu — stejná
+        sémantika jako dřív u Sosáčova exportu (`subs and not dub`)."""
+        cand = self.kandidati(1)
+        self.engine.raw_streams = lambda ctype, item_id, **kw: [{"langs": ["CZ"], "subs": ["CZ"]}]
+        apis = {"engine": self.engine, "sosac_db": FakeSosacDb(cand), "luna": None}
+        default.list_lang_catalog(apis, "movie", "subs")
+        self.assertEqual(xbmcplugin.urls(), [])
+
+    def test_limit_30_naplni_seznam_a_nezkouma_vic_nez_potreba(self):
+        """Dabing i titulky se počítají v jednom průchodu (2026-09-15) — dokud
+        titulky (tady žádné) nedosáhnou cíle nebo nedojdou kandidáti, průchod
+        neskončí jen proto, že dabing už má 30; jakmile ale i titulky cíl
+        naplní (test níže), zastaví se dřív než na `LANG_CATALOG_CAP`."""
+        cand = self.kandidati(default.LANG_CATALOG_CAP)
+        volano = []
+
+        def raw_streams(ctype, item_id, **kw):
+            volano.append(item_id)
+            return [{"langs": ["CZ"], "subs": []}]   # nikdy titulky bez dabingu → cíl titulků se nikdy nenaplní
+        self.engine.raw_streams = raw_streams
+        apis = {"engine": self.engine, "sosac_db": FakeSosacDb(cand), "luna": None}
+        default.list_lang_catalog(apis, "movie", "dub")
+        self.assertEqual(len(volano), default.LANG_CATALOG_CAP)
+        self.assertEqual(len(xbmcplugin.urls()), default.LANG_CATALOG_TARGET)
+
+    def test_limit_zastavi_jakmile_dabing_i_titulky_maji_cil(self):
+        cand = self.kandidati(default.LANG_CATALOG_CAP)
+        volano = []
+
+        def raw_streams(ctype, item_id, **kw):
+            volano.append(item_id)
+            i = int(item_id.rsplit("_", 1)[-1])
+            return [{"langs": ["CZ"], "subs": []}] if i % 2 == 0 else [{"langs": [], "subs": ["CZ"]}]
+        self.engine.raw_streams = raw_streams
+        apis = {"engine": self.engine, "sosac_db": FakeSosacDb(cand), "luna": None}
+        default.list_lang_catalog(apis, "movie", "dub")
+        self.assertEqual(len(volano), 2 * default.LANG_CATALOG_TARGET)
+
+    def test_cap_kdyz_se_cil_nenaplni(self):
+        cand = self.kandidati(default.LANG_CATALOG_CAP)
+        volano = []
+
+        def raw_streams(ctype, item_id, **kw):
+            volano.append(item_id)
+            return [{"langs": [], "subs": []}]   # nikdy nevyhoví
+        self.engine.raw_streams = raw_streams
+        apis = {"engine": self.engine, "sosac_db": FakeSosacDb(cand), "luna": None}
+        default.list_lang_catalog(apis, "movie", "dub")
+        self.assertEqual(len(volano), default.LANG_CATALOG_CAP)
+        self.assertEqual(xbmcplugin.urls(), [])
+
+    def test_vypadek_kandidata_se_preskoci(self):
+        cand = self.kandidati(2)
+
+        def raw_streams(ctype, item_id, **kw):
+            if item_id == "sosacd_m_0":
+                raise ConnectionError("timeout")
+            return [{"langs": ["CZ"], "subs": []}]
+        self.engine.raw_streams = raw_streams
+        apis = {"engine": self.engine, "sosac_db": FakeSosacDb(cand), "luna": None}
+        default.list_lang_catalog(apis, "movie", "dub")
+        self.assertEqual({params_of(u).get("id") for u in xbmcplugin.urls()}, {"sosacd_m_1"})
+
+    def test_bez_sosac_db_nic_nezkouma(self):
+        apis = {"engine": self.engine, "sosac_db": None, "luna": None}
+        default.list_lang_catalog(apis, "movie", "dub")
+        self.assertEqual(xbmcplugin.urls(), [])
+
+    def test_seriove_epizody_pouzivaji_vlastni_typ_movie(self):
+        """Seznam pod Seriály (`ctype="series"`) skládají ploché epizody
+        (`type: "movie"` v metadatech) — streamy i vykreslení se řídí typem
+        položky, ne obalujícím menu, jinak by se epizoda otevírala jako složka sezón."""
+        cand = self.kandidati(1, ctype="movie")
+        volane_ctype = []
+
+        def raw_streams(ctype, item_id, **kw):
+            volane_ctype.append(ctype)
+            return [{"langs": ["CZ"], "subs": []}]
+        self.engine.raw_streams = raw_streams
+        apis = {"engine": self.engine, "sosac_db": FakeSosacDb(cand), "luna": None}
+        default.list_lang_catalog(apis, "series", "dub")
+        self.assertEqual(volane_ctype, ["movie"])
+        self.assertEqual(params_of(xbmcplugin.urls()[0])["action"], "play")
+
+    def test_dily_serialu_se_zobrazuji_s_cislem_dilu_ne_jen_nazvem(self):
+        """`bare_title()` u Sosáčových id přednostně bere `_title` — u epizod
+        (`episode_meta()` v jádru) je to ale záměrně jen holý název seriálu
+        (potřebuje ho hledání napříč zdroji), zatímco `name` nese i sezónu/díl.
+        Bez opravy se pod Seriály zobrazovalo desetkrát za sebou jen jméno
+        seriálu bez rozlišení (2026-09-15, nahlásil uživatel: „Dogu“ 10x)."""
+        cand = [{"id": f"sosacd_m_ep{i}", "type": "movie", "name": f"Dogu {2}x{i:02d} Díl {i}",
+                 "_title": "Dogu", "year": ""} for i in range(1, 4)]
+        self.engine.raw_streams = lambda ctype, item_id, **kw: [{"langs": ["CZ"], "subs": []}]
+        apis = {"engine": self.engine, "sosac_db": FakeSosacDb(cand), "luna": None}
+        default.list_lang_catalog(apis, "series", "dub")
+        labels = [li.getLabel() for _h, _u, li, _f in xbmcplugin.items]
+        self.assertEqual(labels, ["Dogu 2x01 Díl 1", "Dogu 2x02 Díl 2", "Dogu 2x03 Díl 3"])
+
+    def test_druhe_otevreni_nezkouma_znovu_streamy(self):
+        """8h cache (2026-09-15, po ověření rychlosti): druhé otevření stejného
+        seznamu (dabing/movie) se má obsloužit z cache, bez dalšího volání
+        `raw_streams()` pro každého kandidáta znovu."""
+        cand = self.kandidati(2)
+        calls = []
+
+        def raw_streams(ctype, item_id, **kw):
+            calls.append(item_id)
+            return [{"langs": ["CZ"], "subs": []}]
+        self.engine.raw_streams = raw_streams
+        apis = {"engine": self.engine, "sosac_db": FakeSosacDb(cand), "luna": None}
+        default.list_lang_catalog(apis, "movie", "dub")
+        self.assertEqual(len(calls), 2)
+        xbmcplugin.reset()
+        default.list_lang_catalog(apis, "movie", "dub")
+        self.assertEqual(len(calls), 2)   # beze změny — druhé volání šlo z cache
+        self.assertEqual({params_of(u).get("id") for u in xbmcplugin.urls()}, {"sosacd_m_0", "sosacd_m_1"})
+
+    def test_otevreni_titulku_po_dabingu_nezkouma_streamy_znovu(self):
+        """Dabing i titulky sdílí jeden výpočet a jednu cache (`lang_catalog:{ctype}`,
+        2026-09-15) — otevření druhého seznamu hned po prvním má jít z cache, ne
+        spustit vlastní `raw_streams()` znovu pro všechny kandidáty."""
+        cand = self.kandidati(4)
+        calls = []
+
+        def raw_streams(ctype, item_id, **kw):
+            calls.append(item_id)
+            i = int(item_id.rsplit("_", 1)[-1])
+            return [{"langs": ["CZ"], "subs": []}] if i % 2 == 0 else [{"langs": [], "subs": ["CZ"]}]
+        self.engine.raw_streams = raw_streams
+        apis = {"engine": self.engine, "sosac_db": FakeSosacDb(cand), "luna": None}
+        default.list_lang_catalog(apis, "movie", "dub")
+        self.assertEqual(len(calls), 4)
+        pocet_po_dabingu = len(calls)
+        xbmcplugin.reset()
+        default.list_lang_catalog(apis, "movie", "subs")
+        self.assertEqual(len(calls), pocet_po_dabingu)   # beze změny — titulky přišly z cache
+        self.assertEqual({params_of(u).get("id") for u in xbmcplugin.urls()},
+                         {"sosacd_m_1", "sosacd_m_3"})
+
+    def test_zahrivani_na_pozadi_neukazuje_progress(self):
+        """Zahřívání (`warming()` — `nokturno.warm` property) běží na pozadí přes
+        JSON-RPC, `DialogProgressBG` by tam jen zbytečně blikal."""
+        cand = self.kandidati(1)
+        self.engine.raw_streams = lambda ctype, item_id, **kw: [{"langs": ["CZ"], "subs": []}]
+        apis = {"engine": self.engine, "sosac_db": FakeSosacDb(cand), "luna": None}
+        xbmcgui.Window(10000).setProperty(default.WARM_PROP, "1")
+        try:
+            with mock.patch.object(default.xbmcgui, "DialogProgressBG") as bar_cls:
+                default.list_lang_catalog(apis, "movie", "dub")
+        finally:
+            xbmcgui.Window(10000).clearProperty(default.WARM_PROP)
+        bar_cls.assert_not_called()
+
+    def test_soubezne_otevreni_stejneho_seznamu_nepocita_znovu(self):
+        """Zámek přes vlastnost okna (`LANG_LOCK_PROP`) — je-li seznam pro tentýž
+        klíč zrovna zamčený (jiný proces ho počítá), druhé volání nespouští
+        `raw_streams()` znovu, jen počká a přečte, co najde v cache."""
+        cand = self.kandidati(2)
+        calls = []
+
+        def raw_streams(ctype, item_id, **kw):
+            calls.append(item_id)
+            return [{"langs": ["CZ"], "subs": []}]
+        self.engine.raw_streams = raw_streams
+        apis = {"engine": self.engine, "sosac_db": FakeSosacDb(cand), "luna": None}
+        xbmcgui.Window(10000).setProperty(f"{default.LANG_LOCK_PROP}:lang_catalog:movie", str(time.time()))
+        try:
+            default.list_lang_catalog(apis, "movie", "dub")
+        finally:
+            xbmcgui.Window(10000).clearProperty(f"{default.LANG_LOCK_PROP}:lang_catalog:movie")
+        self.assertEqual(calls, [])
+        self.assertEqual(xbmcplugin.urls(), [])   # nic v cache, tak radši prázdný seznam než souběžný výpočet
+
+    def test_stary_mrtvy_zamek_se_prebere_bez_cekani(self):
+        """Zabitý proces (Kodi po 5 s neuposlechnutí abortu skript zabije, `finally`
+        se nestihne) nechá zámek navěky nastavený — bez kontroly stáří by každé
+        další otevření jen 90 s marně čekalo a pak vrátilo prázdno navěky
+        (2026-09-15, nahlásil uživatel: „úplně se to seklo"). Zámek starší než
+        `LANG_LOCK_STALE` se má rovnou přebrat, ne čekat."""
+        cand = self.kandidati(1)
+        calls = []
+
+        def raw_streams(ctype, item_id, **kw):
+            calls.append(item_id)
+            return [{"langs": ["CZ"], "subs": []}]
+        self.engine.raw_streams = raw_streams
+        apis = {"engine": self.engine, "sosac_db": FakeSosacDb(cand), "luna": None}
+        stary = time.time() - default.LANG_LOCK_STALE - 1
+        xbmcgui.Window(10000).setProperty(f"{default.LANG_LOCK_PROP}:lang_catalog:movie", str(stary))
+        default.list_lang_catalog(apis, "movie", "dub")
+        self.assertEqual(calls, ["sosacd_m_0"])
+        self.assertEqual({params_of(u).get("id") for u in xbmcplugin.urls()}, {"sosacd_m_0"})
+
+    def test_zamek_se_uvolni_i_po_chybe(self):
+        """`finally` v `_lang_catalog_locked()` — pád při výpočtu nesmí nechat
+        zámek navěky nastavený, jinak by žádné další otevření nikdy nedoběhlo."""
+        apis = {"engine": self.engine, "sosac_db": None, "luna": None}
+        prop = f"{default.LANG_LOCK_PROP}:lang_catalog:movie"
+
+        def bum(*a, **kw):
+            raise RuntimeError("bum")
+        with mock.patch.object(default, "_build_lang_catalog", side_effect=bum):
+            with self.assertRaises(RuntimeError):
+                default.list_lang_catalog(apis, "movie", "dub")
+        self.assertEqual(xbmcgui.Window(10000).getProperty(prop), "")
 
 
 class FakeStats:
@@ -926,6 +1226,44 @@ class FakeStats:
 
     def mark_message_seen(self, message_id):
         self.seen.append(message_id)
+
+
+class FakeStorage:
+    def __init__(self, slot, name, files):
+        self.slot, self.name, self._files = slot, name, files
+
+    def files(self):
+        return self._files
+
+
+class TestMojeUloziste(unittest.TestCase):
+    """`list_dav_browse()` — napřed vždy jméno úložiště, pak teprve data
+    (2026-09-15, i s jediným nastaveným úložištěm — dřív se s jedním úložištěm
+    rovnou skočilo na data a jméno se nikde neukázalo)."""
+
+    def setUp(self):
+        reset_kodi()
+
+    def test_jedine_uloziste_prvne_ukaze_jeho_jmeno(self):
+        storage = FakeStorage(1, "NUC Office", [{"path": "Film.mkv", "name": "Film.mkv"}])
+        default.list_dav_browse({"dav": [storage]})
+        self.assertEqual([li.getLabel() for _h, _u, li, _f in xbmcplugin.items], ["NUC Office"])
+        self.assertEqual(params_of(xbmcplugin.urls()[0]).get("slot"), "1")
+
+    def test_vic_ulozist_ukaze_obe_jmena(self):
+        s1, s2 = FakeStorage(1, "NUC Office", []), FakeStorage(2, "NAS doma", [])
+        default.list_dav_browse({"dav": [s1, s2]})
+        self.assertEqual([li.getLabel() for _h, _u, li, _f in xbmcplugin.items], ["NUC Office", "NAS doma"])
+
+    def test_vybrane_uloziste_ukazuje_data(self):
+        storage = FakeStorage(1, "NUC Office", [{"path": "Film.mkv", "name": "Film.mkv"}])
+        default.list_dav_browse({"dav": [storage]}, slot=1)
+        self.assertEqual(len(xbmcplugin.items), 1)   # jen jeden soubor, žádná podsložka navíc
+        self.assertEqual(params_of(xbmcplugin.urls()[0])["action"], "play_dav")
+
+    def test_bez_uloziste_chyba(self):
+        with self.assertRaises(default.StorageError):
+            default.list_dav_browse({"dav": []})
 
 
 class TestSluzbaStatistiky(unittest.TestCase):

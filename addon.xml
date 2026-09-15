@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.4~beta1" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.5" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,7 +23,12 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>5.2.4~beta1 – Oprava popisku: položka menu u seriálů „Nové díly s CZ dabingem“ přejmenována na „Nově přidané epizody“ — Sosáč u epizod jazyk (dabing/titulky) neposkytuje, popisek to dřív mylně sliboval
+    <news>5.2.5 – Oprava: u „Nově přidané s CZ dabingem/titulky“ chybělo hodnocení u části titulů — Sosáčovy exporty ho skoro nikdy nemají, doplňuje se teď spolehlivě i tam, kde dřív chyběl jen samotný rating (popis už byl)
+5.2.5 – Dabing a titulky se počítají v jednom průchodu (dřív dvakrát), zámek mezi souběžnými výpočty stejného seznamu (klik uživatele + zahřívání na pozadí si dřív šlapaly na zdroje), zámek po zaseknutém/zabitém procesu už nezůstane navždy držený
+5.2.5 – „Populární na TMDB“ a „Nejlépe hodnocené“ jdou filtrovat podle žánru
+5.2.5 – „Moje úložiště“ vždy nejdřív ukáže názvy připojených úložišť, teprve pak data — i když je nastavené jen jedno
+5.2.5 – Oprava: u seriálu se ve výběru sezóny místo „1. série“/„2. série“ zobrazoval název seriálu
+5.2.4~beta1 – Oprava popisku: položka menu u seriálů „Nové díly s CZ dabingem“ přejmenována na „Nově přidané epizody“ — Sosáč u epizod jazyk (dabing/titulky) neposkytuje, popisek to dřív mylně sliboval
 5.2.3~beta1 – Nová položka menu „Nejsledovanější tento týden“ — žebříček podle skutečného sledování napříč uživateli (dashboard), náhrada za starou položku „Trendy tento týden“ z TMDB, která se přejmenovala na „Populární na TMDB“; odstraněny položky „Podle žánru“ a „Podle roku“
 5.2.1~beta1 – Zprávy napsané v dashboardu se po odeslání statistik zobrazí jako upozornění (posílá administrátor, např. při výpadku zdroje)
 5.2.0 – Nastavení přeuspořádané (WebShare/Sosáč/HellSpy/Sledujteto/FastShare/Luna/Vlastní úložiště/TMDB API); nová kategorie Info s odkazem na web rodiny Nokturno (Stremio, Home Assistant)

@@ -65,6 +65,8 @@ WARM_DELAY = 180          # po startu Kodi nechat nejdřív doběhnout skin a wi
 WARM_EVERY = int(2.5 * 3600)   # pod TTL žebříčků Sosáče (3 h); s WARM_PROP se cache obnoví i před vypršením
 WARM_PROP = "nokturno.warm"    # plugin při zahřívání cache API jen zapisuje, nečte (viz default.warming)
 WARM_RETRY = 10 * 60      # když se zrovna přehrává, zahřívání počká
+LANG_WARM_DELAY = 300     # živé ověřování zdrojů je dražší než ostatní zahřívání, ať nestartuje současně s ním
+LANG_WARM_EVERY = 6 * 3600     # pod `LANG_CATALOG_TTL` (8 h) v default.py, ať uživatel nenarazí na živý přepočet
 CHUNK = 1024 * 1024
 PROFILE = xbmcvfs.translatePath(ADDON.getAddonInfo("profile"))
 TMDBH_PLAYER = "special://profile/addon_data/plugin.video.themoviedb.helper/players/nokturno.json"
@@ -492,10 +494,22 @@ def warm_urls():
             urls.append(base.format(src="luna", t=t, c=f"tmdb.top_rated_{t}"))
         # vlastní žebříček (dashboard) — bez ohledu na TMDB/Lunu, funguje vždycky stejně
         urls.append(base.format(src="trend", t=t, c=TREND_CATALOG_ID))
-    for t, c in (("movie", "moviesrecentlyadded_dub"), ("movie", "moviesrecentlyadded_subs"),
-                 ("series", "tvshowsrecentlyadded")):
-        urls.append(base.format(src="sosac_db", t=t, c=c))
     return urls
+
+
+def lang_warm_urls():
+    """„Nově přidané s CZ dabingem/titulky" — od 2026-09-15 má vlastní 8h cache
+    (`LANG_CATALOG_TTL` v default.py), zahřívá se proto zvlášť a řidčeji (viz
+    `lang_warmer()`): živé ověřování streamů napříč zdroji je řádově dražší
+    než ostatní katalogy v `warm_urls()`, běžet spolu s nimi by je zbytečně
+    zdržovalo.
+
+    Jen `want=dub` na typ (2026-09-15, druhé kolo): dabing i titulky se v jádru
+    počítají v jednom průchodu se společnou cache (`lang_catalog:{ctype}`), takže
+    zahřátí dabingu zadarmo zahřeje i titulky — druhá adresa by jen zbytečně
+    čekala na zámek a přečetla to samé z cache."""
+    base = "plugin://plugin.video.nokturno/?action=lang_catalog&type={t}&want=dub"
+    return [base.format(t=t) for t in ("movie", "series")]
 
 
 def rpc_directory(url):
@@ -538,6 +552,37 @@ def warmer(monitor):
             continue
         warm_caches(monitor)
         if monitor.waitForAbort(WARM_EVERY):
+            return
+
+
+def warm_lang_caches(monitor):
+    try:
+        xbmcgui.Window(10000).setProperty(WARM_PROP, "1")
+        try:
+            for url in lang_warm_urls():
+                if monitor.abortRequested():
+                    return
+                rpc_directory(url)
+        finally:
+            xbmcgui.Window(10000).clearProperty(WARM_PROP)
+        log("cache dabingu/titulků zahřáta")
+    except Exception as e:  # noqa: BLE001 – zahřívání nesmí nikdy nic shodit
+        log(f"zahřívání cache dabingu/titulků: {e}", xbmc.LOGWARNING)
+
+
+def lang_warmer(monitor):
+    """Vlákno: „Nově přidané s CZ dabingem/titulky" má vlastní, delší interval
+    (`LANG_WARM_EVERY`, pod `LANG_CATALOG_TTL`) — samostatně od `warmer()`, ať
+    dražší živé ověřování streamů nezdržuje ostatní katalogy."""
+    if monitor.waitForAbort(LANG_WARM_DELAY):
+        return
+    while not monitor.abortRequested():
+        if xbmc.Player().isPlaying():
+            if monitor.waitForAbort(WARM_RETRY):
+                return
+            continue
+        warm_lang_caches(monitor)
+        if monitor.waitForAbort(LANG_WARM_EVERY):
             return
 
 
@@ -646,6 +691,7 @@ def main():
     player = Player(store, stats)
     Downloader(store, monitor).start()
     threading.Thread(target=warmer, args=(monitor,), daemon=True).start()
+    threading.Thread(target=lang_warmer, args=(monitor,), daemon=True).start()
     syncer = Syncer(store)
     sub_checker = SubscriptionChecker(store)
     log("start")

@@ -76,6 +76,15 @@ CACHE_TTL = 600
 LUNA_TTL = 4 * 3600
 WARM_PROP = "nokturno.warm"   # služba ji nastaví během zahřívání: API cache jen zapisují, nečtou
 SEARCH_TTL = 12 * 3600  # sjednocené s luna_api.SEARCH_TTL / webshare_api.SEARCH_TTL
+LANG_CATALOG_TARGET = 30   # kolik položek chceme v každém seznamu (dabing/titulky)
+LANG_CATALOG_CAP = 60      # kolik kandidátů nejvýš prozkoumat, i kdyby se cíl nenaplnil
+LANG_CATALOG_TTL = 8 * 3600  # rychlost ověřena (30/30 do minuty) — teď už se to smí cachovat
+LANG_LOCK_PROP = "nokturno.lang_busy"  # zámek přes okno (sdílené mezi procesy) proti souběžnému přepočtu
+LANG_LOCK_WAIT = 90    # s – radši počkat na cizí přepočet, než ho spustit podruhé souběžně
+LANG_LOCK_POLL = 1     # s – jak často se během čekání kontroluje, jestli zámek zase zmizel
+LANG_LOCK_STALE = 8 * 60  # s – nejdelší pozorovaný běh byl pod 4 min (60 kandidátů); zámek starší
+                          # než tohle je nejspíš od procesu, co ho Kodi zabilo, ne od živého výpočtu
+CZECH_LANGS = {"CZ", "SK"}
 SOSAC_TAG = "[COLOR FFE0A040]Sosáč[/COLOR]"
 HS_TAG = "[COLOR FFFF8A6B]HellSpy[/COLOR]"
 ST_TAG = "[COLOR FF4DD0C0]Sledujteto[/COLOR]"
@@ -1874,7 +1883,14 @@ def browse_menu(apis, ctype):
     """Filmy / Seriály: seznamy bez ohledu na zdroj. Zdroj vybírá doplněk sám —
     TMDB (vlastní klíč), jinak Luna, jinak Cinemeta; „s CZ dabingem“ je z veřejného
     katalogu Sosáče, protože český dabing pozná jen on. „Podle písmene“ vypadlo
-    (2026-09-14) — 100 položek bez popisů, pomalé a nikdo ho neprocházel."""
+    (2026-09-14) — 100 položek bez popisů, pomalé a nikdo ho neprocházel.
+
+    „Populární na TMDB“ a „Nejlépe hodnocené“ jdou přes `action="genres"`
+    (2026-09-15) — obě mají u zdroje (TMDB/Luna/Cinemeta) seznam žánrů, `list_genres()`
+    nabídne „Vše“ i jednotlivé žánry, teprve pak se sáhne na `list_catalog()` se
+    zvoleným `genre=`. „Nejsledovanější tento týden“ (dashboard) a „Nově přidané
+    s CZ dabingem/titulky“ (živá kontrola ze Sosáče) žánr u položek nemají, zůstávají
+    tedy jako přímý `action="catalog"`/`"lang_catalog"`."""
     kind = "series" if ctype == "series" else "movie"
     tmdb, luna, cinemeta, sosac = apis.get("tmdb"), apis.get("luna"), apis.get("cinemeta"), apis.get("sosac_db")
 
@@ -1888,27 +1904,27 @@ def browse_menu(apis, ctype):
         return None
 
     rows = [
-        (L(30398, "Populární na TMDB"), "catalog", pick("popular", f"tmdb.top_{kind}", "top"), "DefaultMovies.png"),
+        (L(30398, "Populární na TMDB"), "genres", pick("popular", f"tmdb.top_{kind}", "top"), "DefaultMovies.png"),
         (L(30393, "Nejsledovanější tento týden"), "catalog", ("trend", TREND_CATALOG_ID, None),
-         "DefaultRecentlyAddedMovies.png"),
-        (L(30399, "Nejlépe hodnocené"), "catalog", pick("top_rated", f"tmdb.top_rated_{kind}", "imdbRating"),
+         "DefaultFavourites.png"),
+        (L(30399, "Nejlépe hodnocené"), "genres", pick("top_rated", f"tmdb.top_rated_{kind}", "imdbRating"),
          "DefaultMusicTop100.png"),
-        (L(30400, "Nově přidané epizody"), "catalog", ("sosac_db", "tvshowsrecentlyadded", None)
-         if sosac and kind == "series" else None, "DefaultRecentlyAddedEpisodes.png"),
-        (L(30394, "Nově přidané s CZ dabingem"), "catalog", ("sosac_db", "moviesrecentlyadded_dub", None)
-         if sosac and kind == "movie" else None, "DefaultRecentlyAddedMovies.png"),
-        (L(30401, "Nově přidané s CZ titulky"), "catalog", ("sosac_db", "moviesrecentlyadded_subs", None)
-         if sosac and kind == "movie" else None, "DefaultRecentlyAddedMovies.png"),
+        (L(30394, "Nově přidané s CZ dabingem"), "lang_catalog", ("dub", None, None)
+         if sosac else None, "DefaultRecentlyAddedMovies.png"),
+        (L(30401, "Nově přidané s CZ titulky"), "lang_catalog", ("subs", None, None)
+         if sosac else None, "DefaultRecentlyAddedMovies.png"),
     ]
     for label, action, target, icon in rows:
         if not target:
+            continue
+        if action == "lang_catalog":
+            want, _, _ = target
+            folder_item(label, build_url(action=action, type=ctype, want=want), icon=icon)
             continue
         src, cid, genre = target
         params = {"action": action, "type": ctype, "catalog": cid, "src": src}
         if genre:
             params["genre"] = genre
-        if action == "genres":
-            params["noall"] = 1   # „Vše“ by jen opakovalo Populární
         folder_item(label, build_url(**params), icon=icon)
     xbmcplugin.endOfDirectory(HANDLE)
 
@@ -1970,6 +1986,190 @@ def list_catalog(apis, ctype, cid, src, genre=None, search=None, skip=0):
                                         search=search, skip=skip + len(metas)), icon="DefaultFolder.png")
     # widget a výpis v Nokturnu mívají stejnou adresu, položky se ale liší podle okna (add_playable)
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
+def list_lang_catalog(apis, ctype, want):
+    """Nově přidané s CZ dabingem / titulky — na rozdíl od Sosáčova vlastního exportu
+    (ten u filmů jazyk rozliší jen napůl spolehlivě, viz cache staleness; u seriálů
+    vůbec) se jazyk ověřuje živě: kandidáti jsou surové „nově přidané" ze Sosáče,
+    ale co je doopravdy dabing/titulky se zjišťuje stejně jako v detailu titulu —
+    přes `Engine.raw_streams()` napříč VŠEMI zdroji, které má uživatel zapnuté (jeden
+    zdroj tvrdí anglicky s anglickými titulky neznamená, že jiný zdroj nemá dabing).
+    Sosáč/Luna mají jazyk přímo v popisku (levné), WebShare/HellSpy/Sledujteto/
+    FastShare ho jádro odhadne z názvu (taky levné, jen text) — `probe_audio=False`
+    ale vynechá poslední, nejdražší krok, čtení hlaviček souboru přes síť
+    (`_fill_audio`), který by u desítek titulů byl neúnosně pomalý (odhad z popisku/
+    názvu stačí na klasifikaci ano/ne, nemusí být ověřený jako ve skutečném dialogu
+    streamů).
+
+    Rychlost ověřena na Office (30/30 do minuty s `probe_audio=False`) — teď už se
+    seznam cachuje na `LANG_CATALOG_TTL` (8 h, stejně jako ostatní katalogy) a
+    zahřívá na pozadí (`lang_warmer()` ve `service.py`, každých 6 h — kratší než
+    TTL, aby uživatel na živý přepočet nikdy nenarazil). `LANG_CATALOG_CAP`
+    omezuje cenu i když se cíl nenaplní.
+
+    Každé otevření pluginu je vlastní Python proces, takže se dvě souběžná
+    vyvolání (uživatelův klik + zahřívání na pozadí, nebo dva kliky za sebou)
+    nepoznají přes obyčejnou proměnnou — `_lang_catalog_locked()` proto řeší
+    vzájemné vyloučení přes vlastnost okna (viz `LANG_LOCK_PROP`), sdílenou
+    napříč procesy stejně jako `WARM_PROP`. Bez toho si dvě souběžná živá
+    ověřování šlapala na zdroje navzájem (2026-09-15, uživatel narazil na
+    zaseklý průběh přesně ve chvíli, kdy jsem zrovna testoval totéž JSON-RPC
+    voláním).
+
+    Dabing i titulky se počítají v JEDNOM průchodu kandidáty (`_build_lang_catalog()`,
+    2026-09-15) — `raw_streams()` u kandidáta stejně řekne obojí najednou (`langs`
+    i `subs`), počítat je zvlášť by jen dvakrát zaplatilo tu samou síťovou práci.
+    Cache/zámek jsou proto společné pro celý `ctype` (`lang_catalog:{ctype}`), ne
+    zvlášť pro dabing a titulky — otevření druhého seznamu hned po prvním je pak
+    už jen čtení z cache, i když se předtím nikdy samostatně nepočítal."""
+    set_content("tvshows" if ctype == "series" else "movies")
+    key = f"lang_catalog:{ctype}"
+    combined = _lang_catalog_locked(apis, ctype, key)
+    matched = combined.get(want) or []
+    t0 = time.time()
+    filled = enrich(matched, apis.get("luna"), STORE, "movie")
+    _diag(f"{key}: enrich {filled}/{len(matched)} za {time.time() - t0:.1f} s "
+          f"(bez hodnocení: {sum(1 for m in matched if not m.get('imdbRating'))})")
+    for m in matched:
+        # `bare_title()` u Sosáčových id zobrazuje `_title` (ne `name`) — u filmů
+        # jsou stejné, ale u dílů seriálu (`episode_meta()` v jádru) `_title` je
+        # záměrně jen holý název seriálu (potřebuje ho hledání napříč zdroji výš,
+        # v `_build_lang_catalog()`), zatímco `name` nese i sezónu/díl. Bez tohohle
+        # se pod Seriály zobrazovalo desetkrát za sebou jen „Dogu“ bez rozlišení
+        # (2026-09-15). Hledání už proběhlo, přepsat `_title` teď je bezpečné.
+        m["_title"] = m.get("name") or m.get("_title")
+        add_meta_item(m, m.get("type") or "movie")
+    xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
+def _diag(msg):
+    # DOČASNÉ (2026-09-15) – měření, kde přesně „Nově přidané s CZ dabingem/titulky"
+    # ztrácí čas; smazat, až bude jasné, co je pomalé.
+    xbmc.log(f"[{ADDON_ID}/DIAG] {msg}", xbmc.LOGWARNING)
+
+
+def _lang_lock_age(win, prop):
+    """Stáří zámku v sekundách, nebo `None`, když není zamčeno.
+
+    Hodnota zámku je čas jeho vzniku (`time.time()`), ne jen „1" — Kodi umí
+    neuposlechnuvší skript po 5 s natvrdo zabít (`script didn't stop in 5
+    seconds`, typicky když uživatel odejde ze seznamu dřív, než doběhne) a
+    takový proces se přes `finally` nikdy nedostane, aby zámek uklidil. Bez
+    stáří by zámek zůstal navěky a každé další otevření by jen marně čekalo
+    (2026-09-15, přesně tohle nahlásil uživatel: „úplně se to seklo")."""
+    holder = win.getProperty(prop)
+    if not holder:
+        return None
+    try:
+        return time.time() - float(holder)
+    except ValueError:
+        return LANG_LOCK_STALE + 1  # neznámý formát → raději rovnou jako mrtvý zámek
+
+
+def _lang_catalog_locked(apis, ctype, key):
+    win = xbmcgui.Window(10000)
+    prop = f"{LANG_LOCK_PROP}:{key}"
+    age = _lang_lock_age(win, prop)
+    if age is not None and age < LANG_LOCK_STALE:
+        _diag(f"{key}: zamčeno cizím výpočtem ({age:.0f}s), čekám")
+        t0 = time.time()
+        _wait_for_lang_catalog(win, prop)
+        _diag(f"{key}: čekání skončilo po {time.time() - t0:.1f} s")
+        age = _lang_lock_age(win, prop)
+        if age is not None and age < LANG_LOCK_STALE:
+            # pořád zamčeno živým výpočtem (čekání vypršelo dřív, než skončil) —
+            # radši starý/prázdný výsledek než počítat znovu souběžně s ním
+            return STORE.cached_if(key, float("inf"), lambda: {"dub": [], "subs": []})
+        # jinak zámek mezitím zmizel (normální dokončení) nebo zestárl (mrtvý
+        # proces) — v obou případech to zkusíme níž sami
+    elif age is not None:
+        _diag(f"{key}: zámek starý {age:.0f}s (zabitý/spadlý proces?), přebírám")
+    win.setProperty(prop, str(time.time()))
+    _diag(f"{key}: zamčeno mnou, warming={warming()}")
+    t0 = time.time()
+    try:
+        # NE `fresh=warming()`: u ostatních katalogů (levný dotaz) dává smysl při
+        # zahřívání vždy přepsat, tady je přepočet o řády dražší (desítky sekund
+        # až minuty) — `fresh=True` by nutilo počítat znovu, i když cache má
+        # sotva pár minut, přesně opak toho, proč tu 8h cache vůbec máme
+        # (2026-09-15: nahlásil uživatel — druhé otevření nešlo z cache).
+        return STORE.cached_if(key, LANG_CATALOG_TTL, lambda: _build_lang_catalog(apis, ctype))
+    finally:
+        win.clearProperty(prop)
+        _diag(f"{key}: _lang_catalog_locked() hotovo za {time.time() - t0:.1f} s")
+
+
+def _wait_for_lang_catalog(win, prop):
+    """Čeká, dokud zámek drží živý (dost čerstvý) proces — vrátí se hned, jakmile
+    zmizí (normální dokončení) nebo zestárne (mrtvý proces), jinak nejdéle `LANG_LOCK_WAIT`."""
+    monitor = xbmc.Monitor()
+    waited = 0
+    while waited < LANG_LOCK_WAIT:
+        age = _lang_lock_age(win, prop)
+        if age is None or age >= LANG_LOCK_STALE:
+            return
+        if monitor.waitForAbort(LANG_LOCK_POLL):
+            return
+        waited += LANG_LOCK_POLL
+
+
+def _build_lang_catalog(apis, ctype):
+    """Živý výpočet pro `list_lang_catalog()` — samotné dohledání kandidátů se
+    posílá do `Store.cached_if()`, proto je vytažené zvlášť. Progres se ukazuje
+    jen při skutečném, na uživateli viditelném přepočtu — při zahřívání na
+    pozadí (`warming()`) by jen zbytečně blikal.
+
+    Dabing i titulky v JEDNOM průchodu (2026-09-15) — `raw_streams()` u kandidáta
+    řekne obojí (`langs` i `subs`) za stejnou cenu, dělit to na dva běhy by jen
+    zdvojnásobilo síťovou práci pro tutéž dvojici seznamů (dabing má navíc
+    přednost před titulky, stejný titul nepatří do obou)."""
+    t_start = time.time()
+    engine = engine_of(apis)
+    sosac = apis.get("sosac_db")
+    raw_cid = "tvshowsrecentlyadded" if ctype == "series" else "moviesrecentlyadded"
+    candidates = sosac.catalog(ctype, raw_cid, skip=0, page=LANG_CATALOG_CAP) if sosac else []
+    _diag(f"{ctype}: {len(candidates)} kandidátů za {time.time() - t_start:.1f} s")
+    dub_label = L(30394, "Nově přidané s CZ dabingem")
+    subs_label = L(30401, "Nově přidané s CZ titulky")
+    bar = None if warming() else xbmcgui.DialogProgressBG()
+    if bar:
+        bar.create(L(30000, "Nokturno"), dub_label)
+        bar.update(0)
+    matched = {"dub": [], "subs": []}
+    try:
+        for i, cand in enumerate(candidates[:LANG_CATALOG_CAP]):
+            if len(matched["dub"]) >= LANG_CATALOG_TARGET and len(matched["subs"]) >= LANG_CATALOG_TARGET:
+                break
+            item_ctype = cand.get("type") or "movie"
+            t_item = time.time()
+            try:
+                streams = engine.raw_streams(item_ctype, cand["id"], strict=True, probe_audio=False)
+            except Exception as err:  # noqa: BLE001 – výpadek u jednoho kandidáta nesmí shodit celý seznam
+                _diag(f"  [{i}] {cand.get('id')}: chyba za {time.time() - t_item:.1f} s ({err})")
+                continue
+            _diag(f"  [{i}] {cand.get('id')}: {len(streams)} streamů za {time.time() - t_item:.1f} s")
+            langs, subs = set(), set()
+            for s in streams:
+                langs.update(s.get("langs") or [])
+                subs.update(s.get("subs") or [])
+            has_dub = bool(langs & CZECH_LANGS)
+            has_subs = bool(subs & CZECH_LANGS)
+            if has_dub and len(matched["dub"]) < LANG_CATALOG_TARGET:
+                matched["dub"].append(cand)
+            if has_subs and not has_dub and len(matched["subs"]) < LANG_CATALOG_TARGET:
+                matched["subs"].append(cand)
+            if bar:
+                done = len(matched["dub"]) + len(matched["subs"])
+                bar.update(int(done / (2 * LANG_CATALOG_TARGET) * 100),
+                          message=f"{dub_label} {len(matched['dub'])}/{LANG_CATALOG_TARGET} · "
+                                  f"{subs_label} {len(matched['subs'])}/{LANG_CATALOG_TARGET}")
+    finally:
+        if bar:
+            bar.close()
+    _diag(f"{ctype}: hotovo, dab {len(matched['dub'])} / tit {len(matched['subs'])} "
+          f"za {time.time() - t_start:.1f} s")
+    return matched
 
 
 # --- hledání + historie -----------------------------------------------------------
@@ -2249,12 +2449,13 @@ def list_dav_browse(apis, slot=0, path=""):
 
     Složky se neptají serveru po jedné: strom se skládá ze zapamatovaného seznamu
     souborů (`StorageApi.files`), takže přechod do podsložky je okamžitý. Ukazují se
-    jen složky, ve kterých je aspoň jedno video — prázdné by jen překážely. Při víc
-    nastavených úložištích se napřed vybírá úložiště."""
+    jen složky, ve kterých je aspoň jedno video — prázdné by jen překážely. Napřed
+    se vždy vybírá úložiště (i jen jedno nastavené, 2026-09-15) — uživatel tak vidí
+    jeho jméno a ví, do čeho se dívá, než se napojí na jeho data."""
     storages = apis.get("dav") or []
     if not storages:
         raise StorageError(L(30104))
-    if not slot and len(storages) > 1:
+    if not slot:
         for api in storages:
             folder_item(api.name, build_url(action="dav_browse", slot=api.slot), icon="DefaultHardDisk.png")
         xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
@@ -2495,8 +2696,15 @@ def list_seasons(apis, series_id, alt=None):
         li = xbmcgui.ListItem(label=label)
         li.setArt(art_for(meta))
         fill_info(li, meta, "series")
-        li.getVideoInfoTag().setMediaType("season")
-        li.getVideoInfoTag().setSeason(s)
+        tag = li.getVideoInfoTag()
+        tag.setMediaType("season")
+        tag.setSeason(s)
+        # `fill_info()` nastaví Title na název seriálu (správně pro epizody/film) —
+        # tady jde o výběr sezóny, skin (řádek sezón) kreslí `ListItem.Title`, ne
+        # `ListItem.Label`, takže bez přepsání byly všechny položky pojmenované
+        # stejně jako seriál místo „1. série“/„2. série“ (2026-09-15, nahlásil
+        # uživatel screenshotem: „Lupin Lupin Lupin“ místo čísel sérií).
+        tag.setTitle(label)
         # sezóna je zhlédnutá, když jsou zhlédnuté všechny její epizody
         eps = [v for v in videos if int(v.get("season") or 0) == s]
         if eps and all(STORE.playcount(v.get("id") or f"{series_id}:{s}:{v.get('episode')}") for v in eps):
@@ -3044,6 +3252,8 @@ def router(query):
         elif action == "catalog":
             list_catalog(apis, p["type"], p["catalog"], p.get("src", "luna"), genre=p.get("genre"),
                          search=p.get("search"), skip=int(p.get("skip") or 0))
+        elif action == "lang_catalog":
+            list_lang_catalog(apis, p.get("type", "movie"), p.get("want", "dub"))
         elif action == "search_new":
             search_new(apis, p["type"])
         elif action == "search_run":

@@ -1018,10 +1018,6 @@ msgctxt "#30399"
 msgid "Top rated"
 msgstr "Nejlépe hodnocené"
 
-msgctxt "#30400"
-msgid "Newly added episodes"
-msgstr "Nově přidané epizody"
-
 msgctxt "#30401"
 msgid "New with Czech subtitles"
 msgstr "Nově přidané s CZ titulky"
