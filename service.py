@@ -47,6 +47,7 @@ from stats import COLLECT_URL, Stats  # noqa: E402
 from storage_api import StorageApi, parse_ref  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
 from sync import sync_once  # noqa: E402
+from trend_api import CATALOG_ID as TREND_CATALOG_ID  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
 from webshare_api import WebshareApi, WebshareError  # noqa: E402
 
@@ -484,12 +485,13 @@ def warm_urls():
     urls = []
     for t in ("movie", "series"):
         if addon.getSetting("tmdb_api_key").strip():
-            for c in ("popular", "trending", "top_rated"):
+            for c in ("popular", "top_rated"):
                 urls.append(base.format(src="tmdb", t=t, c=c))
         elif addon.getSetting("luna_enabled") != "false":
             urls.append(base.format(src="luna", t=t, c=f"tmdb.top_{t}"))
-            urls.append(base.format(src="luna", t=t, c=f"tmdb.trending_{t}") + "&genre=Week")
             urls.append(base.format(src="luna", t=t, c=f"tmdb.top_rated_{t}"))
+        # vlastní žebříček (dashboard) — bez ohledu na TMDB/Lunu, funguje vždycky stejně
+        urls.append(base.format(src="trend", t=t, c=TREND_CATALOG_ID))
     for t, c in (("movie", "moviesrecentlyadded_dub"), ("movie", "moviesrecentlyadded_subs"),
                  ("series", "tvshowsrecentlyadded")):
         urls.append(base.format(src="sosac_db", t=t, c=c))

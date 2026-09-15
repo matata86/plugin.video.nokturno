@@ -1003,24 +1003,16 @@ msgid "Settings"
 msgstr "Nastavenia"
 
 msgctxt "#30393"
-msgid "Trending this week"
-msgstr "Trendy tento týždeň"
+msgid "Most watched this week"
+msgstr "Najsledovanejšie tento týždeň"
 
 msgctxt "#30394"
 msgid "Recently added with Czech dubbing"
 msgstr "Novo pridané s CZ dabingom"
 
-msgctxt "#30395"
-msgid "By genre"
-msgstr "Podľa žánru"
-
-msgctxt "#30396"
-msgid "By year"
-msgstr "Podľa roku"
-
 msgctxt "#30398"
-msgid "Popular"
-msgstr "Populárne"
+msgid "Popular on TMDB"
+msgstr "Populárne na TMDB"
 
 msgctxt "#30399"
 msgid "Top rated"

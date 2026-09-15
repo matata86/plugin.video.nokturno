@@ -1003,23 +1003,15 @@ msgid "Settings"
 msgstr ""
 
 msgctxt "#30393"
-msgid "Trending this week"
+msgid "Most watched this week"
 msgstr ""
 
 msgctxt "#30394"
 msgid "Recently added with Czech dubbing"
 msgstr ""
 
-msgctxt "#30395"
-msgid "By genre"
-msgstr ""
-
-msgctxt "#30396"
-msgid "By year"
-msgstr ""
-
 msgctxt "#30398"
-msgid "Popular"
+msgid "Popular on TMDB"
 msgstr ""
 
 msgctxt "#30399"

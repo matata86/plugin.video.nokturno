@@ -32,6 +32,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "res
 from luna_api import LunaApi, LunaError, parse_base_url, parse_token  # noqa: E402
 from cinemeta_api import CinemetaApi, CinemetaError  # noqa: E402
 from tmdb_api import TmdbApi, TmdbError  # noqa: E402
+from trend_api import CATALOG_ID as TREND_CATALOG_ID, TrendApi  # noqa: E402
 from sosac_api import SosacError, is_sosac_id as _is_stremio_sosac_id  # noqa: E402
 from sosac_direct import EXPORT as SOSAC_EXPORT, SosacDirect, is_direct_id  # noqa: E402
 from enrich import enrich, enrich_one  # noqa: E402
@@ -303,6 +304,12 @@ def get_cinemeta():
     return CinemetaApi(cache=STORE)
 
 
+def get_trend():
+    """Žebříček z vlastních statistik Nokturna (dashboard) — na rozdíl od ostatních
+    zdrojů výš nepotřebuje účet ani klíč, funguje vždycky stejně jako Cinemeta."""
+    return TrendApi(cache=STORE)
+
+
 def get_tmdb():
     """Vlastní klíč uživatele (zdarma, viz nápověda v nastavení) — přednostní
     náhrada za veřejný katalog Sosáče/Cinemetu, když Luna neběží: umí česky
@@ -346,7 +353,7 @@ class KodiEngine(Engine):
 
     FACTORIES = {"luna": get_luna, "sosac": get_sosac, "sosac_db": get_sosac_db, "ws": get_webshare,
                  "hs": get_hellspy, "st": get_sledujteto, "fs": get_fastshare, "storages": get_storages, "tmdb": get_tmdb,
-                 "cinemeta": get_cinemeta}
+                 "cinemeta": get_cinemeta, "trend": get_trend}
 
     def __init__(self):
         self._clients = {}
@@ -367,6 +374,7 @@ class KodiEngine(Engine):
     storages = property(lambda self: self._client("storages"))
     tmdb = property(lambda self: self._client("tmdb"))
     cinemeta = property(lambda self: self._client("cinemeta"))
+    trend = property(lambda self: self._client("trend"))
 
 
 def get_apis():
@@ -374,7 +382,7 @@ def get_apis():
     engine = KodiEngine()
     return {"engine": engine, "luna": engine.luna, "sosac": engine.sosac, "ws": engine.ws, "hs": engine.hs,
             "st": engine.st, "fs": engine.fs, "dav": engine.storages, "cinemeta": engine.cinemeta, "sosac_db": engine.sosac_db,
-            "tmdb": engine.tmdb}
+            "tmdb": engine.tmdb, "trend": engine.trend}
 
 
 def engine_of(apis):
@@ -1870,21 +1878,19 @@ def browse_menu(apis, ctype):
     kind = "series" if ctype == "series" else "movie"
     tmdb, luna, cinemeta, sosac = apis.get("tmdb"), apis.get("luna"), apis.get("cinemeta"), apis.get("sosac_db")
 
-    def pick(tmdb_cid, luna_cid, cinemeta_cid, luna_genre=None, sosac_cid=None):
+    def pick(tmdb_cid, luna_cid, cinemeta_cid):
         if tmdb and tmdb_cid:
             return "tmdb", tmdb_cid, None
         if luna and luna_cid:
-            return "luna", luna_cid, luna_genre
-        if sosac and sosac_cid:
-            return "sosac_db", sosac_cid, None
+            return "luna", luna_cid, None
         if cinemeta and cinemeta_cid:
             return "cinemeta", cinemeta_cid, None
         return None
 
     rows = [
-        (L(30398, "Populární"), "catalog", pick("popular", f"tmdb.top_{kind}", "top"), "DefaultMovies.png"),
-        (L(30393, "Trendy tento týden"), "catalog",
-         pick("trending", f"tmdb.trending_{kind}", None, luna_genre="Week"), "DefaultRecentlyAddedMovies.png"),
+        (L(30398, "Populární na TMDB"), "catalog", pick("popular", f"tmdb.top_{kind}", "top"), "DefaultMovies.png"),
+        (L(30393, "Nejsledovanější tento týden"), "catalog", ("trend", TREND_CATALOG_ID, None),
+         "DefaultRecentlyAddedMovies.png"),
         (L(30399, "Nejlépe hodnocené"), "catalog", pick("top_rated", f"tmdb.top_rated_{kind}", "imdbRating"),
          "DefaultMusicTop100.png"),
         (L(30400, "Nové díly s CZ dabingem"), "catalog", ("sosac_db", "tvshowsrecentlyadded", None)
@@ -1893,9 +1899,6 @@ def browse_menu(apis, ctype):
          if sosac and kind == "movie" else None, "DefaultRecentlyAddedMovies.png"),
         (L(30401, "Nově přidané s CZ titulky"), "catalog", ("sosac_db", "moviesrecentlyadded_subs", None)
          if sosac and kind == "movie" else None, "DefaultRecentlyAddedMovies.png"),
-        (L(30395, "Podle žánru"), "genres",
-         pick("popular", f"tmdb.top_{kind}", "top", sosac_cid="genre" if kind == "movie" else None), "DefaultGenre.png"),
-        (L(30396, "Podle roku"), "genres", pick("year", f"tmdb.year_{kind}", "year"), "DefaultYear.png"),
     ]
     for label, action, target, icon in rows:
         if not target:

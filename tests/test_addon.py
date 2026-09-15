@@ -867,9 +867,9 @@ class TestMenuAZahrivani(unittest.TestCase):
     def test_zahrivani_bere_aktualni_nastaveni(self):
         """Modulový ADDON služby nevidí změny — po zadání klíče TMDB se dál zahřívala Luna."""
         xbmcaddon.settings["token"] = "t"
-        self.assertEqual({p["src"] for p in map(params_of, service.warm_urls())}, {"luna", "sosac_db"})
+        self.assertEqual({p["src"] for p in map(params_of, service.warm_urls())}, {"luna", "sosac_db", "trend"})
         xbmcaddon.settings["tmdb_api_key"] = "abc"
-        self.assertEqual({p["src"] for p in map(params_of, service.warm_urls())}, {"tmdb", "sosac_db"})
+        self.assertEqual({p["src"] for p in map(params_of, service.warm_urls())}, {"tmdb", "sosac_db", "trend"})
 
     def test_s_lunou(self):
         xbmcaddon.settings["token"] = "t"
@@ -878,7 +878,8 @@ class TestMenuAZahrivani(unittest.TestCase):
 
     def test_bez_luny_i_tmdb_zahriva_jen_sosac(self):
         xbmcaddon.settings["luna_enabled"] = "false"
-        self.assertEqual({p["src"] for p in map(params_of, service.warm_urls())}, {"sosac_db"})
+        # vlastní žebříček (trend) nepotřebuje ani jedno z nich, zahřívá se vždycky
+        self.assertEqual({p["src"] for p in map(params_of, service.warm_urls())}, {"sosac_db", "trend"})
 
     def test_nove_dily_jen_u_serialu_a_nove_filmy_jen_u_filmu(self):
         menu = self.browse({"tmdb": None, "sosac_db": object(), "luna": None, "cinemeta": object()})
@@ -887,6 +888,21 @@ class TestMenuAZahrivani(unittest.TestCase):
         self.assertNotIn(("sosac_db", "moviesrecentlyadded_dub", "series", None), menu)
         # bez TMDB i Luny drží Populární Cinemeta
         self.assertIn(("cinemeta", "top", "movie", None), menu)
+
+    def test_nejsledovanejsi_je_vzdycky_v_menu_zanr_a_rok_uz_ne(self):
+        """Vlastní žebříček (dashboard) nepotřebuje TMDB ani Lunu, na rozdíl od
+        ostatních řádků není za `pick()` — je v menu vždycky. „Podle žánru“/„Podle
+        roku“ vypadly z hlavního menu Filmy/Seriály (2026-09-15) — s TMDB klíčem
+        by za `pick()` byly, takže je to skutečná zkouška, ne jen chybějící zdroj."""
+        menu = self.browse({"tmdb": None, "sosac_db": None, "luna": None, "cinemeta": None})
+        self.assertIn(("trend", "nejsledovanejsi", "movie", None), menu)
+        self.assertIn(("trend", "nejsledovanejsi", "series", None), menu)
+
+        xbmcaddon.settings["tmdb_api_key"] = "abc"
+        xbmcplugin.reset()
+        default.browse_menu({"tmdb": object(), "sosac_db": None, "luna": None, "cinemeta": None}, "movie")
+        akce = {params_of(u)["action"] for u in xbmcplugin.urls()}
+        self.assertNotIn("genres", akce)
 
 
 class FakeStats:
