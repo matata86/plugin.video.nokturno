@@ -1019,7 +1019,7 @@ msgid "Top rated"
 msgstr ""
 
 msgctxt "#30400"
-msgid "New episodes with Czech dubbing"
+msgid "Newly added episodes"
 msgstr ""
 
 msgctxt "#30401"

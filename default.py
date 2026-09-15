@@ -1893,7 +1893,7 @@ def browse_menu(apis, ctype):
          "DefaultRecentlyAddedMovies.png"),
         (L(30399, "Nejlépe hodnocené"), "catalog", pick("top_rated", f"tmdb.top_rated_{kind}", "imdbRating"),
          "DefaultMusicTop100.png"),
-        (L(30400, "Nové díly s CZ dabingem"), "catalog", ("sosac_db", "tvshowsrecentlyadded", None)
+        (L(30400, "Nově přidané epizody"), "catalog", ("sosac_db", "tvshowsrecentlyadded", None)
          if sosac and kind == "series" else None, "DefaultRecentlyAddedEpisodes.png"),
         (L(30394, "Nově přidané s CZ dabingem"), "catalog", ("sosac_db", "moviesrecentlyadded_dub", None)
          if sosac and kind == "movie" else None, "DefaultRecentlyAddedMovies.png"),

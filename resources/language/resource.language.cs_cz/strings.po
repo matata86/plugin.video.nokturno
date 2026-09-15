@@ -1019,8 +1019,8 @@ msgid "Top rated"
 msgstr "Nejlépe hodnocené"
 
 msgctxt "#30400"
-msgid "New episodes with Czech dubbing"
-msgstr "Nové díly s CZ dabingem"
+msgid "Newly added episodes"
+msgstr "Nově přidané epizody"
 
 msgctxt "#30401"
 msgid "New with Czech subtitles"
