@@ -622,6 +622,14 @@
           <data>RunPlugin(plugin://plugin.video.nokturno/?action=stats_send)</data>
           <control format="action" type="button"/>
         </setting>
+        <setting id="log_send_action" type="action" label="30427" help="30428">
+          <level>0</level>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=log_send)</data>
+          <control format="action" type="button"/>
+        </setting>
       </group>
     </category>
     <category id="advanced" label="30105" help="30329">

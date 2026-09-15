@@ -215,6 +215,19 @@ přesně, co odchází:
 
 Očekávaná odpověď je `{"ok": true}`.
 
+## Odeslání logu
+
+V *Nastavení → Statistiky* je vedle přepínače statistik i tlačítko **Odeslat
+log Kodi**. Pošle poslední ~500 KB souboru `kodi.log` (gzip) na server, aby šel
+nahlášený problém rozklíčovat — nic dalšího zařízení neopouští. Funguje i při
+vypnutých statistikách, protože jde o jednorázovou diagnostickou akci na
+vyžádání, ne o průběžný sběr.
+
+Log se posílá na `https://nokturno.tailf0014.ts.net/logs?id=<id instalace>&version=<verze>`
+jako syrová gzip data v těle POST požadavku (stejné `id` jako u statistik).
+Očekávaná odpověď je HTTP 200; při chybě (síť, server, moc časté odeslání)
+doplněk zobrazí notifikaci s důvodem.
+
 ## Nokturno v Home Assistantu
 
 Stejné zdroje umí i [**integrace Nokturno pro Home Assistant**](https://github.com/matata86/nokturno-ha) (instalace přes HACS). Hledá ve stejných zdrojích (WebShare, Sosáč, Luna, HellSpy, Sledujteto, FastShare, vlastní úložiště), výsledky pouští **v Kodi právě přes tenhle doplněk** (`plugin://plugin.video.nokturno/…`), takže titul skončí v „Pokračovat ve sledování" a Kodi si pamatuje pozici. Navíc umí stáhnout film do Home Assistantu nebo poslat odkaz do mobilu.

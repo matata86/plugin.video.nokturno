@@ -1133,3 +1133,19 @@ msgstr ""
 msgctxt "#30426"
 msgid "credit"
 msgstr ""
+
+msgctxt "#30427"
+msgid "Send Kodi log"
+msgstr ""
+
+msgctxt "#30428"
+msgid "Sends the last ~500 KB of kodi.log to the same server as statistics, so the reported problem can be diagnosed. Nothing else leaves the device."
+msgstr ""
+
+msgctxt "#30429"
+msgid "Log sent"
+msgstr ""
+
+msgctxt "#30430"
+msgid "Log could not be sent"
+msgstr ""

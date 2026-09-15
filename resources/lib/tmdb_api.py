@@ -139,29 +139,29 @@ class TmdbApi:
         kind = self._kind(ctype)
         try:
             details = self._details(kind, raw["id"])
-        except TmdbError:
-            return None   # jeden nedostupný titul nesmí shodit stránku katalogu
-        imdb_id = self._imdb_id(ctype, raw["id"], details)
-        if not imdb_id:
-            return None
-        name = raw.get("title") or raw.get("name") or ""
-        year = (raw.get("release_date") or raw.get("first_air_date") or "")[:4]
-        genres = [g for g in (genre_map.get(gid, "") for gid in (raw.get("genre_ids") or [])) if g]
-        return {
-            "id": imdb_id,
-            "imdb_id": imdb_id,
-            "type": ctype,
-            "name": name,
-            "_title": name,
-            "year": year,
-            "poster": IMG + raw["poster_path"] if raw.get("poster_path") else "",
-            "background": IMG_BIG + raw["backdrop_path"] if raw.get("backdrop_path") else "",
-            "description": raw.get("overview") or "",
-            "genres": genres,
-            "imdbRating": raw.get("vote_average") or None,
-            "voteCount": int(raw.get("vote_count") or 0),   # v odpovědi katalogu zdarma, žádný dotaz navíc
-            **self._art(kind, raw["id"], raw.get("backdrop_path") or "", images=details.get("images") or {}),
-        }
+            imdb_id = self._imdb_id(ctype, raw["id"], details)
+            if not imdb_id:
+                return None
+            name = raw.get("title") or raw.get("name") or ""
+            year = (raw.get("release_date") or raw.get("first_air_date") or "")[:4]
+            genres = [g for g in (genre_map.get(gid, "") for gid in (raw.get("genre_ids") or [])) if g]
+            return {
+                "id": imdb_id,
+                "imdb_id": imdb_id,
+                "type": ctype,
+                "name": name,
+                "_title": name,
+                "year": year,
+                "poster": IMG + raw["poster_path"] if raw.get("poster_path") else "",
+                "background": IMG_BIG + raw["backdrop_path"] if raw.get("backdrop_path") else "",
+                "description": raw.get("overview") or "",
+                "genres": genres,
+                "imdbRating": raw.get("vote_average") or None,
+                "voteCount": int(raw.get("vote_count") or 0),   # v odpovědi katalogu zdarma, žádný dotaz navíc
+                **self._art(kind, raw["id"], raw.get("backdrop_path") or "", images=details.get("images") or {}),
+            }
+        except Exception:
+            return None   # jeden vadný titul (nedostupný, napůl vyplněná odpověď TMDB…) nesmí shodit stránku katalogu
 
     def catalog(self, ctype, cid, genre=None, search=None, skip=0):
         """Seznam metadat — stejný tvar jako `LunaApi.catalog()`/`CinemetaApi.catalog()`,

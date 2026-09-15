@@ -18,6 +18,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import sys
 import threading
 import time
+import traceback
 import urllib.parse
 import urllib.request
 
@@ -1660,6 +1661,47 @@ def stats_send():
            xbmcgui.NOTIFICATION_INFO if ok else xbmcgui.NOTIFICATION_ERROR, 5000)
 
 
+LOG_TAIL_BYTES = 500 * 1024   # celý xbmc.log bývá desítky MB, server bere jen ~500 KB
+
+
+def log_send():
+    """Ruční odeslání Kodi logu z nastavení – poslední ~500 KB `kodi.log`, gzip.
+
+    Instance id bere ze stejného `stats.json` jako statistiky, ať jde log
+    v dashboardu spárovat s instalací. Vlastní endpoint (`/logs`, ne `/collect`)
+    bere syrová gzip data v těle, ne JSON — soubor je řádově větší.
+    """
+    import gzip
+    from stats import COLLECT_URL, Stats
+
+    log_path = xbmcvfs.translatePath("special://logpath/kodi.log")
+    try:
+        size = os.path.getsize(log_path)
+        with open(log_path, "rb") as f:
+            if size > LOG_TAIL_BYTES:
+                f.seek(size - LOG_TAIL_BYTES)
+            raw = f.read()
+    except OSError as e:
+        notify(f"{L(30430)}: {e}", xbmcgui.NOTIFICATION_ERROR, 5000)
+        return
+
+    body = gzip.compress(raw)
+    install_id = Stats(PROFILE).data["id"]
+    version = ADDON.getAddonInfo("version")
+    logs_url = COLLECT_URL.rsplit("/", 1)[0] + "/logs"
+    req = urllib.request.Request(
+        f"{logs_url}?id={install_id}&version={urllib.parse.quote(version)}",
+        data=body, method="POST",
+        headers={"Content-Type": "application/gzip", "User-Agent": f"Kodi plugin.video.nokturno/{version}"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            resp.read(1024)
+        notify(L(30429), xbmcgui.NOTIFICATION_INFO, 5000)
+    except Exception as e:  # noqa: BLE001 – HTTPError, URLError, timeout… vše skončí stejně
+        notify(f"{L(30430)}: {e}", xbmcgui.NOTIFICATION_ERROR, 5000)
+
+
 # --- novinky ve verzi -------------------------------------------------------------
 
 SEEN = "seen"   # seen.json v profilu: {"version": naposledy odbavená verze}
@@ -2943,6 +2985,7 @@ def router(query):
         "clear_cache": lambda: (STORE.clear_cache(), notify(L(30099)),
                                 xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
         "stats_send": stats_send,
+        "log_send": log_send,
         "test_sources": test_sources,
         "setup_wizard": lambda: (setup_wizard(force=True),
                                  xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
@@ -3021,7 +3064,7 @@ def router(query):
         _fail(action, describe_error(e))
     except Exception as e:  # noqa: BLE001 – KeyError z chybějícího parametru, RuntimeError z Kodi API…
         # bez úklidu handle by Kodi u přehrání čekalo na timeout a hlásilo „Chyba skriptu"
-        log_error(f"{action}: {e!r}")
+        log_error(f"{action}: {traceback.format_exc()}")
         _fail(action, f"{type(e).__name__}: {e}")
 
 

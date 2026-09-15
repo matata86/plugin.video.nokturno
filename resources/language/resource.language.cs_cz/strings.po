@@ -1133,3 +1133,19 @@ msgstr "neomezené stahování"
 msgctxt "#30426"
 msgid "credit"
 msgstr "kredit"
+
+msgctxt "#30427"
+msgid "Send Kodi log"
+msgstr "Odeslat log Kodi"
+
+msgctxt "#30428"
+msgid "Sends the last ~500 KB of kodi.log to the same server as statistics, so the reported problem can be diagnosed. Nothing else leaves the device."
+msgstr "Odešle posledních ~500 KB souboru kodi.log na stejný server jako statistiky, aby šel nahlášený problém rozklíčovat. Nic dalšího zařízení neopouští."
+
+msgctxt "#30429"
+msgid "Log sent"
+msgstr "Log odeslán"
+
+msgctxt "#30430"
+msgid "Log could not be sent"
+msgstr "Log se nepodařilo odeslat"
