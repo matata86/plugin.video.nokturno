@@ -2401,8 +2401,13 @@ class SearchProgress:
         self.sources = []   # [(label, count), ...] v pořadí, jak zdroje dorazily
 
     def _show(self):
-        msg = " · ".join(f"{label}: {n}" for label, n in self.sources) or L(30238, "Načítám streamy…")
-        self.bar.update(int(self.done / self.total * 100), msg)
+        percent = int(self.done / self.total * 100)
+        if self.sources:
+            # jen hledání streamů (collect_streams) hlásí source() — hledání titulu
+            # (search_run) žádné zdroje nemá a nechává si vlastní text z create()
+            self.bar.update(percent, " · ".join(f"{label}: {n}" for label, n in self.sources))
+        else:
+            self.bar.update(percent)
 
     def tick(self):
         with self.lock:

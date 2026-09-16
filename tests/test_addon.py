@@ -461,7 +461,7 @@ class TestJadroVKodi(unittest.TestCase):
         bar = mock.Mock()
         progress = default.SearchProgress(bar, 10)
         progress.tick()
-        bar.update.assert_called_with(10, "Načítám streamy…")
+        bar.update.assert_called_with(10)
         progress.source("Luna", 0)
         bar.update.assert_called_with(10, "Luna: 0")
         progress.source("WebShare", 12)

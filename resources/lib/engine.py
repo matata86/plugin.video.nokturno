@@ -1952,7 +1952,7 @@ class Engine:
             self.ws, self.hs, self.st, self.fs, self.sosac  # noqa: B018 – jen inicializace
             cross = self._cross_streams if self._opt("cross_search", True) else (lambda *a, **k: [])
             zdroje = (
-                ("Sosáč/Luna", lambda: cross(ctype, item_id, meta, alt, failures)),
+                ("Luna" if is_sosac_id(base_id) else "Sosáč", lambda: cross(ctype, item_id, meta, alt, failures)),
                 ("WebShare", lambda: self._webshare_streams(meta, video, ctype, alt, strict, failures)),
                 ("HellSpy", lambda: self._hellspy_streams(meta, video, ctype, alt, strict, failures)),
                 ("Sledujteto", lambda: self._sledujteto_streams(meta, video, ctype, alt, strict, failures)),
