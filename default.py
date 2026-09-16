@@ -779,6 +779,9 @@ def plugin_params(url):
     return dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(str(url or "")).query))
 
 
+PLAY_REQUEST_WAIT = 2.5   # Kodi otevře progressdialog po 1,5 s čekání na skript (PluginDirectory.cpp)
+
+
 def play_request(params):
     """Spustilo Kodi `action=streams` kvůli PŘEHRÁNÍ, ne kvůli výpisu složky?
 
@@ -790,16 +793,17 @@ def play_request(params):
     složky skončil bez přehrání „položku se nepodařilo přehrát“ (Office 2026-09-16, dvakrát,
     Mayday a Matrix). Rozlišuje se podle tří stop, které přehrání zanechá a výpis ne:
 
-    1. při výpisu složky (klik, ActivateWindow) Kodi ukazuje busy dialog — při přehrání ne,
-    2. přehrávaná položka je zrovna vybraná ve výpisu (info dialog se otevřel nad ní),
-    3. Kodi ji těsně předtím vložilo do video playlistu (`PlayListPlayer::Play`).
+    1. přehrávaná položka je zrovna vybraná ve výpisu (info dialog se otevřel nad ní),
+    2. Kodi ji těsně předtím vložilo do video playlistu (`PlayListPlayer::Play`),
+    3. Kodi při čekání na výsledek skriptu v režimu přehrání po 1,5 s otevře vlastní
+       `progressdialog` (`CPluginDirectory::WaitOnScriptResult`, jen když nejde o výpis) —
+       při výpisu složky je místo něj busy dialog, z JSON-RPC nic.
 
-    Všechny tři najednou nesplní ani `Files.GetDirectory` z JSON-RPC (HA, zahřívání) —
-    bez busy dialogu, ale bez (2) a (3); jen (1)+(2) by při stejném vybraném titulu
-    stačilo na modální dialog z JSON-RPC, což je zakázané (CLAUDE.md).
+    Na (3) se čeká jen když platí (1) i (2) — tedy prakticky jen u Přehrát z detailu, jinak
+    výpis začne hned. Busy dialog jako signál nešel: beta13 na něm skončila, při Přehrát
+    z detailu byl aktivní taky. Bez (3) by `Files.GetDirectory` z JSON-RPC nad zrovna
+    vybraným, předtím přehraným titulem skončilo modálním dialogem — zakázané (CLAUDE.md).
     """
-    if xbmc.getCondVisibility("Window.IsActive(busydialog) | Window.IsActive(busydialognocancel)"):
-        return False
     wanted = {k: v for k, v in params.items() if v not in (None, "")}
     focused = xbmc.getInfoLabel("ListItem.FileNameAndPath") or xbmc.getInfoLabel("ListItem.FolderPath")
     in_focus = plugin_params(focused) == wanted
@@ -812,9 +816,18 @@ def play_request(params):
             in_playlist = any(plugin_params(item.get("file")) == wanted for item in items)
         except (ValueError, TypeError, AttributeError):
             in_playlist = False
-    xbmc.log(f"[{ADDON_ID}] streams bez busy dialogu: vybraná položka={in_focus} v playlistu={in_playlist}",
-             xbmc.LOGINFO)
-    return in_focus and in_playlist
+    resolving = False
+    if in_focus and in_playlist:
+        deadline = time.monotonic() + PLAY_REQUEST_WAIT
+        while not resolving and time.monotonic() < deadline:
+            resolving = xbmc.getCondVisibility("Window.IsActive(progressdialog)")
+            if not resolving:
+                xbmc.sleep(100)
+    xbmc.log(f"[{ADDON_ID}] streams: vybraná položka={in_focus} v playlistu={in_playlist} "
+             f"progressdialog={resolving} busy={xbmc.getCondVisibility('Window.IsActive(busydialog)')} "
+             f"busynocancel={xbmc.getCondVisibility('Window.IsActive(busydialognocancel)')} "
+             f"okno={xbmc.getInfoLabel('System.CurrentWindow')}", xbmc.LOGINFO)
+    return in_focus and in_playlist and resolving
 
 
 def add_playable(li, ctype, item_id, series_id=None, alt=None):
