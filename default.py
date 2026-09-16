@@ -3101,6 +3101,18 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
     li = xbmcgui.ListItem(label=title, path=resolve_url(apis, chosen["url"]))
     li.setArt(art_for(meta, video))
     fill_info(li, meta, "series" if video else ctype, video=video)
+    # bez tohohle Kodi u přímého přehrání (HA karta, widget, Up Next) nevědělo o rozkoukanosti
+    # a vždycky pustilo od začátku — resume point se jinak nastavuje jen v seznamech (`apply_watched`)
+    tag = li.getVideoInfoTag()
+    count = STORE.playcount(item_id)
+    if count:
+        tag.setPlaycount(count)
+    resume, total = STORE.resume(item_id)
+    if resume and not count:
+        try:
+            tag.setResumePoint(resume, total)
+        except Exception:  # noqa: BLE001 – Kodi < 20
+            pass
     subtitles = [resolve_url(apis, s) for s in chosen.get("subtitles") or []]
     if subtitles:
         li.setSubtitles(subtitles)
