@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.6" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.7~beta1" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,7 +23,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>5.2.6 – „Nově přidané s CZ dabingem/titulky“: když data nejsou připravená z pozadí, vysvětlí to a nabídne „Klepni pro spuštění“ místo automatického živého přepočtu (2–5 minut) — žádný modální dialog, jen běžná položka seznamu
+    <news>5.2.7~beta1 – Oprava statistik u seriálů: do žebříčku „Nejsledovanější tento týden“ šel u epizod bez vlastního (nebo jen generického placeholder) názvu název epizody místo seriálu, takže se sledovanost jednoho seriálu roztříštila na desítky položek a většina jich pak v žebříčku vůbec nešla dohledat (viz dashboard) — statistiky teď u seriálů vždy posílají název seriálu, přehrávání/„Pokračovat ve sledování“ beze změny
+5.2.6 – „Nově přidané s CZ dabingem/titulky“: když data nejsou připravená z pozadí, vysvětlí to a nabídne „Klepni pro spuštění“ místo automatického živého přepočtu (2–5 minut) — žádný modální dialog, jen běžná položka seznamu
 5.2.6 – Klepnutí na „Klepni pro spuštění“ spustí přepočet na pozadí a pošle upozornění, až bude hotovo, místo aby nutilo čekat na místě
 5.2.6 – Oprava: seznam ukazoval tiše prázdný výsledek, když se zrovna počítal na pozadí (zahřívač nebo dřívější žádost) a uživatel ho otevřel znovu — čekání na cizí výpočet bylo kratší než reálná doba běhu
 5.2.6 – Oprava: hledání spadlo, když WebShare zaskočil za nedostupnou/nenastavenou Lunu (`SORTS[0]`); katalogy TMDB (Populární na TMDB a další) spadly, když Luna nebyla nastavená
