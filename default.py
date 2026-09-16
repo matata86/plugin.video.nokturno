@@ -2522,21 +2522,21 @@ class SearchProgress:
         self.audio_done = self.audio_total = 0   # čtení hlaviček (ověření zvuku) — poslední fáze
 
     def _show(self):
-        """Dvě fáze, jeden řádek textu: dokud přicházejí zdroje, „Nalezené streamy: 35“
-        (součet), jakmile začne ověřování metadat, jen „Ověřuji metadata: 3/12“.
-        Dřív se vypisoval každý zdroj zvlášť („Luna: 8 · WebShare: 12 · …“) — na TV
-        nečitelné a na konci se text uřízl (2026-09-16, přání uživatele)."""
+        """„Nalezené streamy: 35“ (součet ze zdrojů, průběžně přibývá) je vidět pořád, během
+        ověřování k němu přibude „Ověřuji metadata: 3/12“. Dřív se vypisoval každý zdroj
+        zvlášť („Luna: 8 · WebShare: 12 · …“) — na TV nečitelné (2026-09-16, přání uživatele)."""
         percent = int(self.done / self.total * 100)
+        parts = []
+        if self.sources:
+            parts.append(L(30240, "Nalezené streamy: {count}").format(count=sum(n for _label, n in self.sources)))
         if self.audio_total:
-            text = L(30239, "Ověřuji metadata: {done}/{total}").format(
-                done=self.audio_done, total=self.audio_total)
-        elif self.sources:
-            text = L(30240, "Nalezené streamy: {count}").format(count=sum(n for _label, n in self.sources))
+            parts.append(L(30239, "Ověřuji metadata: {done}/{total}").format(
+                done=self.audio_done, total=self.audio_total))
+        if parts:
+            self.bar.update(percent, " · ".join(parts))
         else:
             # hledání titulu (search_run) source()/audio() nehlásí — nechává si text z create()
             self.bar.update(percent)
-            return
-        self.bar.update(percent, text)
 
     def tick(self):
         with self.lock:

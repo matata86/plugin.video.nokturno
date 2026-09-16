@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.7~beta22" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.7~beta23" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,7 +23,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>5.2.7~beta22 – Názvy titulů už bez roku v závorce („Matrix“ místo „Matrix (1999)“) — rok ukazuje každý seznam zvlášť, byl tam dvakrát; i u dřív uložených položek Mého seznamu a Pokračovat. Ukazatel při načítání streamů ukazuje jen „Nalezené streamy: N“ (průběžně přibývá) a po načtení „Ověřuji metadata: x/y“ místo dlouhého výčtu po zdrojích
+    <news>5.2.7~beta23 – Ukazatel při načítání streamů: „Nalezené streamy: N“ zůstává vidět po celou dobu, během ověřování k nim jen přibude „Ověřuji metadata: x/y“
+5.2.7~beta22 – Názvy titulů už bez roku v závorce („Matrix“ místo „Matrix (1999)“) — rok ukazuje každý seznam zvlášť, byl tam dvakrát; i u dřív uložených položek Mého seznamu a Pokračovat. Ukazatel při načítání streamů ukazuje jen „Nalezené streamy: N“ (průběžně přibývá) a po načtení „Ověřuji metadata: x/y“ místo dlouhého výčtu po zdrojích
 5.2.7~beta21 – Rychlejší vypínání Kodi (na testovacím boxu z víc než dvou minut na 10 sekund): služba doplňku i hledání (napříč zdroji, čtení hlaviček souborů, procházení vlastního úložiště, přepočet „Nově přidané s CZ dabingem/titulky“) teď na ukončení Kodi reagují do vteřin. Opravené i úplné zaseknutí vypínání po widgetu „Nově přidané“, který po sobě nechával visící vlákna. Zpět při „Načítám streamy…“ hledání opravdu zastaví, ne jen schová ukazatel
 5.2.7~beta20 – Přehrát v detailu titulu teď funguje v Arctic Fuse i Estuary i v režimu „Vybrat ze seznamu streamů“: film a díl v menu Nokturna už není složka — klik otevře seznam streamů, Přehrát (tlačítko v detailu, TMDb Helper, Play na ovladači) nabídne výběr streamu a přehraje. Můj seznam, Pokračovat ve sledování a Naposledy zhlédnuté ukazují jako katalogy i hodnocení, žánr, stopáž a věkové omezení (starší položky se samy doplní při prvním otevření). Všechny seznamy filmů a seriálů mají vpravo rok — dřív Můj seznam ukazoval stopáž a žebříček rok. (Beta 19 je vyhrazená pro rychlejší vypínání Kodi, vyjde samostatně.)
 5.2.7~beta18 – Oprava bety 17, která v režimu „Vybrat ze seznamu streamů“ shodila výpisy filmů a dílů i widget Pokračovat (špatný název metody Kodi API) — tu betu přeskočte

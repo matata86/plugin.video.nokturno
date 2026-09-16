@@ -468,7 +468,7 @@ class TestJadroVKodi(unittest.TestCase):
         self.assertEqual([type(e).__name__ for e in errors], ["SourceFailure", "SourceFailure"])
         self.assertEqual(default.skipped_notice(errors),
                          "Luna neodpovídá; WebShare: login: Wrong password — přeskočeno")
-        bar.update.assert_called_with(int(3 / 8 * 100), "Ověřuji metadata: 2/4")
+        bar.update.assert_called_with(int(3 / 8 * 100), "Nalezené streamy: 1 · Ověřuji metadata: 2/4")
         # chyba jádra v hlášce nese zdroj sama
         self.assertEqual(default.describe_error(default.NokturnoError("WebShare: soubor není")), "WebShare: soubor není")
         self.assertEqual(default.error_label(default.NokturnoError("Chybí odkaz na stream.")), "Nokturno")
@@ -485,17 +485,21 @@ class TestJadroVKodi(unittest.TestCase):
         progress.source("WebShare", 28)
         bar.update.assert_called_with(10, "Nalezené streamy: 35")
 
-    def test_search_progress_metadata_nahradi_nalezene_streamy(self):
-        """Poslední fáze (čtení hlaviček) — text se přepne jen na „Ověřuji metadata: x/y“."""
+    def test_search_progress_metadata_pribudou_k_nalezenym_streamum(self):
+        """Poslední fáze (čtení hlaviček) — „Nalezené streamy“ zůstávají, přibude
+        „Ověřuji metadata: x/y“ (2026-09-16, přání uživatele)."""
         bar = mock.Mock()
         progress = default.SearchProgress(bar, 10)
         progress.source("WebShare", 12)
         progress.audio(0, 5)
-        bar.update.assert_called_with(0, "Ověřuji metadata: 0/5")
+        bar.update.assert_called_with(0, "Nalezené streamy: 12 · Ověřuji metadata: 0/5")
         progress.audio(3, 5)
-        bar.update.assert_called_with(0, "Ověřuji metadata: 3/5")
+        bar.update.assert_called_with(0, "Nalezené streamy: 12 · Ověřuji metadata: 3/5")
         progress.source("Vlastní úložiště", 2)   # zdroj dorazí až během ověřování
-        bar.update.assert_called_with(0, "Ověřuji metadata: 3/5")
+        bar.update.assert_called_with(0, "Nalezené streamy: 14 · Ověřuji metadata: 3/5")
+        holy = default.SearchProgress(mock.Mock(), 10)   # bez zdrojů jen metadata
+        holy.audio(1, 2)
+        holy.bar.update.assert_called_with(0, "Ověřuji metadata: 1/2")
 
     def test_resolve_url_pres_jadro_a_token(self):
         engine = default.KodiEngine()
