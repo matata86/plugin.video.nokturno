@@ -1870,7 +1870,7 @@ class Engine:
         return [self._describe(s, i) for i, s in enumerate(ordered)]
 
     def raw_streams(self, ctype, item_id, alt=None, series_id=None, on_progress=None, failures=None,
-                    strict=True, meta_video=None, probe_audio=True):
+                    strict=True, meta_video=None, probe_audio=True, on_source_done=None):
         """Seřazené streamy titulu ze všech dostupných zdrojů — surové slovníky.
 
         `probe_audio=False`: vynechá `_fill_audio()` (čtení hlaviček souborů) — pro
@@ -1898,6 +1898,11 @@ class Engine:
         `strict=False` = ruční „zkusit uvolněný fulltext“: WebShare/HellSpy/Sledujteto
         s volnějším filtrem názvu (viz `_title_queries`), výsledek značený `_loose`
         a mimo cache. `meta_video`: (meta, video) už načtené volajícím, ať se nečtou dvakrát.
+
+        `on_source_done(label, count)`, je-li dán, se volá po dokončení každého jednotlivého
+        zdroje (na rozdíl od `on_progress` ví odkud a kolik) — jen při čerstvém hledání,
+        cache hit ho vůbec nespustí. Volající si z toho může postavit průběžný přehled
+        „WebShare: 12 · HellSpy: 3…“ místo pouhého procenta.
         """
         failures = [] if failures is None else failures
         total = self.STREAM_SOURCE_STEPS + AUDIO_PROBE_MAX
@@ -1935,6 +1940,8 @@ class Engine:
                     failures.append(("Sosáč" if is_sosac_id(base_id) else "Luna", err))
                 found = []
             tick()
+            if on_source_done:
+                on_source_done("Sosáč" if is_sosac_id(base_id) else "Luna", len(found))
             # titul otevřený jen podle IMDb id (z databáze filmů) má v metadatech mezinárodní přepis
             # („Sunday League…“), pod kterým Sosáč nic nenajde — podstrčíme mu český název z TMDB
             if not found and not alt and not is_sosac_id(base_id) and str(base_id).startswith("tt"):
@@ -1961,8 +1968,11 @@ class Engine:
                     return []
             with ThreadPoolExecutor(max_workers=len(zdroje)) as pool:
                 futures = [pool.submit(bezpecne, label, fetch) for label, fetch in zdroje]
+                label_by_future = dict(zip(futures, (label for label, _fetch in zdroje)))
                 for future in as_completed(futures):
                     tick()
+                    if on_source_done:
+                        on_source_done(label_by_future[future], len(future.result()))
                 # pořadí zdrojů drží (Luna/Sosáč napřed) — na něm stojí párování v _merge_direct
                 for future in futures:
                     found += future.result()
@@ -2016,6 +2026,8 @@ class Engine:
                 _LOGGER.warning("streamy %s (úložiště): %s", item_id, err)
                 failures.append(("Úložiště", err))
                 local = []
+        if on_source_done:
+            on_source_done("Vlastní úložiště", len(local))
         for stream in local:
             parse_stream(stream)
             if not stream.get("quality_rank"):
