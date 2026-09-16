@@ -3,6 +3,14 @@
   <section id="plugin.video.nokturno">
     <category id="ws" label="30050">
       <group id="1">
+        <setting id="remote_setup_action" type="action" label="30447" help="30448">
+          <level>0</level>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=remote_setup)</data>
+          <control format="action" type="button"/>
+        </setting>
         <setting id="ws_enabled" type="boolean" label="30051" help="30300">
           <level>0</level>
           <default>false</default>
@@ -643,6 +651,14 @@
     </category>
     <category id="advanced" label="30105" help="30329">
       <group id="1">
+        <setting id="remote_setup_advanced_action" type="action" label="30447" help="30448">
+          <level>0</level>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=remote_setup)</data>
+          <control format="action" type="button"/>
+        </setting>
         <setting id="wizard_action" type="action" label="30359">
           <level>0</level>
           <constraints>

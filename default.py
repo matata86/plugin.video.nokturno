@@ -44,6 +44,8 @@ from store import Store, migrate_profile  # noqa: E402
 from source_errors import describe_failure, summarize as summarize_failures  # noqa: E402
 from sync import sync_once  # noqa: E402
 from streams import estimate_rank, langs_from_name, parse_stream, subs_from_name  # noqa: E402
+from qr import encode as qr_encode, to_png as qr_png  # noqa: E402
+from remote_setup import SetupServer  # noqa: E402
 from tracks import FILE_CODES, SUBTITLE_FALLBACK, decode_subtitle, subtitle_format, subtitle_lang  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
 from webshare_api import SORTS, WebshareApi, WebshareError, human_size  # noqa: E402
@@ -1614,6 +1616,242 @@ def accounts_set():
                                             "tmdb_api_key", "dav1_url", "dav2_url", "dav3_url"))
 
 
+# --- Nastavit z mobilu -----------------------------------------------------------------
+
+# kategorie nastavení, které jdou vyplnit z mobilu; Pokročilé a Info jsou jen tlačítka akcí,
+# Stahování chce cestu vybranou v Kodi
+REMOTE_SETUP_CATEGORIES = ("ws", "sosac", "hs", "st", "fs", "luna", "storage", "database", "playback",
+                           "streamlist", "trakt", "sync", "stats")
+REMOTE_SETUP_TIMEOUT = 600
+KODI_TAG_RE = re.compile(r"\[/?(?:B|I|CR|COLOR|UPPERCASE|LOWERCASE|CAPITALIZE|LIGHT)[^\]]*\]")
+
+
+def _plain(text):
+    return KODI_TAG_RE.sub(" ", text or "").strip()
+
+
+def remote_setup_schema():
+    """Formulář pro mobil přímo ze `settings.xml` — nová položka nastavení se na stránce
+    objeví sama. Popisky a nápověda jdou z `strings.po` v jazyce Kodi."""
+    import xml.etree.ElementTree as ET
+    root = ET.parse(os.path.join(ADDON_PATH, "resources", "settings.xml")).getroot()
+    sections = []
+    for category in root.iter("category"):
+        if category.get("id") not in REMOTE_SETUP_CATEGORIES:
+            continue
+        fields = []
+        for node in category.iter("setting"):
+            kind, control = node.get("type"), node.find("control")
+            field = {"id": node.get("id")}
+            if kind == "boolean":
+                field["type"] = "bool"
+            elif kind == "string":
+                field["type"] = "password" if control is not None and control.find("hidden") is not None else "text"
+            elif kind == "integer" and node.find("constraints/options") is not None:
+                field["type"] = "choice"
+                field["options"] = [(opt.text, _plain(L(int(opt.get("label")), opt.text)) if opt.get("label")
+                                     else opt.text) for opt in node.find("constraints/options")]
+            elif kind == "integer" and node.find("constraints/maximum") is not None:
+                low = int(node.findtext("constraints/minimum") or 0)
+                step = int(node.findtext("constraints/step") or 1)
+                high = int(node.findtext("constraints/maximum"))
+                field["type"] = "choice"
+                field["options"] = [(str(v), str(v)) for v in range(low, high + 1, step)]
+            else:
+                continue
+            field["default"] = (node.findtext("default") or "").strip()
+            field["label"] = _plain(L(int(node.get("label")), node.get("id"))) if node.get("label") else node.get("id")
+            if node.get("help"):
+                field["help"] = _plain(L(int(node.get("help"))))
+            dep = node.find("dependencies/dependency[@type='enable']")
+            if dep is not None and dep.get("setting"):
+                field["enable"] = (dep.get("setting"), (dep.text or "").strip())
+            fields.append(field)
+        if fields:
+            sections.append({"id": category.get("id"), "label": _plain(L(int(category.get("label")))),
+                             "fields": fields, "open": not sections})
+    return sections
+
+
+class RemoteSetupWindow(xbmcgui.WindowDialog):
+    """Okno s QR kódem. Neblokuje — `remote_setup()` mezitím čeká na mobil; Zpět zruší."""
+    CANCEL_ACTIONS = (9, 10, 13, 92)   # PARENT_DIR, PREVIOUS_MENU, STOP, NAV_BACK
+
+    def __init__(self, qr_path, backdrop_path, url):
+        super().__init__()
+        self.cancelled = False
+        self.addControl(xbmcgui.ControlImage(0, 0, 1280, 720, backdrop_path, colorDiffuse="F20D0B14"))
+        self.addControl(xbmcgui.ControlLabel(90, 70, 1100, 50, "[B]%s[/B]" % L(30447, "Nastavit z mobilu"),
+                                             font="font13", textColor="FFFFFFFF"))
+        self.addControl(xbmcgui.ControlImage(90, 150, 400, 400, qr_path))
+        steps = xbmcgui.ControlTextBox(540, 160, 660, 220, font="font13", textColor="FFE6E1F0")
+        self.addControl(steps)
+        steps.setText(L(30452, "1. Připoj mobil ke stejné Wi-Fi jako tenhle přístroj.[CR]"
+                               "2. Naskenuj QR kód fotoaparátem, nebo otevři v prohlížeči adresu:"))
+        self.addControl(xbmcgui.ControlLabel(540, 400, 700, 60, "[B]%s[/B]" % url, font="font13",
+                                             textColor="FFC4B5FD"))
+        self.addControl(xbmcgui.ControlLabel(90, 610, 1100, 40, L(30453, "Zpět zruší · adresa platí 10 minut "
+                                                                          "a pro jedno uložení"),
+                                             font="font13", textColor="FF9B95AD"))
+
+    def onAction(self, action):
+        if action.getId() in self.CANCEL_ACTIONS:
+            self.cancelled = True
+            self.close()
+
+
+def remote_setup():
+    """„Nastavit z mobilu“ (Nastavení → Pokročilé, průvodce): QR s místní adresou, mobil ve
+    stejné Wi-Fi vyplní formulář, Kodi uloží změny. Server (`lib/remote_setup.py`) běží jen
+    po dobu dialogu. Vrací počet uložených položek, nebo None při zrušení/chybě.
+
+    Otevřený dialog nastavení doplňku se nejdřív zavře: drží vlastní kopii hodnot a při
+    zavření by změny z mobilu přepsal."""
+    if xbmc.getCondVisibility("Window.IsVisible(addonsettings)"):
+        xbmc.executebuiltin("Dialog.Close(addonsettings,true)")
+        for _ in range(30):
+            if not xbmc.getCondVisibility("Window.IsVisible(addonsettings)") or MONITOR.waitForAbort(0.1):
+                break
+    ip = xbmc.getIPAddress()
+    if not ip or ip.startswith("127.") or ip == "0.0.0.0":
+        xbmcgui.Dialog().ok(L(30447, "Nastavit z mobilu"),
+                            L(30454, "Tenhle přístroj nemá adresu v místní síti. Připoj ho k Wi-Fi nebo kabelem "
+                                     "a zkus to znovu."))
+        return None
+    schema = remote_setup_schema()
+    # neuložená položka: výchozí hodnota ze settings.xml — jinak by prohlížeč u výběru poslal
+    # první volbu a u přepínače „vypnuto“ a uložilo by se, co uživatel neměnil
+    values = {f["id"]: ADDON.getSetting(f["id"]) or f["default"] for section in schema for f in section["fields"]}
+    texts = {
+        "title": "Nokturno — " + L(30447, "Nastavit z mobilu"),
+        "intro": L(30458, "Vyplň, co chceš změnit, a ulož. Nastavení se hned propíše do Kodi."),
+        "save": L(30459, "Uložit do Kodi"),
+        "saved": L(30460, "Uloženo. Nastavení je v Kodi, stránku můžeš zavřít."),
+        "password_set": L(30461, "vyplněno — nech prázdné beze změny"),
+        "expired": L(30462, "Tahle adresa už neplatí. Na TV spusť Nastavit z mobilu znovu."),
+        "invalid": L(30463, "Neplatná hodnota: %s").replace("%s", "{}"),
+    }
+    server = SetupServer(schema, values, texts)
+    try:
+        server.start()
+    except OSError as e:
+        xbmcgui.Dialog().ok(L(30447, "Nastavit z mobilu"), Lf(30455, e) if L(30455) else str(e))
+        return None
+    url = server.url(ip)
+    qr_path = os.path.join(PROFILE, "remote-setup-%s.png" % server.token[:8])
+    backdrop = os.path.join(PROFILE, "remote-setup-bg.png")
+    changes, window = None, None
+    try:
+        xbmcvfs.mkdirs(PROFILE)
+        with open(qr_path, "wb") as f:
+            f.write(qr_png(qr_encode(url), scale=12, border=2))
+        with open(backdrop, "wb") as f:
+            f.write(qr_png([[False]], scale=1, border=0))
+        xbmc.log(f"[{ADDON_ID}] nastavení z mobilu: server na portu {server.port}", xbmc.LOGINFO)
+        window = RemoteSetupWindow(qr_path, backdrop, url)
+        window.show()
+        deadline = time.time() + REMOTE_SETUP_TIMEOUT
+        while time.time() < deadline and not window.cancelled and not should_stop():
+            changes = server.wait_result(0.25)
+            if changes is not None or server.finished:
+                break
+    finally:
+        if window is not None:
+            window.close()
+            del window
+        server.stop()
+        try:
+            os.remove(qr_path)
+        except OSError:
+            pass
+    if changes is None:
+        return None
+    for key, value in changes.items():
+        ADDON.setSetting(key, value)
+    if any(k.startswith("ws_") for k in changes):
+        xbmcgui.Window(10000).clearProperty("nokturno.ws_token")   # nový účet = nový login
+    xbmc.log(f"[{ADDON_ID}] nastavení z mobilu uloženo: {', '.join(sorted(changes))}", xbmc.LOGINFO)
+    if changes:
+        notify(Lf(30456, len(changes)) if L(30456) else "Nastavení z mobilu uloženo (%d)" % len(changes))
+    else:
+        notify(L(30457, "Z mobilu nepřišla žádná změna"))
+    return len(changes)
+
+
+def remote_setup_action():
+    """Tlačítko v nastavení (RunPlugin, bez výpisu) — po uložení otevře nastavení znovu."""
+    saved = remote_setup()
+    if HANDLE >= 0:
+        xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
+    if saved:
+        ADDON.openSettings()
+
+
+def _wizard_accounts(dialog):
+    """Průvodce ovladačem: účty a zdroje otázku po otázce."""
+    if dialog.yesno(L(30340, "WebShare"), L(30341, "Máš účet WebShare?")):
+        user = dialog.input(L(30342, "WebShare — e-mail"))
+        if user:
+            pwd = dialog.input(L(30343, "WebShare — heslo"), option=xbmcgui.ALPHANUM_HIDE_INPUT)
+            if pwd:
+                ADDON.setSetting("ws_username", user)
+                ADDON.setSetting("ws_password", pwd)
+                ADDON.setSetting("ws_enabled", "true")
+
+    if dialog.yesno(L(30344, "Sosáč"),
+                     L(30345, "Máš účet Streamuj.tv (přehrávač Sosáče)?[CR]"
+                              "Katalogy Sosáče fungují i bez účtu, jen pro přehrávání je potřeba.")):
+        user = dialog.input(L(30346, "Streamuj.tv — uživatel"))
+        if user:
+            pwd = dialog.input(L(30347, "Streamuj.tv — heslo"), option=xbmcgui.ALPHANUM_HIDE_INPUT)
+            if pwd:
+                ADDON.setSetting("streamuj_username", user)
+                ADDON.setSetting("streamuj_password", pwd)
+        ADDON.setSetting("sosac_enabled", "true")
+
+    if dialog.yesno(L(30348, "Luna: Absolute Cinema"),
+                     L(30349, "Máš v síti spuštěný server Luna: Absolute Cinema?")):
+        addr = dialog.input(L(30350, "Adresa doplňku nebo token ze setu Luny"))
+        if addr:
+            ADDON.setSetting("token", addr)
+            ADDON.setSetting("luna_enabled", "true")
+
+    if dialog.yesno(L(30351, "HellSpy"), L(30352, "Zapnout HellSpy? Je zdarma a nepotřebuje žádný účet.")):
+        ADDON.setSetting("hs_enabled", "true")
+
+    if dialog.yesno(L(30367, "Sledujteto"),
+                     L(30388, "Máš účet Sledujteto?[CR]"
+                              "Hledá se přes tvůj účet, přehrávat jde jen s Premium.")):
+        email = dialog.input(L(30389, "Sledujteto — e-mail"))
+        if email:
+            pwd = dialog.input(L(30390, "Sledujteto — heslo"), option=xbmcgui.ALPHANUM_HIDE_INPUT)
+            if pwd:
+                ADDON.setSetting("st_email", email)
+                ADDON.setSetting("st_password", pwd)
+                ADDON.setSetting("st_enabled", "true")
+
+    if dialog.yesno(L(30417, "FastShare"),
+                     L(30424, "Máš účet FastShare?[CR]"
+                              "Hledá se i bez něj, přehrání jde z tvého kreditu nebo neomezeného tarifu.")):
+        user = dialog.input(L(30420, "FastShare — uživatel"))
+        if user:
+            pwd = dialog.input(L(30422, "FastShare — heslo"), option=xbmcgui.ALPHANUM_HIDE_INPUT)
+            if pwd:
+                ADDON.setSetting("fs_username", user)
+                ADDON.setSetting("fs_password", pwd)
+                ADDON.setSetting("fs_enabled", "true")
+
+    if dialog.yesno(L(30353, "Vlastní databáze filmů a seriálů"),
+                     L(30354, "Chceš zadat zdarma klíč TMDB, aby popisy a obsazení filmů byly česky? (nepovinné)")):
+        dialog.ok(L(30353, "Vlastní databáze filmů a seriálů"),
+                  L(30355, "Klíč se zakládá zdarma na themoviedb.org -> ikona profilu -> Nastavení -> API -> "
+                           "Request an API Key -> Developer -> zkopírovat \"API Key (v3 auth)\".[CR]"
+                           "Podrobný návod je i v nápovědě u tohoto nastavení."))
+        key = dialog.input(L(30356, "API klíč TMDB"))
+        if key:
+            ADDON.setSetting("tmdb_api_key", key)
+
+
 def setup_wizard(force=False):
     """Průvodce prvním nastavením — nabídne se sám při prvním otevření doplňku,
     ať uživatel nemusí sám hledat, co a kde v nastavení vyplnit. Jde přeskočit
@@ -1632,93 +1870,44 @@ def setup_wizard(force=False):
             STORE.save("wizard_done", True)
             return
     dialog = xbmcgui.Dialog()
-    if dialog.yesno(
-        L(30336, "Vítej v Nokturnu"),
-        L(30337, "Projdeme spolu základní nastavení zdrojů, zabere to necelou minutu.[CR]"
-                 "Kdykoli to můžeš přeskočit a doplnit později v Nastavení doplňku."),
-        yeslabel=L(30338, "Pojďme na to"), nolabel=L(30339, "Přeskočit"),
-    ):
-        if dialog.yesno(L(30340, "WebShare"), L(30341, "Máš účet WebShare?")):
-            user = dialog.input(L(30342, "WebShare — e-mail"))
-            if user:
-                pwd = dialog.input(L(30343, "WebShare — heslo"), option=xbmcgui.ALPHANUM_HIDE_INPUT)
-                if pwd:
-                    ADDON.setSetting("ws_username", user)
-                    ADDON.setSetting("ws_password", pwd)
-                    ADDON.setSetting("ws_enabled", "true")
+    while True:
+        # úvodní volba (přání uživatele 2026-09-16): z mobilu, průvodce ovladačem, nebo přeskočit
+        choice = dialog.yesnocustom(
+            L(30336, "Vítej v Nokturnu"),
+            L(30449, "Účty a zdroje můžeš vyplnit v mobilu — na TV se ukáže QR kód, stačí mobil ve stejné "
+                     "Wi-Fi a hesla nepíšeš ovladačem. Nebo projdi krátkého průvodce ovladačem.[CR]"
+                     "Kdykoli to můžeš přeskočit a doplnit později v Nastavení doplňku."),
+            customlabel=L(30450, "Z mobilu"), nolabel=L(30339, "Přeskočit"), yeslabel=L(30451, "Průvodce ovladačem"),
+        )
+        if choice == 2:
+            if remote_setup() is None:
+                continue   # zrušeno nebo bez sítě → zpátky na volbu
+            break
+        if choice == 1:
+            _wizard_accounts(dialog)
+            break
+        STORE.save("wizard_done", True)
+        return
 
-        if dialog.yesno(L(30344, "Sosáč"),
-                         L(30345, "Máš účet Streamuj.tv (přehrávač Sosáče)?[CR]"
-                                  "Katalogy Sosáče fungují i bez účtu, jen pro přehrávání je potřeba.")):
-            user = dialog.input(L(30346, "Streamuj.tv — uživatel"))
-            if user:
-                pwd = dialog.input(L(30347, "Streamuj.tv — heslo"), option=xbmcgui.ALPHANUM_HIDE_INPUT)
-                if pwd:
-                    ADDON.setSetting("streamuj_username", user)
-                    ADDON.setSetting("streamuj_password", pwd)
-            ADDON.setSetting("sosac_enabled", "true")
+    if dialog.yesno(L(30361, "Rychlost internetu"),
+                     L(30362, "Chceš teď změřit rychlost internetu a podle ní nastavit nejvyšší dovolený "
+                              "datový tok streamů? Zabrání to sekání při přehrávání příliš velkého souboru.[CR]"
+                              "Zabere necelou minutu, jde udělat i později v Nastavení → Přehrávání.")):
+        speedtest()
 
-        if dialog.yesno(L(30348, "Luna: Absolute Cinema"),
-                         L(30349, "Máš v síti spuštěný server Luna: Absolute Cinema?")):
-            addr = dialog.input(L(30350, "Adresa doplňku nebo token ze setu Luny"))
-            if addr:
-                ADDON.setSetting("token", addr)
-                ADDON.setSetting("luna_enabled", "true")
+    # jen když TMDb Helper je — jinak by otázka nedávala smysl (bez něj Přehrát v detailu
+    # filmu z widgetů Nokturna funguje samo, player je jen pro detail z TMDb Helperu)
+    if tmdbhelper_installed() and dialog.yesno(
+            L(30415, "Přehrát z detailu filmu"),
+            L(30416, "Máš doplněk TMDb Helper (detail filmu v Arctic Fuse a dalších skinech).[CR]"
+                     "Nastavit Nokturno jako jeho přehrávač? Tlačítko Přehrát v detailu pak hledá "
+                     "streamy v Nokturnu.")):
+        if not install_tmdbhelper_player(set_default=True):
+            notify(L(30413, "Přidání do TMDb Helperu selhalo"), xbmcgui.NOTIFICATION_ERROR)
 
-        if dialog.yesno(L(30351, "HellSpy"), L(30352, "Zapnout HellSpy? Je zdarma a nepotřebuje žádný účet.")):
-            ADDON.setSetting("hs_enabled", "true")
-
-        if dialog.yesno(L(30367, "Sledujteto"),
-                         L(30388, "Máš účet Sledujteto?[CR]"
-                                  "Hledá se přes tvůj účet, přehrávat jde jen s Premium.")):
-            email = dialog.input(L(30389, "Sledujteto — e-mail"))
-            if email:
-                pwd = dialog.input(L(30390, "Sledujteto — heslo"), option=xbmcgui.ALPHANUM_HIDE_INPUT)
-                if pwd:
-                    ADDON.setSetting("st_email", email)
-                    ADDON.setSetting("st_password", pwd)
-                    ADDON.setSetting("st_enabled", "true")
-
-        if dialog.yesno(L(30417, "FastShare"),
-                         L(30424, "Máš účet FastShare?[CR]"
-                                  "Hledá se i bez něj, přehrání jde z tvého kreditu nebo neomezeného tarifu.")):
-            user = dialog.input(L(30420, "FastShare — uživatel"))
-            if user:
-                pwd = dialog.input(L(30422, "FastShare — heslo"), option=xbmcgui.ALPHANUM_HIDE_INPUT)
-                if pwd:
-                    ADDON.setSetting("fs_username", user)
-                    ADDON.setSetting("fs_password", pwd)
-                    ADDON.setSetting("fs_enabled", "true")
-
-        if dialog.yesno(L(30353, "Vlastní databáze filmů a seriálů"),
-                         L(30354, "Chceš zadat zdarma klíč TMDB, aby popisy a obsazení filmů byly česky? (nepovinné)")):
-            dialog.ok(L(30353, "Vlastní databáze filmů a seriálů"),
-                      L(30355, "Klíč se zakládá zdarma na themoviedb.org -> ikona profilu -> Nastavení -> API -> "
-                               "Request an API Key -> Developer -> zkopírovat \"API Key (v3 auth)\".[CR]"
-                               "Podrobný návod je i v nápovědě u tohoto nastavení."))
-            key = dialog.input(L(30356, "API klíč TMDB"))
-            if key:
-                ADDON.setSetting("tmdb_api_key", key)
-
-        if dialog.yesno(L(30361, "Rychlost internetu"),
-                         L(30362, "Chceš teď změřit rychlost internetu a podle ní nastavit nejvyšší dovolený "
-                                  "datový tok streamů? Zabrání to sekání při přehrávání příliš velkého souboru.[CR]"
-                                  "Zabere necelou minutu, jde udělat i později v Nastavení → Přehrávání.")):
-            speedtest()
-
-        # jen když TMDb Helper je — jinak by otázka nedávala smysl (bez něj Přehrát v detailu
-        # filmu z widgetů Nokturna funguje samo, player je jen pro detail z TMDb Helperu)
-        if tmdbhelper_installed() and dialog.yesno(
-                L(30415, "Přehrát z detailu filmu"),
-                L(30416, "Máš doplněk TMDb Helper (detail filmu v Arctic Fuse a dalších skinech).[CR]"
-                         "Nastavit Nokturno jako jeho přehrávač? Tlačítko Přehrát v detailu pak hledá "
-                         "streamy v Nokturnu.")):
-            if not install_tmdbhelper_player(set_default=True):
-                notify(L(30413, "Přidání do TMDb Helperu selhalo"), xbmcgui.NOTIFICATION_ERROR)
-
-        dialog.ok(L(30357, "Nastavení uloženo"),
-                  L(30358, "Hotovo! Cokoli z tohohle můžeš kdykoli změnit v Nastavení doplňku.[CR]"
-                           "Bez zadaného zdroje budou katalog a hledání fungovat i tak, jen anglicky."))
+    dialog.ok(L(30357, "Nastavení uloženo"),
+              L(30358, "Hotovo! Cokoli z tohohle můžeš kdykoli změnit v Nastavení doplňku.[CR]"
+                       "Bez zadaného zdroje budou katalog a hledání fungovat i tak, jen anglicky."))
     STORE.save("wizard_done", True)
 
 
@@ -3701,6 +3890,7 @@ def router(query):
         "log_send": log_send,
         "website_info": website_info,
         "test_sources": test_sources,
+        "remote_setup": remote_setup_action,
         "setup_wizard": lambda: (setup_wizard(force=True),
                                  xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
         "sub_status": sub_status,
