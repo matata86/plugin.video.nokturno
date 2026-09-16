@@ -850,13 +850,12 @@ class TestSeznamStreamu(unittest.TestCase):
     def test_prehrat_nad_slozkou_streamu_jde_do_vyberu_streamu(self):
         """Přehrát v info dialogu (Estuary, Arctic Fuse, TMDb Helper) nad titulem, který
         je v režimu seznamu složkou: Kodi vloží adresu složky do video playlistu a spustí
-        skript s `action=streams` v režimu přehrání (čeká `setResolvedUrl`), po 1,5 s
-        otevře svůj progressdialog. Vybraná položka + adresa v playlistu + progressdialog
-        → `play(ask=1)` místo výpisu (dvakrát na Office 2026-09-16: „položku se nepodařilo
-        přehrát")."""
+        skript s `action=streams` v režimu přehrání (čeká `setResolvedUrl`) s nastavenou
+        `Playlist.Position`. Vybraná položka + adresa v playlistu + pozice → `play(ask=1)`
+        místo výpisu (dvakrát na Office 2026-09-16: „položku se nepodařilo přehrát")."""
         url = "plugin://plugin.video.nokturno/?action=streams&id=tt0133093&type=movie"
         xbmc.info_labels["ListItem.FileNameAndPath"] = url
-        xbmc.cond_visible.add("Window.IsActive(progressdialog)")
+        xbmc.info_labels["Playlist.Position"] = "1"
         with mock.patch.object(xbmc, "executeJSONRPC",
                                return_value=json.dumps({"result": {"items": [{"file": url}]}})), \
              mock.patch.object(default, "get_apis", return_value={}), \
@@ -869,16 +868,14 @@ class TestSeznamStreamu(unittest.TestCase):
         self.assertEqual(play.call_args[1]["ask"], "1")
 
     def test_klik_na_slozku_streamu_vypisuje_i_kdyz_je_vybrana_a_v_playlistu(self):
-        """Obyčejný klik na tutéž (vybranou) položku poté, co se jednou přehrála z detailu
-        (adresa zůstala v playlistu): Kodi ukazuje busy dialog, progressdialog nikdy →
-        po krátkém čekání výpis. Busy dialog sám o sobě nerozhoduje (beta13: při Přehrát
-        z detailu byl aktivní taky)."""
+        """Obyčejný klik na tutéž (vybranou) položku poté, co uživatel výběr streamu z detailu
+        zrušil (adresa složky zůstala v playlistu): `Playlist.Position` je prázdné → výpis.
+        Busy dialog nerozhoduje — Kodi 21 ho ukazuje v obou režimech (beta13/14 na Office)."""
         url = "plugin://plugin.video.nokturno/?action=streams&id=tt0133093&type=movie"
         xbmc.info_labels["ListItem.FileNameAndPath"] = url
         xbmc.cond_visible.add("Window.IsActive(busydialog)")
         with mock.patch.object(xbmc, "executeJSONRPC",
                                return_value=json.dumps({"result": {"items": [{"file": url}]}})), \
-             mock.patch.object(default, "PLAY_REQUEST_WAIT", 0.15), \
              mock.patch.object(default, "get_apis", return_value={}), \
              mock.patch.object(default, "play") as play, \
              mock.patch.object(default, "list_streams") as listing:
@@ -888,27 +885,25 @@ class TestSeznamStreamu(unittest.TestCase):
 
     def test_files_getdirectory_z_json_rpc_nad_vybranou_polozkou_vypisuje(self):
         """JSON-RPC `Files.GetDirectory` (HA, zahřívání) a vybraná položka v Kodi může
-        náhodou být tatáž — adresa není v playlistu → výpis hned, bez čekání a bez
-        modálního dialogu (CLAUDE.md)."""
+        náhodou být tatáž — adresa není v playlistu → výpis, bez modálního dialogu
+        (CLAUDE.md)."""
         url = "plugin://plugin.video.nokturno/?action=streams&id=tt0133093&type=movie"
         xbmc.info_labels["ListItem.FileNameAndPath"] = url
         with mock.patch.object(xbmc, "executeJSONRPC",
                                return_value=json.dumps({"result": {"items": [
                                    {"file": "plugin://plugin.video.nokturno/?action=streams&id=tt1&type=movie"}]}})), \
-             mock.patch.object(xbmc, "sleep") as slept, \
              mock.patch.object(default, "get_apis", return_value={}), \
              mock.patch.object(default, "play") as play, \
              mock.patch.object(default, "list_streams") as listing:
             default.router("action=streams&type=movie&id=tt0133093")
         play.assert_not_called()
         listing.assert_called_once()
-        slept.assert_not_called()
 
     def test_play_request_porovnava_parametry_ne_text_adresy(self):
         """Kodi (`CURL`) si parametry v adrese přeskládá abecedně a chybějící/prázdné
         `build_url` vynechává — porovnání musí být přes slovník parametrů."""
         xbmc.info_labels["ListItem.FolderPath"] = "plugin://plugin.video.nokturno/?type=movie&id=tt1&action=streams"
-        xbmc.cond_visible.add("Window.IsActive(progressdialog)")
+        xbmc.info_labels["Playlist.Position"] = "1"
         with mock.patch.object(xbmc, "executeJSONRPC", return_value=json.dumps({"result": {"items": [
                 {"file": "plugin://plugin.video.nokturno/?id=tt1&action=streams&type=movie"}]}})):
             self.assertTrue(default.play_request({"action": "streams", "type": "movie", "id": "tt1", "alt": ""}))

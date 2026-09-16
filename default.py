@@ -779,9 +779,6 @@ def plugin_params(url):
     return dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(str(url or "")).query))
 
 
-PLAY_REQUEST_WAIT = 2.5   # Kodi otevře progressdialog po 1,5 s čekání na skript (PluginDirectory.cpp)
-
-
 def play_request(params):
     """Spustilo Kodi `action=streams` kvůli PŘEHRÁNÍ, ne kvůli výpisu složky?
 
@@ -791,18 +788,19 @@ def play_request(params):
     s adresou složky (`action=streams`) v režimu přehrání, kde čeká `setResolvedUrl`. Skript
     to nepozná z argumentů (jsou stejné jako u výpisu), Kodi mu to neřekne — dřív tak výpis
     složky skončil bez přehrání „položku se nepodařilo přehrát“ (Office 2026-09-16, dvakrát,
-    Mayday a Matrix). Rozlišuje se podle tří stop, které přehrání zanechá a výpis ne:
+    Mayday a Matrix). Rozlišuje se podle tří stop, které přehrání zanechá a výpis ne
+    (ověřeno debug logem Kodi 21 na Office 2026-09-16, `CScriptRunner`):
 
     1. přehrávaná položka je zrovna vybraná ve výpisu (info dialog se otevřel nad ní),
-    2. Kodi ji těsně předtím vložilo do video playlistu (`PlayListPlayer::Play`),
-    3. Kodi při čekání na výsledek skriptu v režimu přehrání po 1,5 s otevře vlastní
-       `progressdialog` (`CPluginDirectory::WaitOnScriptResult`, jen když nejde o výpis) —
-       při výpisu složky je místo něj busy dialog, z JSON-RPC nic.
+    2. Kodi ji těsně předtím vložilo do video playlistu (`PlayListPlayer::Play`) — po
+       úspěšném přehrání tam zůstane už rozklíčovaná http adresa, ne adresa složky,
+    3. `Playlist.Position` je nastavené — `PlayListPlayer::Play(0)` ho nastaví před
+       spuštěním skriptu; po zastavení i po zrušeném výběru streamu (adresa složky pak
+       v playlistu zůstává) je prázdné, takže obyčejný klik na tutéž položku jde do výpisu.
 
-    Na (3) se čeká jen když platí (1) i (2) — tedy prakticky jen u Přehrát z detailu, jinak
-    výpis začne hned. Busy dialog jako signál nešel: beta13 na něm skončila, při Přehrát
-    z detailu byl aktivní taky. Bez (3) by `Files.GetDirectory` z JSON-RPC nad zrovna
-    vybraným, předtím přehraným titulem skončilo modálním dialogem — zakázané (CLAUDE.md).
+    Busy dialog nepomůže: Kodi 21 ho ukazuje při čekání na skript v obou režimech a žádný
+    vlastní progress dialog v režimu přehrání neotevírá (beta13 a beta14 na tom stály).
+    `Files.GetDirectory` z JSON-RPC (HA, zahřívání) nesplní (2) — bez modálu (CLAUDE.md).
     """
     wanted = {k: v for k, v in params.items() if v not in (None, "")}
     focused = xbmc.getInfoLabel("ListItem.FileNameAndPath") or xbmc.getInfoLabel("ListItem.FolderPath")
@@ -816,18 +814,10 @@ def play_request(params):
             in_playlist = any(plugin_params(item.get("file")) == wanted for item in items)
         except (ValueError, TypeError, AttributeError):
             in_playlist = False
-    resolving = False
-    if in_focus and in_playlist:
-        deadline = time.monotonic() + PLAY_REQUEST_WAIT
-        while not resolving and time.monotonic() < deadline:
-            resolving = xbmc.getCondVisibility("Window.IsActive(progressdialog)")
-            if not resolving:
-                xbmc.sleep(100)
-    xbmc.log(f"[{ADDON_ID}] streams: vybraná položka={in_focus} v playlistu={in_playlist} "
-             f"progressdialog={resolving} busy={xbmc.getCondVisibility('Window.IsActive(busydialog)')} "
-             f"busynocancel={xbmc.getCondVisibility('Window.IsActive(busydialognocancel)')} "
-             f"okno={xbmc.getInfoLabel('System.CurrentWindow')}", xbmc.LOGINFO)
-    return in_focus and in_playlist and resolving
+    position = xbmc.getInfoLabel("Playlist.Position") if in_playlist else ""
+    xbmc.log(f"[{ADDON_ID}] streams: vybraná položka={in_focus} v playlistu={in_playlist} pozice={position!r}",
+             xbmc.LOGINFO)
+    return in_focus and in_playlist and bool(position)
 
 
 def add_playable(li, ctype, item_id, series_id=None, alt=None):
