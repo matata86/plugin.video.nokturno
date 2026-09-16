@@ -715,6 +715,22 @@ class TestSeznamStreamu(unittest.TestCase):
             self.assertEqual(titles[-1], li.getLabel(), "poslední setTitle = popis streamu")
             self.assertNotEqual(titles[-1], "Matrix")
 
+    def test_mark_viewed_u_serialu_posila_nazev_serialu_ne_epizody(self):
+        """2026-09-16: statistiky se serverem slučují podle normalizovaného názvu
+        (`db.canonical_key`), takže skutečný (ne jen generický placeholder) název
+        konkrétní epizody by rozštěpil sledovanost jednoho seriálu na tolik
+        „titulů", kolik různých epizod se sledovalo. `mark_viewed` proto musí vždy
+        dostat název seriálu, i když má epizoda vlastní netriviální název."""
+        streams = [{"url": "ws:1", "label": "Lupin.S01E01.mkv", "detail": "1 GB", "source": "ws"}]
+        meta = {"id": "tt123", "name": "Lupin", "_title": "Lupin", "year": 2021}
+        video = {"title": "Skutečný název epizody, ne placeholder"}
+        with mock.patch.object(default, "load_meta", return_value=(meta, video)), \
+             mock.patch.object(default, "collect_streams", return_value=streams), \
+             mock.patch.object(default, "mark_viewed") as mv:
+            default.list_streams({}, "series", "tt123:1:2")
+        mv.assert_called_once()
+        self.assertEqual(mv.call_args[0][1], "Lupin")
+
     def test_title_polozky_sezony_je_cislo_sezony_ne_nazev_serialu(self):
         """Stejná chyba jako u streamů výš, tentokrát u výběru sezóny — `fill_info()`
         nastaví Title na název seriálu (správně pro epizody/film), skin ale u řádku

@@ -514,9 +514,13 @@ def bare_title(meta):
 
 
 # Cinemeta/TMDB u epizod bez vlastního (přeloženého) názvu vrací místo prázdné
-# hodnoty doslovný placeholder "Episode 3" – jako `or` fallback ho nic nechytí,
-# je to neprázdný řetězec. Do statistik tak šlo "Episode 3" místo názvu seriálu.
-_EPISODE_PLACEHOLDER_RE = re.compile(r"^episode\s+\d+$", re.IGNORECASE)
+# hodnoty doslovný placeholder "Episode 3" (nebo v češtině "3. epizoda"/"3. díl") –
+# jako `or` fallback ho nic nechytí, je to neprázdný řetězec. Do statistik tak šlo
+# "3. epizoda" místo názvu seriálu – různé seriály se stejným generickým placeholderem
+# u první epizody (`n:series:<rok>:1 epizoda`) se pak slily do jednoho falešného
+# item_key (`db.canonical_key`) a dashboard/TMDB takový "titul" nedohledá (vypadne
+# z veřejného žebříčku trendů, viz Dashboard/backend/stats.py::_resolve_for_client).
+_EPISODE_PLACEHOLDER_RE = re.compile(r"^(episode\s+\d+|\d+\.?\s*(epizoda|díl))$", re.IGNORECASE)
 
 
 def episode_stats_title(video, meta):
@@ -2924,9 +2928,11 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None, fq="", flang=""
     set_content("episodes")
     title = (video or {}).get("title") or display_name(meta)
     year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
-    # do statistik jde titul bez roku — ten se posílá zvlášť polem `year`,
-    # display_name() ho bafá přímo do řetězce a v dashboardu by se zdvojil
-    stats_title = episode_stats_title(video, meta)
+    # do statistik jde vždy název seriálu, ne epizody (na rozdíl od mark_playing níž) —
+    # server slučuje statistiky podle normalizovaného názvu (`db.canonical_key`), takže
+    # skutečný (nikoli jen generický placeholder) název konkrétní epizody by rozštěpil
+    # sledovanost jednoho seriálu na tolik „titulů", kolik různých epizod se sledovalo
+    stats_title = bare_title(meta)
     mark_viewed(item_id, stats_title, year if year.isdigit() else None, "series" if video else ctype)
     if len(streams) > 1:
         active = bool(fq or flang or fch or fcodec or fsub or fsrc)
