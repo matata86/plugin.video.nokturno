@@ -31,6 +31,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
+from concurrent.futures import ThreadPoolExecutor
 from html.parser import HTMLParser
 
 SLOTS = 3                   # kolik vlastních úložišť jde nastavit
@@ -40,6 +41,7 @@ REV_FILE = ".nokturno-rev"  # značka změny v kořeni úložiště (viz docstri
 REV_TTL = 60                # jak často se značka čte znovu — každý výpis streamů ji jinak četl po síti
 MAX_DIRS = 3000             # pojistka proti nekonečnému procházení
 MAX_FILES = 50000
+CRAWL_WORKERS = 8           # kolik složek se čte souběžně (PROPFIND po jedné byl na velké knihovně pomalý)
 UA = "Mozilla/5.0 (compatible; Nokturno/1.0)"
 VIDEO_EXT = (".mkv", ".mp4", ".avi", ".m4v", ".mov", ".ts", ".m2ts", ".wmv", ".webm",
              ".mpg", ".mpeg", ".flv", ".iso")
@@ -232,27 +234,44 @@ class StorageApi:
             out.append((prefix + name, is_dir, 0))
         return out
 
+    def _list_dir_safe(self, rel):
+        """Jako `_list_dir`, ale nepřístupná podsložka (ne kořen) vrátí `None`
+        místo pádu — nemá shodit procházení celého zbytku stromu."""
+        try:
+            return self._list_dir(rel + "/" if rel else "")
+        except StorageError:
+            if not rel:
+                raise          # kořen nejde přečíst → úložiště nefunguje
+            return None
+
     def _crawl(self):
-        files, queue, dirs = [], [""], 0
-        while queue and dirs < MAX_DIRS and len(files) < MAX_FILES:
-            rel = queue.pop(0)
-            dirs += 1
-            try:
-                entries = self._list_dir(rel + "/" if rel else "")
-            except StorageError:
-                if not rel:
-                    raise      # kořen nejde přečíst → úložiště nefunguje
-                continue       # jedna nepřístupná podsložka nemá shodit celé úložiště
-            for path, is_dir, size in entries:
-                name = path.rsplit("/", 1)[-1]
-                if name.startswith(".") or _fold(name) in SKIP_DIRS:
+        """Prochází strom po vrstvách (BFS) a v rámci jedné vrstvy čte složky
+        souběžně (`CRAWL_WORKERS` vláken) — sériově po jedné to na knihovně
+        s desítkami/stovkami složek (každý titul ve vlastní) trvalo řádově
+        déle, protože každá PROPFIND čekala na tu předchozí."""
+        files, dirs = [], 0
+        level = [""]
+        while level and dirs < MAX_DIRS and len(files) < MAX_FILES:
+            batch = level[:MAX_DIRS - dirs]
+            dirs += len(batch)
+            with ThreadPoolExecutor(max_workers=CRAWL_WORKERS) as pool:
+                results = list(pool.map(self._list_dir_safe, batch))
+            next_level = []
+            for entries in results:
+                if entries is None:
                     continue
-                if is_dir:
-                    queue.append(path)
-                elif name.lower().endswith(VIDEO_EXT):
-                    files.append({"path": path, "name": name, "size": size, "size_h": human_size(size)})
+                for path, is_dir, size in entries:
+                    name = path.rsplit("/", 1)[-1]
+                    if name.startswith(".") or _fold(name) in SKIP_DIRS:
+                        continue
+                    if is_dir:
+                        next_level.append(path)
+                    elif name.lower().endswith(VIDEO_EXT):
+                        files.append({"path": path, "name": name, "size": size, "size_h": human_size(size)})
+            # o vrstvu nezpracovaná zbylá dávka (přes MAX_DIRS) se počítá jako oříznutí
+            level = level[len(batch):] + next_level
         files.sort(key=lambda f: f["path"].lower())
-        return {"ok": True, "files": files, "truncated": bool(queue)}
+        return {"ok": True, "files": files, "truncated": bool(level)}
 
     def revision(self):
         """Obsah značky změny, prázdný řetězec, když ji úložiště nemá nebo nejde přečíst.

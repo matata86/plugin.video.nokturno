@@ -1236,7 +1236,7 @@ class Engine:
             _LOGGER.debug("FastShare účet: %s", err)
             return False
 
-    def _fill_audio(self, streams, on_tick=None, on_count=None):
+    def _fill_audio(self, streams, on_tick=None, on_count=None, on_audio_progress=None):
         """Doplní zvuk, titulky a rozlišení tam, kde je zdroj neřekl, a ověří je
         tam, kde je řekl jen název souboru.
 
@@ -1276,6 +1276,10 @@ class Engine:
             on_count(len(todo))
         if not todo:
             return streams
+        total = len(todo)
+        probed = 0
+        if on_audio_progress:
+            on_audio_progress(0, total)
         with ThreadPoolExecutor(max_workers=8) as pool:
             futures = {pool.submit(self._media_from_file, s["url"]): s for s in todo}
             results = {}
@@ -1283,6 +1287,9 @@ class Engine:
                 results[id(futures[future])] = future.result()
                 if on_tick:
                     on_tick()
+                probed += 1
+                if on_audio_progress:
+                    on_audio_progress(probed, total)
         for stream, info in ((s, results[id(s)]) for s in todo):
             if not info:
                 continue
@@ -1870,7 +1877,8 @@ class Engine:
         return [self._describe(s, i) for i, s in enumerate(ordered)]
 
     def raw_streams(self, ctype, item_id, alt=None, series_id=None, on_progress=None, failures=None,
-                    strict=True, meta_video=None, probe_audio=True, on_source_done=None):
+                    strict=True, meta_video=None, probe_audio=True, on_source_done=None,
+                    on_audio_progress=None):
         """Seřazené streamy titulu ze všech dostupných zdrojů — surové slovníky.
 
         `probe_audio=False`: vynechá `_fill_audio()` (čtení hlaviček souborů) — pro
@@ -1903,6 +1911,11 @@ class Engine:
         zdroje (na rozdíl od `on_progress` ví odkud a kolik) — jen při čerstvém hledání,
         cache hit ho vůbec nespustí. Volající si z toho může postavit průběžný přehled
         „WebShare: 12 · HellSpy: 3…“ místo pouhého procenta.
+
+        `on_audio_progress(done, total)`, je-li dán, se volá při čtení hlaviček souborů
+        (`_fill_audio` — zdaleka nejdelší fáze) po každém dočteném, i jednou předem s
+        `done=0` a skutečným `total` (obvykle nižším než limit). Na rozdíl od `on_progress`
+        (přepočtené na jediné souhrnné procento) jde jen o tuhle fázi — pro „ověřuji 5/12“.
         """
         failures = [] if failures is None else failures
         total = self.STREAM_SOURCE_STEPS + AUDIO_PROBE_MAX
@@ -2007,27 +2020,37 @@ class Engine:
         # „streams2“: seznamy uložené před doplněním českých názvů z Wikidat byly u titulů
         # bez Luny/TMDB ořezané přísným filtrem — nový klíč je jednorázově obnoví
         cache_key = f"streams5:{ctype}:{item_id}:{alt or ''}"   # 5 = oprava filtru (krátké slovo na začátku názvu)
-        if strict and probe_audio:
-            found = self.store.cached_if(cache_key, STREAMS_CACHE_TTL, _fetch_streams,
-                                         ok=lambda data: bool(data) and not failures,
-                                         fresh=bool(self._opt("fresh", False)))
-        else:
-            found = _fetch_streams()
         # vlastní úložiště mimo 72h cache streamů — nový soubor se má ukázat hned,
         # jak ho uvidí seznam úložiště (ten si drží vlastní hodinovou paměť). S
         # `probe_audio=False` (hromadná klasifikace) se přeskakuje úplně — cizí
         # úložiště titul ze Sosáčova katalogu stejně nerozhodne a při nedostupném
         # NAS/DAV to bez vlastní cache dusí každého jednoho kandidáta zvlášť.
-        local = []
-        if probe_audio:
-            try:
-                local = self._storage_streams(meta, video, ctype, alt, failures=failures)
-            except Exception as err:  # noqa: BLE001 – úložiště nesmí shodit ostatní zdroje
-                _LOGGER.warning("streamy %s (úložiště): %s", item_id, err)
-                failures.append(("Úložiště", err))
-                local = []
-        if on_source_done:
-            on_source_done("Vlastní úložiště", len(local))
+        #
+        # Běží souběžně s `_fetch_streams()`, ne až po něm — procházení úložiště
+        # po síti (PROPFIND složka po složce, na cache miss) umí trvat déle než
+        # všechny ostatní zdroje dohromady, a dřív se na něj čekalo navíc.
+        def _run_storage():
+            result = []
+            if probe_audio:
+                try:
+                    result = self._storage_streams(meta, video, ctype, alt, failures=failures)
+                except Exception as err:  # noqa: BLE001 – úložiště nesmí shodit ostatní zdroje
+                    _LOGGER.warning("streamy %s (úložiště): %s", item_id, err)
+                    failures.append(("Úložiště", err))
+                    result = []
+            if on_source_done:
+                on_source_done("Vlastní úložiště", len(result))
+            return result
+
+        with ThreadPoolExecutor(max_workers=1) as storage_pool:
+            storage_future = storage_pool.submit(_run_storage)
+            if strict and probe_audio:
+                found = self.store.cached_if(cache_key, STREAMS_CACHE_TTL, _fetch_streams,
+                                             ok=lambda data: bool(data) and not failures,
+                                             fresh=bool(self._opt("fresh", False)))
+            else:
+                found = _fetch_streams()
+            local = storage_future.result()
         for stream in local:
             parse_stream(stream)
             if not stream.get("quality_rank"):
@@ -2060,7 +2083,7 @@ class Engine:
         # a před seřazením se rozpočet utratil za řádky, které skončí dole; teď padne
         # na začátek seznamu, tedy na to, co má uživatel před očima. Po doplnění
         # kanálů se řadí znovu, protože 5.1 může pořadím pohnout.
-        with_audio = self._fill_audio(sort(found), tick, on_count) if probe_audio else sort(found)
+        with_audio = self._fill_audio(sort(found), tick, on_count, on_audio_progress) if probe_audio else sort(found)
         ordered = sort(self._ensure_bitrate(with_audio, video or meta))
         # vlastní úložiště vždy nahoru — mezi desítkami streamů zdrojů se jinak ztrácí
         ordered = [s for s in ordered if s.get("source") == "dav"] + [s for s in ordered if s.get("source") != "dav"]
