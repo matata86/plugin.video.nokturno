@@ -755,8 +755,8 @@ msgid "Loading streams…"
 msgstr "Načítavam streamy…"
 
 msgctxt "#30239"
-msgid "Checking audio: {done}/{total}"
-msgstr "Overujem zvuk: {done}/{total}"
+msgid "Checking metadata: {done}/{total}"
+msgstr "Overujem metadáta: {done}/{total}"
 
 msgctxt "#30332"
 msgid "TMDB API"
