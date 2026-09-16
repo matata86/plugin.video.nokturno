@@ -869,7 +869,7 @@ def add_playable(li, ctype, item_id, series_id=None, alt=None):
         # `ListItem.FileNameAndPath` přednostně z info tagu, zatímco klik na složku jde přes
         # cestu položky. Složka tak nese v tagu rovnou adresu přehrání s dialogem výběru
         # (Office 2026-09-16, Fotr je lotr: „Přehrát" jen znovu vypsalo seznam).
-        li.getVideoInfoTag().setFileNameAndPath(
+        li.getVideoInfoTag().setFilenameAndPath(
             build_url(action="play", type=ctype, id=item_id, series=series_id, alt=alt, ask="1"))
         xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
         return

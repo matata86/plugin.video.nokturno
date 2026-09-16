@@ -702,7 +702,7 @@ class TestPrehratelnePolozky(unittest.TestCase):
         _h, url, li, is_folder = xbmcplugin.items[-1]
         self.assertTrue(is_folder)
         self.assertEqual(params_of(url)["action"], "streams")
-        paths = [c[1][0] for c in li.tag.calls if c[0] == "setFileNameAndPath"]
+        paths = [c[1][0] for c in li.tag.calls if c[0] == "setFilenameAndPath"]
         self.assertEqual(len(paths), 1)
         p = params_of(paths[0])
         self.assertEqual((p["action"], p["type"], p["id"], p["alt"], p["ask"]),
