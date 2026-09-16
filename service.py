@@ -48,7 +48,7 @@ from storage_api import StorageApi, parse_ref  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
 from sync import sync_once  # noqa: E402
 from trend_api import CATALOG_ID as TREND_CATALOG_ID  # noqa: E402
-from tracks import SUBS_WHEN_NEEDED, is_forced, pick_audio, pick_subtitle, track_lang  # noqa: E402
+from tracks import SUBS_WHEN_NEEDED, pick_audio, pick_subtitle, track_lang  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
 from webshare_api import WebshareApi, WebshareError  # noqa: E402
 
@@ -198,8 +198,8 @@ class Player(xbmc.Player):
         Kodi při startu vezme výchozí stopu kontejneru, u přebalených filmů často
         anglickou, i když soubor má český dabing. Tady se jednou po startu přepne
         na preferovaný jazyk; titulky se zapnou, jen když ten jazyk ve zvuku chybí
-        (nebo vždy, podle nastavení), a u dabingu se naopak vypnou, ať neběží
-        titulky přibalené ze zdroje. Rozhoduje `tracks.pick_audio`/`pick_subtitle`
+        (nebo vždy, podle nastavení), a když preferovaný jazyk hraje, vypnou se
+        úplně, i vynucené. Rozhoduje `tracks.pick_audio`/`pick_subtitle`
         v jádru; co si pak uživatel přepne sám, už se nepřepisuje."""
         time.sleep(TRACKS_DELAY)
         if self.item is not item or not self.isPlayingVideo():
@@ -235,7 +235,7 @@ class Player(xbmc.Player):
         if action == "on" and not (enabled and current.get("index") == sub_index):
             rpc("Player.SetSubtitle", playerid=player_id, subtitle=sub_index, enable=True)
             log(f"titulky → stopa {sub_index} (zvuk v {pref}: {audio_ok})")
-        elif action == "off" and enabled and not is_forced(current):
+        elif action == "off" and enabled:
             rpc("Player.SetSubtitle", playerid=player_id, subtitle="off")
             log(f"titulky vypnuty (zvuk v {pref})")
 
