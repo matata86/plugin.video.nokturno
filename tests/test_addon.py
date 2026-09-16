@@ -1454,6 +1454,26 @@ class TestSluzbaStatistiky(unittest.TestCase):
         service.stats_tick(stats)
         self.assertEqual(stats.plays, [])
 
+    def test_force_stats_po_aktualizaci_nemava_dokud_nedobehne_start(self):
+        """2026-09-16: modální Dialog().ok() volaný hned na prvním tiku služby (než
+        doběhne start skinu) nikdo nezaznamená — FORCE_STATS_PROP (nastaví default.py
+        při detekci nové verze) se proto neuplatní, dokud neuplyne MESSAGE_DELAY od
+        startu služby (`_STARTED_AT`); vlastnost zůstane nastavená pro další tik."""
+        xbmcgui.Window(10000).setProperty(service.FORCE_STATS_PROP, "1")
+        with mock.patch.object(service, "_STARTED_AT", time.time()):
+            stats = FakeStats(due=False)
+            service.stats_tick(stats)
+        self.assertEqual(stats.sent, [])
+        self.assertEqual(xbmcgui.Window(10000).getProperty(service.FORCE_STATS_PROP), "1")
+
+    def test_force_stats_po_aktualizaci_posle_hned_jak_dobehne_start(self):
+        xbmcgui.Window(10000).setProperty(service.FORCE_STATS_PROP, "1")
+        with mock.patch.object(service, "_STARTED_AT", time.time() - service.MESSAGE_DELAY - 1):
+            stats = FakeStats(due=False)
+            service.stats_tick(stats)
+        self.assertEqual(len(stats.sent), 1)
+        self.assertEqual(xbmcgui.Window(10000).getProperty(service.FORCE_STATS_PROP), "")
+
 
 if __name__ == "__main__":
     unittest.main()
