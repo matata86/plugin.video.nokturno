@@ -1805,6 +1805,17 @@ class TestUdrzbaKodi(unittest.TestCase):
         self.assertEqual(masks[xbmcplugin.SORT_METHOD_VIDEO_YEAR], "%Y")
         self.assertEqual(masks[xbmcplugin.SORT_METHOD_VIDEO_RATING], "%R")
 
+    def test_druhy_sloupec_u_titulu_je_vzdy_rok(self):
+        """Bez masky dosadí Kodi do Label2 `%D` (stopáž) a Arctic Fuse ji kreslí vpravo místo
+        roku — Můj seznam (snímek se stopáží) měl vpravo délku, žebříček (bez stopáže) rok
+        (2026-09-16). U filmů a seriálů má být u výchozího řazení i podle názvu vždy rok."""
+        for content in ("movies", "tvshows"):
+            reset_kodi()
+            default.set_content(content)
+            masks = dict((m, l2) for m, _l, l2 in xbmcplugin.sort_masks)
+            self.assertEqual(masks[xbmcplugin.SORT_METHOD_UNSORTED], "%Y", content)
+            self.assertEqual(masks[xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE], "%Y", content)
+
     def test_novinky_umi_beta_verzi(self):
         radky = default.parse_news("3.2.0~beta1 – nová věc\n3.1.12 – oprava\nnesmysl bez verze\n3.1.10 – starší")
         self.assertEqual([v for v, _t in radky], ["3.2.0~beta1", "3.1.12", "3.1.10"])
