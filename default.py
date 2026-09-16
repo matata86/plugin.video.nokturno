@@ -2988,14 +2988,24 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None, fq="", flang=""
     has_fulltext_source = bool(apis.get("ws") or apis.get("hs") or apis.get("st") or apis.get("fs"))
     # ukazatel průběhu: pár kroků na dotazy zdrojům, pak (obvykle nejdelší část)
     # jeden na každý soubor, kterému jádro čte hlavičku — přesný počet si jádro upraví.
-    # Modální DialogProgress (ne BG varianta) zachytává Zpět jako Cancel, viz cancelable_search.
-    bar = xbmcgui.DialogProgress()
+    # Modální DialogProgress zachytává Zpět jako Cancel (viz cancelable_search), ale je to
+    # pořád modální dialog — CLAUDE.md: „nikdy modální dialog v cestě, kterou může spustit
+    # widget nebo JSON-RPC (menu, výpisy, přehrání)“. Tenhle výpis JSON-RPC/widget spustit
+    # může (`play()`'s modální varianta přehrání z TMDb Helperu rozbila, viz beta11), takže
+    # se modál povolí, jen když je vidět — uživatel doopravdy prochází menu Nokturna a může
+    # na Zpět sáhnout; jinak (widget, JSON-RPC) bezpečná BG varianta bez možnosti zrušit.
+    interactive = browsing_nokturno()
+    bar = xbmcgui.DialogProgress() if interactive else xbmcgui.DialogProgressBG()
     bar.create(L(30000, "Nokturno"), L(30238, "Načítám streamy…"))
     progress = SearchProgress(bar, Engine.STREAM_SOURCE_STEPS + AUDIO_PROBE_MAX)
     errors = []
     try:
-        canceled, streams = cancelable_search(
-            bar, lambda: collect_streams(apis, ctype, item_id, meta, alt, progress, strict, errors))
+        if interactive:
+            canceled, streams = cancelable_search(
+                bar, lambda: collect_streams(apis, ctype, item_id, meta, alt, progress, strict, errors))
+        else:
+            canceled = False
+            streams = collect_streams(apis, ctype, item_id, meta, alt, progress, strict, errors)
     finally:
         bar.close()
     if canceled:
@@ -3182,19 +3192,19 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
     if not url:
         errors = []
         # z přehrání (widget, TMDb Helper) je jinak vidět jen točící se kolečko Kodi — streamy se
-        # načítají i 15 s, tak aspoň stejný průběh jako nad seznamem streamů. Modální DialogProgress
-        # (ne BG varianta) zachytává Zpět jako Cancel, viz cancelable_search.
-        bar = xbmcgui.DialogProgress()
+        # načítají i 15 s, tak aspoň stejný průběh jako nad seznamem streamů. NE modální
+        # DialogProgress — tahle cesta se spouští z widgetu, TMDb Helperu i JSON-RPC (CLAUDE.md:
+        # „nikdy modální dialog v cestě, kterou může spustit widget nebo JSON-RPC“), a modální
+        # dialog v tomhle přehrávacím kontextu přehrání buď spadlo, nebo se nic nezobrazilo
+        # (Office 2026-09-16, nahlásil uživatel po zavedení cancelable_search v betě 7).
+        # Zpět tu tedy hledání nezruší — jen v `list_streams()`, kam se chodí přes menu.
+        bar = xbmcgui.DialogProgressBG()
         bar.create(L(30000, "Nokturno"), L(30238, "Načítám streamy…"))
         try:
-            canceled, streams = cancelable_search(
-                bar, lambda: collect_streams(apis, ctype, item_id, meta, alt,
-                                             SearchProgress(bar, Engine.STREAM_SOURCE_STEPS + AUDIO_PROBE_MAX), errors=errors))
+            streams = collect_streams(apis, ctype, item_id, meta, alt,
+                                      SearchProgress(bar, Engine.STREAM_SOURCE_STEPS + AUDIO_PROBE_MAX), errors=errors)
         finally:
             bar.close()
-        if canceled:
-            xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
-            return
         if errors:
             notify(skipped_notice(errors), xbmcgui.NOTIFICATION_WARNING, 7000)
         if not streams:

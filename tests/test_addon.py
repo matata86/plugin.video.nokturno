@@ -755,18 +755,23 @@ class TestVyberStreamu(unittest.TestCase):
         self.assertTrue(succeeded, "spadlo na plné hledání místo chyby")
         self.assertEqual(li.path, "https://cdn/x.mkv")
 
-    def test_zpet_pri_nacitani_streamu_zrusi_hledani(self):
-        """2026-09-16: `DialogProgressBG` (dřív) na Zpět vůbec nereagovalo — uživatel
-        čekal, dokud hledání samo nedoběhlo, nebo dokud Kodi zaseklý skript po 5 s
-        tvrdě nezabilo (ukazatel pak zůstal viset na obrazovce jako duch). Modální
-        `DialogProgress` zachytává Zpět jako Cancel — `play()` se má hned vzdát."""
+    def test_play_bez_url_nepouziva_modalni_dialog(self):
+        """CLAUDE.md: „nikdy modální dialog v cestě, kterou může spustit widget nebo
+        JSON-RPC" — `play()` bez `url` (widget, Up Next, TMDb Helper) na to v betě
+        7–11 narazila: modální `DialogProgress` (zavedený pro Zpět = zrušit hledání
+        v `list_streams()`) přehrání z TMDb Helperu rozbil, buď nic nešlo přehrát,
+        nebo se nic nezobrazilo (2026-09-16, nahlásil uživatel). `play()` se tedy
+        vrátila k `DialogProgressBG" — bez možnosti zrušit Zpět, ale bezpečně
+        i mimo interaktivní procházení menu."""
         with mock.patch.object(default, "load_meta", return_value=({"name": "Film", "year": 2020}, None)), \
-             mock.patch.object(default, "collect_streams", return_value=[]), \
-             mock.patch.object(xbmcgui.DialogProgress, "iscanceled", return_value=True):
+             mock.patch.object(default, "collect_streams",
+                               return_value=[{"url": "ws:1", "label": "Film.mkv", "source": "ws"}]), \
+             mock.patch.object(default, "resolve_url", return_value="https://cdn/x.mkv"), \
+             mock.patch.object(xbmcgui, "DialogProgress") as modal, \
+             mock.patch.object(xbmcgui, "DialogProgressBG") as bg:
             default.play({}, "movie", "tt1")
-        self.assertEqual(len(xbmcplugin.resolved), 1)
-        _handle, succeeded, _li = xbmcplugin.resolved[0]
-        self.assertFalse(succeeded, "zrušené hledání nesmí spadnout do plného přehrání")
+        modal.assert_not_called()
+        bg.assert_called_once()
 
     def test_dialog_nabidne_filtr_a_vrati_vybrany_stream(self):
         streams = [{"url": "ws:1", "label": "Film.2020.1080p.CZ.Dabing.mkv", "detail": "2 GB", "source": "ws"},
@@ -812,14 +817,34 @@ class TestSeznamStreamu(unittest.TestCase):
             self.assertNotEqual(titles[-1], "Matrix")
 
     def test_zpet_pri_nacitani_streamu_zrusi_vypis(self):
-        """Stejná zkratka jako u `play()` — i výpis „Seznam streamů“ musí na Zpět
-        reagovat hned, ne nechat ukazatel průběhu viset (viz play() test výš)."""
-        with mock.patch.object(default, "load_meta", return_value=({"id": "tt1", "name": "Film", "year": 2020}, None)), \
-             mock.patch.object(default, "collect_streams", return_value=[]), \
-             mock.patch.object(xbmcgui.DialogProgress, "iscanceled", return_value=True):
-            default.list_streams({}, "movie", "tt1")
+        """Zpět při interaktivním procházení menu Nokturna (`browsing_nokturno()`)
+        musí hledání zrušit hned, ne nechat ukazatel průběhu viset."""
+        xbmc.cond_visible.add("Window.IsMedia")
+        xbmc.info_labels["Container.PluginName"] = default.ADDON_ID
+        try:
+            with mock.patch.object(default, "load_meta", return_value=({"id": "tt1", "name": "Film", "year": 2020}, None)), \
+                 mock.patch.object(default, "collect_streams", return_value=[]), \
+                 mock.patch.object(xbmcgui.DialogProgress, "iscanceled", return_value=True):
+                default.list_streams({}, "movie", "tt1")
+        finally:
+            xbmc.cond_visible.clear()
+            xbmc.info_labels.clear()
         self.assertEqual(len(xbmcplugin.ended), 1)
         self.assertFalse(xbmcplugin.ended[-1]["succeeded"], "zrušené hledání nesmí ukázat prázdný/chybový výpis")
+
+    def test_vypis_streamu_mimo_menu_nokturna_nepouziva_modalni_dialog(self):
+        """CLAUDE.md: „nikdy modální dialog v cestě, kterou může spustit widget nebo
+        JSON-RPC" — mimo interaktivní procházení menu Nokturna (`browsing_nokturno()`
+        false: widget, JSON-RPC) se modální `DialogProgress` vůbec nesmí použít,
+        stejný důvod jako u `play()` (viz beta11 — TMDb Helper)."""
+        with mock.patch.object(default, "load_meta", return_value=({"id": "tt1", "name": "Film", "year": 2020}, None)), \
+             mock.patch.object(default, "collect_streams",
+                               return_value=[{"url": "ws:1", "label": "Film.mkv", "source": "ws"}]), \
+             mock.patch.object(xbmcgui, "DialogProgress") as modal, \
+             mock.patch.object(xbmcgui, "DialogProgressBG") as bg:
+            default.list_streams({}, "movie", "tt1")
+        modal.assert_not_called()
+        bg.assert_called_once()
 
     def test_mark_viewed_u_serialu_posila_nazev_serialu_ne_epizody(self):
         """2026-09-16: statistiky se serverem slučují podle normalizovaného názvu
