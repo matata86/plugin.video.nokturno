@@ -953,14 +953,16 @@ def collect_streams(apis, ctype, item_id, meta, alt=None, progress=None, strict=
     výpadek WebShare…), jeho chyba přijde do `errors` jako `SourceFailure` a hledá
     se dál v ostatních; co s tím udělat (upozornit), řeší volající. `progress`,
     je-li dán, dostává `set(done, total)` po každé fázi — čtení hlaviček je
-    z nich zdaleka nejdelší.
+    z nich zdaleka nejdelší — a `source(label, count)` po dokončení každého
+    jednotlivého zdroje, ať je vidět odkud kolik streamů zatím přišlo.
     """
     errors = [] if errors is None else errors
     failures = []
     engine = engine_of(apis)
     try:
         streams = engine.raw_streams(ctype, item_id, alt, on_progress=progress.set if progress else None,
-                                     failures=failures, strict=strict, meta_video=(meta, load_meta_video(meta, item_id)))
+                                     failures=failures, strict=strict, meta_video=(meta, load_meta_video(meta, item_id)),
+                                     on_source_done=progress.source if progress else None)
     finally:
         errors.extend(SourceFailure(label, err) for label, err in failures)
         remember_ws_token(engine.ws)
@@ -2396,9 +2398,11 @@ class SearchProgress:
     def __init__(self, bar, total):
         self.bar, self.total, self.done = bar, max(1, total), 0
         self.lock = threading.Lock()
+        self.sources = []   # [(label, count), ...] v pořadí, jak zdroje dorazily
 
     def _show(self):
-        self.bar.update(int(self.done / self.total * 100))
+        msg = " · ".join(f"{label}: {n}" for label, n in self.sources) or L(30238, "Načítám streamy…")
+        self.bar.update(int(self.done / self.total * 100), msg)
 
     def tick(self):
         with self.lock:
@@ -2417,6 +2421,12 @@ class SearchProgress:
         with self.lock:
             self.total = max(1, total)
             self.done = min(done, self.total)
+            self._show()
+
+    def source(self, label, count):
+        """`on_source_done` jádra: doplní přehled, odkud kolik streamů zatím přišlo."""
+        with self.lock:
+            self.sources.append((label, count))
             self._show()
 
 

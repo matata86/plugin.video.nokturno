@@ -432,10 +432,11 @@ class TestJadroVKodi(unittest.TestCase):
     def test_collect_streams_prevadi_vypadky_na_upozorneni(self):
         engine = default.KodiEngine()
         def raw_streams(ctype, item_id, alt=None, series_id=None, on_progress=None, failures=None, strict=True,
-                        meta_video=None):
+                        meta_video=None, on_source_done=None):
             failures.append(("Luna", ConnectionRefusedError("[Errno 111] Connection refused")))
             failures.append(("WebShare", WebshareError("login: Wrong password")))
             on_progress(3, 8)
+            on_source_done("WebShare", 1)
             self.assertEqual(meta_video, ({"name": "Film"}, None))
             self.assertFalse(strict)
             return [{"url": "ws:1", "label": "Film.mkv", "source": "ws", "_direct": True, "_loose": True}]
@@ -449,10 +450,22 @@ class TestJadroVKodi(unittest.TestCase):
         self.assertEqual([type(e).__name__ for e in errors], ["SourceFailure", "SourceFailure"])
         self.assertEqual(default.skipped_notice(errors),
                          "Luna neodpovídá; WebShare: login: Wrong password — přeskočeno")
-        bar.update.assert_called_with(int(3 / 8 * 100))
+        bar.update.assert_called_with(int(3 / 8 * 100), "WebShare: 1")
         # chyba jádra v hlášce nese zdroj sama
         self.assertEqual(default.describe_error(default.NokturnoError("WebShare: soubor není")), "WebShare: soubor není")
         self.assertEqual(default.error_label(default.NokturnoError("Chybí odkaz na stream.")), "Nokturno")
+
+    def test_search_progress_hlasi_odkud_a_kolik(self):
+        """Ukazatel průběhu čtenáři dřív ukazoval jen procento — teď i to, odkud kolik
+        streamů zatím přišlo, ve stejném pořadí, v jakém zdroje dorazily."""
+        bar = mock.Mock()
+        progress = default.SearchProgress(bar, 10)
+        progress.tick()
+        bar.update.assert_called_with(10, "Načítám streamy…")
+        progress.source("Luna", 0)
+        bar.update.assert_called_with(10, "Luna: 0")
+        progress.source("WebShare", 12)
+        bar.update.assert_called_with(10, "Luna: 0 · WebShare: 12")
 
     def test_resolve_url_pres_jadro_a_token(self):
         engine = default.KodiEngine()
