@@ -809,13 +809,19 @@ def play_request(params):
        spuštěním skriptu; po zastavení i po zrušeném výběru streamu (adresa složky pak
        v playlistu zůstává) je prázdné, takže obyčejný klik na tutéž položku jde do výpisu.
 
+    Pokrývá jen info dialog Kodi/Estuary (playlist player). Arctic Fuse volá přes TMDb Helper
+    `PlayMedia($INFO[ListItem.FileNameAndPath])` — mimo playlist; to řeší `add_playable()`
+    adresou přehrání v info tagu složky, sem už `action=streams` z té cesty nedorazí.
+
     Busy dialog nepomůže: Kodi 21 ho ukazuje při čekání na skript v obou režimech a žádný
     vlastní progress dialog v režimu přehrání neotevírá (beta13 a beta14 na tom stály).
     `Files.GetDirectory` z JSON-RPC (HA, zahřívání) nesplní (2) — bez modálu (CLAUDE.md).
     """
     wanted = {k: v for k, v in params.items() if v not in (None, "")}
-    focused = xbmc.getInfoLabel("ListItem.FileNameAndPath") or xbmc.getInfoLabel("ListItem.FolderPath")
-    in_focus = plugin_params(focused) == wanted
+    # FolderPath = cesta položky (složka `action=streams`); FileNameAndPath bere Kodi z info tagu,
+    # kam `add_playable()` dává adresu přehrání pro Arctic Fuse — proto obě
+    in_focus = wanted in (plugin_params(xbmc.getInfoLabel("ListItem.FolderPath")),
+                          plugin_params(xbmc.getInfoLabel("ListItem.FileNameAndPath")))
     in_playlist = False
     if in_focus:
         try:
@@ -835,12 +841,14 @@ def add_playable(li, ctype, item_id, series_id=None, alt=None):
     """Film nebo díl — ve výpisu Nokturna podle nastavení, jinde přehratelný.
 
     V režimu „Vybrat ze seznamu streamů“ je ve výpisu Nokturna složkou `action=streams` — klik
-    otevře seznam nativně. Ve widgetu, na domovské obrazovce a v detailu otevřeném odtamtud je
-    přehratelný s `ask=1`: skiny berou film podle DBType jako soubor a Přehrát v detailu (Arctic
-    Fuse) volá `PlayMedia` na cestu položky. Složka tam nepřehrála nic, přehratelná položka ukáže
-    dialog s filtrem (`choose_stream`). Přesměrovat z přehratelné položky ve výpisu na složku
-    přes zrušené přehrání nešlo: Kodi hlásilo „položku se nepodařilo přehrát“ a seznam otevřený
-    přes `Container.Update` ukazoval místo streamů název filmu (Office 2026-09-14).
+    otevře seznam nativně; Přehrát v detailu nad ní obslouží `play_request()` (Estuary, přes
+    playlist) a adresa přehrání v info tagu (Arctic Fuse, `PlayMedia` na
+    `ListItem.FileNameAndPath`). Ve widgetu, na domovské obrazovce a v detailu otevřeném
+    odtamtud je přehratelný s `ask=1`: skiny berou film podle DBType jako soubor. Složka tam
+    dřív nepřehrála nic, přehratelná položka ukáže dialog s filtrem (`choose_stream`).
+    Přesměrovat z přehratelné položky ve výpisu na složku přes zrušené přehrání nešlo: Kodi
+    hlásilo „položku se nepodařilo přehrát“ a seznam otevřený přes `Container.Update` ukazoval
+    místo streamů název filmu (Office 2026-09-14).
 
     U epizod se předává i id seriálu — Sosáč dává epizodám vlastní id
     (`sosac2_1877:1:1`), ze kterého se meta seriálu nedá odvodit.
@@ -856,6 +864,13 @@ def add_playable(li, ctype, item_id, series_id=None, alt=None):
     stream_url, stream_subs = resumed if resumed else (None, None)
     if folder_mode() and not stream_url:
         url = build_url(action="streams", type=ctype, id=item_id, series=series_id, alt=alt)
+        # Přehrát v detailu Arctic Fuse (TMDb Helper `playmedia=$INFO[ListItem.FileNameAndPath]`
+        # → `PlayMedia`) jde mimo playlist, takže `play_request()` ho nepozná — Kodi ale bere
+        # `ListItem.FileNameAndPath` přednostně z info tagu, zatímco klik na složku jde přes
+        # cestu položky. Složka tak nese v tagu rovnou adresu přehrání s dialogem výběru
+        # (Office 2026-09-16, Fotr je lotr: „Přehrát" jen znovu vypsalo seznam).
+        li.getVideoInfoTag().setFileNameAndPath(
+            build_url(action="play", type=ctype, id=item_id, series=series_id, alt=alt, ask="1"))
         xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
         return
     li.setProperty("IsPlayable", "true")

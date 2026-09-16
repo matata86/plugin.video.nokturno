@@ -686,6 +686,28 @@ class TestPrehratelnePolozky(unittest.TestCase):
         self.assertEqual((p["action"], p["id"], p.get("url"), p.get("subs")),
                          ("play", "tt_resume_test", "ws:abc", "cz.srt"))
 
+    def test_slozka_streamu_nese_v_tagu_adresu_prehrani_pro_arctic_fuse(self):
+        """Arctic Fuse: Přehrát v detailu = TMDb Helper `playmedia=$INFO[ListItem.FileNameAndPath]`
+        → `PlayMedia` mimo playlist, `play_request()` to nepozná. Kodi bere FileNameAndPath
+        přednostně z info tagu, klik na složku jde přes cestu položky → složka `action=streams`
+        má v tagu `action=play&ask=1` (Office 2026-09-16, Fotr je lotr)."""
+        xbmcaddon.settings["stream_mode"] = "1"
+        xbmc.cond_visible.add("Window.IsMedia")
+        xbmc.info_labels["Container.PluginName"] = "plugin.video.nokturno"
+        try:
+            default.add_meta_item({"id": "tt_af_test", "name": "Film", "year": 2020}, "movie", alt="sosacd_9")
+        finally:
+            xbmc.cond_visible.clear()
+            xbmc.info_labels.clear()
+        _h, url, li, is_folder = xbmcplugin.items[-1]
+        self.assertTrue(is_folder)
+        self.assertEqual(params_of(url)["action"], "streams")
+        paths = [c[1][0] for c in li.tag.calls if c[0] == "setFileNameAndPath"]
+        self.assertEqual(len(paths), 1)
+        p = params_of(paths[0])
+        self.assertEqual((p["action"], p["type"], p["id"], p["alt"], p["ask"]),
+                         ("play", "movie", "tt_af_test", "sosacd_9", "1"))
+
     def test_dil_serie_prehratelny_s_id_serialu(self):
         xbmcaddon.settings["stream_mode"] = "1"
         meta = {"id": "tt9", "name": "Seriál", "videos": [{"season": 1, "episode": 1, "title": "Pilot"}]}
@@ -854,7 +876,9 @@ class TestSeznamStreamu(unittest.TestCase):
         `Playlist.Position`. Vybraná položka + adresa v playlistu + pozice → `play(ask=1)`
         místo výpisu (dvakrát na Office 2026-09-16: „položku se nepodařilo přehrát")."""
         url = "plugin://plugin.video.nokturno/?action=streams&id=tt0133093&type=movie"
-        xbmc.info_labels["ListItem.FileNameAndPath"] = url
+        # FileNameAndPath je z info tagu adresa přehrání (Arctic Fuse), cesta složky je FolderPath
+        xbmc.info_labels["ListItem.FileNameAndPath"] = "plugin://plugin.video.nokturno/?action=play&ask=1&id=tt0133093&type=movie"
+        xbmc.info_labels["ListItem.FolderPath"] = url
         xbmc.info_labels["Playlist.Position"] = "1"
         with mock.patch.object(xbmc, "executeJSONRPC",
                                return_value=json.dumps({"result": {"items": [{"file": url}]}})), \
