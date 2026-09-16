@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.7~beta15" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.7~beta16" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,7 +23,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>5.2.7~beta15 – Přehrát v detailu titulu v režimu „Vybrat ze seznamu streamů“ konečně funguje (ověřeno na Office): otevře výběr streamu a přehraje, obyčejný klik dál otevře seznam streamů. Bety 13 a 14 stály na signálech, které Kodi 21 nedává — teď se rozhoduje podle playlistu Kodi
+    <news>5.2.7~beta16 – Rok u titulů i v katalozích, žebříčku a hledání („Matrix (1999)“), ne jen v Mém seznamu: Kodi u nabídky řazení bez výslovné masky nahrazovalo popisek holým titulem
+5.2.7~beta15 – Přehrát v detailu titulu v režimu „Vybrat ze seznamu streamů“ konečně funguje (ověřeno na Office): otevře výběr streamu a přehraje, obyčejný klik dál otevře seznam streamů. Bety 13 a 14 stály na signálech, které Kodi 21 nedává — teď se rozhoduje podle playlistu Kodi
 5.2.7~beta14 – Oprava rozpoznání Přehrát z detailu (beta 13 to nepoznala a dál vypisovala seznam): doplněk už nespoléhá na nepřítomnost busy dialogu, ale na vlastní ukazatel čekání Kodi, který se objeví jen při přehrávání, nikdy při výpisu
 5.2.7~beta13 – Tlačítko Přehrát v detailu titulu (info dialog Estuary/Arctic Fuse, TMDb Helper) v režimu „Vybrat ze seznamu streamů“ dřív končilo „položku se nepodařilo přehrát“ — Kodi na složce s výpisem streamů nespouští přehrání, ale výpis, a čeká na stream. Doplněk teď takový požadavek pozná a rovnou nabídne výběr streamu jako u „Zeptat se v dialogu“; obyčejný klik v menu dál otevře seznam streamů podle nastavení. Zavření výběru Zpětem Kodi hlásí jako neúspěšné přehrání — to je jeho hláška, ne chyba
 5.2.7~beta12 – Oprava přehrávání z TMDb Helperu (a obecně přehrání spuštěného mimo menu Nokturna — widget, Up Next), které beta 7–11 rozbila: modální ukazatel průběhu zaváděný kvůli zrušení hledání Zpětem se nesmí použít mimo interaktivní procházení menu doplňku, jinak přehrání buď selže, nebo se nic nezobrazí. Zpět teď hledání zruší jen při procházení menu Nokturna, jinde (widget, JSON-RPC, TMDb Helper) běží bezpečně na pozadí jako dřív

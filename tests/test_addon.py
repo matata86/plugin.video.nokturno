@@ -1800,6 +1800,19 @@ class TestUdrzbaKodi(unittest.TestCase):
         self.assertEqual(xbmcplugin.sort_methods[:2], [xbmcplugin.SORT_METHOD_UNSORTED, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE])
         self.assertIn(xbmcplugin.SORT_METHOD_VIDEO_YEAR, xbmcplugin.sort_methods)
 
+    def test_razeni_nechava_nas_popisek_s_rokem(self):
+        """Kodi bez výslovné masky dosadí u každé metody řazení `%T` a ve výpisu ukáže
+        titul z info tagu místo popisku — katalog a hledání tak měly „Matrix“ bez roku,
+        Můj seznam (snímek s titulem i rokem) „Matrix (1999)“ (2026-09-16). Každá metoda
+        proto nese `%L`; rok/hodnocení zůstávají ve druhém sloupci."""
+        default.set_content("movies")
+        self.assertTrue(xbmcplugin.sort_masks)
+        for method, label, _label2 in xbmcplugin.sort_masks:
+            self.assertEqual(label, "%L", method)
+        masks = dict((m, l2) for m, _l, l2 in xbmcplugin.sort_masks)
+        self.assertEqual(masks[xbmcplugin.SORT_METHOD_VIDEO_YEAR], "%Y")
+        self.assertEqual(masks[xbmcplugin.SORT_METHOD_VIDEO_RATING], "%R")
+
     def test_novinky_umi_beta_verzi(self):
         radky = default.parse_news("3.2.0~beta1 – nová věc\n3.1.12 – oprava\nnesmysl bez verze\n3.1.10 – starší")
         self.assertEqual([v for v, _t in radky], ["3.2.0~beta1", "3.1.12", "3.1.10"])

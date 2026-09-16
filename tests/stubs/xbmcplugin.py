@@ -9,6 +9,7 @@ ended = []        # {"handle", "succeeded", "updateListing", "cacheToDisc"}
 resolved = []     # (handle, succeeded, listitem)
 contents = []     # setContent
 sort_methods = []
+sort_masks = []      # (metoda, maska popisku, maska druhého sloupce)
 categories = []
 
 
@@ -36,8 +37,9 @@ def setContent(handle, content):
     contents.append(content)
 
 
-def addSortMethod(handle, method, *args, **kwargs):
+def addSortMethod(handle, method, labelMask="", label2Mask=""):
     sort_methods.append(method)
+    sort_masks.append((method, labelMask, label2Mask))
 
 
 def setPluginCategory(handle, category):
@@ -49,7 +51,7 @@ def setProperty(handle, key, value):
 
 
 def reset():
-    del items[:], ended[:], resolved[:], contents[:], sort_methods[:], categories[:]
+    del items[:], ended[:], resolved[:], contents[:], sort_methods[:], sort_masks[:], categories[:]
 
 
 def urls():
