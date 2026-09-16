@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.8" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.10~beta1" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,7 +23,9 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>5.2.8 – Stabilní vydání, souhrn bet 5.2.7~beta1–23:
+    <news>5.2.10~beta1 – Zvuk a titulky podle preferovaného jazyka: po spuštění přehrávání se přepne na český (slovenský, anglický) zvuk, i když má soubor jako výchozí jinou stopu. Když zvuk v tom jazyce chybí, zapnou se české titulky (náhradou slovenské), u dabingu se titulky naopak vypnou a zůstanou jen vynucené. Titulky ze zdroje se stáhnou, jazyk se pozná z textu a rozsypaná diakritika z windows-1250 je pryč. Nastavení → Přehrávání: „Automaticky přepnout zvuk“ a „Titulky“
+5.2.10~beta1 – Seznam streamů: streamy v preferovaném jazyce jsou vždy nahoře a ostatní až pod nimi (dřív jazyk rozhodoval jen mezi streamy stejné kvality)
+5.2.8 – Stabilní vydání, souhrn bet 5.2.7~beta1–23:
 5.2.8 – Přehrát v detailu titulu funguje v Arctic Fuse, Estuary i z TMDb Helperu — klik na film v menu Nokturna otevře seznam streamů, Přehrát nabídne výběr streamu a přehraje
 5.2.8 – Pokračovat ve sledování si pamatuje stream, na kterém jste skončili, a pustí ho rovnou od uloženého místa — i z karty Home Assistantu, widgetu a Up Next
 5.2.8 – Sjednocené seznamy: Můj seznam, Pokračovat a Naposledy zhlédnuté mají jako katalogy hodnocení, žánr, stopáž a věkové omezení; všude vpravo rok, názvy bez roku v závorce; položky bez fotky a popisu se samy doplní

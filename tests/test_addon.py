@@ -1729,6 +1729,157 @@ class TestSluzbaStatistiky(unittest.TestCase):
         self.assertEqual(xbmcgui.Window(10000).getProperty(service.FORCE_STATS_PROP), "")
 
 
+CZ_SRT = ("1\n00:00:01,000 --> 00:00:03,000\nŘekni mi, proč jsi tady a co tu děláš.\n\n"
+          "2\n00:00:04,000 --> 00:00:06,000\nNevím, jestli můžu věřit tomu, že přijdeš.\n\n") * 8
+EN_SRT = ("1\n00:00:01,000 --> 00:00:03,000\nTell me what you are doing here and why.\n\n"
+          "2\n00:00:04,000 --> 00:00:06,000\nI don't know if I can trust that you will come to the party.\n\n") * 8
+
+
+class _Resp:
+    def __init__(self, data):
+        self.data = data
+
+    def read(self, n=-1):
+        return self.data
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+class TestTitulkyAZvuk(unittest.TestCase):
+    """2026-09-16: zvuk a titulky podle preferovaného jazyka — titulky ze zdroje se stáhnou
+    s jazykem v názvu (`local_subtitles`), služba po startu přepne stopy (`Player.apply_tracks`)."""
+
+    def setUp(self):
+        reset_kodi()
+        xbmcaddon.settings["pref_lang"] = "1"   # CZ
+
+    def test_titulky_se_stahnou_s_jazykem_a_ceske_jdou_prvni(self):
+        bodies = {"https://ws/en.srt": EN_SRT.encode("utf-8"), "https://ws/cz.srt": CZ_SRT.encode("cp1250")}
+        seen_headers = {}
+
+        def urlopen(req, timeout=0):
+            seen_headers[req.full_url] = dict(req.header_items())
+            return _Resp(bodies[req.full_url])
+        links = {"ws:en": "https://ws/en.srt", "ws:cz": "https://ws/cz.srt|Cookie=a%3Db"}
+        with mock.patch.object(default, "resolve_url", side_effect=lambda apis, ref: links[ref]), \
+             mock.patch.object(default.urllib.request, "urlopen", side_effect=urlopen):
+            paths = default.local_subtitles({}, ["ws:en", "ws:cz"])
+        self.assertEqual(len(paths), 2)
+        self.assertTrue(paths[0].endswith(".cze.srt"), paths)
+        self.assertTrue(paths[1].endswith(".eng.srt"), paths)
+        with open(paths[0], encoding="utf-8-sig") as f:
+            self.assertEqual(f.read(), CZ_SRT, "windows-1250 převedené do UTF-8")
+        self.assertEqual(seen_headers["https://ws/cz.srt"].get("Cookie"), "a=b", "hlavičky za | jdou do požadavku")
+
+    def test_nestazene_titulky_projdou_odkazem(self):
+        with mock.patch.object(default, "resolve_url", return_value="https://ws/x.srt"), \
+             mock.patch.object(default.urllib.request, "urlopen", side_effect=OSError("síť")):
+            self.assertEqual(default.local_subtitles({}, ["ws:x"]), ["https://ws/x.srt"])
+
+    def test_pomale_a_nedostupne_titulky_prehrani_nezdrzi(self):
+        """Office 2026-09-16: WebShare hlásil u titulků „temporarily unavailable“ až po 5–13 s."""
+        gate = threading.Event()
+
+        def resolve(apis, ref):
+            if ref == "ws:pomale":
+                gate.wait(5)
+                return "https://ws/pomale.srt"
+            raise default.NokturnoError("WebShare tenhle soubor teď nevydá")
+        started = time.time()
+        with mock.patch.object(default, "resolve_url", side_effect=resolve), \
+             mock.patch.object(default, "SUBS_BUDGET_S", 0.3):
+            self.assertEqual(default.local_subtitles({}, ["ws:pomale", "ws:pryc"]), [])
+        gate.set()
+        self.assertLess(time.time() - started, 2)
+
+    def test_play_preda_titulky_a_jazyky_streamu_sluzbe(self):
+        streams = [{"url": "ws:1", "label": "Film.2020.1080p.mkv", "detail": "2 GB", "source": "ws",
+                    "langs": ["EN"], "subtitles": ["ws:sub"]}]
+        xbmcaddon.settings["stream_mode"] = "0"
+        with mock.patch.object(default, "load_meta", return_value=({"name": "Film", "year": 2020}, None)), \
+             mock.patch.object(default, "collect_streams", return_value=streams), \
+             mock.patch.object(default, "resolve_url", return_value="https://cdn/x.mkv"), \
+             mock.patch.object(default, "local_subtitles", return_value=["/tmp/nokturno-1.cze.srt"]) as local:
+            default.play({}, "movie", "tt1")
+        local.assert_called_once_with({}, ["ws:sub"])
+        _handle, succeeded, li = xbmcplugin.resolved[0]
+        self.assertTrue(succeeded)
+        self.assertEqual(li.subtitles, ["/tmp/nokturno-1.cze.srt"])
+        playing = json.loads(xbmcgui.Window(10000).getProperty(default.PLAYING_PROP))
+        self.assertEqual(playing["stream_langs"], ["EN"])
+
+    def run_tracks(self, props, item=None):
+        calls = []
+
+        def rpc(method, **params):
+            calls.append((method, params))
+            if method == "Player.GetActivePlayers":
+                return [{"playerid": 1, "type": "video"}]
+            if method == "Player.GetProperties":
+                return props
+            return "OK"
+        player = service.Player(store=default.STORE, stats=None)
+        item = item or {"id": "tt1"}
+        player.item = item
+        with mock.patch.object(service, "rpc", side_effect=rpc), \
+             mock.patch.object(service, "TRACKS_DELAY", 0), \
+             mock.patch.object(service.Player, "isPlayingVideo", return_value=True):
+            player.apply_tracks(item)
+        return [c for c in calls if c[0].startswith("Player.Set")]
+
+    def test_anglicky_default_prepne_na_cesky_dabing_a_vypne_titulky(self):
+        props = {"audiostreams": [{"index": 0, "language": "eng", "channels": 6},
+                                  {"index": 1, "language": "cze", "channels": 6}],
+                 "currentaudiostream": {"index": 0, "language": "eng"},
+                 "subtitles": [{"index": 0, "language": "cze"}],
+                 "currentsubtitle": {"index": 0, "language": "cze"}, "subtitleenabled": True}
+        self.assertEqual(self.run_tracks(props), [
+            ("Player.SetAudioStream", {"playerid": 1, "stream": 1}),
+            ("Player.SetSubtitle", {"playerid": 1, "subtitle": "off"}),
+        ])
+
+    def test_bez_ceskeho_zvuku_zapne_ceske_titulky(self):
+        props = {"audiostreams": [{"index": 0, "language": "eng", "channels": 6}],
+                 "currentaudiostream": {"index": 0, "language": "eng"},
+                 "subtitles": [{"index": 0, "language": "eng"}, {"index": 1, "language": "cze", "name": "nokturno-ab"}],
+                 "currentsubtitle": {}, "subtitleenabled": False}
+        self.assertEqual(self.run_tracks(props), [
+            ("Player.SetSubtitle", {"playerid": 1, "subtitle": 1, "enable": True}),
+        ])
+
+    def test_neoznacena_stopa_rozhodne_jazyk_ze_zdroje(self):
+        props = {"audiostreams": [{"index": 0, "language": "", "channels": 2}],
+                 "currentaudiostream": {"index": 0, "language": ""},
+                 "subtitles": [{"index": 0, "language": "cze"}], "currentsubtitle": {}, "subtitleenabled": False}
+        self.assertEqual(self.run_tracks(props, {"id": "tt1", "stream_langs": ["EN"]}),
+                         [("Player.SetSubtitle", {"playerid": 1, "subtitle": 0, "enable": True})])
+        self.assertEqual(self.run_tracks(props, {"id": "tt1", "stream_langs": ["CZ"]}), [])
+        self.assertEqual(self.run_tracks(props, {"id": "tt1"}), [], "nevíme — nic neměnit")
+
+    def test_nastaveni_vypne_prepinani(self):
+        xbmcaddon.settings["auto_audio"] = "false"
+        xbmcaddon.settings["auto_subs"] = "0"
+        props = {"audiostreams": [{"index": 0, "language": "eng"}, {"index": 1, "language": "cze"}],
+                 "currentaudiostream": {"index": 0, "language": "eng"},
+                 "subtitles": [{"index": 0, "language": "cze"}], "currentsubtitle": {}, "subtitleenabled": False}
+        self.assertEqual(self.run_tracks(props), [])
+        xbmcaddon.settings["pref_lang"] = "0"
+        xbmcaddon.settings["auto_audio"] = "true"
+        xbmcaddon.settings["auto_subs"] = "1"
+        self.assertEqual(self.run_tracks(props), [], "bez preferovaného jazyka se nic nemění")
+
+    def test_jiny_titul_mezitim_nic_neprepina(self):
+        player = service.Player(store=default.STORE, stats=None)
+        player.item = {"id": "jiny"}
+        with mock.patch.object(service, "rpc", side_effect=AssertionError("nemá sahat na přehrávač")), \
+             mock.patch.object(service, "TRACKS_DELAY", 0):
+            player.apply_tracks({"id": "tt1"})
+
+
 if __name__ == "__main__":
     unittest.main()
 

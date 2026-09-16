@@ -687,7 +687,7 @@ msgid "What happens after you pick a title: auto-play the best quality, or choos
 msgstr ""
 
 msgctxt "#30313"
-msgid "Streams with this audio language are sorted higher up. Nothing gets hidden, just reordered."
+msgid "Streams with this audio language always come first, then the rest. Nothing gets hidden, just reordered."
 msgstr ""
 
 msgctxt "#30314"
@@ -1180,4 +1180,32 @@ msgstr ""
 
 msgctxt "#30439"
 msgid "Newly added with CZ dubbing/subtitles (%s) is ready"
+msgstr ""
+
+msgctxt "#30440"
+msgid "Switch audio to the preferred language automatically"
+msgstr ""
+
+msgctxt "#30441"
+msgid "When playback starts, the audio track in the preferred language is selected, even if the file has a different default track (often English in re-muxed movies)."
+msgstr ""
+
+msgctxt "#30442"
+msgid "Subtitles"
+msgstr ""
+
+msgctxt "#30443"
+msgid "Leave to Kodi"
+msgstr ""
+
+msgctxt "#30444"
+msgid "When audio in the preferred language is missing"
+msgstr ""
+
+msgctxt "#30445"
+msgid "Always in the preferred language"
+msgstr ""
+
+msgctxt "#30446"
+msgid "Subtitles in the preferred language (or a close one: Czech and Slovak substitute for each other) are turned on when the audio isn't in that language. With dubbing only forced subtitles stay on. Subtitles from the source are downloaded and their language is recognised from the text."
 msgstr ""

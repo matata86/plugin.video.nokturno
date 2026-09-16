@@ -44,6 +44,7 @@ from store import Store, migrate_profile  # noqa: E402
 from source_errors import describe_failure, summarize as summarize_failures  # noqa: E402
 from sync import sync_once  # noqa: E402
 from streams import estimate_rank, langs_from_name, parse_stream, subs_from_name  # noqa: E402
+from tracks import FILE_CODES, SUBTITLE_FALLBACK, decode_subtitle, subtitle_format, subtitle_lang  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
 from webshare_api import SORTS, WebshareApi, WebshareError, human_size  # noqa: E402
 from engine import AUDIO_PROBE_MAX, DEFAULT_RUNTIME_S, Engine, NokturnoError, runtime_minutes  # noqa: E402
@@ -1424,13 +1425,100 @@ def stream_label(s):
     return "  ".join(parts)
 
 
-def mark_playing(key, title="", year=None, kind="movie", stream_url=None, stream_subs=None):
+def mark_playing(key, title="", year=None, kind="movie", stream_url=None, stream_subs=None, stream_langs=None):
     # stream_url/stream_subs: vnitřní reference zvoleného streamu (ne podepsaný odkaz zdroje,
     # ten vyprší) — služba (Player.save_resume) si je uloží k pozici, ať se dá „Pokračovat ve
     # sledování“ pustit rovnou bez nového hledání (viz add_playable/add_snapshot_item)
+    # stream_langs: jazyky zvuku, které o streamu tvrdí zdroj — služba podle nich pozná češtinu
+    # i u souboru, jehož stopy jazyk neuvádějí (`Player.apply_tracks`, `tracks.pick_audio`)
     xbmcgui.Window(10000).setProperty(PLAYING_PROP, json.dumps(
         {"id": key, "title": title, "year": year, "kind": kind,
-         "stream_url": stream_url, "stream_subs": stream_subs}))
+         "stream_url": stream_url, "stream_subs": stream_subs, "stream_langs": stream_langs or []}))
+
+
+SUBS_DIR = os.path.join(PROFILE, "subs")
+SUBS_MAX_BYTES = 2 * 1024 * 1024   # titulky mají desítky kB; víc je omyl odkazu (video)
+SUBS_KEEP_S = 2 * 86400
+# na titulky se před přehráním čeká nejvýš tolik — WebShare u nedostupného souboru odpovídá
+# „temporarily unavailable“ až po 5–13 s (Office 2026-09-16) a přehrání by stálo
+SUBS_BUDGET_S = 4.0
+
+
+def local_subtitles(apis, refs):
+    """Titulky ze zdroje (`ws:<ident>`, odkaz Sosáče) stáhne do profilu a vrátí cesty.
+
+    Kodi pozná jazyk externích titulků jen z názvu souboru a podepsaný odkaz zdroje
+    ho neobsahuje, takže služba nevěděla, které titulky jsou české. Jazyk se tu
+    určí z textu (`tracks.subtitle_lang`) a zapíše do názvu (`nokturno-….cze.srt`),
+    text jde do UTF-8 s BOM — české titulky ve windows-1250 jinak Kodi ukazuje
+    s rozsypanou diakritikou. Preferovaný jazyk jde v seznamu první.
+
+    Rozklíčování i stažení běží souběžně a čeká se nejvýš `SUBS_BUDGET_S`; co do té
+    doby nedoběhne, přehrání nezdrží (vlákno dožije se svým HTTP timeoutem). Token
+    WebShare je v tu chvíli už platný — odkaz na samotný stream se rozklíčoval před
+    titulky. Titulky, které se nepodaří rozklíčovat, se vynechají (dřív výjimka
+    z `resolve_url` shodila celé přehrání), co se nepodaří stáhnout, jde odkazem."""
+    refs = [r for r in refs if r]
+    if not refs:
+        return []
+    try:
+        xbmcvfs.mkdirs(SUBS_DIR)
+        now = time.time()
+        for name in os.listdir(SUBS_DIR):
+            path = os.path.join(SUBS_DIR, name)
+            if now - os.path.getmtime(path) > SUBS_KEEP_S:
+                os.remove(path)
+    except OSError as e:
+        xbmc.log(f"[{ADDON_ID}] složka titulků: {e}", xbmc.LOGWARNING)
+
+    import hashlib
+    from concurrent.futures import wait as wait_futures
+
+    def fetch(ref):
+        try:
+            link = resolve_url(apis, ref)
+        except Errors as e:
+            xbmc.log(f"[{ADDON_ID}] titulky {ref}: {e}", xbmc.LOGINFO)
+            return None
+        if not link:
+            return None
+        url, _sep, header_part = link.partition("|")
+        headers = {"User-Agent": "Mozilla/5.0"}
+        headers.update(dict(urllib.parse.parse_qsl(header_part)))
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=8) as resp:
+                raw = resp.read(SUBS_MAX_BYTES + 1)
+            if not raw or len(raw) > SUBS_MAX_BYTES:
+                return link, ""
+            text = decode_subtitle(raw)
+            lang = subtitle_lang(text)
+            name = "nokturno-" + hashlib.sha1(ref.encode("utf-8")).hexdigest()[:10]
+            if lang:
+                name += "." + FILE_CODES[lang]
+            path = os.path.join(SUBS_DIR, f"{name}.{subtitle_format(text)}")
+            with open(path, "w", encoding="utf-8-sig") as f:
+                f.write(text)
+            return path, lang
+        except Exception as e:  # noqa: BLE001 – síť, zápis; titulky nesmí shodit přehrání
+            xbmc.log(f"[{ADDON_ID}] titulky {ref} se nestáhly, předám odkaz: {e}", xbmc.LOGINFO)
+            return link, ""
+
+    pool = ThreadPoolExecutor(max_workers=min(len(refs), 4))
+    futures = [pool.submit(fetch, ref) for ref in refs]
+    wait_futures(futures, timeout=SUBS_BUDGET_S)
+    pool.shutdown(wait=False)
+    fetched = []
+    for ref, future in zip(refs, futures):
+        if not future.done():
+            xbmc.log(f"[{ADDON_ID}] titulky {ref}: nestihly se do {SUBS_BUDGET_S:g} s, přehrávám bez nich",
+                     xbmc.LOGINFO)
+            continue
+        if future.result():
+            fetched.append(future.result())
+    pref = PREF_LANGS[int(setting("pref_lang", "0"))]
+    rank = {lang: i for i, lang in enumerate(SUBTITLE_FALLBACK.get(pref, ()))}
+    order = sorted(range(len(fetched)), key=lambda i: (rank.get(fetched[i][1], len(rank)), i))
+    return [fetched[i][0] for i in order]
 
 
 def mark_viewed(key, title="", year=None, kind="movie"):
@@ -3357,7 +3445,7 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
             tag.setResumePoint(resume, total)
         except Exception:  # noqa: BLE001 – Kodi < 20
             pass
-    subtitles = [resolve_url(apis, s) for s in chosen.get("subtitles") or []]
+    subtitles = local_subtitles(apis, chosen.get("subtitles") or [])
     if subtitles:
         li.setSubtitles(subtitles)
     STORE.remember_item(item_id, snapshot(meta, ctype, video, series_id, alt))
@@ -3365,7 +3453,8 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
     # bez roku – ten se posílá zvlášť polem `year`, display_name() by ho zdvojil
     stats_title = episode_stats_title(video, meta)
     mark_playing(item_id, stats_title, year if year.isdigit() else None, "series" if video else ctype,
-                stream_url=chosen.get("url"), stream_subs="|".join(chosen.get("subtitles") or []))
+                stream_url=chosen.get("url"), stream_subs="|".join(chosen.get("subtitles") or []),
+                stream_langs=list(chosen.get("langs") or []))
     xbmcplugin.setResolvedUrl(HANDLE, True, li)
     if video:
         upnext_notify(meta, video, series_id or split_episode_id(item_id)[0], alt)

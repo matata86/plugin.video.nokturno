@@ -687,8 +687,8 @@ msgid "What happens after you pick a title: auto-play the best quality, or choos
 msgstr "Čo sa stane po výbere titulu: automaticky sa prehrá najlepšia kvalita, alebo sa stream vyberie v dialógu. Celý zoznam streamov s filtrom je vždy v kontextovom menu položky (Zoznam streamov)."
 
 msgctxt "#30313"
-msgid "Streams with this audio language are sorted higher up. Nothing gets hidden, just reordered."
-msgstr "Streamy s týmto jazykom zvuku idú v zozname vyššie. Nič sa neskrýva, len sa to preradí."
+msgid "Streams with this audio language always come first, then the rest. Nothing gets hidden, just reordered."
+msgstr "Streamy s týmto jazykom zvuku sú vždy hore, ostatné až pod nimi. Nič sa neskrýva, len sa to preradí."
 
 msgctxt "#30314"
 msgid "At equal quality, a stream with surround sound (5.1 and up) is sorted higher."
@@ -1181,3 +1181,31 @@ msgstr "Spustené na pozadí — až to bude hotové, príde upozornenie."
 msgctxt "#30439"
 msgid "Newly added with CZ dubbing/subtitles (%s) is ready"
 msgstr "Novo pridané s CZ dabingom/titulkami (%s) je pripravené"
+
+msgctxt "#30440"
+msgid "Switch audio to the preferred language automatically"
+msgstr "Automaticky prepnúť zvuk na preferovaný jazyk"
+
+msgctxt "#30441"
+msgid "When playback starts, the audio track in the preferred language is selected, even if the file has a different default track (often English in re-muxed movies)."
+msgstr "Po spustení prehrávania sa vyberie zvuková stopa v preferovanom jazyku, aj keď má súbor ako predvolenú inú (pri prebalených filmoch často anglickú)."
+
+msgctxt "#30442"
+msgid "Subtitles"
+msgstr "Titulky"
+
+msgctxt "#30443"
+msgid "Leave to Kodi"
+msgstr "Nechať na Kodi"
+
+msgctxt "#30444"
+msgid "When audio in the preferred language is missing"
+msgstr "Keď chýba zvuk v preferovanom jazyku"
+
+msgctxt "#30445"
+msgid "Always in the preferred language"
+msgstr "Vždy v preferovanom jazyku"
+
+msgctxt "#30446"
+msgid "Subtitles in the preferred language (or a close one: Czech and Slovak substitute for each other) are turned on when the audio isn't in that language. With dubbing only forced subtitles stay on. Subtitles from the source are downloaded and their language is recognised from the text."
+msgstr "Titulky v preferovanom jazyku (alebo blízkom, čeština a slovenčina sa zastúpia) sa zapnú, keď zvuk v tom jazyku nie je. Pri dabingu zostanú len vynútené titulky. Titulky zo zdroja sa stiahnu a ich jazyk sa rozpozná z textu."
