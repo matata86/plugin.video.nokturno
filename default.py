@@ -492,15 +492,26 @@ CONTENT_SORTS = {
 }
 
 
+LABEL2_MASKS = {
+    xbmcplugin.SORT_METHOD_VIDEO_YEAR: "%Y",
+    xbmcplugin.SORT_METHOD_VIDEO_RATING: "%R",
+}
+
+
 def set_content(content):
     """Typ obsahu + nabídka řazení. Bez `addSortMethod` skiny ukazovaly „Řazení: žádné“
     a katalog nešel seřadit podle roku ani hodnocení, i když je `fill_info` plní.
-    První je „jak přišlo“ — pořadí ze zdroje (žebříček, seřazené streamy) zůstává výchozí."""
+    První je „jak přišlo“ — pořadí ze zdroje (žebříček, seřazené streamy) zůstává výchozí.
+
+    Maska popisku `%L` výslovně: bez ní Kodi u každé metody řazení dosadí `%T` a ve
+    výpisu ukáže místo našeho popisku titul z info tagu — proto měl katalog i hledání
+    „Matrix“ bez roku, zatímco Můj seznam (snímek ukládá titul už s rokem) „Matrix (1999)“
+    (2026-09-16, nahlásil uživatel). Druhý sloupec u řazení podle roku/hodnocení zůstává."""
     xbmcplugin.setContent(HANDLE, content)
-    xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_UNSORTED)
-    xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
+    xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_UNSORTED, "%L")
+    xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE, "%L")
     for method in CONTENT_SORTS.get(content, ()):
-        xbmcplugin.addSortMethod(HANDLE, method)
+        xbmcplugin.addSortMethod(HANDLE, method, "%L", LABEL2_MASKS.get(method, ""))
 
 
 def folder_item(label, url, icon=None, context=None):
