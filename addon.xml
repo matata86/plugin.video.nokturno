@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.10~beta2" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.10~beta3" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,7 +23,9 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>5.2.10~beta2 – Když hraje zvuk v preferovaném jazyce, titulky se vypnou úplně, i vynucené (beta 1 vynucené titulky nechávala zapnuté)
+    <news>5.2.10~beta3 – Nastavit z mobilu: na TV se ukáže QR kód, mobil ve stejné Wi-Fi otevře stránku se všemi účty a nastavením a uloží je rovnou do Kodi — bez psaní hesel ovladačem. Nastavení doplňku (první položka) a Pokročilé; průvodce prvním nastavením na úvod nabídne Z mobilu, Průvodce ovladačem nebo Přeskočit. Funguje jen v místní síti, stránka platí 10 minut a pro jedno uložení
+5.2.10~beta3 – Hlášení o chybách: když v doplňku nastane chyba v kódu, pošle se autorovi krátké hlášení (typ chyby, místo v kódu, verze a pár řádků logu Nokturna), ať jde opravit dřív, než ji někdo nahlásí. Adresy, účty, hesla a IP se předem vymažou, výpadky zdrojů se neposílají a stejná chyba odejde nejvýš jednou za verzi. Vypnout jde v Nastavení → Statistiky; s vypnutými statistikami se neposílá nic
+5.2.10~beta2 – Když hraje zvuk v preferovaném jazyce, titulky se vypnou úplně, i vynucené (beta 1 vynucené titulky nechávala zapnuté)
 5.2.10~beta1 – Zvuk a titulky podle preferovaného jazyka: po spuštění přehrávání se přepne na český (slovenský, anglický) zvuk, i když má soubor jako výchozí jinou stopu. Když zvuk v tom jazyce chybí, zapnou se české titulky (náhradou slovenské), u dabingu se titulky naopak vypnou a zůstanou jen vynucené. Titulky ze zdroje se stáhnou, jazyk se pozná z textu a rozsypaná diakritika z windows-1250 je pryč. Nastavení → Přehrávání: „Automaticky přepnout zvuk“ a „Titulky“
 5.2.10~beta1 – Seznam streamů: streamy v preferovaném jazyce jsou vždy nahoře a ostatní až pod nimi (dřív jazyk rozhodoval jen mezi streamy stejné kvality)
 5.2.8 – Stabilní vydání, souhrn bet 5.2.7~beta1–23:
