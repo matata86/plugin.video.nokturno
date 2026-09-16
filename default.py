@@ -121,6 +121,7 @@ GENRES_CS = {
 PLAYING_PROP = "nokturno.playing"
 VIEWED_PROP = "nokturno.viewed"   # služba si odsud bere „u titulu se zobrazily streamy“ pro statistiky
 SYNC_PROP = "nokturno.sync"      # plugin → služba: synchronizuj hned, ne až za pět minut
+FORCE_STATS_PROP = "nokturno.force_stats"   # plugin → služba: aktualizace doplňku, nečekat na SEND_EVERY
 USED_PROP = "nokturno.used"    # služba si odsud bere „doplněk byl otevřen“ pro statistiky
 PREF_LANGS = ("", "CZ", "SK", "EN")
 STREAM_ORDERS = ("source", "quality", "size_desc", "size_asc")
@@ -146,6 +147,10 @@ _ADDON_VERSION = ADDON.getAddonInfo("version")
 if STORE.load("cache_version", "") != _ADDON_VERSION:
     STORE.clear_cache()
     STORE.save("cache_version", _ADDON_VERSION)
+    # zároveň službě řekni, ať s dalším statistickým hlášením nečeká až SEND_EVERY (6 h) —
+    # ať se případná zpráva z dashboardu (např. odpověď na nahlášený log) ukáže co nejdřív
+    # po aktualizaci, ne až za pár hodin
+    xbmcgui.Window(10000).setProperty(FORCE_STATS_PROP, "1")
 
 
 def is_sosac_id(item_id):

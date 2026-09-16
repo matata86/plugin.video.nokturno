@@ -55,6 +55,7 @@ PROP = "nokturno.playing"
 VIEWED_PROP = "nokturno.viewed"
 USED_PROP = "nokturno.used"
 SYNC_PROP = "nokturno.sync"
+FORCE_STATS_PROP = "nokturno.force_stats"   # plugin → služba: aktualizace doplňku, nečekat na SEND_EVERY
 SYNC_EVERY = 5 * 60   # výměna s HA; změny (dokoukáno, Můj seznam) ji vyvolají hned
 SUB_CHECK_EVERY = 12 * 3600   # jak často se ptát WebShare na stav předplatného
 WATCHED_PCT = 0.90
@@ -696,6 +697,12 @@ def stats_tick(stats, force=False):
         if viewed and viewed.get("id"):
             stats.note_play(viewed["id"], viewed.get("title") or "",
                             viewed.get("year"), viewed.get("kind") or "movie")
+    if xbmcgui.Window(10000).getProperty(FORCE_STATS_PROP):
+        # doplněk se právě aktualizoval (viz default.py) — nečekat až SEND_EVERY (6 h),
+        # ať případná zpráva z dashboardu (odpověď na nahlášený log, oznámení chyby)
+        # dorazí co nejdřív po instalaci nové verze, ne až s dalším pravidelným hlášením
+        xbmcgui.Window(10000).clearProperty(FORCE_STATS_PROP)
+        force = True
     addon = fresh_addon()
     if addon is None:
         return
