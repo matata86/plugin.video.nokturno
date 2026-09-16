@@ -594,13 +594,24 @@ def episode_stats_title(video, meta):
 
 
 def display_name(meta):
-    """Název s rokem – „Matrix (1999)“; u Sosáče jen titul bez jazyků a originálu."""
-    title = bare_title(meta)
-    if is_sosac_id(meta.get("id")):
-        year = str(meta.get("year") or "")[:4]
-    else:
-        year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
-    return f"{title} ({year})" if year.isdigit() else title
+    """Název do seznamu — bez roku; u Sosáče jen titul bez jazyků a originálu.
+
+    Do 5.2.7~beta21 „Matrix (1999)“. Rok ale od bety 16/20 kreslí každý seznam zvlášť
+    (Label2 `%Y`, info tag), takže v názvu byl dvakrát (2026-09-16, přání uživatele)."""
+    return bare_title(meta)
+
+
+_TITLE_YEAR_RE = re.compile(r"\s*\((\d{4})\)$")
+
+
+def strip_year(title, year=None):
+    """Snímky uložené do bety 21 mají v názvu „ (1999)“ — při kreslení ho uřízne, jen když
+    sedí s rokem snímku (nebo rok neznáme), ať nepřijde o závorku, která k názvu patří."""
+    title = str(title or "")
+    m = _TITLE_YEAR_RE.search(title)
+    if m and (not str(year or "").isdigit() or m.group(1) == str(year)[:4]):
+        return title[:m.start()]
+    return title
 
 
 def split_episode_id(item_id):
@@ -789,7 +800,7 @@ def fill_info_snapshot(li, snap):
     tag = li.getVideoInfoTag()
     is_ep = snap.get("season") is not None
     tag.setMediaType("episode" if is_ep else ("tvshow" if snap.get("type") == "series" else "movie"))
-    tag.setTitle(snap.get("title") or "")
+    tag.setTitle(strip_year(snap.get("title"), snap.get("year")))
     if snap.get("tvshow"):
         tag.setTvShowTitle(snap["tvshow"])
     plot = snap.get("plot") or ""
@@ -939,7 +950,7 @@ def add_snapshot_item(key, snap, extra_context=None):
         add_dav_file(api, {"path": path, "name": snap.get("title") or path.rsplit("/", 1)[-1],
                            "size_h": snap.get("size_h", "")}, extra_context)
         return
-    label = snap.get("title") or key
+    label = strip_year(snap.get("title"), snap.get("year")) or key
     if snap.get("tvshow") and snap.get("season") is not None:
         label = f"{snap['tvshow']} – {int(snap['season'])}x{int(snap['episode'] or 0):02d} {label}"
     li = xbmcgui.ListItem(label=label)
@@ -2511,17 +2522,21 @@ class SearchProgress:
         self.audio_done = self.audio_total = 0   # čtení hlaviček (ověření zvuku) — poslední fáze
 
     def _show(self):
+        """Dvě fáze, jeden řádek textu: dokud přicházejí zdroje, „Nalezené streamy: 35“
+        (součet), jakmile začne ověřování metadat, jen „Ověřuji metadata: 3/12“.
+        Dřív se vypisoval každý zdroj zvlášť („Luna: 8 · WebShare: 12 · …“) — na TV
+        nečitelné a na konci se text uřízl (2026-09-16, přání uživatele)."""
         percent = int(self.done / self.total * 100)
-        parts = [f"{label}: {n}" for label, n in self.sources]
         if self.audio_total:
-            parts.append(L(30239, "Ověřuji metadata: {done}/{total}").format(
-                done=self.audio_done, total=self.audio_total))
-        if parts:
-            # jen hledání streamů (collect_streams) hlásí source()/audio() — hledání titulu
-            # (search_run) nic z toho nemá a nechává si vlastní text z create()
-            self.bar.update(percent, " · ".join(parts))
+            text = L(30239, "Ověřuji metadata: {done}/{total}").format(
+                done=self.audio_done, total=self.audio_total)
+        elif self.sources:
+            text = L(30240, "Nalezené streamy: {count}").format(count=sum(n for _label, n in self.sources))
         else:
+            # hledání titulu (search_run) source()/audio() nehlásí — nechává si text z create()
             self.bar.update(percent)
+            return
+        self.bar.update(percent, text)
 
     def tick(self):
         with self.lock:

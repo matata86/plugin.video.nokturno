@@ -180,10 +180,25 @@ class TestPomocneFunkce(unittest.TestCase):
         self.assertEqual(default.split_episode_id("tt1:x:2"), ("tt1:x:2", None, None))
 
     def test_display_name(self):
-        self.assertEqual(default.display_name({"id": "tt1", "name": "Matrix", "releaseInfo": "1999-"}), "Matrix (1999)")
+        """Bez roku — rok kreslí každý seznam zvlášť (Label2, info tag), v názvu byl dvakrát
+        (2026-09-16, přání uživatele)."""
+        self.assertEqual(default.display_name({"id": "tt1", "name": "Matrix", "releaseInfo": "1999-"}), "Matrix")
         self.assertEqual(default.display_name({"id": "tt1", "name": "Matrix"}), "Matrix")
         self.assertEqual(default.display_name({"id": "sosacd_5", "name": "Matrix CZ/EN (The Matrix)",
-                                               "_title": "Matrix", "year": 1999}), "Matrix (1999)")
+                                               "_title": "Matrix", "year": 1999}), "Matrix")
+
+    def test_stary_snimek_s_rokem_v_nazvu_se_kresli_bez_roku(self):
+        """Snímky uložené do bety 21 mají „Matrix (1999)“ — uřízne se jen rok, který sedí."""
+        self.assertEqual(default.strip_year("Matrix (1999)", "1999"), "Matrix")
+        self.assertEqual(default.strip_year("Matrix (1999)", ""), "Matrix")
+        self.assertEqual(default.strip_year("Blade Runner 2049", "2017"), "Blade Runner 2049")
+        self.assertEqual(default.strip_year("Film (2001)", "2020"), "Film (2001)")
+        default.STORE.remember_item("tt_rok_v_nazvu", {"type": "movie", "id": "tt_rok_v_nazvu", "title": "Matrix (1999)",
+                                                        "year": "1999", "plot": "x", "art": {"poster": "p"}, "rating": "8"})
+        default.add_snapshot_item("tt_rok_v_nazvu", default.STORE.item("tt_rok_v_nazvu"))
+        _h, _url, li, _f = xbmcplugin.items[-1]
+        self.assertEqual(li.getLabel(), "Matrix")
+        self.assertIn(("setTitle", ("Matrix",), {}), li.tag.calls)
 
     def test_runtime_minutes(self):
         self.assertEqual(default.runtime_minutes("2h42min"), 162)
@@ -453,40 +468,34 @@ class TestJadroVKodi(unittest.TestCase):
         self.assertEqual([type(e).__name__ for e in errors], ["SourceFailure", "SourceFailure"])
         self.assertEqual(default.skipped_notice(errors),
                          "Luna neodpovídá; WebShare: login: Wrong password — přeskočeno")
-        bar.update.assert_called_with(int(3 / 8 * 100), "WebShare: 1 · Ověřuji metadata: 2/4")
+        bar.update.assert_called_with(int(3 / 8 * 100), "Ověřuji metadata: 2/4")
         # chyba jádra v hlášce nese zdroj sama
         self.assertEqual(default.describe_error(default.NokturnoError("WebShare: soubor není")), "WebShare: soubor není")
         self.assertEqual(default.error_label(default.NokturnoError("Chybí odkaz na stream.")), "Nokturno")
 
-    def test_search_progress_hlasi_odkud_a_kolik(self):
-        """Ukazatel průběhu čtenáři dřív ukazoval jen procento — teď i to, odkud kolik
-        streamů zatím přišlo, ve stejném pořadí, v jakém zdroje dorazily."""
+    def test_search_progress_hlasi_nalezene_streamy(self):
+        """Dokud přicházejí zdroje, jen součet „Nalezené streamy: N“ — ne výčet po zdrojích
+        (2026-09-16, přání uživatele: na TV nečitelné)."""
         bar = mock.Mock()
         progress = default.SearchProgress(bar, 10)
         progress.tick()
         bar.update.assert_called_with(10)
-        progress.source("Luna", 0)
-        bar.update.assert_called_with(10, "Luna: 0")
-        progress.source("WebShare", 12)
-        bar.update.assert_called_with(10, "Luna: 0 · WebShare: 12")
+        progress.source("Luna", 7)
+        bar.update.assert_called_with(10, "Nalezené streamy: 7")
+        progress.source("WebShare", 28)
+        bar.update.assert_called_with(10, "Nalezené streamy: 35")
 
-    def test_search_progress_hlasi_overovani_zvuku(self):
-        """Poslední a nejdelší fáze (čtení hlaviček souborů) — kolik už je ověřeno
-        z kolika se doopravdy čte, vedle přehledu zdrojů."""
+    def test_search_progress_metadata_nahradi_nalezene_streamy(self):
+        """Poslední fáze (čtení hlaviček) — text se přepne jen na „Ověřuji metadata: x/y“."""
         bar = mock.Mock()
         progress = default.SearchProgress(bar, 10)
         progress.source("WebShare", 12)
         progress.audio(0, 5)
-        bar.update.assert_called_with(0, "WebShare: 12 · Ověřuji metadata: 0/5")
+        bar.update.assert_called_with(0, "Ověřuji metadata: 0/5")
         progress.audio(3, 5)
-        bar.update.assert_called_with(0, "WebShare: 12 · Ověřuji metadata: 3/5")
-
-        # bez source() (search_run, hledání podle názvu) audio() se nevolá vůbec —
-        # ale kdyby, ukazatel si i tak nechá jen tuhle část, ne prázdný text z create()
-        bar2 = mock.Mock()
-        holy = default.SearchProgress(bar2, 10)
-        holy.audio(1, 2)
-        bar2.update.assert_called_with(0, "Ověřuji metadata: 1/2")
+        bar.update.assert_called_with(0, "Ověřuji metadata: 3/5")
+        progress.source("Vlastní úložiště", 2)   # zdroj dorazí až během ověřování
+        bar.update.assert_called_with(0, "Ověřuji metadata: 3/5")
 
     def test_resolve_url_pres_jadro_a_token(self):
         engine = default.KodiEngine()

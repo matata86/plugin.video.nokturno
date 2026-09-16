@@ -758,6 +758,10 @@ msgctxt "#30239"
 msgid "Checking metadata: {done}/{total}"
 msgstr "Ověřuji metadata: {done}/{total}"
 
+msgctxt "#30240"
+msgid "Streams found: {count}"
+msgstr "Nalezené streamy: {count}"
+
 msgctxt "#30332"
 msgid "TMDB API"
 msgstr "TMDB API"
