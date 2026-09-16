@@ -16,6 +16,7 @@ import re
 import urllib.parse
 import urllib.request
 
+from abort import check as check_stop
 from sosac_api import SosacError, names_match, normalize
 
 BASE = "http://tv.sosac.to"
@@ -87,8 +88,10 @@ def _seznam(data, url):
 
 # SosacError se dědí ze sosac_api — dvě stejnojmenné třídy by se navzájem nechytaly
 class SosacDirect:
-    def __init__(self, streamuj_user="", streamuj_pass="", cache=None, cache_ttl=600, index_store=None, fresh=False):
+    def __init__(self, streamuj_user="", streamuj_pass="", cache=None, cache_ttl=600, index_store=None, fresh=False,
+                 should_stop=None):
         self.user = (streamuj_user or "").strip()
+        self.should_stop = should_stop   # viz `Engine` a `lib/abort.py` — index seriálů po písmenech
         self.password = (streamuj_pass or "").strip()
         self.cache = cache
         self.cache_ttl = cache_ttl
@@ -314,6 +317,7 @@ class SosacDirect:
         def build():
             rows = []
             for letter in LETTERS:
+                check_stop(self.should_stop)
                 try:
                     data = self._get(EXPORT + f"tvpismena/{letter}.json", ttl=86400)
                 except SosacError:

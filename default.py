@@ -35,7 +35,7 @@ from tmdb_api import TmdbApi, TmdbError  # noqa: E402
 from trend_api import CATALOG_ID as TREND_CATALOG_ID, TrendApi  # noqa: E402
 from sosac_api import SosacError, is_sosac_id as _is_stremio_sosac_id  # noqa: E402
 from sosac_direct import EXPORT as SOSAC_EXPORT, SosacDirect, is_direct_id  # noqa: E402
-from enrich import enrich, enrich_one  # noqa: E402
+from enrich import enrich, enrich_one, shutdown_pool as release_enrich  # noqa: E402
 from hellspy_api import HellspyApi, HellspyError  # noqa: E402
 from sledujteto_api import SledujtetoApi, SledujtetoError  # noqa: E402
 from fastshare_api import FastshareApi, FastshareError  # noqa: E402
@@ -47,6 +47,7 @@ from streams import estimate_rank, langs_from_name, parse_stream, subs_from_name
 from trakt_api import TraktApi, TraktError  # noqa: E402
 from webshare_api import SORTS, WebshareApi, WebshareError, human_size  # noqa: E402
 from engine import AUDIO_PROBE_MAX, DEFAULT_RUNTIME_S, Engine, NokturnoError, runtime_minutes  # noqa: E402
+from abort import Aborted  # noqa: E402
 
 ADDON = xbmcaddon.Addon()
 ADDON_ID = ADDON.getAddonInfo("id")
@@ -62,6 +63,41 @@ class _KodiLogHandler(logging.Handler):
 
 logging.getLogger().addHandler(_KodiLogHandler())
 logging.getLogger().setLevel(logging.WARNING)
+
+# Kodi při `Application.Quit` (nebo když uživatel opustí načítající se složku) čeká,
+# až skript doběhne — a dlouhé smyčky jádra dřív běžely dál, dokud neskončily samy
+# (Office 2026-09-16: vypnutí přes 2 minuty, zahřívání cache ze služby prohledávalo
+# zdroje po titulech). Monitor vzniká hned při importu, ne až při prvním dotazu, ať
+# nepropásne požadavek, který přišel dřív. `CANCEL` je vlastní příznak zrušení
+# dialogem (`cancelable_search`): dřív hledání po Zpět tiše doběhlo na pozadí.
+MONITOR = xbmc.Monitor()
+CANCEL = threading.Event()
+QUIT_PROP = "nokturno.quitting"   # stejný literál jako v service.py — služba zachytila System.OnQuit
+QUIT_POLL = 0.5                   # s – vlastnost okna se nečte při každé kontrole (vlákna zdrojů se ptají často)
+_quit_checked = [0.0]
+
+
+def should_stop():
+    """`should_stop` pro jádro (`Engine`, `StorageApi`, `SosacDirect` — viz `lib/abort.py`):
+    Kodi končí, nebo uživatel zrušil hledání dialogem. Jádro pak vyhodí `Aborted`,
+    router ji chytí a handle zavře bez hlášky.
+
+    `MONITOR.abortRequested()` sám nestačí: plugin spuštěný přes JSON-RPC (zahřívání
+    ze služby, HA) ho při `Application.Quit` uvidí až po zastavení síťových služeb,
+    a ty čekají právě na něj (Office 2026-09-16: 37 s, s HTTP dotazem 202 s). Služba
+    proto na `System.OnQuit` nastaví `QUIT_PROP` (`service.ServiceMonitor`)."""
+    if CANCEL.is_set():
+        return True
+    if MONITOR.abortRequested():
+        CANCEL.set()
+        return True
+    now = time.time()
+    if now - _quit_checked[0] >= QUIT_POLL:
+        _quit_checked[0] = now
+        if xbmcgui.Window(10000).getProperty(QUIT_PROP):
+            CANCEL.set()
+            return True
+    return False
 HANDLE = int(sys.argv[1])
 BASE_URL = sys.argv[0]
 ICON = ADDON.getAddonInfo("icon")
@@ -215,7 +251,8 @@ def get_sosac():
     # ve veřejných exportech a k přehrání stačí Streamuj.
     su, sp = setting("streamuj_username").strip(), setting("streamuj_password").strip()
     if su and sp:
-        return SosacDirect(su, sp, cache=STORE, cache_ttl=CACHE_TTL, index_store=STORE.index(), fresh=warming())
+        return SosacDirect(su, sp, cache=STORE, cache_ttl=CACHE_TTL, index_store=STORE.index(), fresh=warming(),
+                           should_stop=should_stop)
     return None
 
 
@@ -223,7 +260,8 @@ def get_sosac_db():
     """Veřejný katalog Sosáče (žádný účet, žádný přepínač) — vlastní databáze
     filmů a seriálů česky, funguje vždy. `apis["sosac"]` výš zůstává jen pro
     přihlášené přehrávání a stahování; katalog samotný účet nepotřebuje."""
-    return SosacDirect(cache=STORE, cache_ttl=CACHE_TTL, index_store=STORE.index(), fresh=warming())
+    return SosacDirect(cache=STORE, cache_ttl=CACHE_TTL, index_store=STORE.index(), fresh=warming(),
+                       should_stop=should_stop)
 
 
 def resolve_url(apis, url):
@@ -289,7 +327,7 @@ def get_storages():
             continue
         try:
             out.append(StorageApi(url, setting(f"dav{slot}_username"), setting(f"dav{slot}_password"),
-                                  setting(f"dav{slot}_name"), slot=slot, cache=STORE))
+                                  setting(f"dav{slot}_name"), slot=slot, cache=STORE, should_stop=should_stop))
         except StorageError as e:
             log_error(f"úložiště {slot}: {e}")
     return out
@@ -377,7 +415,7 @@ class KodiEngine(Engine):
 
     def __init__(self):
         self._clients = {}
-        super().__init__(engine_options(), PROFILE, store=STORE)
+        super().__init__(engine_options(), PROFILE, store=STORE, should_stop=should_stop)
 
     def _client(self, name):
         if name not in self._clients:
@@ -1746,6 +1784,8 @@ def prefetch(apis, kind):
     if kind == "next":
         seen = set()
         for key, _entry in STORE.recently_watched(15):
+            if should_stop():
+                break   # Kodi končí — každý titul je vlastní hledání napříč zdroji, tady se nic necachuje napůl
             snap = STORE.item(key)
             if not snap or snap.get("season") is None or snap.get("series") in seen:
                 continue
@@ -2349,6 +2389,12 @@ def _build_lang_catalog(apis, ctype):
         for i, cand in enumerate(candidates[:LANG_CATALOG_CAP]):
             if len(matched["dub"]) >= LANG_CATALOG_TARGET and len(matched["subs"]) >= LANG_CATALOG_TARGET:
                 break
+            if should_stop():
+                # Kodi končí (zahřívání ze služby běží v tomhle skriptu a Kodi na něj
+                # čeká) — výjimka, ne `break`: nedokončený seznam se nesmí zapsat do
+                # 8h cache v `STORE.cached_if()`, a zámek uklidí `finally` výš
+                _diag(f"{ctype}: přerušeno po {i} kandidátech, Kodi končí")
+                raise Aborted()
             item_ctype = cand.get("type") or "movie"
             t_item = time.time()
             try:
@@ -2526,13 +2572,17 @@ def cancelable_search(bar, fn):
     def _run():
         try:
             result["value"] = fn()
-        except Exception as e:  # noqa: BLE001 – i chyby zdrojů, znovu vyhodit v hlavním vlákně
+        except (Exception, Aborted) as e:  # noqa: BLE001 – i chyby zdrojů, znovu vyhodit v hlavním vlákně
             result["error"] = e
 
     t = threading.Thread(target=_run, daemon=True)
     t.start()
     while t.is_alive():
         if bar.iscanceled():
+            # jádro se ptá `should_stop()` mezi zdroji i hlavičkami — po zrušení
+            # skončí do vteřin, ne až po posledním timeoutu (Kodi na vlákno při
+            # konci skriptu čeká)
+            CANCEL.set()
             return True, None
         t.join(0.2)
     if "error" in result:
@@ -3635,6 +3685,11 @@ def router(query):
             download_hs(apis, p["id"], p["hash"], p.get("name", ""))
         else:
             main_menu(apis)
+    except Aborted:
+        # Kodi končí, nebo uživatel zrušil — žádná hláška, jen zavřít handle, ať Kodi
+        # nečeká na timeout (viz `should_stop`; přerušené hledání se nikde necachuje)
+        xbmc.log(f"[{ADDON_ID}] {action}: přerušeno (Kodi končí nebo zrušeno uživatelem)", xbmc.LOGINFO)
+        _close(action)
     except Errors as e:
         log_error(e)
         _fail(action, describe_error(e))
@@ -3646,11 +3701,29 @@ def router(query):
 
 def _fail(action, message):
     notify(message, xbmcgui.NOTIFICATION_ERROR, 5000)
-    if action in ("play", "play_ws", "play_hs", "play_dav"):
+    _close(action)
+
+
+def _close(action):
+    """Zavře handle Kodi jako neúspěšný — bez toho by Kodi u přehrání čekalo na timeout."""
+    # "title" s handle ≥ 0 = Přehrát nad titulem (Kodi čeká setResolvedUrl, viz router);
+    # s handle < 0 se sem nedostane, router tu větev ukončí dřív
+    if action in ("play", "play_ws", "play_hs", "play_dav", "title"):
         xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
     elif action not in ("download", "download_ws", "download_hs", "toggle_fav"):
         xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
 
 
+def main(query):
+    try:
+        router(query)
+    finally:
+        # sdílený executor popisů (`enrich`) nechává po sobě nečinná vlákna, na která Kodi
+        # po doběhnutí pluginu čeká navždy — i při vypínání (Office 2026-09-16: widget
+        # „Nově přidané" zablokoval Application.Quit natrvalo). Rozběhnuté dotazy doběhnou
+        # do cache; když Kodi končí, nezačaté se zruší.
+        release_enrich(cancel=should_stop())
+
+
 if __name__ == "__main__":
-    router(sys.argv[2] if len(sys.argv) > 2 else "")
+    main(sys.argv[2] if len(sys.argv) > 2 else "")

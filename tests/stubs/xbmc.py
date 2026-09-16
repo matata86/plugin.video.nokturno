@@ -9,6 +9,7 @@ builtins = []        # executebuiltin
 rpc_calls = []       # executeJSONRPC (rozparsované)
 info_labels = {}     # getInfoLabel → hodnota
 cond_visible = set()  # getCondVisibility → True pro tyhle podmínky
+abort = False         # Monitor.abortRequested() — test nastaví True = „Kodi končí"
 
 
 def log(msg, level=LOGDEBUG):
@@ -42,7 +43,7 @@ def sleep(ms):
 
 class Monitor:
     def abortRequested(self):
-        return False
+        return abort
 
     def waitForAbort(self, timeout=0):
         # v testech nikdy nečekat — smyčky se ukončí, jako by Kodi končilo
@@ -88,6 +89,8 @@ class Actor(_Detail):
 
 
 def reset():
+    global abort
     del logged[:], builtins[:], rpc_calls[:]
     info_labels.clear()
     cond_visible.clear()
+    abort = False
