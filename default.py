@@ -496,6 +496,8 @@ LABEL2_MASKS = {
     xbmcplugin.SORT_METHOD_VIDEO_YEAR: "%Y",
     xbmcplugin.SORT_METHOD_VIDEO_RATING: "%R",
 }
+# druhý sloupec u výchozího řazení (a podle názvu) — rok u titulů, u ostatního Kodi výchozí
+DEFAULT_LABEL2 = {"movies": "%Y", "tvshows": "%Y"}
 
 
 def set_content(content):
@@ -503,15 +505,20 @@ def set_content(content):
     a katalog nešel seřadit podle roku ani hodnocení, i když je `fill_info` plní.
     První je „jak přišlo“ — pořadí ze zdroje (žebříček, seřazené streamy) zůstává výchozí.
 
-    Maska popisku `%L` výslovně: bez ní Kodi u každé metody řazení dosadí `%T` a ve
-    výpisu ukáže místo našeho popisku titul z info tagu — proto měl katalog i hledání
-    „Matrix“ bez roku, zatímco Můj seznam (snímek ukládá titul už s rokem) „Matrix (1999)“
-    (2026-09-16, nahlásil uživatel). Druhý sloupec u řazení podle roku/hodnocení zůstává."""
+    Masky výslovně, Kodi (`ModuleXbmcplugin.cpp::addSortMethod`) jinak dosadí popisek `%T`
+    a druhý sloupec `%D`:
+    - `%T` ukázal místo našeho popisku titul z info tagu — katalog a hledání tak měly
+      „Matrix“ bez roku, Můj seznam „Matrix (1999)“ (beta16),
+    - `%D` = stopáž. Arctic Fuse (`Label_MediaList_Year`) kreslí vpravo Label2, a když je
+      prázdný, rok — takže titul se stopáží (Můj seznam, snímek ji nese od bety 20) měl
+      vpravo délku, titul bez ní (žebříček, `/trending` stopáž neposílá) rok. U filmů
+      a seriálů proto vždy `%Y`, stejně všude (2026-09-16, nahlásil uživatel)."""
     xbmcplugin.setContent(HANDLE, content)
-    xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_UNSORTED, "%L")
-    xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE, "%L")
+    label2 = DEFAULT_LABEL2.get(content, "")
+    xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_UNSORTED, "%L", label2)
+    xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE, "%L", label2)
     for method in CONTENT_SORTS.get(content, ()):
-        xbmcplugin.addSortMethod(HANDLE, method, "%L", LABEL2_MASKS.get(method, ""))
+        xbmcplugin.addSortMethod(HANDLE, method, "%L", LABEL2_MASKS.get(method, label2))
 
 
 def folder_item(label, url, icon=None, context=None):
