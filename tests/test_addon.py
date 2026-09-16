@@ -672,6 +672,21 @@ class TestVyberStreamu(unittest.TestCase):
         self.assertTrue(select.called)
         self.assertFalse([b for b in xbmc.builtins if b.startswith("Container.Update(")])
 
+    def test_play_s_primym_url_nastavi_resume_point(self):
+        """2026-09-16: přehrání přímým odkazem (HA karta, widget, Up Next) resolvovalo
+        ListItem bez rozkoukanosti — `apply_watched`/`setResumePoint` se volalo jen
+        v seznamech, ne tady, takže titul z „Pokračovat ve sledování“ vždycky
+        naskočil od začátku místo od uloženého místa."""
+        default.STORE.set_resume("tt1", 543.2, 6000.0)
+        with mock.patch.object(default, "load_meta", return_value=({"name": "Film", "year": 2020}, None)), \
+             mock.patch.object(default, "resolve_url", return_value="https://cdn/x.mkv"):
+            default.play({}, "movie", "tt1", url="ws:1")
+        self.assertEqual(len(xbmcplugin.resolved), 1)
+        _handle, succeeded, li = xbmcplugin.resolved[0]
+        self.assertTrue(succeeded)
+        resume_calls = [c for c in li.tag.calls if c[0] == "setResumePoint"]
+        self.assertEqual(resume_calls, [("setResumePoint", (543.2, 6000.0), {})])
+
     def test_dialog_nabidne_filtr_a_vrati_vybrany_stream(self):
         streams = [{"url": "ws:1", "label": "Film.2020.1080p.CZ.Dabing.mkv", "detail": "2 GB", "source": "ws"},
                    {"url": "ws:2", "label": "Film.2020.1080p.ENG.mkv", "detail": "2 GB", "source": "ws"}]
