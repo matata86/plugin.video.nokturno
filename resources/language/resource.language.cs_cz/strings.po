@@ -782,13 +782,7 @@ msgctxt "#30336"
 msgid "Vítej v Nokturnu"
 msgstr "Vítej v Nokturnu"
 
-msgctxt "#30337"
-msgid "Let's set up your sources"
-msgstr "Projdeme spolu základní nastavení zdrojů, zabere to necelou minutu.\nKdykoli to můžeš přeskočit a doplnit později v Nastavení doplňku."
 
-msgctxt "#30338"
-msgid "Let's go"
-msgstr "Pojďme na to"
 
 msgctxt "#30339"
 msgid "Skip"
@@ -1209,3 +1203,71 @@ msgstr "Vždy v preferovaném jazyce"
 msgctxt "#30446"
 msgid "Subtitles in the preferred language (or a close one: Czech and Slovak substitute for each other) are turned on when the audio isn't in that language. When the audio is in the preferred language, subtitles are turned off, forced ones included. Subtitles from the source are downloaded and their language is recognised from the text."
 msgstr "Titulky v preferovaném jazyce (nebo blízkém, čeština a slovenština se zastoupí) se zapnou, když zvuk v tom jazyce není. Když zvuk v preferovaném jazyce je, titulky se vypnou, i vynucené. Titulky ze zdroje se stáhnou a jejich jazyk se pozná z textu."
+
+msgctxt "#30447"
+msgid "Set up from phone"
+msgstr "Nastavit z mobilu"
+
+msgctxt "#30448"
+msgid "Shows a QR code on the TV. Open it on a phone connected to the same Wi-Fi and fill in the settings in the browser — no typing passwords with the remote. Works only on the local network."
+msgstr "Na TV se ukáže QR kód. Otevři ho mobilem připojeným ke stejné Wi-Fi a vyplň nastavení v prohlížeči — bez psaní hesel ovladačem. Funguje jen v místní síti."
+
+msgctxt "#30449"
+msgid "You can fill in accounts and sources on your phone — the TV shows a QR code, the phone just needs the same Wi-Fi and you don't type passwords with the remote. Or go through a short wizard with the remote.[CR]You can skip this and fill it in later in the add-on settings."
+msgstr "Účty a zdroje můžeš vyplnit v mobilu — na TV se ukáže QR kód, stačí mobil ve stejné Wi-Fi a hesla nepíšeš ovladačem. Nebo projdi krátkého průvodce ovladačem.[CR]Kdykoli to můžeš přeskočit a doplnit později v Nastavení doplňku."
+
+msgctxt "#30450"
+msgid "From phone"
+msgstr "Z mobilu"
+
+msgctxt "#30451"
+msgid "Wizard with remote"
+msgstr "Průvodce ovladačem"
+
+msgctxt "#30452"
+msgid "1. Connect your phone to the same Wi-Fi as this device.[CR]2. Scan the QR code with the camera, or open this address in a browser:"
+msgstr "1. Připoj mobil ke stejné Wi-Fi jako tenhle přístroj.[CR]2. Naskenuj QR kód fotoaparátem, nebo otevři v prohlížeči adresu:"
+
+msgctxt "#30453"
+msgid "Back cancels · the address is valid for 10 minutes and one save"
+msgstr "Zpět zruší · adresa platí 10 minut a pro jedno uložení"
+
+msgctxt "#30454"
+msgid "This device has no local network address. Connect it to Wi-Fi or a cable and try again."
+msgstr "Tenhle přístroj nemá adresu v místní síti. Připoj ho k Wi-Fi nebo kabelem a zkus to znovu."
+
+msgctxt "#30455"
+msgid "Couldn't start setup from phone (%s)."
+msgstr "Nastavení z mobilu se nepodařilo spustit (%s)."
+
+msgctxt "#30456"
+msgid "Settings from phone saved (%s)"
+msgstr "Nastavení z mobilu uloženo (%s)"
+
+msgctxt "#30457"
+msgid "No changes came from the phone"
+msgstr "Z mobilu nepřišla žádná změna"
+
+msgctxt "#30458"
+msgid "Fill in what you want to change and save. The settings go straight to Kodi."
+msgstr "Vyplň, co chceš změnit, a ulož. Nastavení se hned propíše do Kodi."
+
+msgctxt "#30459"
+msgid "Save to Kodi"
+msgstr "Uložit do Kodi"
+
+msgctxt "#30460"
+msgid "Saved. The settings are in Kodi, you can close this page."
+msgstr "Uloženo. Nastavení je v Kodi, stránku můžeš zavřít."
+
+msgctxt "#30461"
+msgid "filled in — leave empty to keep"
+msgstr "vyplněno — nech prázdné beze změny"
+
+msgctxt "#30462"
+msgid "This address is no longer valid. Start Set up from phone on the TV again."
+msgstr "Tahle adresa už neplatí. Na TV spusť Nastavit z mobilu znovu."
+
+msgctxt "#30463"
+msgid "Invalid value: %s"
+msgstr "Neplatná hodnota: %s"

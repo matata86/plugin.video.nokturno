@@ -594,9 +594,10 @@ class TestTmdbHelperPlayer(unittest.TestCase):
 
         def yesno(heading, *a, **k):
             otazky.append(heading)
-            return heading in ("Vítej v Nokturnu", "Přehrát z detailu filmu")   # jen úvod a krok TMDb Helperu
+            return heading == "Přehrát z detailu filmu"   # jen krok TMDb Helperu
 
-        with mock.patch.object(default, "TMDBH_PLAYER", dest), mock.patch.object(xbmcgui.Dialog, "yesno", side_effect=yesno):
+        with mock.patch.object(default, "TMDBH_PLAYER", dest), mock.patch.object(xbmcgui.Dialog, "yesno", side_effect=yesno), \
+             mock.patch.object(xbmcgui.Dialog, "yesnocustom", return_value=1):   # úvod: průvodce ovladačem
             default.setup_wizard(force=True)
             self.assertNotIn("Přehrát z detailu filmu", otazky, "bez TMDb Helperu se na player neptá")
             self.assertFalse(os.path.exists(dest))
@@ -1891,6 +1892,115 @@ class TestTitulkyAZvuk(unittest.TestCase):
         with mock.patch.object(service, "rpc", side_effect=AssertionError("nemá sahat na přehrávač")), \
              mock.patch.object(service, "TRACKS_DELAY", 0):
             player.apply_tracks({"id": "tt1"})
+
+
+def browser_form(page):
+    """Co by z formuláře odeslal prohlížeč beze změn: zaškrtnuté checkboxy, hodnoty polí, vybrané volby."""
+    from html.parser import HTMLParser
+    form = {}
+
+    class P(HTMLParser):
+        select = None
+
+        def handle_starttag(self, tag, attrs):
+            a = dict(attrs)
+            if tag == "input" and a.get("name"):
+                if a.get("type") == "checkbox":
+                    if "checked" in a:
+                        form[a["name"]] = "on"
+                else:
+                    form[a["name"]] = a.get("value", "")
+            elif tag == "select":
+                P.select = a.get("name")
+            elif tag == "option" and "selected" in a and P.select:
+                form[P.select] = a.get("value", "")
+    P().feed(page)
+    return form
+
+
+class TestNastavitZMobilu(unittest.TestCase):
+    """2026-09-16: QR na TV → formulář v mobilu ve stejné Wi-Fi → uložení do nastavení."""
+
+    def setUp(self):
+        reset_kodi()
+        xbmcgui.windows_shown.clear()
+
+    def test_formular_ze_settings_xml(self):
+        schema = default.remote_setup_schema()
+        ids = [s["id"] for s in schema]
+        self.assertEqual(ids[0], "ws")
+        self.assertNotIn("advanced", ids)
+        self.assertNotIn("info", ids)
+        fields = {f["id"]: f for s in schema for f in s["fields"]}
+        self.assertEqual(fields["ws_password"]["type"], "password")
+        self.assertEqual(fields["ws_username"]["type"], "text")
+        self.assertEqual(fields["ws_username"]["enable"], ("ws_enabled", "true"))
+        self.assertEqual(fields["ws_enabled"]["type"], "bool")
+        self.assertEqual(fields["pref_lang"]["type"], "choice")
+        self.assertEqual([v for v, _ in fields["audio_probe"]["options"]][:3], ["0", "4", "8"])
+        self.assertNotIn("remote_setup_action", fields, "tlačítka akcí na stránku nepatří")
+        self.assertNotIn("download_dir", fields)
+        self.assertTrue(schema[0]["open"])
+
+    def run_setup(self, submit):
+        """Spustí remote_setup, `submit(url)` hraje roli mobilu."""
+        started = []
+
+        class Fake(default.SetupServer):
+            def start(self, host="0.0.0.0", ports=None):
+                port = super().start(host="127.0.0.1", ports=[0])
+                started.append(self)
+                threading.Thread(target=submit, args=(self.url("127.0.0.1"),), daemon=True).start()
+                return port
+        with mock.patch.object(default, "SetupServer", Fake), \
+             mock.patch.object(default.xbmc, "getIPAddress", create=True, return_value="192.168.1.22"), \
+             mock.patch.object(default, "REMOTE_SETUP_TIMEOUT", 5):
+            result = default.remote_setup()
+        return result, started
+
+    def test_ulozi_zmeny_z_mobilu(self):
+        xbmcaddon.settings.update(ws_username="stary", ws_password="tajne", ws_enabled="false", pref_lang="1")
+
+        def mobil(url):
+            with urllib.request.urlopen(url.replace("192.168.1.22", "127.0.0.1"), timeout=5) as resp:
+                page = resp.read().decode()
+            assert "tajne" not in page
+            form = browser_form(page)
+            form.update(ws_enabled="on", ws_username="novy")
+            urllib.request.urlopen(urllib.request.Request(url, data=urllib.parse.urlencode(form).encode()),
+                                   timeout=5).read()
+        result, started = self.run_setup(mobil)
+        self.assertEqual(result, 2)
+        self.assertEqual(xbmcaddon.settings["ws_username"], "novy")
+        self.assertEqual(xbmcaddon.settings["ws_enabled"], "true")
+        self.assertEqual(xbmcaddon.settings["ws_password"], "tajne", "prázdné heslo zůstane")
+        self.assertTrue(started[0].finished, "server po uložení skončí")
+        self.assertEqual(len(xbmcgui.windows_shown), 1)
+        self.assertFalse([n for n in os.listdir(default.PROFILE) if n.startswith("remote-setup-") and "bg" not in n],
+                         "QR obrázek se po sobě uklidí")
+
+    def test_zruseni_na_tv(self):
+        def zpet(url):
+            time.sleep(0.3)
+            xbmcgui.windows_shown[-1].onAction(mock.Mock(getId=lambda: 92))
+        result, started = self.run_setup(zpet)
+        self.assertIsNone(result)
+        self.assertTrue(started[0].finished)
+
+    def test_bez_site(self):
+        with mock.patch.object(default.xbmc, "getIPAddress", create=True, return_value=""):
+            self.assertIsNone(default.remote_setup())
+        self.assertTrue(xbmcgui.oks)
+
+    def test_pruvodce_z_mobilu_a_navrat_po_zruseni(self):
+        volby = iter([2, 2, -1])
+        with mock.patch.object(xbmcgui.Dialog, "yesnocustom", side_effect=lambda *a, **k: next(volby)), \
+             mock.patch.object(default, "remote_setup", side_effect=[None, 3]) as remote, \
+             mock.patch.object(default, "_wizard_accounts") as ovladacem:
+            default.setup_wizard(force=True)
+        self.assertEqual(remote.call_count, 2, "zrušení vrátí na úvodní volbu")
+        ovladacem.assert_not_called()
+        self.assertTrue(default.STORE.load("wizard_done", False))
 
 
 if __name__ == "__main__":

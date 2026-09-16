@@ -86,6 +86,9 @@ class Dialog:
     def yesno(self, *args, **kwargs):
         return False
 
+    def yesnocustom(self, *args, **kwargs):
+        return -1
+
     def select(self, *args, **kwargs):
         return -1
 
@@ -126,3 +129,40 @@ class Window:
 def reset():
     del notifications[:], textviewers[:], oks[:]
     _window_props.clear()
+
+
+class _Control:
+    def __init__(self, *args, **kwargs):
+        self.args, self.kwargs, self.text = args, kwargs, ""
+
+    def setText(self, text):
+        self.text = text
+
+
+class ControlImage(_Control):
+    pass
+
+
+class ControlLabel(_Control):
+    pass
+
+
+class ControlTextBox(_Control):
+    pass
+
+
+windows_shown = []
+
+
+class WindowDialog:
+    def __init__(self):
+        self.controls = []
+
+    def addControl(self, control):
+        self.controls.append(control)
+
+    def show(self):
+        windows_shown.append(self)
+
+    def close(self):
+        pass
