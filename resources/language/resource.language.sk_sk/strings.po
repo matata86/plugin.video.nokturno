@@ -1271,3 +1271,11 @@ msgstr "Táto adresa už neplatí. Na TV spusti Nastaviť z mobilu znova."
 msgctxt "#30463"
 msgid "Invalid value: %s"
 msgstr "Neplatná hodnota: %s"
+
+msgctxt "#30480"
+msgid "Send error reports"
+msgstr "Posielať hlásenia o chybách"
+
+msgctxt "#30481"
+msgid "When an error in the add-on's code happens, a short report goes to the author: error type, place in the code, version and a few lines of the Nokturno log. Addresses, accounts, passwords and IPs are removed first. Source outages are not sent. The same error is sent at most once per version."
+msgstr "Keď v doplnku nastane chyba v kóde, pošle sa autorovi krátke hlásenie: typ chyby, miesto v kóde, verzia a pár riadkov logu Nokturna. Adresy, účty, heslá a IP sa vopred vymažú. Výpadky zdrojov sa neposielajú. Rovnaká chyba odíde najviac raz za verziu."

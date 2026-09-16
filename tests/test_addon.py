@@ -992,6 +992,85 @@ class TestRouter(unittest.TestCase):
         self.assertFalse(xbmcplugin.ended[-1]["succeeded"])
 
 
+class TestHlaseniOPadech(unittest.TestCase):
+    """Neočekávaná výjimka v routeru → fronta `crash/` v profilu; výpadek zdroje ne.
+    Odesílá služba (`CrashSender`), a jen se zapnutými statistikami i přepínačem."""
+
+    def setUp(self):
+        reset_kodi()
+        default.STORE.save("wizard_done", True)
+        xbmcaddon.settings.update(stats_enabled="true")
+        self.reporter = default.CrashReporter(default.PROFILE)
+        shutil.rmtree(self.reporter.queue_dir, ignore_errors=True)
+        try:
+            os.remove(self.reporter.state_path)
+        except OSError:
+            pass
+        xbmcgui.Window(10000).clearProperty(default.CRASH_PROP)
+
+    def hlaseni(self):
+        out = []
+        for path in self.reporter.pending():
+            with open(path, encoding="utf-8") as f:
+                out.append(json.loads(f.read()))
+        return out
+
+    def test_pad_v_kodu_se_zaradi(self):
+        with mock.patch.object(default, "browse_menu", side_effect=ZeroDivisionError("token=tajne")):
+            default.router("?action=browse&type=movie")
+        self.assertFalse(xbmcplugin.ended[-1]["succeeded"], "handle se zavře dřív než hlášení")
+        [r] = self.hlaseni()
+        self.assertEqual((r["product"], r["action"], r["type"]), ("kodi", "browse", "ZeroDivisionError"))
+        self.assertNotIn("tajne", r["message"] + r["traceback"])
+        self.assertEqual(xbmcgui.Window(10000).getProperty(default.CRASH_PROP), "1")
+
+    def test_stejny_pad_podruhe_uz_ne(self):
+        for _ in range(3):
+            with mock.patch.object(default, "browse_menu", side_effect=ZeroDivisionError("x")):
+                default.router("?action=browse&type=movie")
+        self.assertEqual(len(self.hlaseni()), 1)
+
+    def test_vypadek_zdroje_se_nehlasi(self):
+        with mock.patch.object(default, "browse_menu", side_effect=LunaError("Luna neodpovídá")):
+            default.router("?action=browse&type=movie")
+        self.assertEqual(self.hlaseni(), [])
+
+    def test_vypnute_statistiky_nebo_prepinac(self):
+        for nastaveni in ({"stats_enabled": "false"}, {"crash_reports": "false"}):
+            xbmcaddon.settings.update({"stats_enabled": "true", "crash_reports": "true", **nastaveni})
+            with mock.patch.object(default, "browse_menu", side_effect=ZeroDivisionError("x")):
+                default.router("?action=browse&type=movie")
+            self.assertEqual(self.hlaseni(), [], nastaveni)
+
+    def test_sluzba_odesle_frontu_po_signalu(self):
+        with mock.patch.object(default, "browse_menu", side_effect=ZeroDivisionError("x")):
+            default.router("?action=browse&type=movie")
+        sender = service.CrashSender(self.reporter)
+        with mock.patch.object(self.reporter, "flush", return_value=(1, 0)) as flush, \
+                mock.patch.object(service.threading, "Thread") as vlakno:
+            vlakno.side_effect = lambda target, **kw: mock.Mock(start=target)
+            sender.tick()
+        flush.assert_called_once()
+        self.assertEqual(flush.call_args[0][0], service.CRASH_URL)
+        self.assertEqual(xbmcgui.Window(10000).getProperty(service.CRASH_PROP), "")
+
+    def test_sluzba_bez_souhlasu_frontu_smaze(self):
+        with mock.patch.object(default, "browse_menu", side_effect=ZeroDivisionError("x")):
+            default.router("?action=browse&type=movie")
+        xbmcaddon.settings["crash_reports"] = "false"
+        sender = service.CrashSender(self.reporter)
+        with mock.patch.object(self.reporter, "flush") as flush:
+            sender.tick()
+        flush.assert_not_called()
+        self.assertEqual(self.hlaseni(), [])
+
+    def test_pad_vlakna_sluzby(self):
+        with mock.patch.object(service, "PROFILE", default.PROFILE):
+            service.capture_service_crash("service:nokturno-sync", KeyError("since"))
+        [r] = self.hlaseni()
+        self.assertEqual((r["action"], r["type"]), ("service:nokturno-sync", "KeyError"))
+
+
 class TestOpravyZAuditu(unittest.TestCase):
     def setUp(self):
         reset_kodi()

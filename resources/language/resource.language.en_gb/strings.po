@@ -1270,4 +1270,11 @@ msgstr ""
 
 msgctxt "#30463"
 msgid "Invalid value: %s"
+
+msgctxt "#30480"
+msgid "Send error reports"
+msgstr ""
+
+msgctxt "#30481"
+msgid "When an error in the add-on's code happens, a short report goes to the author: error type, place in the code, version and a few lines of the Nokturno log. Addresses, accounts, passwords and IPs are removed first. Source outages are not sent. The same error is sent at most once per version."
 msgstr ""
