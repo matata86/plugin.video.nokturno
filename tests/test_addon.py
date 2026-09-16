@@ -1842,6 +1842,19 @@ class TestTitulkyAZvuk(unittest.TestCase):
             ("Player.SetSubtitle", {"playerid": 1, "subtitle": "off"}),
         ])
 
+    def test_cesky_zvuk_vypne_i_vynucene_titulky(self):
+        """Office 2026-09-16 (Počátek): po přepnutí na českou stopu zůstaly zapnuté „CZE forced“."""
+        props = {"audiostreams": [{"index": 0, "language": "eng", "channels": 6},
+                                  {"index": 1, "language": "cze", "channels": 6}],
+                 "currentaudiostream": {"index": 0, "language": "eng"},
+                 "subtitles": [{"index": 0, "language": "cze", "name": "CZE"},
+                               {"index": 1, "language": "cze", "name": "CZE forced", "isdefault": True}],
+                 "currentsubtitle": {"index": 1, "language": "cze", "name": "CZE forced"}, "subtitleenabled": True}
+        self.assertEqual(self.run_tracks(props), [
+            ("Player.SetAudioStream", {"playerid": 1, "stream": 1}),
+            ("Player.SetSubtitle", {"playerid": 1, "subtitle": "off"}),
+        ])
+
     def test_bez_ceskeho_zvuku_zapne_ceske_titulky(self):
         props = {"audiostreams": [{"index": 0, "language": "eng", "channels": 6}],
                  "currentaudiostream": {"index": 0, "language": "eng"},

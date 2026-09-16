@@ -28,7 +28,7 @@ SUBTITLE_FALLBACK = {"CZ": ("CZ", "SK"), "SK": ("SK", "CZ"), "EN": ("EN",)}
 
 # režimy titulků (nastavení `auto_subs`)
 SUBS_KEEP = 0         # nechat na Kodi
-SUBS_WHEN_NEEDED = 1  # zapnout, když chybí zvuk v preferovaném jazyce; jinak jen vynucené
+SUBS_WHEN_NEEDED = 1  # zapnout, když chybí zvuk v preferovaném jazyce; jinak vypnout (i vynucené)
 SUBS_ALWAYS = 2       # vždy titulky v preferovaném jazyce
 
 COMMENTARY_RE = re.compile(r"koment|comment|director|režis", re.IGNORECASE)
@@ -106,9 +106,8 @@ def pick_audio(tracks, current, pref_lang, stream_langs=()):
 def pick_subtitle(subtitles, pref_lang, audio_ok, mode=SUBS_WHEN_NEEDED):
     """Co udělat s titulky: `("on", index)`, `("off", None)` nebo `("keep", None)`.
 
-    - zvuk v preferovaném jazyce hraje → jen vynucené titulky toho jazyka (překlad
-      cizojazyčných pasáží), jinak titulky vypnout — ať u dabingu neběží přibalené
-      titulky ze zdroje;
+    - zvuk v preferovaném jazyce hraje → titulky vypnout, i vynucené (přání uživatele
+      2026-09-16: kdo má dabing, titulky nechce; dřív zůstávaly vynucené „CZE forced“);
     - preferovaný zvuk chybí → plné titulky preferovaného jazyka, pak blízkého
       (CZ ↔ SK), přednost mají neoznačené pro neslyšící a výchozí;
     - nejde poznat, co hraje (`audio_ok is None`) → nic neměnit.
@@ -132,8 +131,6 @@ def pick_subtitle(subtitles, pref_lang, audio_ok, mode=SUBS_WHEN_NEEDED):
     if audio_ok is None:
         return "keep", None
     if audio_ok:
-        if forced:
-            return "on", forced[0].get("index")
         return "off", None
     for lang in SUBTITLE_FALLBACK.get(pref_lang, (pref_lang,)):
         found = full(lang)
