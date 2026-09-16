@@ -773,6 +773,50 @@ def folder_mode():
     return setting("stream_mode", "1") == "1" and browsing_nokturno()
 
 
+def plugin_params(url):
+    """Parametry z adresy `plugin://…/?a=b` jako slovník — Kodi si pořadí parametrů přeskládá
+    (řadí je abecedně), takže se adresy porovnávají takhle, ne jako text."""
+    return dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(str(url or "")).query))
+
+
+def play_request(params):
+    """Spustilo Kodi `action=streams` kvůli PŘEHRÁNÍ, ne kvůli výpisu složky?
+
+    Titul je v režimu „Vybrat ze seznamu streamů“ ve výpisu Nokturna složkou (`folder_mode`).
+    Tlačítko Přehrát v info dialogu / detailu (Estuary, Arctic Fuse, TMDb Helper) na takové
+    položce ale nejde přes `play()` — Kodi ji vloží do video playlistu a spustí náš skript
+    s adresou složky (`action=streams`) v režimu přehrání, kde čeká `setResolvedUrl`. Skript
+    to nepozná z argumentů (jsou stejné jako u výpisu), Kodi mu to neřekne — dřív tak výpis
+    složky skončil bez přehrání „položku se nepodařilo přehrát“ (Office 2026-09-16, dvakrát,
+    Mayday a Matrix). Rozlišuje se podle tří stop, které přehrání zanechá a výpis ne:
+
+    1. při výpisu složky (klik, ActivateWindow) Kodi ukazuje busy dialog — při přehrání ne,
+    2. přehrávaná položka je zrovna vybraná ve výpisu (info dialog se otevřel nad ní),
+    3. Kodi ji těsně předtím vložilo do video playlistu (`PlayListPlayer::Play`).
+
+    Všechny tři najednou nesplní ani `Files.GetDirectory` z JSON-RPC (HA, zahřívání) —
+    bez busy dialogu, ale bez (2) a (3); jen (1)+(2) by při stejném vybraném titulu
+    stačilo na modální dialog z JSON-RPC, což je zakázané (CLAUDE.md).
+    """
+    if xbmc.getCondVisibility("Window.IsActive(busydialog) | Window.IsActive(busydialognocancel)"):
+        return False
+    wanted = {k: v for k, v in params.items() if v not in (None, "")}
+    focused = xbmc.getInfoLabel("ListItem.FileNameAndPath") or xbmc.getInfoLabel("ListItem.FolderPath")
+    in_focus = plugin_params(focused) == wanted
+    in_playlist = False
+    if in_focus:
+        try:
+            raw = xbmc.executeJSONRPC(json.dumps({"jsonrpc": "2.0", "id": 1, "method": "Playlist.GetItems",
+                                                  "params": {"playlistid": 1, "properties": ["file"]}}))
+            items = ((json.loads(raw).get("result") or {}).get("items")) or []
+            in_playlist = any(plugin_params(item.get("file")) == wanted for item in items)
+        except (ValueError, TypeError, AttributeError):
+            in_playlist = False
+    xbmc.log(f"[{ADDON_ID}] streams bez busy dialogu: vybraná položka={in_focus} v playlistu={in_playlist}",
+             xbmc.LOGINFO)
+    return in_focus and in_playlist
+
+
 def add_playable(li, ctype, item_id, series_id=None, alt=None):
     """Film nebo díl — ve výpisu Nokturna podle nastavení, jinde přehratelný.
 
@@ -3544,6 +3588,13 @@ def router(query):
             list_seasons(apis, p["id"], alt=p.get("alt"))
         elif action == "episodes":
             list_episodes(apis, p["id"], int(p.get("season") or 0), alt=p.get("alt"))
+        elif action == "streams" and play_request(p):
+            # Přehrát v info dialogu / detailu nad titulem-složkou → Kodi čeká
+            # setResolvedUrl, ne výpis: stejná cesta jako `action=play&ask=1`
+            # (v režimu seznamu = dialog výběru streamu), viz `play_request`.
+            xbmc.log(f"[{ADDON_ID}] Přehrát nad složkou streamů {p.get('type')} {p.get('id')} → výběr streamu",
+                     xbmc.LOGINFO)
+            play(apis, p["type"], p["id"], p.get("series"), alt=p.get("alt"), ask="1")
         elif action == "streams":
             list_streams(apis, p["type"], p["id"], p.get("series"), alt=p.get("alt"),
                         fq=p.get("fq", ""), flang=p.get("flang", ""), fch=p.get("fch", ""),

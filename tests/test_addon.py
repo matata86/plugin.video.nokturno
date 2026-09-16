@@ -11,6 +11,7 @@ souborů, které Kodi čte samo (strings.po, settings.xml, addon.xml).
 import os
 import pathlib
 import re
+import json
 import shutil
 import sys
 import tempfile
@@ -845,6 +846,66 @@ class TestSeznamStreamu(unittest.TestCase):
             default.list_streams({}, "movie", "tt1")
         modal.assert_not_called()
         bg.assert_called_once()
+
+    def test_prehrat_nad_slozkou_streamu_jde_do_vyberu_streamu(self):
+        """Přehrát v info dialogu (Estuary, Arctic Fuse, TMDb Helper) nad titulem, který
+        je v režimu seznamu složkou: Kodi vloží adresu složky do video playlistu a spustí
+        skript s `action=streams` v režimu přehrání (čeká `setResolvedUrl`). Bez busy
+        dialogu, s vybranou položkou a s adresou v playlistu → `play(ask=1)` místo výpisu
+        (dvakrát na Office 2026-09-16: „položku se nepodařilo přehrát")."""
+        url = "plugin://plugin.video.nokturno/?action=streams&id=tt0133093&type=movie"
+        xbmc.info_labels["ListItem.FileNameAndPath"] = url
+        with mock.patch.object(xbmc, "executeJSONRPC",
+                               return_value=json.dumps({"result": {"items": [{"file": url}]}})), \
+             mock.patch.object(default, "get_apis", return_value={}), \
+             mock.patch.object(default, "play") as play, \
+             mock.patch.object(default, "list_streams") as listing:
+            default.router("action=streams&type=movie&id=tt0133093")
+        listing.assert_not_called()
+        play.assert_called_once()
+        self.assertEqual(play.call_args[0][1:3], ("movie", "tt0133093"))
+        self.assertEqual(play.call_args[1]["ask"], "1")
+
+    def test_klik_na_slozku_streamu_vypisuje_i_kdyz_je_vybrana(self):
+        """Obyčejný klik na tutéž (vybranou) položku: Kodi ukazuje busy dialog → výpis,
+        playlist se ani nečte."""
+        url = "plugin://plugin.video.nokturno/?action=streams&id=tt0133093&type=movie"
+        xbmc.info_labels["ListItem.FileNameAndPath"] = url
+        xbmc.cond_visible.add("Window.IsActive(busydialog) | Window.IsActive(busydialognocancel)")
+        with mock.patch.object(default, "get_apis", return_value={}), \
+             mock.patch.object(default, "play") as play, \
+             mock.patch.object(default, "list_streams") as listing:
+            default.router("action=streams&type=movie&id=tt0133093")
+        play.assert_not_called()
+        listing.assert_called_once()
+        self.assertFalse(any(c.get("method") == "Playlist.GetItems" for c in xbmc.rpc_calls))
+
+    def test_files_getdirectory_z_json_rpc_nad_vybranou_polozkou_vypisuje(self):
+        """JSON-RPC `Files.GetDirectory` (HA, zahřívání) nemá busy dialog a vybraná položka
+        v Kodi může náhodou být tatáž — rozhoduje playlist, kde adresa není → výpis,
+        žádný modální dialog (CLAUDE.md)."""
+        url = "plugin://plugin.video.nokturno/?action=streams&id=tt0133093&type=movie"
+        xbmc.info_labels["ListItem.FileNameAndPath"] = url
+        with mock.patch.object(xbmc, "executeJSONRPC",
+                               return_value=json.dumps({"result": {"items": [
+                                   {"file": "plugin://plugin.video.nokturno/?action=streams&id=tt1&type=movie"}]}})), \
+             mock.patch.object(default, "get_apis", return_value={}), \
+             mock.patch.object(default, "play") as play, \
+             mock.patch.object(default, "list_streams") as listing:
+            default.router("action=streams&type=movie&id=tt0133093")
+        play.assert_not_called()
+        listing.assert_called_once()
+
+    def test_play_request_porovnava_parametry_ne_text_adresy(self):
+        """Kodi (`CURL`) si parametry v adrese přeskládá abecedně a chybějící/prázdné
+        `build_url` vynechává — porovnání musí být přes slovník parametrů."""
+        xbmc.info_labels["ListItem.FolderPath"] = "plugin://plugin.video.nokturno/?type=movie&id=tt1&action=streams"
+        with mock.patch.object(xbmc, "executeJSONRPC", return_value=json.dumps({"result": {"items": [
+                {"file": "plugin://plugin.video.nokturno/?id=tt1&action=streams&type=movie"}]}})):
+            self.assertTrue(default.play_request({"action": "streams", "type": "movie", "id": "tt1", "alt": ""}))
+            self.assertFalse(default.play_request({"action": "streams", "type": "movie", "id": "tt2"}))
+        with mock.patch.object(xbmc, "executeJSONRPC", return_value="rozbité"):
+            self.assertFalse(default.play_request({"action": "streams", "type": "movie", "id": "tt1"}))
 
     def test_mark_viewed_u_serialu_posila_nazev_serialu_ne_epizody(self):
         """2026-09-16: statistiky se serverem slučují podle normalizovaného názvu
