@@ -3532,7 +3532,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>5.2.7~beta3 – Oprava: zpráva z dashboardu se po aktualizaci doplňku mohla zobrazit dřív, než doběhne start Kodi (skin ještě nenačtený) — modální dialog si tak nikdo nevšiml. Teď počká aspoň 30 s od startu služby
+    <news>5.2.7~beta4 – Oprava: přehrání přímým odkazem (karta Home Assistant, widget, Up Next) pustilo rozkoukaný titul vždy od začátku místo od uloženého místa — resume point se nastavoval jen ve výpisech Kodi, ne při přímém přehrání
+5.2.7~beta3 – Oprava: zpráva z dashboardu se po aktualizaci doplňku mohla zobrazit dřív, než doběhne start Kodi (skin ještě nenačtený) — modální dialog si tak nikdo nevšiml. Teď počká aspoň 30 s od startu služby
 5.2.7~beta2 – Zpráva napsaná v dashboardu (obrazovka Zprávy) teď dorazí hned po aktualizaci doplňku, ne až s dalším pravidelným hlášením statistik (až 6 hodin)
 5.2.7~beta1 – Oprava statistik u seriálů: do žebříčku „Nejsledovanější tento týden“ šel u epizod bez vlastního (nebo jen generického placeholder) názvu název epizody místo seriálu, takže se sledovanost jednoho seriálu roztříštila na desítky položek a většina jich pak v žebříčku vůbec nešla dohledat (viz dashboard) — statistiky teď u seriálů vždy posílají název seriálu, přehrávání/„Pokračovat ve sledování“ beze změny
 5.2.6 – „Nově přidané s CZ dabingem/titulky“: když data nejsou připravená z pozadí, vysvětlí to a nabídne „Klepni pro spuštění“ místo automatického živého přepočtu (2–5 minut) — žádný modální dialog, jen běžná položka seznamu
