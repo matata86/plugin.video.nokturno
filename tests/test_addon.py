@@ -2066,6 +2066,21 @@ class TestNastavitZMobilu(unittest.TestCase):
         self.assertIsNone(result)
         self.assertTrue(started[0].finished)
 
+    def test_zpet_doruceny_jen_behem_cekani_kodi(self):
+        """Na Office Zpět dialog nezavřelo: Kodi pouští `onAction` jen uvnitř volání svého API.
+        Tady ho proto doručí až podstrčené `MONITOR.waitForAbort` — smyčka ho musí volat."""
+        def doruc_zpet(timeout=0):
+            if xbmcgui.windows_shown:
+                xbmcgui.windows_shown[-1].onAction(mock.Mock(getId=lambda: 10))
+            return False
+        with mock.patch.object(default.MONITOR, "waitForAbort", side_effect=doruc_zpet) as cekani:
+            start = time.time()
+            result, started = self.run_setup(lambda url: None)
+        self.assertIsNone(result)
+        self.assertTrue(cekani.called)
+        self.assertLess(time.time() - start, 3)
+        self.assertTrue(started[0].finished)
+
     def test_bez_site(self):
         with mock.patch.object(default.xbmc, "getIPAddress", create=True, return_value=""):
             self.assertIsNone(default.remote_setup())
