@@ -2420,6 +2420,36 @@ class SearchProgress:
             self._show()
 
 
+def cancelable_search(bar, fn):
+    """Spustí `fn` (bez parametrů, typicky `collect_streams()`) na pozadí a čeká na
+    dokončení nebo na zrušení dialogem — `bar` musí být `xbmcgui.DialogProgress`
+    (na rozdíl od `DialogProgressBG` zachytává Zpět jako Cancel). Vrací `(zrušeno, výsledek)`.
+
+    `collect_streams()` běží v jednom kuse a nikde sama o sobě nekontroluje zrušení —
+    dřív na Zpět při „Načítám streamy…“ nereagovalo vůbec nic (Office 2026-09-16,
+    nahlásil uživatel), a když Kodi po 5 s zaseklý skript tvrdě zabilo samo, ukazatel
+    průběhu zůstal viset na obrazovce jako duch, protože se nestihl zavřít. Vlákno na
+    pozadí doběhne samo (daemon), i po zrušení tu chvíli může ještě síťově pracovat,
+    ale UI se odblokuje hned."""
+    result = {}
+
+    def _run():
+        try:
+            result["value"] = fn()
+        except Exception as e:  # noqa: BLE001 – i chyby zdrojů, znovu vyhodit v hlavním vlákně
+            result["error"] = e
+
+    t = threading.Thread(target=_run, daemon=True)
+    t.start()
+    while t.is_alive():
+        if bar.iscanceled():
+            return True, None
+        t.join(0.2)
+    if "error" in result:
+        raise result["error"]
+    return False, result.get("value")
+
+
 def _search_merge(apis, ctype, query, want_year, errors, tick=None):
     """Sloučené výsledky primárního zdroje a přihlášeného Sosáče pro jeden typ
     (film / seriál), BEZ popisů — stačí na počty pro volbu Filmy/Seriály.
@@ -2905,16 +2935,20 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None, fq="", flang=""
     strict = fulltext != "1"
     has_fulltext_source = bool(apis.get("ws") or apis.get("hs") or apis.get("st") or apis.get("fs"))
     # ukazatel průběhu: pár kroků na dotazy zdrojům, pak (obvykle nejdelší část)
-    # jeden na každý soubor, kterému jádro čte hlavičku — přesný počet si jádro upraví
-    bar = xbmcgui.DialogProgressBG()
+    # jeden na každý soubor, kterému jádro čte hlavičku — přesný počet si jádro upraví.
+    # Modální DialogProgress (ne BG varianta) zachytává Zpět jako Cancel, viz cancelable_search.
+    bar = xbmcgui.DialogProgress()
     bar.create(L(30000, "Nokturno"), L(30238, "Načítám streamy…"))
-    bar.update(0)
     progress = SearchProgress(bar, Engine.STREAM_SOURCE_STEPS + AUDIO_PROBE_MAX)
     errors = []
     try:
-        streams = collect_streams(apis, ctype, item_id, meta, alt, progress, strict, errors)
+        canceled, streams = cancelable_search(
+            bar, lambda: collect_streams(apis, ctype, item_id, meta, alt, progress, strict, errors))
     finally:
         bar.close()
+    if canceled:
+        xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+        return
     if errors:
         # jen upozornění, ne dialog — výpis může spustit widget nebo JSON-RPC z HA
         notify(skipped_notice(errors), xbmcgui.NOTIFICATION_WARNING, 7000)
@@ -3096,14 +3130,19 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
     if not url:
         errors = []
         # z přehrání (widget, TMDb Helper) je jinak vidět jen točící se kolečko Kodi — streamy se
-        # načítají i 15 s, tak aspoň stejný průběh jako nad seznamem streamů
-        bar = xbmcgui.DialogProgressBG()
+        # načítají i 15 s, tak aspoň stejný průběh jako nad seznamem streamů. Modální DialogProgress
+        # (ne BG varianta) zachytává Zpět jako Cancel, viz cancelable_search.
+        bar = xbmcgui.DialogProgress()
         bar.create(L(30000, "Nokturno"), L(30238, "Načítám streamy…"))
         try:
-            streams = collect_streams(apis, ctype, item_id, meta, alt,
-                                      SearchProgress(bar, Engine.STREAM_SOURCE_STEPS + AUDIO_PROBE_MAX), errors=errors)
+            canceled, streams = cancelable_search(
+                bar, lambda: collect_streams(apis, ctype, item_id, meta, alt,
+                                             SearchProgress(bar, Engine.STREAM_SOURCE_STEPS + AUDIO_PROBE_MAX), errors=errors))
         finally:
             bar.close()
+        if canceled:
+            xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
+            return
         if errors:
             notify(skipped_notice(errors), xbmcgui.NOTIFICATION_WARNING, 7000)
         if not streams:
