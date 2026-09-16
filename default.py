@@ -1753,7 +1753,11 @@ def remote_setup():
         window.show()
         deadline = time.time() + REMOTE_SETUP_TIMEOUT
         while time.time() < deadline and not window.cancelled and not should_stop():
-            changes = server.wait_result(0.25)
+            # Kodi doručí `onAction` (Zpět) oknu skriptu jen během volání svého API — čekání
+            # čistě v Pythonu (`Event.wait`) ho nepustí a Zpět nic nezavřelo (Office, beta 3).
+            # Návratovou hodnotu hlídá `should_stop()` v podmínce smyčky.
+            MONITOR.waitForAbort(0.2)
+            changes = server.wait_result(0.05)
             if changes is not None or server.finished:
                 break
     finally:
