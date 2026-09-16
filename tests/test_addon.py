@@ -723,6 +723,19 @@ class TestVyberStreamu(unittest.TestCase):
         self.assertTrue(succeeded, "spadlo na plné hledání místo chyby")
         self.assertEqual(li.path, "https://cdn/x.mkv")
 
+    def test_zpet_pri_nacitani_streamu_zrusi_hledani(self):
+        """2026-09-16: `DialogProgressBG` (dřív) na Zpět vůbec nereagovalo — uživatel
+        čekal, dokud hledání samo nedoběhlo, nebo dokud Kodi zaseklý skript po 5 s
+        tvrdě nezabilo (ukazatel pak zůstal viset na obrazovce jako duch). Modální
+        `DialogProgress` zachytává Zpět jako Cancel — `play()` se má hned vzdát."""
+        with mock.patch.object(default, "load_meta", return_value=({"name": "Film", "year": 2020}, None)), \
+             mock.patch.object(default, "collect_streams", return_value=[]), \
+             mock.patch.object(xbmcgui.DialogProgress, "iscanceled", return_value=True):
+            default.play({}, "movie", "tt1")
+        self.assertEqual(len(xbmcplugin.resolved), 1)
+        _handle, succeeded, _li = xbmcplugin.resolved[0]
+        self.assertFalse(succeeded, "zrušené hledání nesmí spadnout do plného přehrání")
+
     def test_dialog_nabidne_filtr_a_vrati_vybrany_stream(self):
         streams = [{"url": "ws:1", "label": "Film.2020.1080p.CZ.Dabing.mkv", "detail": "2 GB", "source": "ws"},
                    {"url": "ws:2", "label": "Film.2020.1080p.ENG.mkv", "detail": "2 GB", "source": "ws"}]
@@ -765,6 +778,16 @@ class TestSeznamStreamu(unittest.TestCase):
             titles = [c[1][0] for c in li.tag.calls if c[0] == "setTitle"]
             self.assertEqual(titles[-1], li.getLabel(), "poslední setTitle = popis streamu")
             self.assertNotEqual(titles[-1], "Matrix")
+
+    def test_zpet_pri_nacitani_streamu_zrusi_vypis(self):
+        """Stejná zkratka jako u `play()` — i výpis „Seznam streamů“ musí na Zpět
+        reagovat hned, ne nechat ukazatel průběhu viset (viz play() test výš)."""
+        with mock.patch.object(default, "load_meta", return_value=({"id": "tt1", "name": "Film", "year": 2020}, None)), \
+             mock.patch.object(default, "collect_streams", return_value=[]), \
+             mock.patch.object(xbmcgui.DialogProgress, "iscanceled", return_value=True):
+            default.list_streams({}, "movie", "tt1")
+        self.assertEqual(len(xbmcplugin.ended), 1)
+        self.assertFalse(xbmcplugin.ended[-1]["succeeded"], "zrušené hledání nesmí ukázat prázdný/chybový výpis")
 
     def test_mark_viewed_u_serialu_posila_nazev_serialu_ne_epizody(self):
         """2026-09-16: statistiky se serverem slučují podle normalizovaného názvu
