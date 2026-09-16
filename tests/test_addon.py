@@ -658,8 +658,10 @@ class TestPrehratelnePolozky(unittest.TestCase):
             xbmc.cond_visible.clear()
             xbmc.info_labels.clear()
         _h, url, li, is_folder = xbmcplugin.items[-1]
-        self.assertTrue(is_folder, "klik ve výpisu otevře seznam streamů nativně")
-        self.assertEqual((params_of(url)["action"], params_of(url)["id"]), ("streams", "tt1"))
+        self.assertFalse(is_folder, "ne-složka bez IsPlayable: klik = skript (handle −1), Přehrát = rozklíčování")
+        self.assertNotEqual(li.properties.get("IsPlayable"), "true")
+        self.assertEqual((params_of(url)["action"], params_of(url)["id"], params_of(url)["alt"]),
+                         ("title", "tt1", "sosacd_1"))
         akce = dict(li.context).get("Vybrat stream a přehrát", "")
         self.assertTrue(akce.startswith("PlayMedia(plugin://plugin.video.nokturno/?"), akce)
         p = params_of(akce[len("PlayMedia("):-1])
@@ -686,27 +688,29 @@ class TestPrehratelnePolozky(unittest.TestCase):
         self.assertEqual((p["action"], p["id"], p.get("url"), p.get("subs")),
                          ("play", "tt_resume_test", "ws:abc", "cz.srt"))
 
-    def test_slozka_streamu_nese_v_tagu_adresu_prehrani_pro_arctic_fuse(self):
-        """Arctic Fuse: Přehrát v detailu = TMDb Helper `playmedia=$INFO[ListItem.FileNameAndPath]`
-        → `PlayMedia` mimo playlist, `play_request()` to nepozná. Kodi bere FileNameAndPath
-        přednostně z info tagu, klik na složku jde přes cestu položky → složka `action=streams`
-        má v tagu `action=play&ask=1` (Office 2026-09-16, Fotr je lotr)."""
-        xbmcaddon.settings["stream_mode"] = "1"
-        xbmc.cond_visible.add("Window.IsMedia")
-        xbmc.info_labels["Container.PluginName"] = "plugin.video.nokturno"
-        try:
-            default.add_meta_item({"id": "tt_af_test", "name": "Film", "year": 2020}, "movie", alt="sosacd_9")
-        finally:
-            xbmc.cond_visible.clear()
-            xbmc.info_labels.clear()
-        _h, url, li, is_folder = xbmcplugin.items[-1]
-        self.assertTrue(is_folder)
-        self.assertEqual(params_of(url)["action"], "streams")
-        paths = [c[1][0] for c in li.tag.calls if c[0] == "setFilenameAndPath"]
-        self.assertEqual(len(paths), 1)
-        p = params_of(paths[0])
-        self.assertEqual((p["action"], p["type"], p["id"], p["alt"], p["ask"]),
-                         ("play", "movie", "tt_af_test", "sosacd_9", "1"))
+    def test_klik_na_titul_v_rezimu_seznamu_otevre_seznam_streamu(self):
+        """Kodi ne-přehratelnou ne-složku spustí jako skript s handle −1
+        (`RunScriptWithParams`) → router otevře seznam streamů přes Container.Update."""
+        with mock.patch.object(default, "HANDLE", -1), mock.patch.object(default, "get_apis") as apis:
+            default.router("action=title&type=movie&id=tt1&alt=sosacd_1")
+        apis.assert_not_called()
+        cmd = [b for b in xbmc.builtins if b.startswith("Container.Update(")]
+        self.assertEqual(len(cmd), 1, xbmc.builtins)
+        p = params_of(cmd[0][len("Container.Update("):-1])
+        self.assertEqual((p["action"], p["type"], p["id"], p["alt"]), ("streams", "movie", "tt1", "sosacd_1"))
+
+    def test_prehrat_titulu_v_rezimu_seznamu_rozklicuje_s_dialogem(self):
+        """Přehrát v detailu (Estuary přes playlist, Arctic Fuse přes TMDb Helper `PlayMedia`,
+        tlačítko Play) tutéž položku rozklíčovává s normálním handle → `play(ask=1)` = dialog
+        výběru streamu. Složka `action=streams` tohle neuměla (Office 2026-09-16, bety 13–18:
+        Kodi ji při Přehrát spouštělo se stejnými argumenty jako při výpisu)."""
+        with mock.patch.object(default, "HANDLE", 12), mock.patch.object(default, "get_apis", return_value={}), \
+             mock.patch.object(default, "play") as play:
+            default.router("action=title&type=movie&id=tt1&alt=sosacd_1")
+        play.assert_called_once()
+        self.assertEqual(play.call_args[0][1:3], ("movie", "tt1"))
+        self.assertEqual((play.call_args[1]["alt"], play.call_args[1]["ask"]), ("sosacd_1", "1"))
+        self.assertFalse([b for b in xbmc.builtins if b.startswith("Container.Update(")])
 
     def test_dil_serie_prehratelny_s_id_serialu(self):
         xbmcaddon.settings["stream_mode"] = "1"
@@ -868,72 +872,6 @@ class TestSeznamStreamu(unittest.TestCase):
             default.list_streams({}, "movie", "tt1")
         modal.assert_not_called()
         bg.assert_called_once()
-
-    def test_prehrat_nad_slozkou_streamu_jde_do_vyberu_streamu(self):
-        """Přehrát v info dialogu (Estuary, Arctic Fuse, TMDb Helper) nad titulem, který
-        je v režimu seznamu složkou: Kodi vloží adresu složky do video playlistu a spustí
-        skript s `action=streams` v režimu přehrání (čeká `setResolvedUrl`) s nastavenou
-        `Playlist.Position`. Vybraná položka + adresa v playlistu + pozice → `play(ask=1)`
-        místo výpisu (dvakrát na Office 2026-09-16: „položku se nepodařilo přehrát")."""
-        url = "plugin://plugin.video.nokturno/?action=streams&id=tt0133093&type=movie"
-        # FileNameAndPath je z info tagu adresa přehrání (Arctic Fuse), cesta složky je FolderPath
-        xbmc.info_labels["ListItem.FileNameAndPath"] = "plugin://plugin.video.nokturno/?action=play&ask=1&id=tt0133093&type=movie"
-        xbmc.info_labels["ListItem.FolderPath"] = url
-        xbmc.info_labels["Playlist.Position"] = "1"
-        with mock.patch.object(xbmc, "executeJSONRPC",
-                               return_value=json.dumps({"result": {"items": [{"file": url}]}})), \
-             mock.patch.object(default, "get_apis", return_value={}), \
-             mock.patch.object(default, "play") as play, \
-             mock.patch.object(default, "list_streams") as listing:
-            default.router("action=streams&type=movie&id=tt0133093")
-        listing.assert_not_called()
-        play.assert_called_once()
-        self.assertEqual(play.call_args[0][1:3], ("movie", "tt0133093"))
-        self.assertEqual(play.call_args[1]["ask"], "1")
-
-    def test_klik_na_slozku_streamu_vypisuje_i_kdyz_je_vybrana_a_v_playlistu(self):
-        """Obyčejný klik na tutéž (vybranou) položku poté, co uživatel výběr streamu z detailu
-        zrušil (adresa složky zůstala v playlistu): `Playlist.Position` je prázdné → výpis.
-        Busy dialog nerozhoduje — Kodi 21 ho ukazuje v obou režimech (beta13/14 na Office)."""
-        url = "plugin://plugin.video.nokturno/?action=streams&id=tt0133093&type=movie"
-        xbmc.info_labels["ListItem.FileNameAndPath"] = url
-        xbmc.cond_visible.add("Window.IsActive(busydialog)")
-        with mock.patch.object(xbmc, "executeJSONRPC",
-                               return_value=json.dumps({"result": {"items": [{"file": url}]}})), \
-             mock.patch.object(default, "get_apis", return_value={}), \
-             mock.patch.object(default, "play") as play, \
-             mock.patch.object(default, "list_streams") as listing:
-            default.router("action=streams&type=movie&id=tt0133093")
-        play.assert_not_called()
-        listing.assert_called_once()
-
-    def test_files_getdirectory_z_json_rpc_nad_vybranou_polozkou_vypisuje(self):
-        """JSON-RPC `Files.GetDirectory` (HA, zahřívání) a vybraná položka v Kodi může
-        náhodou být tatáž — adresa není v playlistu → výpis, bez modálního dialogu
-        (CLAUDE.md)."""
-        url = "plugin://plugin.video.nokturno/?action=streams&id=tt0133093&type=movie"
-        xbmc.info_labels["ListItem.FileNameAndPath"] = url
-        with mock.patch.object(xbmc, "executeJSONRPC",
-                               return_value=json.dumps({"result": {"items": [
-                                   {"file": "plugin://plugin.video.nokturno/?action=streams&id=tt1&type=movie"}]}})), \
-             mock.patch.object(default, "get_apis", return_value={}), \
-             mock.patch.object(default, "play") as play, \
-             mock.patch.object(default, "list_streams") as listing:
-            default.router("action=streams&type=movie&id=tt0133093")
-        play.assert_not_called()
-        listing.assert_called_once()
-
-    def test_play_request_porovnava_parametry_ne_text_adresy(self):
-        """Kodi (`CURL`) si parametry v adrese přeskládá abecedně a chybějící/prázdné
-        `build_url` vynechává — porovnání musí být přes slovník parametrů."""
-        xbmc.info_labels["ListItem.FolderPath"] = "plugin://plugin.video.nokturno/?type=movie&id=tt1&action=streams"
-        xbmc.info_labels["Playlist.Position"] = "1"
-        with mock.patch.object(xbmc, "executeJSONRPC", return_value=json.dumps({"result": {"items": [
-                {"file": "plugin://plugin.video.nokturno/?id=tt1&action=streams&type=movie"}]}})):
-            self.assertTrue(default.play_request({"action": "streams", "type": "movie", "id": "tt1", "alt": ""}))
-            self.assertFalse(default.play_request({"action": "streams", "type": "movie", "id": "tt2"}))
-        with mock.patch.object(xbmc, "executeJSONRPC", return_value="rozbité"):
-            self.assertFalse(default.play_request({"action": "streams", "type": "movie", "id": "tt1"}))
 
     def test_mark_viewed_u_serialu_posila_nazev_serialu_ne_epizody(self):
         """2026-09-16: statistiky se serverem slučují podle normalizovaného názvu
@@ -1097,13 +1035,43 @@ class TestHubenySnimek(unittest.TestCase):
     (TMDB, přepočet na pozadí), dostal snímek bez popisu i fotky — a bez opravy tak
     zůstal navždy, i po doplnění dat (2026-09-16, „Ztracená žena“ v Mém seznamu)."""
 
+    def test_snimek_nese_hodnoceni_zanry_stopaz_a_vypis_je_kresli(self):
+        """Můj seznam/Pokračovat kreslí ze snímku, ne z API — bez těchhle polí měl titul jen
+        název a popis, žádné hvězdičky, žánr, stopáž ani věk (2026-09-16, nahlásil uživatel:
+        „u všech seznamů musí být hodnocení a rok")."""
+        meta = {"id": "tt_snap_full", "name": "Film", "year": 2020, "imdbRating": "7.4", "voteCount": 1200,
+                "genres": ["Drama"], "runtime": "118 min", "mpaa": "15+", "description": "Popis",
+                "poster": "p.jpg", "background": "b.jpg"}
+        snap = default.snapshot(meta, "movie")
+        self.assertEqual((snap["rating"], snap["votes"], snap["genres"], snap["mpaa"]), ("7.4", 1200, ["Drama"], "15+"))
+        self.assertFalse(default.thin_snapshot(snap))
+        li = xbmcgui.ListItem(label="x")
+        default.fill_info_snapshot(li, snap)
+        calls = {c[0]: c[1] for c in li.tag.calls}
+        self.assertEqual(calls["setRating"], (7.4,))
+        self.assertEqual(calls["setVotes"], (1200,))
+        self.assertEqual(calls["setGenres"], (["Drama"],))
+        self.assertEqual(calls["setMpaa"], ("15+",))
+        self.assertEqual(calls["setDuration"], (118 * 60,))
+        self.assertEqual(calls["setYear"], (2020,))
+        self.assertTrue(calls["setPlot"][0].startswith("[B]"), calls["setPlot"])
+        self.assertEqual(li.properties.get("RatingPercent"), "74 %")
+
+    def test_stary_snimek_bez_hodnoceni_se_jednou_dohleda(self):
+        """Snímky z verzí před hodnocením (bez klíče `rating`) se berou jako hubené →
+        `recover_snapshot` je jednou dohledá a uloží; soubory WebShare/HellSpy/úložiště
+        meta nemají, ty se nedohledávají."""
+        self.assertTrue(default.thin_snapshot({"type": "movie", "id": "tt1", "title": "F", "plot": "x", "art": {"poster": "p"}}))
+        self.assertFalse(default.thin_snapshot({"type": "ws", "id": "ws:1", "title": "soubor.mkv", "art": {}}))
+        self.assertFalse(default.thin_snapshot({"type": "movie", "id": "tt1", "plot": "x", "art": {"poster": "p"}, "rating": ""}))
+
     def setUp(self):
         reset_kodi()
 
     def test_thin_snapshot_pozna_prazdny_popis_i_fotku(self):
-        self.assertTrue(default.thin_snapshot({"title": "X", "plot": "", "art": {}}))
-        self.assertFalse(default.thin_snapshot({"title": "X", "plot": "Popis", "art": {}}))
-        self.assertFalse(default.thin_snapshot({"title": "X", "plot": "", "art": {"poster": "http://p"}}))
+        self.assertTrue(default.thin_snapshot({"title": "X", "plot": "", "art": {}, "rating": ""}))
+        self.assertFalse(default.thin_snapshot({"title": "X", "plot": "Popis", "art": {}, "rating": ""}))
+        self.assertFalse(default.thin_snapshot({"title": "X", "plot": "", "art": {"poster": "http://p"}, "rating": ""}))
         self.assertFalse(default.thin_snapshot(None))
 
     def test_toggle_fav_hubeny_snimek_se_pri_pridani_obnovi(self):

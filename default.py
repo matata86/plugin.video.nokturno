@@ -580,6 +580,13 @@ def snapshot(meta, ctype, video=None, series_id=None, alt=None):
         "plot": (video or {}).get("overview") or meta.get("description") or "",
         "year": str(meta.get("year") or meta.get("releaseInfo") or "")[:4],
         "art": art_for(meta, video),
+        # totéž, co kreslí `fill_info` v katalogu — bez toho měl Můj seznam/Pokračovat jen
+        # název a popis, žádné hvězdičky, žánr ani stopáž (2026-09-16, nahlásil uživatel)
+        "rating": meta.get("imdbRating") or "",
+        "votes": meta.get("voteCount") or 0,
+        "genres": [str(g) for g in (meta.get("genres") or [])],
+        "runtime": (video or meta).get("runtime") or "",
+        "mpaa": str(meta.get("mpaa") or ""),
     }
 
 
@@ -588,7 +595,11 @@ def thin_snapshot(info):
     stahování dřív, než pro něj doběhlo obohacení (TMDB, přepočet dabingu na pozadí
     u čerstvě přidaných titulů). Bez záchrany zůstane navždy prázdný, i když už
     mezitím data dorazila — `snapshot()` se z API znovu nevolá samo od sebe."""
-    return info is not None and not info.get("plot") and not (info.get("art") or {})
+    if info is None or info.get("type") in ("ws", "hs", "dav"):
+        return False   # soubory bez meta — není z čeho dohledat
+    if "rating" not in info:
+        return True    # snímek ze starší verze bez hodnocení/žánrů/stopáže → jednou dohledat
+    return not info.get("plot") and not (info.get("art") or {})
 
 
 def apply_watched(li, key, context=None):
@@ -736,9 +747,28 @@ def fill_info_snapshot(li, snap):
     tag.setTitle(snap.get("title") or "")
     if snap.get("tvshow"):
         tag.setTvShowTitle(snap["tvshow"])
-    tag.setPlot(snap.get("plot") or "")
+    plot = snap.get("plot") or ""
+    genres = ", ".join(genre_label(g) for g in (snap.get("genres") or []))
+    if genres:
+        plot = f"[B]{genres}[/B] · {plot}" if plot else genres
+        tag.setGenres(list(snap["genres"]))
+    tag.setPlot(plot)
     if str(snap.get("year") or "").isdigit():
         tag.setYear(int(snap["year"]))
+    try:
+        if snap.get("rating"):
+            rating = float(snap["rating"])
+            tag.setRating(rating)
+            li.setProperty("RatingPercent", f"{round(rating * 10)} %")
+            if snap.get("votes"):
+                tag.setVotes(int(snap["votes"]))
+    except (TypeError, ValueError):
+        pass
+    if snap.get("mpaa"):
+        tag.setMpaa(str(snap["mpaa"]))
+    minutes = runtime_minutes(snap.get("runtime"))
+    if minutes:
+        tag.setDuration(minutes * 60)
     if is_ep:
         tag.setSeason(int(snap.get("season") or 0))
         tag.setEpisode(int(snap.get("episode") or 0))
@@ -784,71 +814,15 @@ def folder_mode():
     return setting("stream_mode", "1") == "1" and browsing_nokturno()
 
 
-def plugin_params(url):
-    """Parametry z adresy `plugin://…/?a=b` jako slovník — Kodi si pořadí parametrů přeskládá
-    (řadí je abecedně), takže se adresy porovnávají takhle, ne jako text."""
-    return dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(str(url or "")).query))
-
-
-def play_request(params):
-    """Spustilo Kodi `action=streams` kvůli PŘEHRÁNÍ, ne kvůli výpisu složky?
-
-    Titul je v režimu „Vybrat ze seznamu streamů“ ve výpisu Nokturna složkou (`folder_mode`).
-    Tlačítko Přehrát v info dialogu / detailu (Estuary, Arctic Fuse, TMDb Helper) na takové
-    položce ale nejde přes `play()` — Kodi ji vloží do video playlistu a spustí náš skript
-    s adresou složky (`action=streams`) v režimu přehrání, kde čeká `setResolvedUrl`. Skript
-    to nepozná z argumentů (jsou stejné jako u výpisu), Kodi mu to neřekne — dřív tak výpis
-    složky skončil bez přehrání „položku se nepodařilo přehrát“ (Office 2026-09-16, dvakrát,
-    Mayday a Matrix). Rozlišuje se podle tří stop, které přehrání zanechá a výpis ne
-    (ověřeno debug logem Kodi 21 na Office 2026-09-16, `CScriptRunner`):
-
-    1. přehrávaná položka je zrovna vybraná ve výpisu (info dialog se otevřel nad ní),
-    2. Kodi ji těsně předtím vložilo do video playlistu (`PlayListPlayer::Play`) — po
-       úspěšném přehrání tam zůstane už rozklíčovaná http adresa, ne adresa složky,
-    3. `Playlist.Position` je nastavené — `PlayListPlayer::Play(0)` ho nastaví před
-       spuštěním skriptu; po zastavení i po zrušeném výběru streamu (adresa složky pak
-       v playlistu zůstává) je prázdné, takže obyčejný klik na tutéž položku jde do výpisu.
-
-    Pokrývá jen info dialog Kodi/Estuary (playlist player). Arctic Fuse volá přes TMDb Helper
-    `PlayMedia($INFO[ListItem.FileNameAndPath])` — mimo playlist; to řeší `add_playable()`
-    adresou přehrání v info tagu složky, sem už `action=streams` z té cesty nedorazí.
-
-    Busy dialog nepomůže: Kodi 21 ho ukazuje při čekání na skript v obou režimech a žádný
-    vlastní progress dialog v režimu přehrání neotevírá (beta13 a beta14 na tom stály).
-    `Files.GetDirectory` z JSON-RPC (HA, zahřívání) nesplní (2) — bez modálu (CLAUDE.md).
-    """
-    wanted = {k: v for k, v in params.items() if v not in (None, "")}
-    # FolderPath = cesta položky (složka `action=streams`); FileNameAndPath bere Kodi z info tagu,
-    # kam `add_playable()` dává adresu přehrání pro Arctic Fuse — proto obě
-    in_focus = wanted in (plugin_params(xbmc.getInfoLabel("ListItem.FolderPath")),
-                          plugin_params(xbmc.getInfoLabel("ListItem.FileNameAndPath")))
-    in_playlist = False
-    if in_focus:
-        try:
-            raw = xbmc.executeJSONRPC(json.dumps({"jsonrpc": "2.0", "id": 1, "method": "Playlist.GetItems",
-                                                  "params": {"playlistid": 1, "properties": ["file"]}}))
-            items = ((json.loads(raw).get("result") or {}).get("items")) or []
-            in_playlist = any(plugin_params(item.get("file")) == wanted for item in items)
-        except (ValueError, TypeError, AttributeError):
-            in_playlist = False
-    position = xbmc.getInfoLabel("Playlist.Position") if in_playlist else ""
-    xbmc.log(f"[{ADDON_ID}] streams: vybraná položka={in_focus} v playlistu={in_playlist} pozice={position!r}",
-             xbmc.LOGINFO)
-    return in_focus and in_playlist and bool(position)
-
-
 def add_playable(li, ctype, item_id, series_id=None, alt=None):
     """Film nebo díl — ve výpisu Nokturna podle nastavení, jinde přehratelný.
 
-    V režimu „Vybrat ze seznamu streamů“ je ve výpisu Nokturna složkou `action=streams` — klik
-    otevře seznam nativně; Přehrát v detailu nad ní obslouží `play_request()` (Estuary, přes
-    playlist) a adresa přehrání v info tagu (Arctic Fuse, `PlayMedia` na
-    `ListItem.FileNameAndPath`). Ve widgetu, na domovské obrazovce a v detailu otevřeném
-    odtamtud je přehratelný s `ask=1`: skiny berou film podle DBType jako soubor. Složka tam
-    dřív nepřehrála nic, přehratelná položka ukáže dialog s filtrem (`choose_stream`).
-    Přesměrovat z přehratelné položky ve výpisu na složku přes zrušené přehrání nešlo: Kodi
-    hlásilo „položku se nepodařilo přehrát“ a seznam otevřený přes `Container.Update` ukazoval
-    místo streamů název filmu (Office 2026-09-14).
+    V režimu „Vybrat ze seznamu streamů“ je ve výpisu Nokturna položka `action=title` — ne-složka
+    bez IsPlayable (viz níže): klik = seznam streamů, Přehrát = dialog výběru. Ve widgetu, na
+    domovské obrazovce a v detailu otevřeném odtamtud je přehratelná s `ask=1`: skiny berou film
+    podle DBType jako soubor a Přehrát volá `PlayMedia` na cestu položky → dialog s filtrem
+    (`choose_stream`). Přesměrovat z přehratelné položky na složku přes zrušené přehrání nešlo:
+    Kodi hlásilo „položku se nepodařilo přehrát“ (Office 2026-09-14).
 
     U epizod se předává i id seriálu — Sosáč dává epizodám vlastní id
     (`sosac2_1877:1:1`), ze kterého se meta seriálu nedá odvodit.
@@ -863,15 +837,14 @@ def add_playable(li, ctype, item_id, series_id=None, alt=None):
     resumed = STORE.resume_stream(item_id)
     stream_url, stream_subs = resumed if resumed else (None, None)
     if folder_mode() and not stream_url:
-        url = build_url(action="streams", type=ctype, id=item_id, series=series_id, alt=alt)
-        # Přehrát v detailu Arctic Fuse (TMDb Helper `playmedia=$INFO[ListItem.FileNameAndPath]`
-        # → `PlayMedia`) jde mimo playlist, takže `play_request()` ho nepozná — Kodi ale bere
-        # `ListItem.FileNameAndPath` přednostně z info tagu, zatímco klik na složku jde přes
-        # cestu položky. Složka tak nese v tagu rovnou adresu přehrání s dialogem výběru
-        # (Office 2026-09-16, Fotr je lotr: „Přehrát" jen znovu vypsalo seznam).
-        li.getVideoInfoTag().setFilenameAndPath(
-            build_url(action="play", type=ctype, id=item_id, series=series_id, alt=alt, ask="1"))
-        xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
+        # Ne-složka BEZ IsPlayable: klik ve výpisu ji Kodi spustí jako skript (handle −1,
+        # `CGUIMediaWindow::OnClick` → `RunScriptWithParams`) → router otevře seznam streamů
+        # přes Container.Update; Přehrát v detailu (Estuary přes playlist, Arctic Fuse přes TMDb
+        # Helper `PlayMedia`, tlačítko Play na ovladači) ji rozklíčuje s normálním handle →
+        # dialog výběru streamu. Složka `action=streams` tohle rozlišit neuměla — Kodi ji při
+        # Přehrát spouštělo se stejnými argumenty jako při výpisu (Office 2026-09-16, bety 13–18).
+        url = build_url(action="title", type=ctype, id=item_id, series=series_id, alt=alt)
+        xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=False)
         return
     li.setProperty("IsPlayable", "true")
     # „1“ = výběr dialogem; „2“ se ptá sám v play(), „0“ pustí nejlepší. Bez `ask` (Up Next, HA)
@@ -3579,6 +3552,12 @@ def router(query):
         "settings": lambda: (xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False), ADDON.openSettings()),
     }
     try:
+        if action == "title" and HANDLE < 0:
+            # klik na titul ve výpisu Nokturna (režim seznamu): Kodi ne-přehratelnou položku
+            # spustí jako skript bez handle → otevřít seznam streamů (viz add_playable)
+            xbmc.executebuiltin("Container.Update(%s)" % build_url(
+                action="streams", type=p.get("type", "movie"), id=p["id"], series=p.get("series"), alt=p.get("alt")))
+            return
         if action in simple:
             # stejná pojistka jako u výpisů níž: akce bez `type` (starý odkaz z widgetu, ruční
             # URL z HA) dřív vyletěla KeyError mimo `_fail`, Kodi nechalo neuzavřený handle
@@ -3617,13 +3596,10 @@ def router(query):
             list_seasons(apis, p["id"], alt=p.get("alt"))
         elif action == "episodes":
             list_episodes(apis, p["id"], int(p.get("season") or 0), alt=p.get("alt"))
-        elif action == "streams" and play_request(p):
-            # Přehrát v info dialogu / detailu nad titulem-složkou → Kodi čeká
-            # setResolvedUrl, ne výpis: stejná cesta jako `action=play&ask=1`
-            # (v režimu seznamu = dialog výběru streamu), viz `play_request`.
-            xbmc.log(f"[{ADDON_ID}] Přehrát nad složkou streamů {p.get('type')} {p.get('id')} → výběr streamu",
-                     xbmc.LOGINFO)
-            play(apis, p["type"], p["id"], p.get("series"), alt=p.get("alt"), ask="1")
+        elif action == "title":
+            # Přehrát nad titulem v režimu seznamu (Estuary/Arctic Fuse/TMDb Helper/tlačítko Play):
+            # Kodi položku rozklíčovává a čeká setResolvedUrl → dialog výběru streamu
+            play(apis, p.get("type", "movie"), p["id"], p.get("series"), alt=p.get("alt"), ask="1")
         elif action == "streams":
             list_streams(apis, p["type"], p["id"], p.get("series"), alt=p.get("alt"),
                         fq=p.get("fq", ""), flang=p.get("flang", ""), fch=p.get("fch", ""),
