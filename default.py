@@ -953,8 +953,9 @@ def collect_streams(apis, ctype, item_id, meta, alt=None, progress=None, strict=
     výpadek WebShare…), jeho chyba přijde do `errors` jako `SourceFailure` a hledá
     se dál v ostatních; co s tím udělat (upozornit), řeší volající. `progress`,
     je-li dán, dostává `set(done, total)` po každé fázi — čtení hlaviček je
-    z nich zdaleka nejdelší — a `source(label, count)` po dokončení každého
-    jednotlivého zdroje, ať je vidět odkud kolik streamů zatím přišlo.
+    z nich zdaleka nejdelší —, `source(label, count)` po dokončení každého
+    jednotlivého zdroje, ať je vidět odkud kolik streamů zatím přišlo, a
+    `audio(done, total)` v průběhu čtení hlaviček, ať je vidět kolik je ověřeno.
     """
     errors = [] if errors is None else errors
     failures = []
@@ -962,7 +963,8 @@ def collect_streams(apis, ctype, item_id, meta, alt=None, progress=None, strict=
     try:
         streams = engine.raw_streams(ctype, item_id, alt, on_progress=progress.set if progress else None,
                                      failures=failures, strict=strict, meta_video=(meta, load_meta_video(meta, item_id)),
-                                     on_source_done=progress.source if progress else None)
+                                     on_source_done=progress.source if progress else None,
+                                     on_audio_progress=progress.audio if progress else None)
     finally:
         errors.extend(SourceFailure(label, err) for label, err in failures)
         remember_ws_token(engine.ws)
@@ -2399,13 +2401,18 @@ class SearchProgress:
         self.bar, self.total, self.done = bar, max(1, total), 0
         self.lock = threading.Lock()
         self.sources = []   # [(label, count), ...] v pořadí, jak zdroje dorazily
+        self.audio_done = self.audio_total = 0   # čtení hlaviček (ověření zvuku) — poslední fáze
 
     def _show(self):
         percent = int(self.done / self.total * 100)
-        if self.sources:
-            # jen hledání streamů (collect_streams) hlásí source() — hledání titulu
-            # (search_run) žádné zdroje nemá a nechává si vlastní text z create()
-            self.bar.update(percent, " · ".join(f"{label}: {n}" for label, n in self.sources))
+        parts = [f"{label}: {n}" for label, n in self.sources]
+        if self.audio_total:
+            parts.append(L(30239, "Ověřuji zvuk: {done}/{total}").format(
+                done=self.audio_done, total=self.audio_total))
+        if parts:
+            # jen hledání streamů (collect_streams) hlásí source()/audio() — hledání titulu
+            # (search_run) nic z toho nemá a nechává si vlastní text z create()
+            self.bar.update(percent, " · ".join(parts))
         else:
             self.bar.update(percent)
 
@@ -2432,6 +2439,13 @@ class SearchProgress:
         """`on_source_done` jádra: doplní přehled, odkud kolik streamů zatím přišlo."""
         with self.lock:
             self.sources.append((label, count))
+            self._show()
+
+    def audio(self, done, total):
+        """`on_audio_progress` jádra: kolik hlaviček souborů je ověřeno z kolika se čte —
+        poslední a nejdelší fáze, kdy už `source()` dál nepřibývá."""
+        with self.lock:
+            self.audio_done, self.audio_total = done, total
             self._show()
 
 

@@ -432,11 +432,12 @@ class TestJadroVKodi(unittest.TestCase):
     def test_collect_streams_prevadi_vypadky_na_upozorneni(self):
         engine = default.KodiEngine()
         def raw_streams(ctype, item_id, alt=None, series_id=None, on_progress=None, failures=None, strict=True,
-                        meta_video=None, on_source_done=None):
+                        meta_video=None, on_source_done=None, on_audio_progress=None):
             failures.append(("Luna", ConnectionRefusedError("[Errno 111] Connection refused")))
             failures.append(("WebShare", WebshareError("login: Wrong password")))
             on_progress(3, 8)
             on_source_done("WebShare", 1)
+            on_audio_progress(2, 4)
             self.assertEqual(meta_video, ({"name": "Film"}, None))
             self.assertFalse(strict)
             return [{"url": "ws:1", "label": "Film.mkv", "source": "ws", "_direct": True, "_loose": True}]
@@ -450,7 +451,7 @@ class TestJadroVKodi(unittest.TestCase):
         self.assertEqual([type(e).__name__ for e in errors], ["SourceFailure", "SourceFailure"])
         self.assertEqual(default.skipped_notice(errors),
                          "Luna neodpovídá; WebShare: login: Wrong password — přeskočeno")
-        bar.update.assert_called_with(int(3 / 8 * 100), "WebShare: 1")
+        bar.update.assert_called_with(int(3 / 8 * 100), "WebShare: 1 · Ověřuji zvuk: 2/4")
         # chyba jádra v hlášce nese zdroj sama
         self.assertEqual(default.describe_error(default.NokturnoError("WebShare: soubor není")), "WebShare: soubor není")
         self.assertEqual(default.error_label(default.NokturnoError("Chybí odkaz na stream.")), "Nokturno")
@@ -466,6 +467,24 @@ class TestJadroVKodi(unittest.TestCase):
         bar.update.assert_called_with(10, "Luna: 0")
         progress.source("WebShare", 12)
         bar.update.assert_called_with(10, "Luna: 0 · WebShare: 12")
+
+    def test_search_progress_hlasi_overovani_zvuku(self):
+        """Poslední a nejdelší fáze (čtení hlaviček souborů) — kolik už je ověřeno
+        z kolika se doopravdy čte, vedle přehledu zdrojů."""
+        bar = mock.Mock()
+        progress = default.SearchProgress(bar, 10)
+        progress.source("WebShare", 12)
+        progress.audio(0, 5)
+        bar.update.assert_called_with(0, "WebShare: 12 · Ověřuji zvuk: 0/5")
+        progress.audio(3, 5)
+        bar.update.assert_called_with(0, "WebShare: 12 · Ověřuji zvuk: 3/5")
+
+        # bez source() (search_run, hledání podle názvu) audio() se nevolá vůbec —
+        # ale kdyby, ukazatel si i tak nechá jen tuhle část, ne prázdný text z create()
+        bar2 = mock.Mock()
+        holy = default.SearchProgress(bar2, 10)
+        holy.audio(1, 2)
+        bar2.update.assert_called_with(0, "Ověřuji zvuk: 1/2")
 
     def test_resolve_url_pres_jadro_a_token(self):
         engine = default.KodiEngine()
