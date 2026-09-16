@@ -34,6 +34,8 @@ import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
 from html.parser import HTMLParser
 
+from abort import check as check_stop, gather
+
 SLOTS = 3                   # kolik vlastních úložišť jde nastavit
 TIMEOUT = 20
 INDEX_TTL = 3600            # jak dlouho platí seznam souborů
@@ -118,10 +120,11 @@ class _Links(HTMLParser):
 
 class StorageApi:
     def __init__(self, url, username="", password="", name="", slot=1, cache=None, index_ttl=INDEX_TTL,
-                 opener=None):
+                 opener=None, should_stop=None):
         """`opener` je volitelný `urllib.request.OpenerDirector` — veřejná instance
         (doplněk pro Stremio) jím hlídá, kam se smí připojit; bez něj se používá
-        výchozí `urlopen`."""
+        výchozí `urlopen`. `should_stop`: viz `Engine` a `lib/abort.py` — průchod
+        stromu (`_crawl`) se mezi složkami ptá, jestli hostitel nekončí."""
         self.base = normalize_url(url)
         if not self.base:
             raise StorageError("neplatná adresa úložiště")
@@ -134,6 +137,7 @@ class StorageApi:
         self.cache = cache
         self.index_ttl = index_ttl
         self.opener = opener
+        self.should_stop = should_stop
         self._rev = (0.0, "")   # (kdy, hodnota) — viz revision()
 
     @property
@@ -252,10 +256,14 @@ class StorageApi:
         files, dirs = [], 0
         level = [""]
         while level and dirs < MAX_DIRS and len(files) < MAX_FILES:
+            check_stop(self.should_stop)
             batch = level[:MAX_DIRS - dirs]
             dirs += len(batch)
-            with ThreadPoolExecutor(max_workers=CRAWL_WORKERS) as pool:
-                results = list(pool.map(self._list_dir_safe, batch))
+            # ne `pool.map()` ve `with`: to čeká na celou vrstvu (klidně stovky složek),
+            # i když hostitel končí — `gather()` se ptá `should_stop()` a nezačaté zruší
+            pool = ThreadPoolExecutor(max_workers=CRAWL_WORKERS)
+            futures = [pool.submit(self._list_dir_safe, rel) for rel in batch]
+            results = [f.result() for f in gather(pool, futures, self.should_stop)]
             next_level = []
             for entries in results:
                 if entries is None:

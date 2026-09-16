@@ -15,6 +15,7 @@ import json
 import shutil
 import sys
 import tempfile
+import threading
 import time
 import unittest
 import urllib.parse
@@ -1866,3 +1867,170 @@ class TestJazykRozhrani(unittest.TestCase):
         for natvrdo in ('bar.create("Nokturno"', '"Day": "Za den"', 'StorageError: "Úložiště"', '"dav": "Úložiště"',
                         'else "bez Premium'):
             self.assertNotIn(natvrdo, src, natvrdo)
+
+
+class TestPreruseniPriKonciKodi(unittest.TestCase):
+    """Kodi při `Application.Quit` čeká na doběhnutí skriptů doplňku (2026-09-16, Office:
+    přes 2 minuty — zahřívání ze služby prohledávalo zdroje po titulech). Jádro dostane
+    `should_stop` (`lib/abort.py`), doplněk mu podstrčí `Monitor.abortRequested()` a
+    vlastní příznak zrušení dialogem; `Aborted` pak projde až do routeru."""
+
+    def setUp(self):
+        reset_kodi()
+        default.CANCEL.clear()
+        default._quit_checked[0] = 0.0
+        service.QUITTING.clear()
+        default.STORE.clear_cache()
+        default.STORE.save("wizard_done", True)
+
+    def tearDown(self):
+        default.CANCEL.clear()
+        service.QUITTING.clear()
+        default._quit_checked[0] = 0.0
+
+    def test_quit_ze_sluzby_zastavi_plugin(self):
+        """Kodi posílá pluginu spuštěnému přes JSON-RPC stop až po zastavení síťových
+        služeb (a ty čekají na něj) — služba proto na `System.OnQuit` nastaví vlastnost
+        okna a plugin se podle ní zastaví, i když jeho Monitor pořád hlásí False."""
+        self.assertFalse(default.should_stop())
+        default._quit_checked[0] = 0.0
+        monitor = service.ServiceMonitor()
+        monitor.onNotification("xbmc", "Player.OnPlay", "{}")
+        self.assertFalse(monitor.abortRequested())
+        monitor.onNotification("xbmc", "System.OnQuit", '{"exitcode": 0}')
+        self.assertTrue(monitor.abortRequested())
+        self.assertTrue(monitor.waitForAbort(60), "čekání skončí hned, ne až za minutu")
+        self.assertTrue(xbmcgui.Window(10000).getProperty(service.QUIT_PROP))
+        self.assertEqual(default.QUIT_PROP, service.QUIT_PROP)
+        self.assertFalse(xbmc.Monitor().abortRequested(), "Monitor pluginu o konci neví")
+        self.assertTrue(default.should_stop())
+
+    def test_sluzba_pri_startu_smaze_stary_priznak(self):
+        xbmcgui.Window(10000).setProperty(service.QUIT_PROP, "1")
+        with mock.patch.object(service, "ServiceMonitor", side_effect=RuntimeError("stop")):
+            with self.assertRaises(RuntimeError):
+                service.main()
+        self.assertEqual(xbmcgui.Window(10000).getProperty(service.QUIT_PROP), "")
+
+    def test_should_stop_cte_okno_jen_obcas(self):
+        reads = []
+        real = xbmcgui.Window.getProperty
+
+        def get(win, key):
+            reads.append(key)
+            return real(win, key)
+        with mock.patch.object(xbmcgui.Window, "getProperty", get):
+            for _ in range(50):
+                default.should_stop()
+        self.assertLessEqual(len(reads), 2)
+
+    def test_should_stop_sleduje_monitor_i_zruseni(self):
+        self.assertFalse(default.should_stop())
+        xbmc.abort = True
+        self.assertTrue(default.should_stop(), "Kodi končí")
+        xbmc.abort = False
+        default.CANCEL.set()
+        self.assertTrue(default.should_stop(), "uživatel zrušil dialogem")
+
+    def test_jadro_i_klienti_dostanou_should_stop(self):
+        xbmcaddon.settings.update(dav1_url="http://nas.lan/dav/", dav1_username="u", dav1_password="p",
+                                  streamuj_username="u", streamuj_password="p")
+        engine = default.KodiEngine()
+        self.assertIs(engine.should_stop, default.should_stop)
+        self.assertIs(default.get_storages()[0].should_stop, default.should_stop)
+        self.assertIs(default.get_sosac_db().should_stop, default.should_stop)
+        self.assertIs(default.get_sosac().should_stop, default.should_stop)
+
+    def test_lang_catalog_se_prerusi_a_nezapise_do_cache(self):
+        """Přepočet po titulech: po požadavku na ukončení vyhodí `Aborted` (ne `break` —
+        nedokončený seznam by se jinak zapsal na 8 h do cache) a router zavře handle
+        bez chybové hlášky. Zámek přes okno se uklidí."""
+        engine = default.KodiEngine()
+        cand = [{"id": f"sosacd_m_{i}", "type": "movie", "name": f"Film {i}", "year": "2026"} for i in range(10)]
+        calls = []
+
+        def raw_streams(ctype, item_id, **kw):
+            calls.append(item_id)
+            xbmc.abort = len(calls) >= 2   # po druhém titulu přijde Application.Quit
+            return [{"langs": ["CZ"], "subs": []}]
+        engine.raw_streams = raw_streams
+        apis = {"engine": engine, "sosac_db": FakeSosacDb(cand), "luna": None}
+        with mock.patch.object(default, "get_apis", return_value=apis):
+            default.router("action=lang_catalog&type=movie&want=dub")
+        self.assertEqual(len(calls), 2, "třetí kandidát už se neprozkoumal")
+        self.assertEqual(len(xbmcplugin.ended), 1)
+        self.assertFalse(xbmcplugin.ended[0]["succeeded"])
+        self.assertEqual(xbmcgui.notifications, [], "přerušení není chyba, žádná hláška")
+        self.assertIsNone(default.STORE.peek_cached("lang_catalog:movie", float("inf")),
+                          "nedokončený seznam se nesmí zapsat do cache")
+        self.assertEqual(xbmcgui.Window(10000).getProperty(f"{default.LANG_LOCK_PROP}:lang_catalog:movie"), "",
+                         "zámek se uklidí")
+        self.assertTrue(any("přerušeno" in m for m, _l in xbmc.logged))
+
+    def test_router_zavre_prehrani_bez_hlasky(self):
+        with mock.patch.object(default, "get_apis", return_value={}), \
+                mock.patch.object(default, "play", side_effect=default.Aborted()):
+            default.router("action=play&type=movie&id=tt1")
+        self.assertEqual([r[1] for r in xbmcplugin.resolved], [False])
+        self.assertEqual(xbmcgui.notifications, [])
+
+    def test_konec_pluginu_zavre_pool_popisu(self):
+        """Nečinná vlákna `enrich` by Kodi drželo po doběhnutí pluginu i při vypínání."""
+        with mock.patch.object(default, "router") as router, \
+                mock.patch.object(default, "release_enrich") as release:
+            default.main("action=favourites")
+            router.assert_called_once_with("action=favourites")
+            release.assert_called_once_with(cancel=False)
+            release.reset_mock()
+            router.side_effect = RuntimeError("pád")
+            default.CANCEL.set()
+            with self.assertRaises(RuntimeError):
+                default.main("action=x")
+            release.assert_called_once_with(cancel=True)
+
+    def test_router_zavre_prehrani_titulu_jako_prehrani(self):
+        """`action=title` s handle ≥ 0 je Přehrát v detailu — Kodi čeká `setResolvedUrl`,
+        ne `endOfDirectory`, a to i po přerušení."""
+        with mock.patch.object(default, "HANDLE", 5), mock.patch.object(default, "get_apis", return_value={}), \
+                mock.patch.object(default, "play", side_effect=default.Aborted()):
+            default.router("action=title&type=movie&id=tt1")
+        self.assertEqual([r[1] for r in xbmcplugin.resolved], [False])
+        self.assertEqual(xbmcplugin.ended, [])
+
+    def test_prefetch_se_zastavi(self):
+        xbmc.abort = True
+        snap = {"series": "tt1", "season": 1, "episode": 1, "name": "x"}
+        with mock.patch.object(default.STORE, "recently_watched", return_value=[("tt1:1:1", {})]), \
+                mock.patch.object(default.STORE, "item", return_value=snap), \
+                mock.patch.object(default, "next_episode", side_effect=AssertionError("nemá se hledat")):
+            default.prefetch({"engine": default.KodiEngine()}, "next")
+        self.assertEqual(len(xbmcplugin.ended), 1)
+
+    def test_zruseni_dialogem_zastavi_hledani_na_pozadi(self):
+        """Dřív hledání po Zpět tiše doběhlo (a Kodi na vlákno při konci skriptu čekalo)."""
+        class Bar:
+            def iscanceled(self):
+                return True
+        stopped = threading.Event()
+
+        def fn():
+            while not default.should_stop():
+                time.sleep(0.01)
+            stopped.set()
+            raise default.Aborted()
+        canceled, result = default.cancelable_search(Bar(), fn)
+        self.assertTrue(canceled)
+        self.assertTrue(stopped.wait(2), "vlákno se po zrušení samo zastavilo")
+
+    def test_aborted_z_vlakna_se_vyhodi_v_hlavnim(self):
+        class Bar:
+            def iscanceled(self):
+                return False
+        with self.assertRaises(default.Aborted):
+            default.cancelable_search(Bar(), lambda: (_ for _ in ()).throw(default.Aborted()))
+
+    def test_sluzba_neprednacita_kdyz_kodi_konci(self):
+        """`prefetch_next_later` čeká 15 s přes `waitForAbort` (stub vrátí True = konec) — pak nic."""
+        with mock.patch.object(service, "warm_caches", side_effect=AssertionError("nemá zahřívat")):
+            service.prefetch_next_later()
+            time.sleep(0.2)

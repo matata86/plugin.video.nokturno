@@ -19,8 +19,14 @@ DEADLINE = 10.0  # s – déle seznam nezdržovat; zbytek se dotáhne na pozadí
                  # nestíhalo u větších seznamů, např. 30 titulů v Kodi „Nově přidané s CZ dabingem")
 TMDB_IMG_PREFIX = "https://image.tmdb.org/t/p/"
 # jeden executor pro celý proces: dřív nový na každé hledání s `shutdown(wait=False)`, takže po
-# několika hledáních za sebou běžely desítky visících vláken (Luna má timeout 40 s)
-_POOL = ThreadPoolExecutor(max_workers=WORKERS, thread_name_prefix="nokturno-enrich")
+# několika hledáních za sebou běžely desítky visících vláken (Luna má timeout 40 s).
+# Vzniká až při prvním dotazu a `shutdown_pool()` ho zavře: nečinná vlákna executoru
+# čekají na frontu bez timeoutu a nikdy sama neskončí. Kodi po doběhnutí pluginu čeká
+# na všechna jeho vlákna a vlákno zablokované v C nezabije ani „let's kill it" —
+# Office 2026-09-16: widget „Nově přidané" ze Sosáče takhle zablokoval vypnutí Kodi
+# natrvalo. HA a Stremio běží dlouhodobě a pool si nechávají.
+_POOL = None
+_POOL_LOCK = threading.Lock()
 _INFLIGHT = {}          # (ctype, klíč titulu) → future — tentýž titul se nedotahuje dvakrát naráz
 # RLock, ne Lock: `add_done_callback()` v `_submit()` spustí `hotovo()` HNED a v témž vlákně,
 # pokud je future v okamžiku registrace už hotová (typicky bez Luny/sítě — `_fetch_title`
@@ -197,7 +203,7 @@ def _submit(luna, store, ctype, meta):
         fut = _INFLIGHT.get(key)
         if fut is not None and not fut.done():
             return fut
-        fut = _POOL.submit(_lookup, luna, store, ctype, meta)
+        fut = _pool().submit(_lookup, luna, store, ctype, meta)
         _INFLIGHT[key] = fut
 
         def hotovo(f, key=key):
@@ -206,6 +212,32 @@ def _submit(luna, store, ctype, meta):
                     del _INFLIGHT[key]
         fut.add_done_callback(hotovo)
         return fut
+
+
+def _pool():
+    global _POOL
+    with _POOL_LOCK:
+        if _POOL is None:
+            _POOL = ThreadPoolExecutor(max_workers=WORKERS, thread_name_prefix="nokturno-enrich")
+        return _POOL
+
+
+def shutdown_pool(cancel=False):
+    """Zavře sdílený executor, aby jeho nečinná vlákna skončila (viz `_POOL`). Rozběhnuté
+    dotazy doběhnou samy na svůj timeout; `cancel=True` (hostitel končí) zruší i ty, které
+    ve frontě ještě nezačaly — `shutdown(cancel_futures=)` je až od Pythonu 3.9, Kodi 20
+    má 3.8. Další `enrich()` si založí nový executor."""
+    global _POOL
+    with _POOL_LOCK:
+        pool, _POOL = _POOL, None
+    if pool is None:
+        return
+    if cancel:
+        with _INFLIGHT_LOCK:
+            pending = list(_INFLIGHT.values())
+        for fut in pending:
+            fut.cancel()
+    pool.shutdown(wait=False)
 
 
 def enrich_one(meta, luna=None, store=None, ctype="movie"):

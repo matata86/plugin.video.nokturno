@@ -72,6 +72,7 @@ LANG_WARM_EVERY = 6 * 3600     # pod `LANG_CATALOG_TTL` (8 h) v default.py, ať 
 LANG_TRIGGER_PROP = "nokturno.lang_trigger"  # stejný literál jako v default.py (lang_catalog_trigger) —
                                               # žádost o okamžitý přepočet, viz lang_trigger_watcher
 LANG_TRIGGER_POLL = 2     # s – jak často se čeká na žádost z lang_catalog_trigger (klik uživatele)
+QUIT_PROP = "nokturno.quitting"   # stejný literál jako v default.py — Kodi končí, viz ServiceMonitor
 CHUNK = 1024 * 1024
 PROFILE = xbmcvfs.translatePath(ADDON.getAddonInfo("profile"))
 TMDBH_PLAYER = "special://profile/addon_data/plugin.video.themoviedb.helper/players/nokturno.json"
@@ -632,11 +633,61 @@ def lang_trigger_watcher(monitor):
             return
 
 
+class ServiceMonitor(xbmc.Monitor):
+    """`xbmc.Monitor`, který o konci Kodi ví hned, ne až když se k němu Kodi dostane.
+
+    Office 2026-09-16 (debug log): po `Application.Quit` Kodi nejdřív zastavuje síťové
+    služby a čeká na rozběhnuté požadavky (i na `Files.GetDirectory` z JSON-RPC, který
+    visí na pluginu), a teprve pak posílá skriptům stop. Plugin spuštěný zahříváním
+    tak `abortRequested()` neuviděl vůbec (37 s, s čekajícím HTTP dotazem 202 s).
+    Notifikace `System.OnQuit` ale chodí úplně na začátku vypínání — služba si ji
+    zapamatuje (`QUITTING`) a nastaví vlastnost okna `QUIT_PROP`, kterou čte plugin
+    (`default.should_stop`). Callbacky Monitoru běží ve vlákně, které ho vytvořilo, při
+    jeho `waitForAbort` — tedy v hlavní smyčce `main()` (POLL), nejpozději do 100 ms."""
+
+    def onNotification(self, sender, method, data):
+        if method == "System.OnQuit":
+            mark_quitting()
+
+    def abortRequested(self):
+        return QUITTING.is_set() or super().abortRequested()
+
+    def waitForAbort(self, timeout=None):
+        """Jako `xbmc.Monitor.waitForAbort`, jen se po kouscích dívá i na `QUITTING` —
+        ten nastaví callback, o kterém původní čekání v C neví."""
+        end = None if timeout is None else time.time() + timeout
+        while True:
+            if QUITTING.is_set():
+                return True
+            left = QUIT_WAIT_STEP if end is None else min(QUIT_WAIT_STEP, end - time.time())
+            if left <= 0:
+                return False
+            if super().waitForAbort(left):
+                return True
+
+
+QUITTING = threading.Event()
+QUIT_WAIT_STEP = 0.5   # s – po jakých kouscích `ServiceMonitor.waitForAbort` kontroluje `QUITTING`
+
+
+def mark_quitting():
+    if QUITTING.is_set():
+        return
+    QUITTING.set()
+    try:
+        xbmcgui.Window(10000).setProperty(QUIT_PROP, str(int(time.time())))
+    except Exception:  # noqa: BLE001 – při vypínání už GUI nemusí odpovídat, služba končí i tak
+        pass
+    log("Kodi končí (System.OnQuit), rozdělaná práce se přeruší")
+
+
 def prefetch_next_later():
     """Po dokoukání dílu předstáhnout streamy toho dalšího — Up Next se pak neptá sítě."""
     def run():
-        xbmc.sleep(15000)
-        warm_caches(xbmc.Monitor(), "next")
+        monitor = xbmc.Monitor()
+        if monitor.waitForAbort(15) or QUITTING.is_set():
+            return   # Kodi končí — nezačínat hledání, na které by pak čekalo
+        warm_caches(monitor, "next")
     threading.Thread(target=run, daemon=True).start()
 
 
@@ -736,7 +787,9 @@ def stats_tick(stats, force=False):
 # --- hlavní smyčka ------------------------------------------------------------------
 
 def main():
-    monitor = xbmc.Monitor()
+    # vlastnost z minulého běhu (restart služby po aktualizaci doplňku v témže procesu Kodi)
+    xbmcgui.Window(10000).clearProperty(QUIT_PROP)
+    monitor = ServiceMonitor()
     migrate_profile(PROFILE)
     store = Store(PROFILE)
     # rozdělané stahování z minula začít znovu
