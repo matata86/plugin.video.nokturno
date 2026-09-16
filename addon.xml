@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.7~beta5" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.7~beta6" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,7 +23,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>5.2.7~beta5 – „Pokračovat ve sledování“ si teď pamatuje i konkrétní stream, na kterém titul skončil — přehrání pak jede rovnou na něj místo nového hledání napříč zdroji; přestane-li stream mezitím fungovat (smazaný soubor, vypršelý účet), tiše se prohledá znovu jako dřív
+    <news>5.2.7~beta6 – Oprava: „Pokračovat ve sledování“ v režimu „Vybrat ze seznamu streamů“ (výchozí nastavení) zkratku z bety 5 vůbec nepoužilo a pořád nejdřív otevřelo celé hledání — rozkoukaný titul se teď přehraje rovnou na uloženém streamu i v tomhle režimu
+5.2.7~beta5 – „Pokračovat ve sledování“ si teď pamatuje i konkrétní stream, na kterém titul skončil — přehrání pak jede rovnou na něj místo nového hledání napříč zdroji; přestane-li stream mezitím fungovat (smazaný soubor, vypršelý účet), tiše se prohledá znovu jako dřív
 5.2.7~beta4 – Oprava: přehrání přímým odkazem (karta Home Assistant, widget, Up Next) pustilo rozkoukaný titul vždy od začátku místo od uloženého místa — resume point se nastavoval jen ve výpisech Kodi, ne při přímém přehrání
 5.2.7~beta3 – Oprava: zpráva z dashboardu se po aktualizaci doplňku mohla zobrazit dřív, než doběhne start Kodi (skin ještě nenačtený) — modální dialog si tak nikdo nevšiml. Teď počká aspoň 30 s od startu služby
 5.2.7~beta2 – Zpráva napsaná v dashboardu (obrazovka Zprávy) teď dorazí hned po aktualizaci doplňku, ne až s dalším pravidelným hlášením statistik (až 6 hodin)
