@@ -32,10 +32,14 @@ class InfoTagVideo(_Recorder):
 class ListItem:
     def __init__(self, label="", label2="", path="", offscreen=False):
         self.label, self.label2, self.path = label, label2, path
+        self.subtitles = []
         self.art, self.properties, self.info = {}, {}, {}
         self.context = []
         self.tag = InfoTagVideo()
         self.calls = []
+
+    def setSubtitles(self, paths):
+        self.subtitles = list(paths)
 
     def getLabel(self):
         return self.label

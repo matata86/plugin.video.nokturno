@@ -215,22 +215,39 @@ def arrange(streams, pref_lang="", hide_sd=False, max_size_gb=0.0, order="source
         """
         return 0 if s.get("langs") else 1
 
-    def lang_key(s):
-        lang = 0 if (pref_lang and pref_lang in s["langs"]) else 1
-        surround = 0 if (pref_surround and is_surround(s, pref_lang)) else 1
-        return (lang, surround)
+    def lang_group(s):
+        """Preferovaný jazyk je hlavní klíč: nejdřív streamy, kde ho zdroj nebo hlavička
+        souboru potvrdila, pak ty, kde ho tvrdí jen název souboru (hlavička se ještě
+        nečetla — `Engine._fill_audio` čte hlavičky v tomhle pořadí, takže se ověří
+        dřív než zbytek), a teprve pak všechno ostatní včetně neznámého jazyka.
 
-    # řazení podle kvality/velikosti je hlavní klíč, preferovaný jazyk jen rozhoduje remízy
-    # (dřív jazyk přebíjel kvalitu → za HD Sosáčem v češtině se objevilo 4K v angličtině)
+        Dřív jazyk rozhodoval jen remízy (4K v angličtině nad HD v češtině); na
+        přání uživatele (2026-09-16) je to obráceně — kdo chce češtinu, nemá ji
+        hledat mezi desítkami anglických streamů."""
+        if not pref_lang:
+            return 0
+        if pref_lang in s["langs"]:
+            return 0
+        if not s.get("_tracks") or not s.get("langs"):
+            names = " ".join(str(s.get(k) or "") for k in ("label", "_ws_name"))
+            if pref_lang in langs_from_name(names):
+                return 1
+        return 2
+
+    def surround_key(s):
+        return 0 if (pref_surround and is_surround(s, pref_lang)) else 1
+
     if order == "quality":
-        keyed.sort(key=lambda p: (-p[1]["quality_rank"], verified(p[1]), lang_key(p[1]), -p[1]["bitrate"], p[0]))
+        keyed.sort(key=lambda p: (lang_group(p[1]), -p[1]["quality_rank"], verified(p[1]), surround_key(p[1]),
+                                  -p[1]["bitrate"], p[0]))
     elif order == "size_desc":
-        keyed.sort(key=lambda p: (-p[1]["size_gb"], verified(p[1]), lang_key(p[1]), p[0]))
+        keyed.sort(key=lambda p: (lang_group(p[1]), -p[1]["size_gb"], verified(p[1]), surround_key(p[1]), p[0]))
     elif order == "size_asc":
-        keyed.sort(key=lambda p: (p[1]["size_gb"] or 1e9, verified(p[1]), lang_key(p[1]), p[0]))
+        keyed.sort(key=lambda p: (lang_group(p[1]), p[1]["size_gb"] or 1e9, verified(p[1]), surround_key(p[1]),
+                                  p[0]))
     elif pref_lang or pref_surround:
         # bez řazení: jen preferovaný jazyk / 5.1 dopředu, pořadí uvnitř skupin zachovat
-        keyed.sort(key=lambda p: (verified(p[1]), lang_key(p[1])))
+        keyed.sort(key=lambda p: (lang_group(p[1]), verified(p[1]), surround_key(p[1])))
     return [s for _, s in keyed]
 
 

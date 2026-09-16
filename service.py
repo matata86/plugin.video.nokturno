@@ -48,6 +48,7 @@ from storage_api import StorageApi, parse_ref  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
 from sync import sync_once  # noqa: E402
 from trend_api import CATALOG_ID as TREND_CATALOG_ID  # noqa: E402
+from tracks import SUBS_WHEN_NEEDED, is_forced, pick_audio, pick_subtitle, track_lang  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
 from webshare_api import WebshareApi, WebshareError  # noqa: E402
 
@@ -74,6 +75,8 @@ LANG_TRIGGER_PROP = "nokturno.lang_trigger"  # stejný literál jako v default.p
 LANG_TRIGGER_POLL = 2     # s – jak často se čeká na žádost z lang_catalog_trigger (klik uživatele)
 QUIT_PROP = "nokturno.quitting"   # stejný literál jako v default.py — Kodi končí, viz ServiceMonitor
 CHUNK = 1024 * 1024
+PREF_LANGS = ("", "CZ", "SK", "EN")   # pořadí voleb `pref_lang` v settings.xml, stejné jako v default.py
+TRACKS_DELAY = 1.0   # s po onAVStarted — externí titulky Kodi přidává až po otevření videa
 PROFILE = xbmcvfs.translatePath(ADDON.getAddonInfo("profile"))
 TMDBH_PLAYER = "special://profile/addon_data/plugin.video.themoviedb.helper/players/nokturno.json"
 _STARTED_AT = time.time()   # MESSAGE_DELAY se počítá odsud, ne od okamžiku, kdy dorazí FORCE_STATS_PROP
@@ -187,6 +190,54 @@ class Player(xbmc.Player):
         self.item, self.started = item, time.time()
         log(f"sleduji {item.get('id')}")
         self.trakt_scrobble("start", 0)
+        threading.Thread(target=self.apply_tracks, args=(item,), name="nokturno-tracks", daemon=True).start()
+
+    def apply_tracks(self, item):
+        """Zvuk a titulky podle preferovaného jazyka (Nastavení → Přehrávání).
+
+        Kodi při startu vezme výchozí stopu kontejneru, u přebalených filmů často
+        anglickou, i když soubor má český dabing. Tady se jednou po startu přepne
+        na preferovaný jazyk; titulky se zapnou, jen když ten jazyk ve zvuku chybí
+        (nebo vždy, podle nastavení), a u dabingu se naopak vypnou, ať neběží
+        titulky přibalené ze zdroje. Rozhoduje `tracks.pick_audio`/`pick_subtitle`
+        v jádru; co si pak uživatel přepne sám, už se nepřepisuje."""
+        time.sleep(TRACKS_DELAY)
+        if self.item is not item or not self.isPlayingVideo():
+            return
+        addon = fresh_addon()
+        if addon is None:
+            return
+        try:
+            pref = PREF_LANGS[int(addon.getSetting("pref_lang") or 0)]
+            subs_mode = int(addon.getSetting("auto_subs") or SUBS_WHEN_NEEDED)
+        except (ValueError, IndexError):
+            return
+        auto_audio = addon.getSetting("auto_audio") != "false"
+        if not pref:
+            return
+        player = rpc("Player.GetActivePlayers") or []
+        player_id = next((p.get("playerid") for p in player if p.get("type") == "video"), None)
+        if player_id is None:
+            return
+        props = rpc("Player.GetProperties", playerid=player_id, properties=[
+            "audiostreams", "currentaudiostream", "subtitles", "currentsubtitle", "subtitleenabled"]) or {}
+        audio = props.get("audiostreams") or []
+        index, audio_ok = pick_audio(audio, props.get("currentaudiostream"), pref, item.get("stream_langs"))
+        if index is not None and not auto_audio:
+            # zvuk nechat, ale titulky se musí rozhodovat podle toho, co doopravdy hraje
+            index, audio_ok = None, track_lang(props.get("currentaudiostream") or {}) == pref
+        if index is not None:
+            rpc("Player.SetAudioStream", playerid=player_id, stream=index)
+            log(f"zvuk → stopa {index} ({pref})")
+        action, sub_index = pick_subtitle(props.get("subtitles") or [], pref, audio_ok, subs_mode)
+        current = props.get("currentsubtitle") or {}
+        enabled = bool(props.get("subtitleenabled"))
+        if action == "on" and not (enabled and current.get("index") == sub_index):
+            rpc("Player.SetSubtitle", playerid=player_id, subtitle=sub_index, enable=True)
+            log(f"titulky → stopa {sub_index} (zvuk v {pref}: {audio_ok})")
+        elif action == "off" and enabled and not is_forced(current):
+            rpc("Player.SetSubtitle", playerid=player_id, subtitle="off")
+            log(f"titulky vypnuty (zvuk v {pref})")
 
     def tick(self):
         if not self.item or not self.isPlayingVideo():
@@ -522,6 +573,16 @@ def lang_warm_urls():
     čekala na zámek a přečetla to samé z cache."""
     base = "plugin://plugin.video.nokturno/?action=lang_catalog&type={t}&want=dub"
     return [base.format(t=t) for t in ("movie", "series")]
+
+
+def rpc(method, **params):
+    """JSON-RPC Kodi zevnitř služby; výsledek, nebo None při chybě."""
+    try:
+        raw = xbmc.executeJSONRPC(json.dumps({"jsonrpc": "2.0", "id": 1, "method": method, "params": params}))
+        return json.loads(raw).get("result")
+    except (ValueError, TypeError, RuntimeError) as e:
+        log(f"{method}: {e}", xbmc.LOGWARNING)
+        return None
 
 
 def rpc_directory(url):

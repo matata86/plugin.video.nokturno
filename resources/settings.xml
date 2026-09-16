@@ -402,6 +402,23 @@
           <default>false</default>
           <control type="toggle"/>
         </setting>
+        <setting id="auto_audio" type="boolean" label="30440" help="30441">
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle"/>
+        </setting>
+        <setting id="auto_subs" type="integer" label="30442" help="30446">
+          <level>0</level>
+          <default>1</default>
+          <constraints>
+            <options>
+              <option label="30443">0</option>
+              <option label="30444">1</option>
+              <option label="30445">2</option>
+            </options>
+          </constraints>
+          <control format="string" type="spinner"/>
+        </setting>
         <setting id="hide_sd" type="boolean" label="30115" help="30315">
           <level>0</level>
           <default>false</default>
