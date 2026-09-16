@@ -451,7 +451,7 @@ class TestJadroVKodi(unittest.TestCase):
         self.assertEqual([type(e).__name__ for e in errors], ["SourceFailure", "SourceFailure"])
         self.assertEqual(default.skipped_notice(errors),
                          "Luna neodpovídá; WebShare: login: Wrong password — přeskočeno")
-        bar.update.assert_called_with(int(3 / 8 * 100), "WebShare: 1 · Ověřuji zvuk: 2/4")
+        bar.update.assert_called_with(int(3 / 8 * 100), "WebShare: 1 · Ověřuji metadata: 2/4")
         # chyba jádra v hlášce nese zdroj sama
         self.assertEqual(default.describe_error(default.NokturnoError("WebShare: soubor není")), "WebShare: soubor není")
         self.assertEqual(default.error_label(default.NokturnoError("Chybí odkaz na stream.")), "Nokturno")
@@ -475,16 +475,16 @@ class TestJadroVKodi(unittest.TestCase):
         progress = default.SearchProgress(bar, 10)
         progress.source("WebShare", 12)
         progress.audio(0, 5)
-        bar.update.assert_called_with(0, "WebShare: 12 · Ověřuji zvuk: 0/5")
+        bar.update.assert_called_with(0, "WebShare: 12 · Ověřuji metadata: 0/5")
         progress.audio(3, 5)
-        bar.update.assert_called_with(0, "WebShare: 12 · Ověřuji zvuk: 3/5")
+        bar.update.assert_called_with(0, "WebShare: 12 · Ověřuji metadata: 3/5")
 
         # bez source() (search_run, hledání podle názvu) audio() se nevolá vůbec —
         # ale kdyby, ukazatel si i tak nechá jen tuhle část, ne prázdný text z create()
         bar2 = mock.Mock()
         holy = default.SearchProgress(bar2, 10)
         holy.audio(1, 2)
-        bar2.update.assert_called_with(0, "Ověřuji zvuk: 1/2")
+        bar2.update.assert_called_with(0, "Ověřuji metadata: 1/2")
 
     def test_resolve_url_pres_jadro_a_token(self):
         engine = default.KodiEngine()
@@ -976,6 +976,58 @@ class TestOpravyZAuditu(unittest.TestCase):
         root = ET.parse(ROOT / "addon.xml").getroot()
         ver = root.find(".//import[@addon='xbmc.python']").get("version")
         self.assertGreaterEqual(tuple(int(x) for x in ver.split(".")), (3, 0, 1), "setMediaType a VideoStreamDetail jsou Kodi 20+")
+
+
+class TestHubenySnimek(unittest.TestCase):
+    """Titul přidaný do Mého seznamu/Pokračovat dřív, než pro něj doběhlo obohacení
+    (TMDB, přepočet na pozadí), dostal snímek bez popisu i fotky — a bez opravy tak
+    zůstal navždy, i po doplnění dat (2026-09-16, „Ztracená žena“ v Mém seznamu)."""
+
+    def setUp(self):
+        reset_kodi()
+
+    def test_thin_snapshot_pozna_prazdny_popis_i_fotku(self):
+        self.assertTrue(default.thin_snapshot({"title": "X", "plot": "", "art": {}}))
+        self.assertFalse(default.thin_snapshot({"title": "X", "plot": "Popis", "art": {}}))
+        self.assertFalse(default.thin_snapshot({"title": "X", "plot": "", "art": {"poster": "http://p"}}))
+        self.assertFalse(default.thin_snapshot(None))
+
+    def test_toggle_fav_hubeny_snimek_se_pri_pridani_obnovi(self):
+        default.STORE.remember_item("tt_thin_add", {"type": "movie", "id": "tt_thin_add", "title": "tt_thin_add",
+                                                     "plot": "", "art": {}})
+        engine = default.KodiEngine()
+        engine.meta = lambda ctype, item_id, series_id=None: (
+            {"id": item_id, "name": "Film", "year": 2026, "description": "Popis", "poster": "http://p"}, None)
+        default.toggle_fav({"engine": engine}, "tt_thin_add", "movie")
+        snap = default.STORE.item("tt_thin_add")
+        self.assertEqual(snap["plot"], "Popis")
+        self.assertEqual(snap["art"].get("poster"), "http://p")
+
+    def test_toggle_fav_selhani_meta_necha_puvodni_hubeny_snimek(self):
+        """Když se refresh nepovede, nesmí se hubený snímek nahradit ještě chudším
+        (holý klíč místo skutečného titulu)."""
+        default.STORE.remember_item("tt_thin_fail", {"type": "movie", "id": "tt_thin_fail", "title": "Skutečný název",
+                                                      "plot": "", "art": {}})
+        engine = default.KodiEngine()
+        engine.meta = mock.Mock(side_effect=default.LunaError("výpadek"))
+        default.toggle_fav({"engine": engine}, "tt_thin_fail", "movie")
+        snap = default.STORE.item("tt_thin_fail")
+        self.assertEqual(snap["title"], "Skutečný název")
+
+    def test_list_favourites_hubeny_snimek_se_dohleda_i_zpetne(self):
+        default.STORE.toggle_favourite("tt_thin_list", {"type": "movie", "id": "tt_thin_list", "title": "tt_thin_list",
+                                                         "plot": "", "art": {}})
+        engine = default.KodiEngine()
+        engine.meta = lambda ctype, item_id, series_id=None: (
+            {"id": item_id, "name": "Film", "year": 2026, "description": "Popis", "poster": "http://p"}, None)
+        with mock.patch.object(default, "get_apis", return_value={"engine": engine}):
+            xbmcplugin.reset()
+            default.list_favourites()
+        snap = default.STORE.item("tt_thin_list")
+        self.assertEqual(snap["plot"], "Popis", "hubený snímek se má opravit i zpětně, ne jen při dalším přidání")
+        li = xbmcplugin.items[0][2]
+        plots = [args[0] for name, args, _kw in li.getVideoInfoTag().calls if name == "setPlot"]
+        self.assertEqual(plots, ["Popis"], "výpis ukazuje už opravená data, ne stará hubená")
 
 
 class TestMenuAZahrivani(unittest.TestCase):

@@ -755,7 +755,7 @@ msgid "Loading streams…"
 msgstr ""
 
 msgctxt "#30239"
-msgid "Checking audio: {done}/{total}"
+msgid "Checking metadata: {done}/{total}"
 msgstr ""
 
 msgctxt "#30332"

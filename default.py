@@ -572,6 +572,14 @@ def snapshot(meta, ctype, video=None, series_id=None, alt=None):
     }
 
 
+def thin_snapshot(info):
+    """Snímek bez popisu i bez fotky — vznikl, když se titul přidal do Mého seznamu/
+    stahování dřív, než pro něj doběhlo obohacení (TMDB, přepočet dabingu na pozadí
+    u čerstvě přidaných titulů). Bez záchrany zůstane navždy prázdný, i když už
+    mezitím data dorazila — `snapshot()` se z API znovu nevolá samo od sebe."""
+    return info is not None and not info.get("plot") and not (info.get("art") or {})
+
+
 def apply_watched(li, key, context=None):
     """Zhlédnuto (fajfka) a bod pro pokračování z vlastní evidence.
 
@@ -2407,7 +2415,7 @@ class SearchProgress:
         percent = int(self.done / self.total * 100)
         parts = [f"{label}: {n}" for label, n in self.sources]
         if self.audio_total:
-            parts.append(L(30239, "Ověřuji zvuk: {done}/{total}").format(
+            parts.append(L(30239, "Ověřuji metadata: {done}/{total}").format(
                 done=self.audio_done, total=self.audio_total))
         if parts:
             # jen hledání streamů (collect_streams) hlásí source()/audio() — hledání titulu
@@ -2764,13 +2772,13 @@ def remove_progress(key, series=None):
 
 def toggle_fav(apis, key, ctype, series_id=None, alt=None):
     info = STORE.item(key)
-    if not info and not str(key).startswith("ws:"):
+    if (not info or thin_snapshot(info)) and not str(key).startswith("ws:"):
         try:
             meta, video = load_meta(apis, ctype, key, series_id)
             info = snapshot(meta, ctype, video, series_id, alt)
         except Errors as e:
             log_error(e)
-            info = {"type": ctype, "id": key, "title": key, "series": series_id, "alt": alt, "art": {}}
+            info = info or {"type": ctype, "id": key, "title": key, "series": series_id, "alt": alt, "art": {}}
     added = STORE.toggle_favourite(key, info)
     notify(L(30065) if added else L(30066))
     request_sync()
@@ -2782,8 +2790,12 @@ def list_favourites():
     # u konkrétního typu je na výběr celá sada zobrazení. Kodi si zobrazení
     # pamatuje podle typu obsahu, takže tyhle seznamy sdílejí nastavení s Filmy.
     set_content("movies")
+    apis = None
     for key in STORE.favourites():
         snap = STORE.item(key)
+        if snap and thin_snapshot(snap):
+            apis = apis or get_apis()
+            snap = recover_snapshot(apis, key) or snap
         if snap:
             add_snapshot_item(key, snap)
     # z hlavního menu sem — patří k „mým“ titulům a synchronizuje se s nimi
@@ -2798,8 +2810,12 @@ def list_recent():
     # u konkrétního typu je na výběr celá sada zobrazení. Kodi si zobrazení
     # pamatuje podle typu obsahu, takže tyhle seznamy sdílejí nastavení s Filmy.
     set_content("movies")
+    apis = None
     for key, _entry in STORE.recently_watched():
         snap = STORE.item(key)
+        if snap and thin_snapshot(snap):
+            apis = apis or get_apis()
+            snap = recover_snapshot(apis, key) or snap
         if snap:
             add_snapshot_item(key, snap)
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
@@ -2823,12 +2839,17 @@ def next_episode(apis, snap):
 
 
 def recover_snapshot(apis, key):
-    """Snímek pro titul, který má záznam o rozkoukání, ale v `items.json` chybí.
+    """Snímek pro titul, který má záznam o rozkoukání, ale v `items.json` chybí,
+    nebo je „hubený" (`thin_snapshot` — bez popisu i fotky, viz volající).
 
-    Stávalo se to, když zápis snímku z přehrání přepsal jiný proces (rejstřík
-    Sosáče, do 2.0.22) — a bez snímku výpis položku tiše vynechal, takže titul
-    v Pokračovat ve sledování „nebyl". Dohledá se z meta a uloží, ať to příště
-    nestojí dotaz na síť. Soubory WebShare/HellSpy meta nemají, u těch není z čeho.
+    Chybějící snímek: stávalo se, když zápis z přehrání přepsal jiný proces
+    (rejstřík Sosáče, do 2.0.22) — a bez snímku výpis položku tiše vynechal,
+    takže titul v Pokračovat ve sledování „nebyl". Hubený snímek: titul se
+    přidal do Mého seznamu/Pokračovat dřív, než pro něj doběhlo obohacení
+    (TMDB, přepočet na pozadí) — `snapshot()` pak nemá co dát do popisu ani
+    fotky, a bez týhle opravy zůstane prázdný navždy, i když data mezitím
+    dorazila. Dohledá se z meta a uloží, ať to příště nestojí dotaz na síť.
+    Soubory WebShare/HellSpy meta nemají, u těch není z čeho.
     """
     if key.startswith(("ws:", "hs:", "dav:", "dl:")):
         return None
@@ -2851,7 +2872,9 @@ def list_continue(apis):
     # pamatuje podle typu obsahu, takže tyhle seznamy sdílejí nastavení s Filmy.
     set_content("movies")
     for key, _entry in STORE.in_progress():
-        snap = STORE.item(key) or recover_snapshot(apis, key)
+        snap = STORE.item(key)
+        if not snap or thin_snapshot(snap):
+            snap = recover_snapshot(apis, key) or snap
         if snap:
             add_snapshot_item(key, snap, [(L(30365, "Odebrat z Pokračovat ve sledování"),
                                           runplugin(action="remove_progress", id=key))])
@@ -3308,7 +3331,7 @@ def enqueue_download(url, name, key, dest_name=None, link=None):
 
 
 def download_stream(apis, url, name, key, ctype, series_id=None, alt=None):
-    if not STORE.item(key):
+    if thin_snapshot(STORE.item(key)) or not STORE.item(key):
         try:
             meta, video = load_meta(apis, ctype, key, series_id)
             STORE.remember_item(key, snapshot(meta, ctype, video, series_id, alt))
