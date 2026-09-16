@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.7~beta4" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.7~beta5" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,7 +23,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>5.2.7~beta4 – Oprava: přehrání přímým odkazem (karta Home Assistant, widget, Up Next) pustilo rozkoukaný titul vždy od začátku místo od uloženého místa — resume point se nastavoval jen ve výpisech Kodi, ne při přímém přehrání
+    <news>5.2.7~beta5 – „Pokračovat ve sledování“ si teď pamatuje i konkrétní stream, na kterém titul skončil — přehrání pak jede rovnou na něj místo nového hledání napříč zdroji; přestane-li stream mezitím fungovat (smazaný soubor, vypršelý účet), tiše se prohledá znovu jako dřív
+5.2.7~beta4 – Oprava: přehrání přímým odkazem (karta Home Assistant, widget, Up Next) pustilo rozkoukaný titul vždy od začátku místo od uloženého místa — resume point se nastavoval jen ve výpisech Kodi, ne při přímém přehrání
 5.2.7~beta3 – Oprava: zpráva z dashboardu se po aktualizaci doplňku mohla zobrazit dřív, než doběhne start Kodi (skin ještě nenačtený) — modální dialog si tak nikdo nevšiml. Teď počká aspoň 30 s od startu služby
 5.2.7~beta2 – Zpráva napsaná v dashboardu (obrazovka Zprávy) teď dorazí hned po aktualizaci doplňku, ne až s dalším pravidelným hlášením statistik (až 6 hodin)
 5.2.7~beta1 – Oprava statistik u seriálů: do žebříčku „Nejsledovanější tento týden“ šel u epizod bez vlastního (nebo jen generického placeholder) názvu název epizody místo seriálu, takže se sledovanost jednoho seriálu roztříštila na desítky položek a většina jich pak v žebříčku vůbec nešla dohledat (viz dashboard) — statistiky teď u seriálů vždy posílají název seriálu, přehrávání/„Pokračovat ve sledování“ beze změny

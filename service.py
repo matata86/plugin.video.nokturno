@@ -225,7 +225,12 @@ class Player(xbmc.Player):
         if first and entry.get("playcount"):
             # znovu puštěný zhlédnutý titul — rozkoukané ho se značkou zhlédnuto nevypíšou
             self.store.set_watched(item_id, False)
-        self.store.set_resume(item_id, self.position, self.total)
+        # vnitřní reference streamu (viz mark_playing v default.py) — bere se jen při prvním
+        # zápisu rozkoukanosti, další zápisy (pauza a pokračování ve stejném přehrávání) by
+        # ji jen zbytečně přepisovaly stejnou hodnotou
+        stream_url = self.item.get("stream_url") if first else None
+        self.store.set_resume(item_id, self.position, self.total,
+                              stream_url=stream_url, stream_subs=self.item.get("stream_subs"))
         self.saved = time.time()
         self.saved_pos = self.position
         if first:
