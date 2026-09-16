@@ -44,6 +44,7 @@ from sledujteto_api import SledujtetoApi  # noqa: E402
 from fastshare_api import FastshareApi  # noqa: E402
 from sosac_direct import SosacDirect  # noqa: E402
 from stats import COLLECT_URL, Stats  # noqa: E402
+from crash import CRASH_URL, CrashReporter  # noqa: E402
 from storage_api import StorageApi, parse_ref  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
 from sync import sync_once  # noqa: E402
@@ -56,6 +57,8 @@ PROP = "nokturno.playing"
 VIEWED_PROP = "nokturno.viewed"
 USED_PROP = "nokturno.used"
 SYNC_PROP = "nokturno.sync"
+CRASH_PROP = "nokturno.crash"   # plugin → služba: nové hlášení o pádu ve frontě (default.report_crash)
+CRASH_EVERY = 30 * 60           # fronta hlášení bez nového pádu (neodeslané kvůli síti) — jednou za čas
 FORCE_STATS_PROP = "nokturno.force_stats"   # plugin → služba: aktualizace doplňku, nečekat na SEND_EVERY
 SYNC_EVERY = 5 * 60   # výměna s HA; změny (dokoukáno, Můj seznam) ji vyvolají hned
 SUB_CHECK_EVERY = 12 * 3600   # jak často se ptát WebShare na stav předplatného
@@ -845,6 +848,81 @@ def stats_tick(stats, force=False):
     _show_pending_message(stats)
 
 
+# --- hlášení o pádech -----------------------------------------------------------------
+
+def crash_reports_on(addon):
+    return addon.getSetting("stats_enabled") == "true" and addon.getSetting("crash_reports") != "false"
+
+
+class CrashSender:
+    """Odešle frontu hlášení o pádech (plugin i služba ji jen plní). Síť ve vlastním vlákně,
+    ať hlavní smyčka nečeká; při vypnutém přepínači se fronta smaže — souhlas platí i zpětně."""
+
+    def __init__(self, reporter):
+        self.reporter = reporter
+        self.next_try = time.time() + 60   # po startu Kodi nechat doběhnout síť
+        self._busy = threading.Lock()
+
+    def tick(self):
+        win = xbmcgui.Window(10000)
+        nudged = bool(win.getProperty(CRASH_PROP))
+        if not nudged and time.time() < self.next_try:
+            return
+        win.clearProperty(CRASH_PROP)
+        self.next_try = time.time() + CRASH_EVERY
+        addon = fresh_addon()
+        if addon is None:
+            return
+        if not crash_reports_on(addon):
+            for path in self.reporter.pending():
+                try:
+                    os.remove(path)
+                except OSError:
+                    pass
+            return
+        if not self.reporter.pending() or not self._busy.acquire(blocking=False):
+            return
+
+        def run():
+            try:
+                sent, left = self.reporter.flush(CRASH_URL, agent="Kodi plugin.video.nokturno/"
+                                                 + addon.getAddonInfo("version"),
+                                                 should_stop=QUITTING.is_set)
+                if sent or left:
+                    log(f"hlášení o pádech: odesláno {sent}, zbývá {left}")
+            finally:
+                self._busy.release()
+
+        threading.Thread(target=run, daemon=True, name="nokturno-crash").start()
+
+
+def capture_service_crash(where, exc):
+    """Neočekávaná výjimka ve službě (hlavní smyčka nebo vlákno) → fronta hlášení."""
+    try:
+        addon = fresh_addon()
+        if addon is None or not crash_reports_on(addon):
+            return
+        platform = stats_context(addon)["platform"]
+        CrashReporter(PROFILE).capture(exc, Stats(PROFILE).data["id"], "kodi", addon.getAddonInfo("version"),
+                                       platform=platform, kodi=xbmc.getInfoLabel("System.BuildVersionShort"),
+                                       action=where)
+        xbmcgui.Window(10000).setProperty(CRASH_PROP, "1")
+    except Exception as e:  # noqa: BLE001 – hlášení nesmí nic shodit
+        log(f"hlášení o pádu služby nezařazeno: {e}", xbmc.LOGWARNING)
+
+
+def install_thread_hook():
+    """Pád ve vlákně služby (stahování, zahřívání, sync) jinak skončí jen v logu."""
+    previous = threading.excepthook
+
+    def hook(args):
+        if args.exc_value is not None and not isinstance(args.exc_value, SystemExit):
+            capture_service_crash(f"service:{getattr(args.thread, 'name', '?')}", args.exc_value)
+        previous(args)
+
+    threading.excepthook = hook
+
+
 # --- hlavní smyčka ------------------------------------------------------------------
 
 def main():
@@ -857,6 +935,7 @@ def main():
     for d in store.downloads():
         if d.get("status") in ("running", "cancel"):
             store.update_download(d["id"], status="queued", done=0)
+    install_thread_hook()
     stats = Stats(PROFILE)
     player = Player(store, stats)
     Downloader(store, monitor).start()
@@ -865,15 +944,21 @@ def main():
     threading.Thread(target=lang_trigger_watcher, args=(monitor,), daemon=True).start()
     syncer = Syncer(store)
     sub_checker = SubscriptionChecker(store)
+    crash_sender = CrashSender(CrashReporter(PROFILE))
     log("start")
     refresh_tmdbhelper_player()
-    while not monitor.abortRequested():
-        player.tick()
-        stats_tick(stats)
-        syncer.tick()
-        sub_checker.tick()
-        if monitor.waitForAbort(POLL):
-            break
+    try:
+        while not monitor.abortRequested():
+            player.tick()
+            stats_tick(stats)
+            syncer.tick()
+            sub_checker.tick()
+            crash_sender.tick()
+            if monitor.waitForAbort(POLL):
+                break
+    except Exception as e:  # noqa: BLE001 – zaznamenat a nechat spadnout jako dřív
+        capture_service_crash("service", e)
+        raise
     player.finish()
     # Vypnutí Kodi, restart doplňku po změně nastavení nebo jeho zakázání v
     # nastavení Kodi — tohle spolehlivě proběhne, skutečná odinstalace (smazání

@@ -51,6 +51,7 @@ from trakt_api import TraktApi, TraktError  # noqa: E402
 from webshare_api import SORTS, WebshareApi, WebshareError, human_size  # noqa: E402
 from engine import AUDIO_PROBE_MAX, DEFAULT_RUNTIME_S, Engine, NokturnoError, runtime_minutes  # noqa: E402
 from abort import Aborted  # noqa: E402
+from crash import CrashReporter  # noqa: E402
 
 ADDON = xbmcaddon.Addon()
 ADDON_ID = ADDON.getAddonInfo("id")
@@ -2160,6 +2161,55 @@ def log_send():
         notify(f"{L(30430)}: {e}", xbmcgui.NOTIFICATION_ERROR, 5000)
 
 
+CRASH_PROP = "nokturno.crash"     # plugin → služba: ve frontě je nové hlášení o pádu, poslat hned
+CRASH_LOG_TAIL = 256 * 1024          # kolik z konce kodi.log projít kvůli řádkům Nokturna
+
+
+def crash_reports_on(addon=None):
+    """Hlášení o pádech jen se zapnutými statistikami a nevypnutým přepínačem (výchozí zapnuto)."""
+    addon = addon or ADDON
+    return addon.getSetting("stats_enabled") == "true" and addon.getSetting("crash_reports") != "false"
+
+
+def kodi_platform():
+    return next((name for name, cond in (
+        ("Android", "System.Platform.Android"), ("Linux", "System.Platform.Linux"),
+        ("Windows", "System.Platform.Windows"), ("macOS", "System.Platform.OSX"),
+        ("iOS", "System.Platform.IOS"), ("tvOS", "System.Platform.TVOS"),
+    ) if xbmc.getCondVisibility(cond)), "?")
+
+
+def addon_log_lines():
+    """Poslední řádky kodi.log od Nokturna — kontext k pádu. Cizí doplňky do hlášení nepatří."""
+    try:
+        path = xbmcvfs.translatePath("special://logpath/kodi.log")
+        size = os.path.getsize(path)
+        with open(path, "rb") as f:
+            if size > CRASH_LOG_TAIL:
+                f.seek(size - CRASH_LOG_TAIL)
+            raw = f.read().decode("utf-8", "replace")
+    except (OSError, ValueError):
+        return []
+    return [line for line in raw.splitlines() if ADDON_ID in line]
+
+
+def report_crash(action, exc):
+    """Neočekávaná výjimka z routeru → fronta hlášení (`crash.py`); odešle ji služba.
+    Nikdy nevyhodí výjimku a nečeká na síť — plugin už handle zavřel."""
+    try:
+        if not crash_reports_on():
+            return
+        from stats import Stats
+        queued = CrashReporter(PROFILE).capture(
+            exc, Stats(PROFILE).data["id"], "kodi", ADDON.getAddonInfo("version"),
+            platform=kodi_platform(), kodi=xbmc.getInfoLabel("System.BuildVersionShort"),
+            action=action or "", log_lines=addon_log_lines())
+        if queued:
+            xbmcgui.Window(10000).setProperty(CRASH_PROP, "1")
+    except Exception as e:  # noqa: BLE001 – hlášení o pádu nesmí shodit úklid po pádu
+        xbmc.log(f"[{ADDON_ID}] hlášení o pádu nezařazeno: {e}", xbmc.LOGWARNING)
+
+
 def website_info():
     """Zobrazí odkaz na web rodiny Nokturno (podpora, Stremio, Home Assistant)."""
     xbmcgui.Dialog().ok(L(30432, "Info"), f"https://nokturno.tailf0014.ts.net/\n\n{L(30434)}")
@@ -3991,6 +4041,7 @@ def router(query):
         # bez úklidu handle by Kodi u přehrání čekalo na timeout a hlásilo „Chyba skriptu"
         log_error(f"{action}: {traceback.format_exc()}")
         _fail(action, f"{type(e).__name__}: {e}")
+        report_crash(action, e)
 
 
 def _fail(action, message):

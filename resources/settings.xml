@@ -647,6 +647,14 @@
           <data>RunPlugin(plugin://plugin.video.nokturno/?action=stats_send)</data>
           <control format="action" type="button"/>
         </setting>
+        <setting id="crash_reports" type="boolean" label="30480" help="30481">
+          <level>0</level>
+          <default>true</default>
+          <dependencies>
+            <dependency type="enable" setting="stats_enabled">true</dependency>
+          </dependencies>
+          <control type="toggle"/>
+        </setting>
       </group>
     </category>
     <category id="advanced" label="30105" help="30329">
