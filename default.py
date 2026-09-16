@@ -787,7 +787,14 @@ def add_playable(li, ctype, item_id, series_id=None, alt=None):
     # „1“ = výběr dialogem; „2“ se ptá sám v play(), „0“ pustí nejlepší. Bez `ask` (Up Next, HA)
     # se v režimu 1 hraje zapamatovaný nebo nejlepší stream bez ptaní.
     ask = "1" if setting("stream_mode", "1") == "1" else None
-    url = build_url(action="play", type=ctype, id=item_id, series=series_id, alt=alt, ask=ask)
+    # rozkoukaný/dřív zhlédnutý titul má u sebe zapamatovanou vnitřní referenci streamu
+    # (viz mark_playing, Player.save_resume) — ta na rozdíl od podepsaného odkazu zdroje
+    # nevyprší, `play()` tak může přeskočit hledání napříč zdroji a rovnou pokračovat na
+    # stejném streamu (dozná se, jestli mezitím zmizel ze zdroje, a spadne na hledání samo)
+    resumed = STORE.resume_stream(item_id)
+    stream_url, stream_subs = resumed if resumed else (None, None)
+    url = build_url(action="play", type=ctype, id=item_id, series=series_id, alt=alt, ask=ask,
+                    url=stream_url, subs=stream_subs)
     xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=False)
 
 
@@ -1299,9 +1306,13 @@ def stream_label(s):
     return "  ".join(parts)
 
 
-def mark_playing(key, title="", year=None, kind="movie"):
+def mark_playing(key, title="", year=None, kind="movie", stream_url=None, stream_subs=None):
+    # stream_url/stream_subs: vnitřní reference zvoleného streamu (ne podepsaný odkaz zdroje,
+    # ten vyprší) — služba (Player.save_resume) si je uloží k pozici, ať se dá „Pokračovat ve
+    # sledování“ pustit rovnou bez nového hledání (viz add_playable/add_snapshot_item)
     xbmcgui.Window(10000).setProperty(PLAYING_PROP, json.dumps(
-        {"id": key, "title": title, "year": year, "kind": kind}))
+        {"id": key, "title": title, "year": year, "kind": kind,
+         "stream_url": stream_url, "stream_subs": stream_subs}))
 
 
 def mark_viewed(key, title="", year=None, kind="movie"):
@@ -3064,11 +3075,21 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
     # u seriálu si pamatujeme, jaký stream si uživatel vybral — další díl (Up Next,
     # Pokračovat, widget) pak jede stejně bez ptaní; klíč je seriál, ne díl
     pref_key = (series_id or split_episode_id(item_id)[0]) if video else None
+    resolved_path = None
     if url:
-        chosen = {"url": url, "subtitles": [s for s in subs.split("|") if s]}
-        if pref_key and pref_from_param(pref):
-            STORE.set_stream_pref(pref_key, pref_from_param(pref))
-    else:
+        try:
+            resolved_path = resolve_url(apis, url)
+        except Errors as e:
+            # uložená reference streamu (Pokračovat ve sledování, viz add_playable) nebo dřív
+            # vybraný stream ze seznamu mezitím zmizely ze zdroje — vzít to jako by url vůbec
+            # nepřišla a normálně prohledat všechny zdroje znovu, ne rovnou ukázat chybu
+            xbmc.log(f"[{ADDON_ID}] uložený stream nejde přehrát, hledám znovu: {e}", xbmc.LOGINFO)
+            url = None
+        else:
+            chosen = {"url": url, "subtitles": [s for s in subs.split("|") if s]}
+            if pref_key and pref_from_param(pref):
+                STORE.set_stream_pref(pref_key, pref_from_param(pref))
+    if not url:
         errors = []
         # z přehrání (widget, TMDb Helper) je jinak vidět jen točící se kolečko Kodi — streamy se
         # načítají i 15 s, tak aspoň stejný průběh jako nad seznamem streamů
@@ -3098,7 +3119,7 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
                 STORE.set_stream_pref(pref_key, stream_signature(chosen))
     title = (video or {}).get("title") or display_name(meta)
     # label i InfoTag: při přímém otevření (JSON-RPC, widgety) nemá Kodi původní položku seznamu
-    li = xbmcgui.ListItem(label=title, path=resolve_url(apis, chosen["url"]))
+    li = xbmcgui.ListItem(label=title, path=resolved_path if resolved_path else resolve_url(apis, chosen["url"]))
     li.setArt(art_for(meta, video))
     fill_info(li, meta, "series" if video else ctype, video=video)
     # bez tohohle Kodi u přímého přehrání (HA karta, widget, Up Next) nevědělo o rozkoukanosti
@@ -3120,7 +3141,8 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
     year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
     # bez roku – ten se posílá zvlášť polem `year`, display_name() by ho zdvojil
     stats_title = episode_stats_title(video, meta)
-    mark_playing(item_id, stats_title, year if year.isdigit() else None, "series" if video else ctype)
+    mark_playing(item_id, stats_title, year if year.isdigit() else None, "series" if video else ctype,
+                stream_url=chosen.get("url"), stream_subs="|".join(chosen.get("subtitles") or []))
     xbmcplugin.setResolvedUrl(HANDLE, True, li)
     if video:
         upnext_notify(meta, video, series_id or split_episode_id(item_id)[0], alt)

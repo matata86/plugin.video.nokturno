@@ -687,6 +687,21 @@ class TestVyberStreamu(unittest.TestCase):
         resume_calls = [c for c in li.tag.calls if c[0] == "setResumePoint"]
         self.assertEqual(resume_calls, [("setResumePoint", (543.2, 6000.0), {})])
 
+    def test_play_s_neplatnym_ulozenym_streamem_spadne_na_nove_hledani(self):
+        """2026-09-16: „Pokračovat ve sledování“ posílá uloženou referenci streamu
+        (viz `add_playable`) přímo do `play()`, aby se přeskočilo hledání. Zdroj
+        mezitím může přestat referenci znát (smazaný soubor, vypršelý účet) —
+        `resolve_url` pak hodí `Errors`, ne že by to spadlo, musí to prohledat znovu."""
+        streams = [{"url": "ws:2", "label": "Film.2020.1080p.mkv", "detail": "2 GB", "source": "ws"}]
+        with mock.patch.object(default, "load_meta", return_value=({"name": "Film", "year": 2020}, None)), \
+             mock.patch.object(default, "collect_streams", return_value=streams), \
+             mock.patch.object(default, "resolve_url", side_effect=[WebshareError("pryč"), "https://cdn/x.mkv"]):
+            default.play({}, "movie", "tt1", url="ws:1")
+        self.assertEqual(len(xbmcplugin.resolved), 1)
+        _handle, succeeded, li = xbmcplugin.resolved[0]
+        self.assertTrue(succeeded, "spadlo na plné hledání místo chyby")
+        self.assertEqual(li.path, "https://cdn/x.mkv")
+
     def test_dialog_nabidne_filtr_a_vrati_vybrany_stream(self):
         streams = [{"url": "ws:1", "label": "Film.2020.1080p.CZ.Dabing.mkv", "detail": "2 GB", "source": "ws"},
                    {"url": "ws:2", "label": "Film.2020.1080p.ENG.mkv", "detail": "2 GB", "source": "ws"}]
