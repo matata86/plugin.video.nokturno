@@ -779,20 +779,24 @@ def add_playable(li, ctype, item_id, series_id=None, alt=None):
     U epizod se předává i id seriálu — Sosáč dává epizodám vlastní id
     (`sosac2_1877:1:1`), ze kterého se meta seriálu nedá odvodit.
     """
-    if folder_mode():
+    # rozkoukaný/dřív zhlédnutý titul má u sebe zapamatovanou vnitřní referenci streamu
+    # (viz mark_playing, Player.save_resume) — ta na rozdíl od podepsaného odkazu zdroje
+    # nevyprší, `play()` tak může přeskočit hledání napříč zdroji a rovnou pokračovat na
+    # stejném streamu (dozná se, jestli mezitím zmizel ze zdroje, a spadne na hledání samo).
+    # Platí i v režimu „Vybrat ze seznamu streamů“ — ptát se znovu na zdroj u titulu, který
+    # už jednou vybraný byl, by celou zkratku popřelo (Office 2026-09-16: bez týhle výjimky
+    # šlo Pokračovat vždycky přes plné hledání, protože folder_mode() se vyhodnotil dřív).
+    resumed = STORE.resume_stream(item_id)
+    stream_url, stream_subs = resumed if resumed else (None, None)
+    if folder_mode() and not stream_url:
         url = build_url(action="streams", type=ctype, id=item_id, series=series_id, alt=alt)
         xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
         return
     li.setProperty("IsPlayable", "true")
     # „1“ = výběr dialogem; „2“ se ptá sám v play(), „0“ pustí nejlepší. Bez `ask` (Up Next, HA)
-    # se v režimu 1 hraje zapamatovaný nebo nejlepší stream bez ptaní.
+    # se v režimu 1 hraje zapamatovaný nebo nejlepší stream bez ptaní. Uplatní se jen v
+    # záložním plném hledání (`stream_url` prázdný, nebo se uložená reference nedala přehrát).
     ask = "1" if setting("stream_mode", "1") == "1" else None
-    # rozkoukaný/dřív zhlédnutý titul má u sebe zapamatovanou vnitřní referenci streamu
-    # (viz mark_playing, Player.save_resume) — ta na rozdíl od podepsaného odkazu zdroje
-    # nevyprší, `play()` tak může přeskočit hledání napříč zdroji a rovnou pokračovat na
-    # stejném streamu (dozná se, jestli mezitím zmizel ze zdroje, a spadne na hledání samo)
-    resumed = STORE.resume_stream(item_id)
-    stream_url, stream_subs = resumed if resumed else (None, None)
     url = build_url(action="play", type=ctype, id=item_id, series=series_id, alt=alt, ask=ask,
                     url=stream_url, subs=stream_subs)
     xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=False)

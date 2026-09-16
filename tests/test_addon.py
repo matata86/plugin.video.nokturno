@@ -632,6 +632,27 @@ class TestPrehratelnePolozky(unittest.TestCase):
         p = params_of(akce[len("PlayMedia("):-1])
         self.assertEqual((p["action"], p["id"], p["alt"], p["ask"]), ("play", "tt1", "sosacd_1", "1"))
 
+    def test_rozkoukany_film_ve_vypisu_nokturna_je_prehratelny_ne_slozka(self):
+        """2026-09-16: i v režimu „Vybrat ze seznamu streamů“ (folder_mode) musí titul
+        s uloženou referencí streamu (Pokračovat ve sledování) přehrát rovnou tu, ne
+        zase nabídnout celé hledání — jinak je celá zkratka k ničemu (Office, nahlášeno
+        uživatelem: Pokračovat vždycky ukázalo „Načítám streamy“ a trvalo to dlouho)."""
+        xbmcaddon.settings["stream_mode"] = "1"
+        xbmc.cond_visible.add("Window.IsMedia")
+        xbmc.info_labels["Container.PluginName"] = "plugin.video.nokturno"
+        default.STORE.set_resume("tt_resume_test", 452.8, 6106.8, stream_url="ws:abc", stream_subs="cz.srt")
+        try:
+            default.add_meta_item({"id": "tt_resume_test", "name": "Film", "year": 2020}, "movie", alt="sosacd_1")
+        finally:
+            xbmc.cond_visible.clear()
+            xbmc.info_labels.clear()
+        _h, url, li, is_folder = xbmcplugin.items[-1]
+        self.assertFalse(is_folder, "rozkoukaný titul se má rovnou přehrát, ne otevřít složku")
+        self.assertEqual(li.properties.get("IsPlayable"), "true")
+        p = params_of(url)
+        self.assertEqual((p["action"], p["id"], p.get("url"), p.get("subs")),
+                         ("play", "tt_resume_test", "ws:abc", "cz.srt"))
+
     def test_dil_serie_prehratelny_s_id_serialu(self):
         xbmcaddon.settings["stream_mode"] = "1"
         meta = {"id": "tt9", "name": "Seriál", "videos": [{"season": 1, "episode": 1, "title": "Pilot"}]}
