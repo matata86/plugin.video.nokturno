@@ -62,6 +62,7 @@ WATCHED_PCT = 0.90
 MIN_RESUME = 90  # s – po takové době přehrávání patří titul do rozkoukaných
 SAVE_EVERY = 30  # s – jak často se za běhu přepisuje pozice rozkoukaného
 POLL = 5
+MESSAGE_DELAY = 30       # po startu Kodi nechat doběhnout skin, než může přijít modální Dialog().ok()
 WARM_DELAY = 180          # po startu Kodi nechat nejdřív doběhnout skin a widgety
 WARM_EVERY = int(2.5 * 3600)   # pod TTL žebříčků Sosáče (3 h); s WARM_PROP se cache obnoví i před vypršením
 WARM_PROP = "nokturno.warm"    # plugin při zahřívání cache API jen zapisuje, nečte (viz default.warming)
@@ -74,6 +75,7 @@ LANG_TRIGGER_POLL = 2     # s – jak často se čeká na žádost z lang_catalo
 CHUNK = 1024 * 1024
 PROFILE = xbmcvfs.translatePath(ADDON.getAddonInfo("profile"))
 TMDBH_PLAYER = "special://profile/addon_data/plugin.video.themoviedb.helper/players/nokturno.json"
+_STARTED_AT = time.time()   # MESSAGE_DELAY se počítá odsud, ne od okamžiku, kdy dorazí FORCE_STATS_PROP
 
 
 def log(msg, level=xbmc.LOGINFO):
@@ -697,10 +699,14 @@ def stats_tick(stats, force=False):
         if viewed and viewed.get("id"):
             stats.note_play(viewed["id"], viewed.get("title") or "",
                             viewed.get("year"), viewed.get("kind") or "movie")
-    if xbmcgui.Window(10000).getProperty(FORCE_STATS_PROP):
+    if xbmcgui.Window(10000).getProperty(FORCE_STATS_PROP) and time.time() - _STARTED_AT >= MESSAGE_DELAY:
         # doplněk se právě aktualizoval (viz default.py) — nečekat až SEND_EVERY (6 h),
         # ať případná zpráva z dashboardu (odpověď na nahlášený log, oznámení chyby)
-        # dorazí co nejdřív po instalaci nové verze, ne až s dalším pravidelným hlášením
+        # dorazí co nejdřív po instalaci nové verze, ne až s dalším pravidelným hlášením.
+        # MESSAGE_DELAY: aktualizace typicky přijde hned po restartu Kodi/služby (nová
+        # verze se stáhne a nastartuje) — modální Dialog().ok() volaný dřív, než doběhne
+        # start skinu, by nikdo nezaznamenal (viz vlastnost do `getProperty` necháváme
+        # nastavenou, dokud grace neuplyne, aby se to nezahodilo)
         xbmcgui.Window(10000).clearProperty(FORCE_STATS_PROP)
         force = True
     addon = fresh_addon()
