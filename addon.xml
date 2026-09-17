@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.14~beta5" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.14~beta6" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,7 +23,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>5.2.14~beta5 – Tlačítko „Nastavit z mobilu“ přímo v Nastavení → Výběr streamu (stránka jen s pořadím údajů)
+    <news>5.2.14~beta6 – „Stáhnout“ v kontextovém menu filmu a dílu: vybereš stream v dialogu a stáhne se místo přehrání
+5.2.14~beta5 – Tlačítko „Nastavit z mobilu“ přímo v Nastavení → Výběr streamu (stránka jen s pořadím údajů)
 5.2.14~beta4 – Co a v jakém pořadí se u streamu ukazuje, si nastavíš (Nastavení → Výběr streamu, z mobilu šipkami); nahradilo šest přepínačů
 5.2.14~beta4 – Výpis streamů jako složka zrušen, vše v dialogu: v kontextovém menu „Vybrat stream“, uvolněný fulltext jako řádek dialogu
 5.2.14~beta3 – Dialog výběru streamu s obrázky kvality (UHD 4K, FHD 1080, HD 720, SD 480, s HDR)

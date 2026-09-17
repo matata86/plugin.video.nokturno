@@ -907,7 +907,7 @@ def add_meta_item(meta, ctype, alt=None, tag_source=False, label=None):
         li.addContextMenuItems([fav] + similar)
         xbmcplugin.addDirectoryItem(HANDLE, build_url(action="seasons", id=meta["id"], alt=alt), li, isFolder=True)
     else:
-        apply_watched(li, meta["id"], [fav, streams_context("movie", meta["id"], alt=alt)] + similar)
+        apply_watched(li, meta["id"], [fav] + streams_context("movie", meta["id"], alt=alt) + similar)
         add_playable(li, "movie", meta["id"], alt=alt)
 
 
@@ -945,10 +945,13 @@ def add_playable(li, ctype, item_id, series_id=None, alt=None):
 
 
 def streams_context(ctype, item_id, series_id=None, alt=None):
-    """„Vybrat stream“ v kontextovém menu — dialog výběru (`pick_title`) i u položky, která by jinak
-    hrála rovnou (Pokračovat ve sledování s uloženým streamem). Výpis streamů jako složka od
+    """„Vybrat stream“ a „Stáhnout“ v kontextovém menu — oba otevřou dialog výběru (`pick_title`).
+    Vybrat stream i u položky, která by jinak hrála rovnou (Pokračovat ve sledování s uloženým streamem),
+    Stáhnout vybraný stream zařadí do fronty stahování místo přehrání. Výpis streamů jako složka od
     `5.2.14~beta4` není (na přání uživatele vše v modálním okně)."""
-    return (L(30513, "Vybrat stream"), runplugin(action="title", type=ctype, id=item_id, series=series_id, alt=alt))
+    params = dict(type=ctype, id=item_id, series=series_id, alt=alt)
+    return [(L(30513, "Vybrat stream"), runplugin(action="title", **params)),
+            (L(30070, "Stáhnout"), runplugin(action="title_download", **params))]
 
 
 def add_snapshot_item(key, snap, extra_context=None):
@@ -988,7 +991,7 @@ def add_snapshot_item(key, snap, extra_context=None):
         return
     kind = "series" if snap.get("season") is not None else "movie"
     similar = similar_context("movie", key) if kind == "movie" else []
-    apply_watched(li, key, ctx + [streams_context(kind, key, snap.get("series"), snap.get("alt"))] + similar)
+    apply_watched(li, key, ctx + streams_context(kind, key, snap.get("series"), snap.get("alt")) + similar)
     add_playable(li, kind, key, series_id=snap.get("series"), alt=snap.get("alt"))
 
 
@@ -3458,8 +3461,8 @@ def list_continue(apis):
         fill_info(li, meta, "series", video=video)
         apply_watched(li, ep_id, [fav_context(ep_id, "series", snap["series"], snap.get("alt")),
                                   (L(30365, "Odebrat z Pokračovat ve sledování"),
-                                   runplugin(action="remove_progress", id=ep_id, series=snap["series"])),
-                                  streams_context("series", ep_id, snap["series"], snap.get("alt"))])
+                                   runplugin(action="remove_progress", id=ep_id, series=snap["series"]))]
+                      + streams_context("series", ep_id, snap["series"], snap.get("alt")))
         add_playable(li, "series", ep_id, series_id=snap["series"], alt=snap.get("alt"))
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
@@ -3519,8 +3522,8 @@ def list_episodes(apis, series_id, season, alt=None):
         li.setArt(art_for(meta, v))
         fill_info(li, meta, "series", video=v)
         ep_id = ep_ids[i]
-        apply_watched(li, ep_id, [fav_context(ep_id, "series", series_id, alt),
-                                  streams_context("series", ep_id, series_id, alt)])
+        apply_watched(li, ep_id, [fav_context(ep_id, "series", series_id, alt)]
+                      + streams_context("series", ep_id, series_id, alt))
         add_playable(li, "series", ep_id, series_id=series_id, alt=alt)
     # widget a výpis v Nokturnu mívají stejnou adresu, položky se ale liší podle okna (add_playable)
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
@@ -3713,7 +3716,7 @@ def upnext_notify(meta, video, series_id, alt=None):
         "sender": f"{ADDON_ID}.SIGNAL", "message": "upnext_data", "data": [encoded]}}))
 
 
-def pick_title(apis, ctype, item_id, series_id=None, alt=None, fulltext=False):
+def pick_title(apis, ctype, item_id, series_id=None, alt=None, fulltext=False, download=False):
     """Klik na titul ve výpisu Nokturna (handle −1, viz `add_playable`) i „Vybrat stream“ v kontextovém
     menu: najít streamy s ukazatelem průběhu v rohu (`DialogProgressBG`), ukázat dialog a vybraný stream
     pustit přes `PlayMedia` s jeho referencí — `play()` ji jen rozklíčuje a zapamatuje volbu u seriálu.
@@ -3721,7 +3724,12 @@ def pick_title(apis, ctype, item_id, series_id=None, alt=None, fulltext=False):
     `action=title` nerozklíčují jako skript.
 
     Přísný filtr fulltextových zdrojů (`Engine._title_queries`) může skutečnou shodu zahodit kvůli
-    neobvyklému názvu souboru: bez výsledku se rovnou zkusí uvolněný, s výsledky ho nabídne dialog."""
+    neobvyklému názvu souboru: bez výsledku se rovnou zkusí uvolněný, s výsledky ho nabídne dialog.
+
+    `download=True` („Stáhnout“ v kontextovém menu): stejný dialog, vybraný stream jde do fronty
+    stahování (`download_stream`) místo přehrání. Bez složky pro stahování se nic nehledá."""
+    if download and not download_dir():
+        return
     meta, video = load_meta(apis, ctype, item_id, series_id)
     has_fulltext_source = bool(apis.get("ws") or apis.get("hs") or apis.get("st") or apis.get("fs"))
 
@@ -3754,9 +3762,13 @@ def pick_title(apis, ctype, item_id, series_id=None, alt=None, fulltext=False):
     remembered = preferred_stream(streams, STORE.stream_pref(pref_key)) if pref_key else None
     picked = choose_stream(streams, remembered, relax=strict and has_fulltext_source)
     if picked == FULLTEXT:
-        pick_title(apis, ctype, item_id, series_id, alt, fulltext=True)
+        pick_title(apis, ctype, item_id, series_id, alt, fulltext=True, download=download)
         return
     if picked is None:
+        return
+    if download:
+        title = (video or {}).get("title") or display_name(meta)
+        download_stream(apis, picked["url"], f"{title} [{picked['label']}]", item_id, ctype, series_id, alt)
         return
     xbmc.executebuiltin("PlayMedia(%s)" % build_url(
         action="play", type=ctype, id=item_id, series=series_id, alt=alt, url=picked["url"],
@@ -4106,6 +4118,14 @@ def router(query):
         "settings": lambda: (xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False), ADDON.openSettings()),
     }
     try:
+        if action == "title_download":
+            # „Stáhnout“ v kontextovém menu (RunPlugin, handle −1) — z widgetu/JSON-RPC s handle nic
+            if HANDLE < 0:
+                pick_title(get_apis(), p.get("type", "movie"), p["id"], p.get("series"), alt=p.get("alt"),
+                           download=True)
+            else:
+                xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
+            return
         if action in ("title", "streams") and HANDLE < 0:
             # klik na titul ve výpisu Nokturna: Kodi ne-přehratelnou položku spustí jako skript
             # bez handle → streamy v dialogu na dva řádky (viz add_playable, pick_title)

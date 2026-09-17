@@ -718,6 +718,13 @@ class TestPrehratelnePolozky(unittest.TestCase):
         self.assertTrue(any("toggle_watched" in a for _l, a in li.context), "menu se skládá jedním voláním")
         return params_of(akce[len("RunPlugin("):-1])
 
+    def test_stahnout_v_menu_otevre_dialog_ke_stazeni(self):
+        default.add_meta_item({"id": "tt1", "name": "Film", "year": 2020}, "movie", alt="sosacd_1")
+        _h, _url, li, _f = xbmcplugin.items[-1]
+        akce = dict(li.context).get("Stáhnout", "")
+        p = params_of(akce[len("RunPlugin("):-1])
+        self.assertEqual((p["action"], p["id"], p["alt"]), ("title_download", "tt1", "sosacd_1"))
+
     def test_film_mimo_vypis_prehratelny_s_dialogem_a_seznamem_v_menu(self):
         default.add_meta_item({"id": "tt1", "name": "Film", "year": 2020}, "movie", alt="sosacd_1")
         _h, url, li, is_folder = xbmcplugin.items[-1]
@@ -964,6 +971,26 @@ class TestSeznamStreamu(unittest.TestCase):
         self.assertTrue(labels[0][-1].startswith("Zkusit uvolněný fulltext"))
         self.assertFalse(any(l.startswith("Zkusit") for l in labels[1]), "uvolněný už fulltext nenabízí")
         self.assertEqual([c[0][6] for c in collect.call_args_list], [True, False])
+
+    def test_stahnout_vybrany_stream_misto_prehrani(self):
+        s = {"url": "ws:1", "label": "Film.2020.1080p.CZ.mkv", "source": "ws"}
+        xbmcaddon.settings["download_dir"] = "/tmp/stahovani"
+        with mock.patch.object(default, "download_stream") as dl, \
+             mock.patch.object(default, "HANDLE", -1), mock.patch.object(default, "get_apis", return_value={}), \
+             mock.patch.object(default, "load_meta", return_value=({"id": "tt1", "name": "Film", "year": 2020}, None)), \
+             mock.patch.object(default, "collect_streams", return_value=[s]), \
+             mock.patch.object(default, "mark_viewed"), \
+             mock.patch.object(xbmcgui.Dialog, "select", side_effect=lambda h, rows, **k: len(rows) - 1):
+            default.router("action=title_download&type=movie&id=tt1&alt=sosacd_1")
+        dl.assert_called_once()
+        self.assertEqual(dl.call_args[0][1:5], ("ws:1", "Film [Film.2020.1080p.CZ.mkv]", "tt1", "movie"))
+        self.assertFalse([b for b in xbmc.builtins if b.startswith("PlayMedia(")], "nic se nepřehrává")
+
+    def test_stahnout_bez_slozky_nic_nehleda(self):
+        with mock.patch.object(default, "collect_streams") as collect, \
+             mock.patch.object(default, "HANDLE", -1), mock.patch.object(default, "get_apis", return_value={}):
+            default.router("action=title_download&type=movie&id=tt1")
+        collect.assert_not_called()
 
     def test_mark_viewed_u_serialu_posila_nazev_serialu_ne_epizody(self):
         """2026-09-16: statistiky se serverem slučují podle normalizovaného názvu
