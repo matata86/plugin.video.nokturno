@@ -471,6 +471,14 @@
     </category>
     <category id="streamlist" label="30201" help="30207">
       <group id="1">
+        <setting id="stream_layout_remote" type="action" label="30447" help="30515">
+          <level>0</level>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=remote_setup&amp;section=streamlist)</data>
+          <control type="button" format="action"/>
+        </setting>
         <setting id="stream_layout" type="string" label="30495" help="30496">
           <level>0</level>
           <default>langs,size|video,audio,bitrate,length,subs,source,file</default>

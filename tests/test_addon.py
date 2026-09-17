@@ -2095,11 +2095,23 @@ class TestNastavitZMobilu(unittest.TestCase):
         self.assertTrue(schema[0]["open"])
         self.assertEqual(fields["stream_layout"]["type"], "order")
         self.assertEqual([k for k, _ in fields["stream_layout"]["items"]], list(default.STREAM_PARTS))
-        for stary in ("show_size", "show_file", "stream_layout_reset"):
+        for stary in ("show_size", "show_file", "stream_layout_reset", "stream_layout_remote"):
             self.assertNotIn(stary, fields)
+        # tlačítko Nastavit z mobilu v kategorii Výběr streamu = stránka jen s ní
+        jen = default.remote_setup_schema("streamlist")
+        self.assertEqual([s["id"] for s in jen], ["streamlist"])
+        self.assertTrue(jen[0]["open"])
+        self.assertEqual([f["id"] for f in jen[0]["fields"]], ["stream_layout"])
         storage = next(s for s in schema if s["id"] == "storage")
         headings = [f["label"] for f in storage["fields"] if f.get("type") == "heading"]
         self.assertEqual(headings, ["Úložiště 1", "Úložiště 2", "Úložiště 3"])
+
+    def test_tlacitko_v_kategorii_otevre_jen_ji(self):
+        with mock.patch.object(default, "remote_setup", return_value=None) as rs:
+            default.router("action=remote_setup&section=streamlist")
+            default.router("action=remote_setup&section=nesmysl")
+            default.router("action=remote_setup")
+        self.assertEqual([c[0] for c in rs.call_args_list], [("streamlist",), (None,), (None,)])
 
     def run_setup(self, submit):
         """Spustí remote_setup, `submit(url)` hraje roli mobilu."""

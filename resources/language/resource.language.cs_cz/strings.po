@@ -1339,3 +1339,7 @@ msgstr "Vybrat stream"
 msgctxt "#30514"
 msgid "Use the arrows to move details between the top and bottom line of the stream dialog, put what you do not want to see into Do not show. Quality is always the picture on the left."
 msgstr "Šipkami přesuň údaje mezi horním a dolním řádkem dialogu výběru streamu, do Nezobrazovat dej, co nechceš vidět. Kvalita je vždy obrázek vlevo."
+
+msgctxt "#30515"
+msgid "On your phone, move the details with arrows between the top and bottom line — easier than typing the order here."
+msgstr "V mobilu šipkami přesuneš údaje mezi horním a dolním řádkem — pohodlnější než psát pořadí tady."
