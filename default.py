@@ -73,8 +73,8 @@ logging.getLogger().setLevel(logging.WARNING)
 # až skript doběhne — a dlouhé smyčky jádra dřív běžely dál, dokud neskončily samy
 # (Office 2026-09-16: vypnutí přes 2 minuty, zahřívání cache ze služby prohledávalo
 # zdroje po titulech). Monitor vzniká hned při importu, ne až při prvním dotazu, ať
-# nepropásne požadavek, který přišel dřív. `CANCEL` je vlastní příznak zrušení
-# dialogem (`cancelable_search`): dřív hledání po Zpět tiše doběhlo na pozadí.
+# nepropásne požadavek, který přišel dřív. `CANCEL` drží, že se už jednou zjistilo, že Kodi
+# končí (modální zrušení hledání `cancelable_search` odstraněno v `5.2.14~beta2`).
 MONITOR = xbmc.Monitor()
 CANCEL = threading.Event()
 QUIT_PROP = "nokturno.quitting"   # stejný literál jako v service.py — služba zachytila System.OnQuit
@@ -911,20 +911,17 @@ def add_meta_item(meta, ctype, alt=None, tag_source=False, label=None):
         add_playable(li, "movie", meta["id"], alt=alt)
 
 
-def folder_mode():
-    """Režim „Vybrat ze seznamu streamů“ ve výpisu Nokturna → film a díl jako složka."""
-    return setting("stream_mode", "1") == "1" and browsing_nokturno()
-
-
 def add_playable(li, ctype, item_id, series_id=None, alt=None):
-    """Film nebo díl — ve výpisu Nokturna podle nastavení, jinde přehratelný.
+    """Film nebo díl — stream se vždy vybírá v dialogu na dva řádky (`choose_stream`).
 
-    V režimu „Vybrat ze seznamu streamů“ je ve výpisu Nokturna položka `action=title` — ne-složka
-    bez IsPlayable (viz níže): klik = seznam streamů, Přehrát = dialog výběru. Ve widgetu, na
-    domovské obrazovce a v detailu otevřeném odtamtud je přehratelná s `ask=1`: skiny berou film
-    podle DBType jako soubor a Přehrát volá `PlayMedia` na cestu položky → dialog s filtrem
-    (`choose_stream`). Přesměrovat z přehratelné položky na složku přes zrušené přehrání nešlo:
-    Kodi hlásilo „položku se nepodařilo přehrát“ (Office 2026-09-14).
+    Ve výpisu Nokturna je položka `action=title` — ne-složka bez IsPlayable: klik ji Kodi spustí
+    jako skript s handle −1 (`CGUIMediaWindow::OnClick` → `RunScriptWithParams`) → `pick_title()`
+    najde streamy s ukazatelem, který jde zrušit, ukáže dialog a vybraný stream pustí přes
+    `PlayMedia`. Zrušený dialog tak nic nehlásí. Přehrát v detailu (Estuary, Arctic Fuse přes
+    TMDb Helper, tlačítko Play) tutéž položku rozklíčovává s normálním handle → `play(ask=1)`.
+    Ve widgetu a na domovské obrazovce je položka přehratelná s `ask=1`. Nastavení „Výběr streamu“
+    (automaticky / seznam / dialog) zrušeno v `5.2.14~beta2`, seznam streamů jako složka zůstal
+    jen v kontextovém menu (stažení streamu, uvolněný fulltext).
 
     U epizod se předává i id seriálu — Sosáč dává epizodám vlastní id
     (`sosac2_1877:1:1`), ze kterého se meta seriálu nedá odvodit.
@@ -933,41 +930,27 @@ def add_playable(li, ctype, item_id, series_id=None, alt=None):
     # (viz mark_playing, Player.save_resume) — ta na rozdíl od podepsaného odkazu zdroje
     # nevyprší, `play()` tak může přeskočit hledání napříč zdroji a rovnou pokračovat na
     # stejném streamu (dozná se, jestli mezitím zmizel ze zdroje, a spadne na hledání samo).
-    # Platí i v režimu „Vybrat ze seznamu streamů“ — ptát se znovu na zdroj u titulu, který
-    # už jednou vybraný byl, by celou zkratku popřelo (Office 2026-09-16: bez týhle výjimky
-    # šlo Pokračovat vždycky přes plné hledání, protože folder_mode() se vyhodnotil dřív).
     resumed = STORE.resume_stream(item_id)
     stream_url, stream_subs = resumed if resumed else (None, None)
-    if folder_mode() and not stream_url:
-        # Ne-složka BEZ IsPlayable: klik ve výpisu ji Kodi spustí jako skript (handle −1,
-        # `CGUIMediaWindow::OnClick` → `RunScriptWithParams`) → router otevře seznam streamů
-        # přes Container.Update; Přehrát v detailu (Estuary přes playlist, Arctic Fuse přes TMDb
-        # Helper `PlayMedia`, tlačítko Play na ovladači) ji rozklíčuje s normálním handle →
-        # dialog výběru streamu. Složka `action=streams` tohle rozlišit neuměla — Kodi ji při
-        # Přehrát spouštělo se stejnými argumenty jako při výpisu (Office 2026-09-16, bety 13–18).
+    if browsing_nokturno() and not stream_url:
         url = build_url(action="title", type=ctype, id=item_id, series=series_id, alt=alt)
         xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=False)
         return
     li.setProperty("IsPlayable", "true")
-    # „1“ = výběr dialogem; „2“ se ptá sám v play(), „0“ pustí nejlepší. Bez `ask` (Up Next, HA)
-    # se v režimu 1 hraje zapamatovaný nebo nejlepší stream bez ptaní. Uplatní se jen v
-    # záložním plném hledání (`stream_url` prázdný, nebo se uložená reference nedala přehrát).
-    ask = "1" if setting("stream_mode", "1") == "1" else None
-    url = build_url(action="play", type=ctype, id=item_id, series=series_id, alt=alt, ask=ask,
+    # `ask=1` = dialog; bez `ask` (Up Next, HA) hraje zapamatovaný nebo nejlepší stream bez ptaní.
+    # Uplatní se jen v plném hledání (`stream_url` prázdný, nebo se uložená reference nedala přehrát).
+    url = build_url(action="play", type=ctype, id=item_id, series=series_id, alt=alt, ask="1",
                     url=stream_url, subs=stream_subs)
     xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=False)
 
 
 def streams_context(ctype, item_id, series_id=None, alt=None):
-    """Druhá cesta ke streamům v kontextovém menu — ta, kterou nenabízí klik na položku.
-
-    Složka (výpis Nokturna) → „Vybrat stream a přehrát“: dialog s filtrem, hodí se i v detailu,
-    kde Přehrát na složce nefunguje. Přehratelná položka (widget) → „Seznam streamů“ jako složka;
-    `ActivateWindow` jde i z domovské obrazovky (`Container.Update` jen ve Videích)."""
-    if folder_mode():
-        url = build_url(action="play", type=ctype, id=item_id, series=series_id, alt=alt, ask="1")
-        return (L(30414, "Vybrat stream a přehrát"), f"PlayMedia({url})")
+    """„Seznam streamů“ jako složka v kontextovém menu — s filtrem, stažením streamu a uvolněným
+    fulltextem. Ve výpisu Nokturna `Container.Update`, jinde `ActivateWindow` (jde i z domovské
+    obrazovky)."""
     url = build_url(action="streams", type=ctype, id=item_id, series=series_id, alt=alt)
+    if browsing_nokturno():
+        return (L(30201, "Seznam streamů"), f"Container.Update({url})")
     return (L(30201, "Seznam streamů"), f"ActivateWindow(Videos,{url},return)")
 
 
@@ -1338,10 +1321,10 @@ def streams_filter(apis, ctype, item_id, series_id, alt, fq, flang, fch, fcodec,
     list_streams(apis, ctype, item_id, series_id, alt, **filter_params(new))
 
 
-def choose_stream(streams):
-    """Výběr streamu v dialogu — z detailu filmu, widgetu nebo TMDb Helperu, odkud se do složky
-    se seznamem přejít nedá (přehrání musí skončit `setResolvedUrl`). Nahoře stejné volby jako
-    ve složce: Filtr streamů, Zrušit filtr, Použít poslední filtr. Vrací stream, nebo None."""
+def choose_stream(streams, preferred=None):
+    """Výběr streamu v dialogu na dva řádky — jediný způsob výběru od `5.2.14~beta2` (klik ve výpisu,
+    Přehrát v detailu, widget, TMDb Helper). Nahoře Filtr streamů, Zrušit filtr, Použít poslední
+    filtr. `preferred` (zapamatovaná volba u seriálu) je předvybraný. Vrací stream, nebo None."""
     active = {}
     while True:
         shown = apply_stream_filter(streams, **filter_params(active))
@@ -1367,7 +1350,9 @@ def choose_stream(streams):
         for st in shown:
             top, bottom = stream_lines(st)
             rows.append(xbmcgui.ListItem(label=top, label2=bottom))
-        idx = xbmcgui.Dialog().select(L(30024), rows, useDetails=True)
+        focus = next((i for i, st in enumerate(shown) if st is preferred), None)
+        idx = xbmcgui.Dialog().select(L(30024), rows, useDetails=True,
+                                      preselect=len(entries) + focus if focus is not None else -1)
         if idx < 0:
             return None
         if idx >= len(entries):
@@ -3017,40 +3002,6 @@ class SearchProgress:
             self._show()
 
 
-def cancelable_search(bar, fn):
-    """Spustí `fn` (bez parametrů, typicky `collect_streams()`) na pozadí a čeká na
-    dokončení nebo na zrušení dialogem — `bar` musí být `xbmcgui.DialogProgress`
-    (na rozdíl od `DialogProgressBG` zachytává Zpět jako Cancel). Vrací `(zrušeno, výsledek)`.
-
-    `collect_streams()` běží v jednom kuse a nikde sama o sobě nekontroluje zrušení —
-    dřív na Zpět při „Načítám streamy…“ nereagovalo vůbec nic (Office 2026-09-16,
-    nahlásil uživatel), a když Kodi po 5 s zaseklý skript tvrdě zabilo samo, ukazatel
-    průběhu zůstal viset na obrazovce jako duch, protože se nestihl zavřít. Vlákno na
-    pozadí doběhne samo (daemon), i po zrušení tu chvíli může ještě síťově pracovat,
-    ale UI se odblokuje hned."""
-    result = {}
-
-    def _run():
-        try:
-            result["value"] = fn()
-        except (Exception, Aborted) as e:  # noqa: BLE001 – i chyby zdrojů, znovu vyhodit v hlavním vlákně
-            result["error"] = e
-
-    t = threading.Thread(target=_run, daemon=True)
-    t.start()
-    while t.is_alive():
-        if bar.iscanceled():
-            # jádro se ptá `should_stop()` mezi zdroji i hlavičkami — po zrušení
-            # skončí do vteřin, ne až po posledním timeoutu (Kodi na vlákno při
-            # konci skriptu čeká)
-            CANCEL.set()
-            return True, None
-        t.join(0.2)
-    if "error" in result:
-        raise result["error"]
-    return False, result.get("value")
-
-
 def _search_merge(apis, ctype, query, want_year, errors, tick=None):
     """Sloučené výsledky primárního zdroje a přihlášeného Sosáče pro jeden typ
     (film / seriál), BEZ popisů — stačí na počty pro volbu Filmy/Seriály.
@@ -3679,31 +3630,17 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None, fq="", flang=""
     meta, video = load_meta(apis, ctype, item_id, series_id)
     strict = fulltext != "1"
     has_fulltext_source = bool(apis.get("ws") or apis.get("hs") or apis.get("st") or apis.get("fs"))
-    # ukazatel průběhu: pár kroků na dotazy zdrojům, pak (obvykle nejdelší část)
-    # jeden na každý soubor, kterému jádro čte hlavičku — přesný počet si jádro upraví.
-    # Modální DialogProgress zachytává Zpět jako Cancel (viz cancelable_search), ale je to
-    # pořád modální dialog — CLAUDE.md: „nikdy modální dialog v cestě, kterou může spustit
-    # widget nebo JSON-RPC (menu, výpisy, přehrání)“. Tenhle výpis JSON-RPC/widget spustit
-    # může (`play()`'s modální varianta přehrání z TMDb Helperu rozbila, viz beta11), takže
-    # se modál povolí, jen když je vidět — uživatel doopravdy prochází menu Nokturna a může
-    # na Zpět sáhnout; jinak (widget, JSON-RPC) bezpečná BG varianta bez možnosti zrušit.
-    interactive = browsing_nokturno()
-    bar = xbmcgui.DialogProgress() if interactive else xbmcgui.DialogProgressBG()
+    # ukazatel průběhu: pár kroků na dotazy zdrojům, pak (obvykle nejdelší část) jeden na každý
+    # soubor, kterému jádro čte hlavičku. Vždy `DialogProgressBG` v rohu, ne modální okno — výpis
+    # spouští i widget a JSON-RPC a uživatel si nepřál načítání v modálu (2026-09-17, `5.2.14~beta2`).
+    bar = xbmcgui.DialogProgressBG()
     bar.create(L(30000, "Nokturno"), L(30238, "Načítám streamy…"))
-    progress = SearchProgress(bar, Engine.STREAM_SOURCE_STEPS + AUDIO_PROBE_MAX)
     errors = []
     try:
-        if interactive:
-            canceled, streams = cancelable_search(
-                bar, lambda: collect_streams(apis, ctype, item_id, meta, alt, progress, strict, errors))
-        else:
-            canceled = False
-            streams = collect_streams(apis, ctype, item_id, meta, alt, progress, strict, errors)
+        streams = collect_streams(apis, ctype, item_id, meta, alt,
+                                  SearchProgress(bar, Engine.STREAM_SOURCE_STEPS + AUDIO_PROBE_MAX), strict, errors)
     finally:
         bar.close()
-    if canceled:
-        xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
-        return
     if errors:
         # jen upozornění, ne dialog — výpis může spustit widget nebo JSON-RPC z HA
         notify(skipped_notice(errors), xbmcgui.NOTIFICATION_WARNING, 7000)
@@ -3859,13 +3796,46 @@ def upnext_notify(meta, video, series_id, alt=None):
         "sender": f"{ADDON_ID}.SIGNAL", "message": "upnext_data", "data": [encoded]}}))
 
 
+def pick_title(apis, ctype, item_id, series_id=None, alt=None):
+    """Klik na titul ve výpisu Nokturna (handle −1, viz `add_playable`): najít streamy s ukazatelem
+    průběhu v rohu (`DialogProgressBG`), ukázat dialog a vybraný stream pustit přes `PlayMedia` s jeho referencí —
+    `play()` ji jen rozklíčuje a zapamatuje volbu u seriálu. Modál je tu v pořádku: tuhle cestu
+    spouští jen klik uživatele, widget ani JSON-RPC položku `action=title` nerozklíčují jako skript."""
+    meta, video = load_meta(apis, ctype, item_id, series_id)
+    bar = xbmcgui.DialogProgressBG()   # načítání jen ukazatelem v rohu, modální je až výběr streamu
+    bar.create(L(30000, "Nokturno"), L(30238, "Načítám streamy…"))
+    errors = []
+    try:
+        streams = collect_streams(apis, ctype, item_id, meta, alt,
+                                  SearchProgress(bar, Engine.STREAM_SOURCE_STEPS + AUDIO_PROBE_MAX), True, errors)
+    finally:
+        bar.close()
+    if errors:
+        notify(skipped_notice(errors), xbmcgui.NOTIFICATION_WARNING, 7000)
+    year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
+    mark_viewed(item_id, bare_title(meta), year if year.isdigit() else None, "series" if video else ctype)
+    if not streams:
+        if apis.get("ws") or apis.get("hs") or apis.get("st") or apis.get("fs"):
+            # nic přísně — seznam streamů nabídne „Zkusit uvolněný fulltext“
+            xbmc.executebuiltin("Container.Update(%s)" % build_url(
+                action="streams", type=ctype, id=item_id, series=series_id, alt=alt))
+        elif not errors:
+            notify(L(30102))
+        return
+    pref_key = (series_id or split_episode_id(item_id)[0]) if video else None
+    remembered = preferred_stream(streams, STORE.stream_pref(pref_key)) if pref_key else None
+    picked = choose_stream(streams, remembered)
+    if picked is None:
+        return
+    xbmc.executebuiltin("PlayMedia(%s)" % build_url(
+        action="play", type=ctype, id=item_id, series=series_id, alt=alt, url=picked["url"],
+        subs="|".join(picked.get("subtitles") or []), pref=pref_param(picked)))
+
+
 def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref="", ask=""):
-    """`ask=1` = přehratelná položka Nokturna (widget, detail, kontextové menu) nebo player TMDb
-    Helperu v režimu „Vybrat ze seznamu streamů“ → výběr dialogem s filtrem (`choose_stream`).
-    Ve výpisu Nokturna je v tom režimu film složkou (`add_playable`), klik sem nevede.
-    „Přehrát nejlepší automaticky“ hraje rovnou, „Zeptat se v dialogu“ se ptá vždy; bez `ask`
-    (Up Next, HA) se v režimu 1 neptá."""
-    mode = setting("stream_mode", "1")
+    """`ask=1` = Přehrát nad položkou Nokturna (detail, widget) nebo player TMDb Helperu → výběr
+    v dialogu (`choose_stream`, zapamatovaný stream předvybraný). Bez `ask` (Up Next, HA) hraje
+    zapamatovaný nebo nejlepší stream bez ptaní."""
     meta, video = load_meta(apis, ctype, item_id, series_id)
     # u seriálu si pamatujeme, jaký stream si uživatel vybral — další díl (Up Next,
     # Pokračovat, widget) pak jede stejně bez ptaní; klíč je seriál, ne díl
@@ -3909,8 +3879,8 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
             return
         remembered = preferred_stream(streams, STORE.stream_pref(pref_key)) if pref_key else None
         chosen = remembered or streams[0]
-        if remembered is None and (mode == "2" or (ask and mode == "1")):
-            picked = choose_stream(streams)
+        if ask:
+            picked = choose_stream(streams, remembered)
             if picked is None:
                 xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
                 return
@@ -4204,10 +4174,9 @@ def router(query):
     }
     try:
         if action == "title" and HANDLE < 0:
-            # klik na titul ve výpisu Nokturna (režim seznamu): Kodi ne-přehratelnou položku
-            # spustí jako skript bez handle → otevřít seznam streamů (viz add_playable)
-            xbmc.executebuiltin("Container.Update(%s)" % build_url(
-                action="streams", type=p.get("type", "movie"), id=p["id"], series=p.get("series"), alt=p.get("alt")))
+            # klik na titul ve výpisu Nokturna: Kodi ne-přehratelnou položku spustí jako skript
+            # bez handle → streamy v dialogu na dva řádky (viz add_playable, pick_title)
+            pick_title(get_apis(), p.get("type", "movie"), p["id"], p.get("series"), alt=p.get("alt"))
             return
         if action == "tv_pick":
             # volba nad TV programem: dialog jen po kliku ve výpisu (handle −1), jinak nic
