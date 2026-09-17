@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.20" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.21~beta1" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,7 +23,9 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>5.2.20 – U hotového stahování v kontextovém menu „Smazat“ místo matoucího „Odebrat ze seznamu“ (soubor se opravdu maže z disku)
+    <news>5.2.21~beta1 – Oprava: QR kód v „Nastavit z mobilu“ vypadal na telefonu jako obdélník místo čtverce (Kodi ho na displeji s jiným poměrem stran než 16:9 roztahovalo) — teď si zachová poměr stran
+5.2.21~beta1 – Oprava: klikatelná adresa z 5.2.20 se na Androidu na dotyk vůbec nespustila (fungovala by jen přes dálkový ovladač) — tlačítko teď má skutečnou dotykovou plochu
+5.2.20 – U hotového stahování v kontextovém menu „Smazat“ místo matoucího „Odebrat ze seznamu“ (soubor se opravdu maže z disku)
 5.2.20 – Adresa v „Nastavit z mobilu“ je na Androidu klikatelná — OK ji otevře rovnou v prohlížeči, nemusíš ji ručně přepisovat
 5.2.19 – Zpráva z dashboardu (Nastavení → Pokročilé) se teď zobrazí ve větším, posouvatelném okně — dřív ji delší text prostě uřízl
 5.2.18 – Katalogy „Nedávno přidané s CZ dabingem/titulky“ bez Sosáče/Luny: jazyk se u ostatních zdrojů (WebShare, HellSpy, Sledujteto, FastShare) místo pořád prázdného výsledku odhadne z názvu souboru
