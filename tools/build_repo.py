@@ -147,6 +147,9 @@ def check(version):
 
 def main():
     version = addon_version(ROOT)
+    if "~sync" in version:
+        sys.exit(f"{version} je vývojový build větve `sync` — do žádného repozitáře nepatří "
+                 f"(boxy si ho berou ručně). Použij tools/build_dev.py")
     if BETA and "~" not in version:
         sys.exit(f"--beta chce verzi s „~“ (např. 3.2.0~beta1), addon.xml má {version}")
     if not BETA and "~" in version:
