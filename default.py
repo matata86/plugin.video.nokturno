@@ -15,14 +15,12 @@ import logging
 import os
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import struct
 import sys
 import threading
 import time
 import traceback
 import urllib.parse
 import urllib.request
-import zlib
 
 import xbmc
 import xbmcaddon
@@ -1808,38 +1806,22 @@ def remote_setup_schema(section=None):
     return sections
 
 
-def _solid_rgba_png(rgb, alpha):
-    """PNG 1×1 RGBA jedné barvy — Kodi ji roztáhne na velikost kontroly.
-
-    Na Androidu se dotyk na `ControlButton` s prázdnou `noFocusTexture`/`focusTexture`
-    (`""`) nezaregistroval jako klik (nahlásil uživatel 2026-09-18: adresa v „Nastavit
-    z mobilu“ zbělala fokusem, tedy větev pro Android běžela, ale ťuknutí nic neudělalo).
-    Bezbarvý (`aspectRatio` výchozí, žádná viditelná plocha) podklad situaci nezlepšil —
-    ani s jemně poloprůhlednou texturou (beta 1/2) se `onControl` nezavolal, jen fokusový
-    vzhled prvku (barva/rámeček), což naznačuje, že Kodi na dotyk testuje skutečnou
-    neprůhlednost textury pod prstem, ne jen hranice kontroly. Podklad je proto skoro
-    neprůhledný — vypadá jako malé tlačítko/pilulka, ne jako čitelný text bez pozadí,
-    ale dotyk by konečně měl mít co „trefit“."""
-    r, g, b = rgb
-    header = struct.pack(">IIBBBBB", 1, 1, 8, 6, 0, 0, 0)
-
-    def chunk(kind, body):
-        return struct.pack(">I", len(body)) + kind + body + struct.pack(">I", zlib.crc32(kind + body) & 0xFFFFFFFF)
-    raw = bytes([0, r, g, b, alpha])
-    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header)
-            + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b""))
-
-
 class RemoteSetupWindow(xbmcgui.WindowDialog):
     """Okno s QR kódem. Neblokuje — `remote_setup()` mezitím čeká na mobil; Zpět zruší.
 
     Na Androidu je adresa klikatelná — OK/klik ji otevře v systémovém prohlížeči přímo na
     tomhle zařízení (`StartAndroidActivity`, nahlásil uživatel 2026-09-18: díval se na QR
     z mobilu a chtěl adresu rovnou otevřít, ne ji přepisovat ručně). Jinde (CoreELEC/Linux,
-    Windows…) ten builtin nic nedělá, takže tam adresa zůstává jen čitelný text jako dřív."""
+    Windows…) ten builtin nic nedělá, takže tam adresa zůstává jen čitelný text jako dřív.
+
+    `ControlButton` s vlastní (i skoro neprůhlednou) texturou na dotyku nespolehlivě
+    nedoručovala klik do `onControl` — jen fokusový vzhled zareagoval (beta 1–3, viz
+    historie). Bez explicitní `noFocusTexture`/`focusTexture` použije Kodi výchozí
+    systémové tlačítko skinu, stejné jako každé OK/Storno — garantovaně klikací i na
+    dotyku, i když teď vypadá jako opravdové tlačítko, ne jen barevný text."""
     CANCEL_ACTIONS = (9, 10, 13, 92)   # PARENT_DIR, PREVIOUS_MENU, STOP, NAV_BACK
 
-    def __init__(self, qr_path, backdrop_path, url, link_bg_path=None, link_bg_focus_path=None):
+    def __init__(self, qr_path, backdrop_path, url):
         super().__init__()
         self.cancelled = False
         self.url = url
@@ -1854,10 +1836,13 @@ class RemoteSetupWindow(xbmcgui.WindowDialog):
                                "2. Naskenuj QR kód fotoaparátem, nebo otevři v prohlížeči adresu:"))
         footer = L(30453, "Zpět zruší · adresa platí 10 minut a pro jedno uložení")
         if xbmc.getCondVisibility("System.Platform.Android"):
+            # Vlastní (i skoro neprůhledná) textura se na dotyku ukázala nespolehlivě —
+            # klik se přes ni na některých zařízeních vůbec nedoručil (jen fokusový vzhled
+            # zareagoval), viz `_solid_rgba_png()` výš. Bez explicitní textury Kodi použije
+            # výchozí systémové tlačítko skinu — stejné jako každé OK/Storno v Kodi, tedy
+            # garantovaně klikací i na dotyku, byť to teď vypadá jako opravdové tlačítko.
             self.link = xbmcgui.ControlButton(540, 400, 700, 60, "[B]%s[/B]" % url, font="font13",
-                                              textColor="FFC4B5FD", focusedColor="FFFFFFFF",
-                                              noFocusTexture=link_bg_path or "",
-                                              focusTexture=link_bg_focus_path or link_bg_path or "")
+                                              textColor="FFC4B5FD", focusedColor="FFFFFFFF")
             self.addControl(self.link)
             self.setFocus(self.link)
             footer += " · " + L(30517, "OK adresu otevře v prohlížeči")
@@ -1924,8 +1909,6 @@ def remote_setup(section=None):
     url = server.url(ip)
     qr_path = os.path.join(PROFILE, "remote-setup-%s.png" % server.token[:8])
     backdrop = os.path.join(PROFILE, "remote-setup-bg.png")
-    link_bg = os.path.join(PROFILE, "remote-setup-link-bg.png")
-    link_bg_focus = os.path.join(PROFILE, "remote-setup-link-bg-focus.png")
     changes, window = None, None
     try:
         xbmcvfs.mkdirs(PROFILE)
@@ -1933,12 +1916,8 @@ def remote_setup(section=None):
             f.write(qr_png(qr_encode(url), scale=12, border=2))
         with open(backdrop, "wb") as f:
             f.write(qr_png([[False]], scale=1, border=0))
-        with open(link_bg, "wb") as f:
-            f.write(_solid_rgba_png((92, 68, 150), 230))
-        with open(link_bg_focus, "wb") as f:
-            f.write(_solid_rgba_png((124, 92, 200), 255))
         xbmc.log(f"[{ADDON_ID}] nastavení z mobilu: server na portu {server.port}", xbmc.LOGINFO)
-        window = RemoteSetupWindow(qr_path, backdrop, url, link_bg, link_bg_focus)
+        window = RemoteSetupWindow(qr_path, backdrop, url)
         window.show()
         deadline = time.time() + REMOTE_SETUP_TIMEOUT
         while time.time() < deadline and not window.cancelled and not should_stop():
