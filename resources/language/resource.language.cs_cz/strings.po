@@ -1351,3 +1351,7 @@ msgstr "Smazat"
 msgctxt "#30517"
 msgid "OK opens the address in a browser"
 msgstr "OK adresu otevře v prohlížeči"
+
+msgctxt "#30518"
+msgid "Opening in browser…"
+msgstr "Otvírám v prohlížeči…"
