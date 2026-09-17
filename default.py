@@ -1870,6 +1870,9 @@ class RemoteSetupWindow(xbmcgui.WindowDialog):
 
     def onControl(self, control):
         if self.link is not None and control == self.link:
+            xbmc.log(f"[{ADDON_ID}] Nastavit z mobilu: klik na adresu, otevírám {self.url}", xbmc.LOGINFO)
+            xbmcgui.Dialog().notification(L(30447, "Nastavit z mobilu"), L(30518, "Otvírám v prohlížeči…"),
+                                          xbmcgui.NOTIFICATION_INFO, 2000)
             xbmc.executebuiltin('StartAndroidActivity("", "android.intent.action.VIEW", "", "%s")' % self.url)
 
 

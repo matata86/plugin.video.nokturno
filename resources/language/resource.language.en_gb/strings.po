@@ -1350,3 +1350,7 @@ msgstr ""
 msgctxt "#30517"
 msgid "OK opens the address in a browser"
 msgstr ""
+
+msgctxt "#30518"
+msgid "Opening in browser…"
+msgstr ""
