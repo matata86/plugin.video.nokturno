@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.14~beta2" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.14~beta3" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,7 +23,9 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>5.2.14~beta2 – Zrušeno nastavení „Výběr streamu“: stream se vždy vybírá v dialogu na dva řádky, i klikem na titul ve výpisu (dřív otevřel seznam streamů). Celý seznam streamů zůstal v kontextovém menu
+    <news>5.2.14~beta3 – Dialog výběru streamu s obrázky kvality (UHD 4K, FHD 1080, HD 720, SD 480, s HDR)
+5.2.14~beta3 – Kratší ukazatel načítání: „Streamy: 35 · Meta: 5/24“
+5.2.14~beta2 – Zrušeno nastavení „Výběr streamu“: stream se vždy vybírá v dialogu na dva řádky, i klikem na titul ve výpisu (dřív otevřel seznam streamů). Celý seznam streamů zůstal v kontextovém menu
 5.2.14~beta2 – Streamy se načítají jen s ukazatelem v rohu obrazovky, bez okna přes celou obrazovku
 5.2.14~beta2 – U seriálu je v dialogu předvybraný naposledy zvolený stream (Up Next a Home Assistant ho pustí rovnou)
 5.2.14~beta1 – Výběr streamu v dialogu na dva řádky: nahoře kvalita, jazyk a velikost, pod tím rozlišení a kodek (HDR, HEVC), zvukové stopy, datový tok, délka, titulky a zdroj
