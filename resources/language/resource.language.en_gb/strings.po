@@ -1278,3 +1278,55 @@ msgstr ""
 msgctxt "#30481"
 msgid "When an error in the add-on's code happens, a short report goes to the author: error type, place in the code, version and a few lines of the Nokturno log. Addresses, accounts, passwords and IPs are removed first. Source outages are not sent. The same error is sent at most once per version."
 msgstr ""
+
+msgctxt "#30482"
+msgid "Similar titles"
+msgstr ""
+
+msgctxt "#30483"
+msgid "TV guide"
+msgstr ""
+
+msgctxt "#30484"
+msgid "Day"
+msgstr ""
+
+msgctxt "#30485"
+msgid "Channel"
+msgstr ""
+
+msgctxt "#30486"
+msgid "Type"
+msgstr ""
+
+msgctxt "#30487"
+msgid "All channels"
+msgstr ""
+
+msgctxt "#30488"
+msgid "Movies and series"
+msgstr ""
+
+msgctxt "#30489"
+msgid "Today"
+msgstr ""
+
+msgctxt "#30490"
+msgid "Tomorrow"
+msgstr ""
+
+msgctxt "#30491"
+msgid "Mon,Tue,Wed,Thu,Fri,Sat,Sun"
+msgstr ""
+
+msgctxt "#30492"
+msgid "TV guide is not available right now"
+msgstr ""
+
+msgctxt "#30493"
+msgid "No similar titles found"
+msgstr ""
+
+msgctxt "#30494"
+msgid "Nothing on in this selection"
+msgstr ""

@@ -33,6 +33,7 @@ from luna_api import LunaApi, LunaError, parse_base_url, parse_token  # noqa: E4
 from cinemeta_api import CinemetaApi, CinemetaError  # noqa: E402
 from tmdb_api import TmdbApi, TmdbError  # noqa: E402
 from trend_api import CATALOG_ID as TREND_CATALOG_ID, TrendApi  # noqa: E402
+from dash_api import DashApi  # noqa: E402
 from sosac_api import SosacError, is_sosac_id as _is_stremio_sosac_id  # noqa: E402
 from sosac_direct import EXPORT as SOSAC_EXPORT, SosacDirect, is_direct_id  # noqa: E402
 from enrich import enrich, enrich_one, shutdown_pool as release_enrich  # noqa: E402
@@ -372,6 +373,12 @@ def get_trend():
     return TrendApi(cache=STORE)
 
 
+def get_dash():
+    """Obsah řízený dashboardem (katalogy, podobné tituly, TV program) — bez účtu,
+    s krátkým timeoutem a zálohou z cache, výpadek dashboardu menu nezdrží."""
+    return DashApi(cache=STORE)
+
+
 def get_tmdb():
     """Vlastní klíč uživatele (zdarma, viz nápověda v nastavení) — přednostní
     náhrada za veřejný katalog Sosáče/Cinemetu, když Luna neběží: umí česky
@@ -415,7 +422,7 @@ class KodiEngine(Engine):
 
     FACTORIES = {"luna": get_luna, "sosac": get_sosac, "sosac_db": get_sosac_db, "ws": get_webshare,
                  "hs": get_hellspy, "st": get_sledujteto, "fs": get_fastshare, "storages": get_storages, "tmdb": get_tmdb,
-                 "cinemeta": get_cinemeta, "trend": get_trend}
+                 "cinemeta": get_cinemeta, "trend": get_trend, "dash": get_dash}
 
     def __init__(self):
         self._clients = {}
@@ -437,6 +444,7 @@ class KodiEngine(Engine):
     tmdb = property(lambda self: self._client("tmdb"))
     cinemeta = property(lambda self: self._client("cinemeta"))
     trend = property(lambda self: self._client("trend"))
+    dash = property(lambda self: self._client("dash"))
 
 
 def get_apis():
@@ -444,7 +452,7 @@ def get_apis():
     engine = KodiEngine()
     return {"engine": engine, "luna": engine.luna, "sosac": engine.sosac, "ws": engine.ws, "hs": engine.hs,
             "st": engine.st, "fs": engine.fs, "dav": engine.storages, "cinemeta": engine.cinemeta, "sosac_db": engine.sosac_db,
-            "tmdb": engine.tmdb, "trend": engine.trend}
+            "tmdb": engine.tmdb, "trend": engine.trend, "dash": engine.dash}
 
 
 def engine_of(apis):
@@ -561,6 +569,38 @@ def set_content(content):
     xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE, "%L", label2)
     for method in CONTENT_SORTS.get(content, ()):
         xbmcplugin.addSortMethod(HANDLE, method, "%L", LABEL2_MASKS.get(method, label2))
+
+
+# ikony, které smí poslat dashboard (`dash_api.ICONS`) → obrázky ze sady Kodi / doplňku
+DASH_ICONS = {
+    "": "DefaultVideoPlaylists.png", "movies": "DefaultMovies.png", "series": "DefaultTVShows.png",
+    "star": "DefaultFavourites.png", "top": "DefaultMusicTop100.png", "new": "DefaultRecentlyAddedMovies.png",
+    "family": "DefaultAddonVideo.png", "christmas": os.path.join(ADDON.getAddonInfo("path"), "resources", "media", "icon-vanoce.png"),
+    "halloween": "DefaultAddonVideo.png", "calendar": "DefaultYear.png", "trophy": "DefaultMusicTop100.png",
+}
+
+
+def dash_catalog_items(apis, placement, ctype=None):
+    """Katalogy zapnuté na dashboardu pro dané umístění — jako složky menu."""
+    dash = apis.get("dash")
+    if dash is None:
+        return
+    for e in dash.menu(placement=placement, ctype=ctype):
+        folder_item(e["title"], build_url(action="catalog", type=e["kind"], catalog=e["slug"], src="dash"),
+                    icon=DASH_ICONS.get(e["icon"], DASH_ICONS[""]))
+
+
+IMDB_ID_RE = re.compile(r"^tt\d{5,10}$")
+
+
+def similar_context(ctype, item_id):
+    """„Podobné tituly“ v kontextovém menu — jen u titulů s IMDb id (TMDB je jinak nenajde)."""
+    if not IMDB_ID_RE.match(str(item_id or "")):
+        return []
+    url = build_url(action="similar", type=ctype, id=item_id)
+    # ve výpisu Nokturna jen přepnout obsah, z widgetu/domovské obrazovky otevřít okno Videa
+    cmd = f"Container.Update({url})" if browsing_nokturno() else f"ActivateWindow(Videos,{url},return)"
+    return [(L(30482, "Podobné tituly"), cmd)]
 
 
 def folder_item(label, url, icon=None, context=None):
@@ -849,23 +889,25 @@ def art_for(meta, video=None):
     return {k: v for k, v in art.items() if v}
 
 
-def add_meta_item(meta, ctype, alt=None, tag_source=False):
+def add_meta_item(meta, ctype, alt=None, tag_source=False, label=None):
     """`alt` = id téhož titulu v Sosáči (sloučený výsledek hledání) → streamy z obou zdrojů.
 
     `tag_source`: ve smíšeném hledání označit tituly, které má jen Sosáč (v katalozích Sosáče je to zbytečné).
+    `label`: vlastní popisek místo názvu (TV program: čas a stanice před názvem).
     """
-    label = display_name(meta)
+    label = label or display_name(meta)
     if tag_source and is_sosac_id(meta.get("id")):
         label = f"{label}  [COLOR {GREY}]· Sosáč[/COLOR]"
     li = xbmcgui.ListItem(label=label)
     li.setArt(art_for(meta))
     fill_info(li, meta, ctype)
     fav = fav_context(meta["id"], ctype, alt=alt)
+    similar = similar_context(ctype, meta["id"])
     if ctype == "series":
-        li.addContextMenuItems([fav])
+        li.addContextMenuItems([fav] + similar)
         xbmcplugin.addDirectoryItem(HANDLE, build_url(action="seasons", id=meta["id"], alt=alt), li, isFolder=True)
     else:
-        apply_watched(li, meta["id"], [fav, streams_context("movie", meta["id"], alt=alt)])
+        apply_watched(li, meta["id"], [fav, streams_context("movie", meta["id"], alt=alt)] + similar)
         add_playable(li, "movie", meta["id"], alt=alt)
 
 
@@ -961,11 +1003,12 @@ def add_snapshot_item(key, snap, extra_context=None):
     fill_info_snapshot(li, snap)
     ctx = [fav_context(key, snap.get("type", "movie"), snap.get("series"), snap.get("alt"))] + (extra_context or [])
     if snap.get("type") == "series" and snap.get("season") is None:
-        li.addContextMenuItems(ctx)
+        li.addContextMenuItems(ctx + similar_context("series", key))
         xbmcplugin.addDirectoryItem(HANDLE, build_url(action="seasons", id=key, alt=snap.get("alt")), li, isFolder=True)
         return
     kind = "series" if snap.get("season") is not None else "movie"
-    apply_watched(li, key, ctx + [streams_context(kind, key, snap.get("series"), snap.get("alt"))])
+    similar = similar_context("movie", key) if kind == "movie" else []
+    apply_watched(li, key, ctx + [streams_context(kind, key, snap.get("series"), snap.get("alt"))] + similar)
     add_playable(li, kind, key, series_id=snap.get("series"), alt=snap.get("alt"))
 
 
@@ -1318,7 +1361,13 @@ def choose_stream(streams):
                 last_count = len(apply_stream_filter(streams, **filter_params(last)))
                 if last_count:   # 0 shodných by bylo jen matoucí tlačítko do prázdna
                     entries.append((f"{L(30364, 'Použít poslední filtr')}  ({last_count})", "last"))
-        idx = xbmcgui.Dialog().select(L(30024), [label for label, _v in entries] + [stream_label(st) for st in shown])
+        rows = []
+        for label, _v in entries:
+            rows.append(xbmcgui.ListItem(label=label))
+        for st in shown:
+            top, bottom = stream_lines(st)
+            rows.append(xbmcgui.ListItem(label=top, label2=bottom))
+        idx = xbmcgui.Dialog().select(L(30024), rows, useDetails=True)
         if idx < 0:
             return None
         if idx >= len(entries):
@@ -1348,20 +1397,36 @@ def format_duration(seconds):
     return f"{h}:{m:02d}" if h else f"{m} min"
 
 
-def stream_label(s):
-    """Popisek streamu na jeden řádek.
+VIDEO_TAGS = (
+    (r"\b(?:x|h)\.?265\b|\bhevc\b", "HEVC"),
+    (r"\b(?:x|h)\.?264\b|\bavc\b", "H.264"),
+    (r"\bav1\b", "AV1"),
+    (r"\b(?:dv|dovi|dolby[ ._-]?vision)\b", "DV"),
+    (r"\bhdr(?:10\+?)?\b", "HDR"),
+    (r"\b10[ ._-]?bit\b", "10bit"),
+)
 
-    Arctic Fuse v seznamu druhý řádek nevykreslí, takže všechno musí do jednoho
-    a záleží na pořadí: co skin ořízne, je konec. Napřed tedy zvukové stopy
-    a velikost, pak teprve datový tok, titulky, zdroj a název souboru.
 
-    Jazyk bez vlnovky přišel od zdroje nebo z hlavičky souboru, s vlnovkou je
-    jen odhad z názvu souboru — stejně jako „~4K" u odhadnuté kvality.
-    """
+def video_info(s, name):
+    """Druhý řádek výběru streamu: rozlišení (jen přečtené z hlavičky souboru — z názvu
+    se neví) a video kodek/HDR z názvu souboru (hlavička je nečte, zdroje ho neposílají)."""
+    import re as _re
+    parts = []
+    media = s.get("_media") or {}
+    if media.get("width") and media.get("height"):
+        parts.append(f"{media['width']}×{media['height']}")
+    low = (name or "").lower()
+    for pattern, tag in VIDEO_TAGS:
+        if _re.search(pattern, low) and tag not in parts:
+            parts.append(tag)
+    return " ".join(parts)
+
+
+def stream_label_parts(s):
+    """Díly popisku streamu (každý už obarvený) — skládá je `stream_label` do jednoho
+    řádku pro výpis a `stream_list_item` do dvou řádků pro dialog výběru."""
     parse_stream(s)
     tag = SOURCE_TAGS.get(s.get("source"), "")
-    if s.get("_storage"):
-        tag = f"[COLOR {DAV_COLOR}]{s['_storage']}[/COLOR]"
     raw = s["label"]
     for junk in ("(WS)", "Sosáč"):
         raw = raw.replace(junk, "")
@@ -1382,23 +1447,28 @@ def stream_label(s):
     # barvu (žádný [COLOR] okolo), Kodi vykreslí bílou textovou barvou skinu;
     # na vybrané položce s bílým podkladem to pak úplně zmizí. Proto má i
     # velikost výslovnou barvu (GREY se na bílém podkladu čte jako tmavý text).
-    parts = []
+    head = []
     if s.get("_storage"):
         # vlastní soubor: štítek úložiště jako první, ne až za zvukem a velikostí na konci řádku
-        parts.append(f"[COLOR {DAV_COLOR}][B]{s['_storage']}[/B][/COLOR]")
+        head.append(f"[COLOR {DAV_COLOR}][B]{s['_storage']}[/B][/COLOR]")
         tag = ""
     if s.get("_loose"):
         # z ručního „Zkusit fulltext" — přísný filtr ho zahodil jako podobný,
         # ale možná jiný titul; uživatel to musí posoudit sám podle názvu souboru
-        parts.append(f"[COLOR {WARN_COLOR}]?[/COLOR]")
-    parts.append(f"[COLOR {QUALITY_COLORS.get(s.get('quality_rank', 0), GREY)}][B]{quality or raw}[/B][/COLOR]")
+        head.append(f"[COLOR {WARN_COLOR}]?[/COLOR]")
+    head.append(f"[COLOR {QUALITY_COLORS.get(s.get('quality_rank', 0), GREY)}][B]{quality or raw}[/B][/COLOR]")
+    audio, langs, seen_langs = [], [], set()
     tracks = s.get("_tracks") or []
     if tracks:
         # přečteno z hlavičky souboru: každá stopa zvlášť i s kodekem
         for t in tracks:
             inside = " ".join(x for x in (t.get("codec"), t.get("channels"), t.get("lang")) if x)
             if inside:
-                parts.append(f"[COLOR {LANG_COLORS.get(t.get('lang'), GREY)}][{inside}][/COLOR]")
+                audio.append(f"[COLOR {LANG_COLORS.get(t.get('lang'), GREY)}][{inside}][/COLOR]")
+            code = t.get("lang")
+            if code and code not in seen_langs:
+                seen_langs.add(code)
+                langs.append(f"[COLOR {LANG_COLORS.get(code, GREY)}][B]{code}[/B][/COLOR]")
     else:
         # zdroj o stopách mlčí — poskládá se z toho, co je po ruce
         channels = s.get("channels") or {}
@@ -1407,25 +1477,57 @@ def stream_label(s):
         for code in sorted(known | langs_from_name(raw), key=lambda c: (c != pref, c)):
             mark = "" if code in known else "~"
             txt = f"{mark}{code}"
+            langs.append(f"[COLOR {LANG_COLORS.get(code, GREY)}][B]{txt}[/B][/COLOR]")
             if code in channels:
                 txt += f" {channels[code]:.1f}"
-            parts.append(f"[COLOR {LANG_COLORS.get(code, GREY)}][{txt}][/COLOR]")
+            audio.append(f"[COLOR {LANG_COLORS.get(code, GREY)}][{txt}][/COLOR]")
+    parts = {"head": head, "audio": audio, "langs": langs, "size": "", "length": "", "bitrate": "",
+             "subs": "", "tag": "", "rest": "", "video": ""}
     if s.get("size_gb") and on("show_size", "true"):
-        parts.append(f"[COLOR {GREY}][B]{s['size_gb']:.1f} GB[/B][/COLOR]")
+        parts["size"] = f"[COLOR {GREY}][B]{s['size_gb']:.1f} GB[/B][/COLOR]"
     if s.get("_length_s") and on("show_length", "true"):
         mark = "~" if s.get("_length_est") else ""
-        parts.append(f"[COLOR {GREY}]{mark}{format_duration(s['_length_s'])}[/COLOR]")
+        parts["length"] = f"[COLOR {GREY}]{mark}{format_duration(s['_length_s'])}[/COLOR]"
     if s.get("bitrate") and on("show_bitrate", "true"):
         mark = "~" if s.get("_bitrate_est") else ""
-        parts.append(f"[COLOR {GREY}]{mark}{s['bitrate']:g} Mb/s[/COLOR]")
+        parts["bitrate"] = f"[COLOR {GREY}]{mark}{s['bitrate']:g} Mb/s[/COLOR]"
     subs = set(s.get("subs") or []) | subs_from_name(raw)
     if subs and on("show_subs", "true"):
-        parts.append(f"[COLOR {GREY}]Tit.: {' '.join(sorted(subs))}[/COLOR]")
+        parts["subs"] = f"[COLOR {GREY}]Tit.: {' '.join(sorted(subs))}[/COLOR]"
     if tag and on("show_source", "true"):
-        parts.append(tag)
+        parts["tag"] = tag
     if rest and quality and on("show_file", "true"):
-        parts.append(f"[COLOR {GREY}]{rest}[/COLOR]")
-    return "  ".join(parts)
+        parts["rest"] = f"[COLOR {GREY}]{rest}[/COLOR]"
+    video = video_info(s, s.get("_ws_name") or raw)
+    if video:
+        parts["video"] = f"[COLOR {GREY}]{video}[/COLOR]"
+    return parts
+
+
+def stream_label(s):
+    """Popisek streamu na jeden řádek (výpis ve složce).
+
+    Arctic Fuse v seznamu druhý řádek nevykreslí, takže všechno musí do jednoho
+    a záleží na pořadí: co skin ořízne, je konec. Napřed tedy zvukové stopy
+    a velikost, pak teprve datový tok, titulky, zdroj a název souboru.
+
+    Jazyk bez vlnovky přišel od zdroje nebo z hlavičky souboru, s vlnovkou je
+    jen odhad z názvu souboru — stejně jako „~4K" u odhadnuté kvality.
+    """
+    p = stream_label_parts(s)
+    return "  ".join(x for x in p["head"] + p["audio"] + [p["size"], p["length"], p["bitrate"], p["subs"],
+                                                          p["tag"], p["rest"]] if x)
+
+
+def stream_lines(s):
+    """Dva řádky pro dialog výběru (`select(useDetails=True)`): nahoře kvalita, jazyk
+    a velikost, na co se kouká nejdřív; dole technika — rozlišení a kodek, stopy,
+    datový tok, délka, titulky, zdroj a název souboru."""
+    p = stream_label_parts(s)
+    top = "  ".join(x for x in p["head"] + p["langs"] + [p["size"]] if x)
+    bottom = "  ".join(x for x in [p["video"]] + p["audio"] + [p["bitrate"], p["length"], p["subs"], p["tag"],
+                                                               p["rest"]] if x)
+    return top, bottom
 
 
 def mark_playing(key, title="", year=None, kind="movie", stream_url=None, stream_subs=None, stream_langs=None):
@@ -2353,6 +2455,9 @@ def main_menu(apis):
         folder_item(L(30063), build_url(action="continue"), icon="DefaultInProgressShows.png")
     folder_item(L(30012), build_url(action="browse", type="movie"), icon="DefaultMovies.png")
     folder_item(L(30013), build_url(action="browse", type="series"), icon="DefaultTVShows.png")
+    # sezónní a tematické katalogy zapnuté na dashboardu (bez vydání nové verze)
+    dash_catalog_items(apis, "root")
+    folder_item(L(30483, "TV program"), build_url(action="tv"), icon="DefaultAddonPVRClient.png")
     folder_item(L(30060), build_url(action="favourites"), icon="DefaultFavourites.png")
     if apis.get("dav"):
         folder_item(L(30387, "Moje úložiště"), build_url(action="dav_browse"), icon="DefaultHardDisk.png")
@@ -2413,6 +2518,7 @@ def browse_menu(apis, ctype):
         if genre:
             params["genre"] = genre
         folder_item(label, build_url(**params), icon=icon)
+    dash_catalog_items(apis, "browse", kind)
     xbmcplugin.endOfDirectory(HANDLE)
 
 
@@ -2470,8 +2576,9 @@ def list_catalog(apis, ctype, cid, src, genre=None, search=None, skip=0):
         enrich(metas, apis["luna"], STORE, ctype)
     for m in metas:
         add_meta_item(m, ctype)
-    # Luna vrací stránky po ~20, ale některé katalogy o pár položek méně
-    if len(metas) >= PAGE // 2:
+    # Luna vrací stránky po ~20, ale některé katalogy o pár položek méně; žebříček a katalogy
+    # z dashboardu přijdou celé najednou, „Další“ by vedlo do prázdné složky
+    if len(metas) >= PAGE // 2 and src not in ("trend", "dash"):
         folder_item(L(30021), build_url(action="catalog", type=ctype, catalog=cid, src=src, genre=genre,
                                         search=search, skip=skip + len(metas)), icon="DefaultFolder.png")
     # widget a výpis v Nokturnu mívají stejnou adresu, položky se ale liší podle okna (add_playable)
@@ -3396,6 +3503,7 @@ def list_seasons(apis, series_id, alt=None):
             li.getVideoInfoTag().setPlaycount(1)
         url = build_url(action="episodes", id=series_id, season=s, alt=alt)
         xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
+    similar_item("series", series_id)
     xbmcplugin.endOfDirectory(HANDLE)
 
 
@@ -3425,6 +3533,134 @@ def list_episodes(apis, series_id, season, alt=None):
         add_playable(li, "series", ep_id, series_id=series_id, alt=alt)
     # widget a výpis v Nokturnu mívají stejnou adresu, položky se ale liší podle okna (add_playable)
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
+def similar_item(ctype, item_id):
+    """Složka „Podobné tituly“ na konci seznamu streamů filmu a sezón seriálu."""
+    if IMDB_ID_RE.match(str(item_id or "")):
+        folder_item(L(30482, "Podobné tituly"), build_url(action="similar", type=ctype, id=item_id),
+                    icon="DefaultVideoPlaylists.png")
+
+
+def list_similar(apis, ctype, item_id):
+    """Podobné tituly: s vlastním TMDB klíčem přímo z TMDB, bez něj (nebo při jeho chybě)
+    z dashboardu, který se na TMDB ptá za doplněk."""
+    ctype = "series" if ctype == "series" else "movie"
+    items = []
+    tmdb = apis.get("tmdb")
+    if tmdb is not None:
+        try:
+            items = tmdb.similar(ctype, item_id)
+        except TmdbError as e:
+            log_error(e)
+            items = []
+    if not items and apis.get("dash") is not None:
+        items = apis["dash"].similar(ctype, item_id)
+    set_content("tvshows" if ctype == "series" else "movies")
+    if not items:
+        notify(L(30493, "Žádné podobné tituly"), xbmcgui.NOTIFICATION_INFO, 3000)
+    for m in items:
+        add_meta_item(m, ctype)
+    xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
+TV_KINDS = ("", "movie", "series")
+
+
+def tv_day_label(day, today):
+    """`2026-09-18` → „Zítra (pá 18. 9.)“ — dny v týdnu z řetězce 30491 (lokalizace bez locale)."""
+    import datetime
+    try:
+        d = datetime.date(*map(int, day.split("-")))
+        t = datetime.date(*map(int, (today or day).split("-")))
+    except (ValueError, AttributeError):
+        return day or ""
+    names = L(30491, "Mon,Tue,Wed,Thu,Fri,Sat,Sun").split(",")
+    short = f"{names[d.weekday()] if len(names) == 7 else ''} {d.day}. {d.month}.".strip()
+    rel = {0: L(30489, "Dnes"), 1: L(30490, "Zítra")}.get((d - t).days)
+    return f"{rel} ({short})" if rel else short
+
+
+def tv_url(day="", kind="", channel=""):
+    return build_url(action="tv", date=day or None, kind=kind or None, channel=channel or None)
+
+
+def list_tv(apis, day="", kind="", channel=""):
+    """TV program: filmy a seriály, které dnes (nebo jiný den) dávají v české a slovenské
+    televizi a které server spároval s TMDB. Nahoře tři volby (den, stanice, typ) jako
+    ne-složky — klik je spustí se handle −1 (`action=tv_pick`, výběr v dialogu), takže
+    výpis sám, widget ani JSON-RPC žádný dialog neotevře."""
+    dash = apis.get("dash")
+    data = dash.tv_program(day or None, kind or None, channel or None) if dash else None
+    set_content("movies")
+    if not data:
+        notify(L(30492, "TV program teď není dostupný"), xbmcgui.NOTIFICATION_WARNING, 4000)
+        xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+        return
+    day = data.get("date") or day
+    channel_name = next((c["name"] for c in data["channels"] if c["slug"] == channel), "") or L(30487, "Všechny stanice")
+    kind_name = {"": L(30488, "Filmy i seriály"), "movie": L(30012), "series": L(30013)}.get(kind, "")
+    picks = (
+        ("day", f"{L(30484, 'Den')}: {tv_day_label(day, data.get('today'))}", "DefaultYear.png"),
+        ("channel", f"{L(30485, 'Stanice')}: {channel_name}", "DefaultAddonPVRClient.png"),
+        ("kind", f"{L(30486, 'Typ')}: {kind_name}", "DefaultGenre.png"),
+    )
+    for field, label, icon in picks:
+        li = xbmcgui.ListItem(label=f"[B]{label}[/B]")
+        li.setArt({"icon": icon, "thumb": icon})
+        xbmcplugin.addDirectoryItem(HANDLE, build_url(action="tv_pick", field=field, date=day or None,
+                                                      kind=kind or None, channel=channel or None),
+                                    li, isFolder=False)
+    now = time.time()
+    shown = 0
+    for it in data["items"]:
+        if day == data.get("today") and it["stop"] < now:
+            continue   # dnes už skončené pořady jen zabírají místo
+        start = time.strftime("%H:%M", time.localtime(it["start"]))
+        live = it["start"] <= now < it["stop"]
+        clock = f"[COLOR {LANG_COLORS.get('CZ', 'FFFFC94D')}]{start}[/COLOR]" if live else start
+        name = display_name(it["meta"]) if it["kind"] == "movie" else (it["meta"].get("name") or it["title"])
+        if it["kind"] == "series" and it.get("season") is not None and it.get("episode") is not None:
+            name = f"{name} {int(it['season'])}x{int(it['episode']):02d}"
+        if it.get("episode_title"):
+            name = f"{name} {it['episode_title']}"
+        label = f"{clock}  [COLOR {GREY}]{it['channel_name']}[/COLOR]  {name}"
+        add_meta_item(it["meta"], it["kind"], label=label)
+        shown += 1
+    if not shown:
+        li = xbmcgui.ListItem(label=f"[COLOR {GREY}]{L(30494, 'V tomhle výběru nic nedávají')}[/COLOR]")
+        xbmcplugin.addDirectoryItem(HANDLE, tv_url(day, kind, channel), li, isFolder=True)
+    xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
+def tv_pick(apis, field, day="", kind="", channel=""):
+    """Klik na volbu nad TV programem (handle −1, jen z výpisu Nokturna) → dialog → přepnout výpis."""
+    data = apis["dash"].tv_program(day or None, kind or None, channel or None) or {}
+    if field == "day":
+        dates = data.get("dates") or []
+        if not dates:
+            return
+        idx = xbmcgui.Dialog().select(L(30484, "Den"), [tv_day_label(d, data.get("today")) for d in dates],
+                                      preselect=dates.index(day) if day in dates else 0)
+        if idx < 0:
+            return
+        day = dates[idx]
+    elif field == "channel":
+        channels = [{"slug": "", "name": L(30487, "Všechny stanice")}] + (data.get("channels") or [])
+        slugs = [c["slug"] for c in channels]
+        idx = xbmcgui.Dialog().select(L(30485, "Stanice"), [c["name"] for c in channels],
+                                      preselect=slugs.index(channel) if channel in slugs else 0)
+        if idx < 0:
+            return
+        channel = slugs[idx]
+    else:
+        names = [L(30488, "Filmy i seriály"), L(30012), L(30013)]
+        idx = xbmcgui.Dialog().select(L(30486, "Typ"), names,
+                                      preselect=TV_KINDS.index(kind) if kind in TV_KINDS else 0)
+        if idx < 0:
+            return
+        kind = TV_KINDS[idx]
+    xbmc.executebuiltin(f"Container.Update({tv_url(day, kind, channel)},replace)")
 
 
 # --- přehrávání ------------------------------------------------------------------
@@ -3561,6 +3797,8 @@ def list_streams(apis, ctype, item_id, series_id=None, alt=None, fq="", flang=""
         # i mezi nalezenými streamy může být omyl (viz `phrase_leads`) — možnost
         # dohledat víc je dobré mít i tady, ne jen když se nenajde nic
         fulltext_item(ctype, item_id, series_id, alt)
+    if ctype == "movie":
+        similar_item("movie", item_id)
     xbmcplugin.endOfDirectory(HANDLE)
 
 
@@ -3971,6 +4209,13 @@ def router(query):
             xbmc.executebuiltin("Container.Update(%s)" % build_url(
                 action="streams", type=p.get("type", "movie"), id=p["id"], series=p.get("series"), alt=p.get("alt")))
             return
+        if action == "tv_pick":
+            # volba nad TV programem: dialog jen po kliku ve výpisu (handle −1), jinak nic
+            if HANDLE < 0:
+                tv_pick(get_apis(), p.get("field", ""), p.get("date", ""), p.get("kind", ""), p.get("channel", ""))
+            else:
+                xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
+            return
         if action in simple:
             # stejná pojistka jako u výpisů níž: akce bez `type` (starý odkaz z widgetu, ruční
             # URL z HA) dřív vyletěla KeyError mimo `_fail`, Kodi nechalo neuzavřený handle
@@ -3984,6 +4229,10 @@ def router(query):
             list_catalogs(apis, p["type"], p.get("src", "luna"))
         elif action == "browse":
             browse_menu(apis, p.get("type", "movie"))
+        elif action == "similar":
+            list_similar(apis, p.get("type", "movie"), p.get("id", ""))
+        elif action == "tv":
+            list_tv(apis, p.get("date", ""), p.get("kind", ""), p.get("channel", ""))
         elif action == "genres":
             list_genres(apis, p["type"], p["catalog"], p.get("src", "luna"), show_all=not p.get("noall"))
         elif action == "catalog":

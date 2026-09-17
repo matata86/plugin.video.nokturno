@@ -542,6 +542,25 @@ class TestJadroVKodi(unittest.TestCase):
         self.assertNotIn("~", default.stream_label(s).split("[/B]")[0])
 
 
+    def test_dva_radky_vyberu_streamu(self):
+        s = {"url": "ws:1", "label": "Matrix.1999.2160p.HDR.x265.CZ.EN.mkv", "detail": "20 GB", "source": "ws",
+             "_tracks": [{"lang": "CZ", "channels": "5.1", "codec": "AC3"}, {"lang": "EN", "channels": "7.1", "codec": "TrueHD"}],
+             "_media": {"width": 3840, "height": 1608}}
+        default.parse_stream(s)   # jako v jádru: datový tok a titulky se doplní až po rozboru popisku
+        s.update(bitrate=25.3, subs=["CZ"])
+        with mock.patch.object(default, "on", return_value=True):
+            top, bottom = default.stream_lines(s)
+        self.assertIn("4K", top)
+        self.assertIn("[B]CZ[/B]", top)
+        self.assertIn("GB", top)
+        self.assertNotIn("AC3", top)
+        for kus in ("3840×1608", "HEVC", "HDR", "AC3 5.1 CZ", "TrueHD 7.1 EN", "25.3 Mb/s", "Tit.: CZ"):
+            self.assertIn(kus, bottom)
+        # jednořádkový popisek pro výpis zůstává se stopami hned za kvalitou
+        line = default.stream_label(s)
+        self.assertLess(line.index("AC3"), line.index("GB"))
+
+
 class TestTmdbHelperPlayer(unittest.TestCase):
     """„Přehrát“ v detailu filmu z TMDb Helperu (Arctic Fuse) → hledání streamů v Nokturnu."""
 
@@ -820,8 +839,10 @@ class TestVyberStreamu(unittest.TestCase):
                    {"url": "ws:2", "label": "Film.2020.1080p.ENG.mkv", "detail": "2 GB", "source": "ws"}]
         volani = []
 
-        def select(heading, labels, *a, **k):
-            volani.append(list(labels))
+        def select(heading, rows, *a, **k):
+            self.assertTrue(k.get("useDetails"))
+            labels = [r.getLabel() for r in rows]
+            volani.append(labels)
             if len(volani) == 1:
                 return 0                                   # Filtr streamů
             return next(i for i, l in enumerate(labels) if "Zrušit filtr" not in l and "Filtr" not in l)
@@ -2098,6 +2119,117 @@ class TestNastavitZMobilu(unittest.TestCase):
         self.assertEqual(remote.call_count, 2, "zrušení vrátí na úvodní volbu")
         ovladacem.assert_not_called()
         self.assertTrue(default.STORE.load("wizard_done", False))
+
+
+class FakeDash:
+    """Dashboard bez sítě: menu katalogů, podobné tituly a TV program."""
+    def __init__(self, menu=(), similar=(), tv=None):
+        self._menu, self._similar, self._tv = list(menu), list(similar), tv
+        self.tv_calls = []
+
+    def menu(self, placement=None, ctype=None):
+        return [e for e in self._menu if (placement is None or e["placement"] == placement)
+                and (ctype is None or e["kind"] == ctype)]
+
+    def similar(self, ctype, imdb_id):
+        return list(self._similar)
+
+    def tv_program(self, day=None, kind=None, channel=None):
+        self.tv_calls.append((day, kind, channel))
+        return self._tv
+
+
+class TestObsahZDashboardu(unittest.TestCase):
+    MENU = [{"slug": "vanoce", "title": "Vánoční filmy", "kind": "movie", "placement": "root", "icon": "christmas"},
+            {"slug": "sagy", "title": "Ságy", "kind": "series", "placement": "browse", "icon": ""}]
+
+    def setUp(self):
+        reset_kodi()
+
+    def test_katalogy_v_hlavnim_menu_a_ve_filmech_serialech(self):
+        default.main_menu({"dash": FakeDash(self.MENU), "cinemeta": object()})
+        rows = [params_of(u) for u in xbmcplugin.urls()]
+        self.assertIn({"action": "catalog", "type": "movie", "catalog": "vanoce", "src": "dash"}, rows)
+        self.assertIn({"action": "tv"}, rows)
+        ikona = next(li for _h, u, li, _f in xbmcplugin.items if "vanoce" in u).art["icon"]
+        self.assertTrue(ikona.endswith("icon-vanoce.png"))
+        xbmcplugin.reset()
+        default.browse_menu({"dash": FakeDash(self.MENU)}, "series")
+        self.assertIn("sagy", {params_of(u).get("catalog") for u in xbmcplugin.urls()})
+        xbmcplugin.reset()
+        default.browse_menu({"dash": FakeDash(self.MENU)}, "movie")
+        self.assertNotIn("sagy", {params_of(u).get("catalog") for u in xbmcplugin.urls()})
+
+    def test_katalog_z_dashboardu_nema_dalsi_stranku(self):
+        class Api:
+            def catalog(self, *a, **k):
+                return [{"id": f"tt00000{i:02d}", "name": f"Film {i}"} for i in range(30)]
+        with mock.patch.object(default, "add_meta_item"):
+            default.list_catalog({"dash": Api()}, "movie", "vanoce", "dash")
+        self.assertEqual(xbmcplugin.urls(), [])
+
+    def test_podobne_v_kontextu_jen_u_imdb_id(self):
+        self.assertEqual(default.similar_context("movie", "sosac2_123"), [])
+        label, cmd = default.similar_context("movie", "tt0133093")[0]
+        self.assertTrue(cmd.startswith("ActivateWindow(Videos,"))
+        self.assertEqual(params_of(cmd[len("ActivateWindow(Videos,"):-len(",return)")]),
+                         {"action": "similar", "type": "movie", "id": "tt0133093"})
+
+    def test_podobne_bez_tmdb_z_dashboardu(self):
+        dash = FakeDash(similar=[{"id": "tt0234215", "name": "Matrix Reloaded", "type": "movie"}])
+        default.list_similar({"tmdb": None, "dash": dash}, "movie", "tt0133093")
+        self.assertEqual([params_of(u).get("id") for u in xbmcplugin.urls()], ["tt0234215"])
+
+    def test_podobne_tmdb_chyba_spadne_na_dashboard(self):
+        class Tmdb:
+            def similar(self, *a):
+                raise default.TmdbError("neplatný klíč")
+        dash = FakeDash(similar=[{"id": "tt0234215", "name": "Matrix Reloaded", "type": "movie"}])
+        default.list_similar({"tmdb": Tmdb(), "dash": dash}, "movie", "tt0133093")
+        self.assertEqual(len(xbmcplugin.urls()), 1)
+
+    def tv_data(self):
+        now = int(time.time())
+        return {"today": "2026-09-17", "date": "2026-09-18", "dates": ["2026-09-17", "2026-09-18"],
+                "channels": [{"slug": "ct1", "name": "ČT1"}],
+                "items": [{"channel": "ct1", "channel_name": "ČT1", "start": now + 3600, "stop": now + 9000,
+                           "kind": "movie", "title": "Pelíšky", "episode_title": "", "season": None, "episode": None,
+                           "meta": {"id": "tt0167331", "name": "Pelíšky", "year": "1999", "type": "movie"}},
+                          {"channel": "ct1", "channel_name": "ČT1", "start": now + 9000, "stop": now + 12000,
+                           "kind": "series", "title": "Komisařka Florence", "episode_title": "Útěk", "season": 8,
+                           "episode": 5, "meta": {"id": "tt1234567", "name": "Komisařka Florence", "type": "series"}}]}
+
+    def test_tv_program_volby_nahore_a_poradu_s_casem(self):
+        default.list_tv({"dash": FakeDash(tv=self.tv_data())}, "2026-09-18", "", "ct1")
+        items = xbmcplugin.items
+        self.assertEqual([params_of(u).get("field") for _h, u, _li, _f in items[:3]], ["day", "channel", "kind"])
+        self.assertTrue(all(not folder for _h, _u, _li, folder in items[:3]), "volby jsou ne-složky (handle −1)")
+        self.assertIn("Zítra", items[0][2].getLabel())
+        self.assertIn("ČT1", items[1][2].getLabel())
+        self.assertIn("Pelíšky", items[3][2].getLabel())
+        self.assertIn("8x05 Útěk", items[4][2].getLabel())
+        self.assertEqual(params_of(items[4][1])["action"], "seasons")
+        self.assertFalse(xbmcplugin.ended[-1]["cacheToDisc"])
+
+    def test_tv_program_nedostupny(self):
+        default.list_tv({"dash": FakeDash(tv=None)})
+        self.assertEqual(xbmcplugin.urls(), [])
+        self.assertTrue(xbmcplugin.ended[-1]["succeeded"])
+
+    def test_tv_volba_dne_prepne_vypis(self):
+        dash = FakeDash(tv=self.tv_data())
+        with mock.patch.object(xbmcgui.Dialog, "select", return_value=0) as select:
+            default.tv_pick({"dash": dash}, "day", "2026-09-18", "movie", "ct1")
+        self.assertEqual(select.call_args.kwargs["preselect"], 1)
+        cmd = xbmc.builtins[-1]
+        self.assertTrue(cmd.endswith(",replace)"))
+        self.assertEqual(params_of(cmd[len("Container.Update("):-len(",replace)")]),
+                         {"action": "tv", "date": "2026-09-17", "kind": "movie", "channel": "ct1"})
+
+    def test_tv_volba_zruseni_nic_neudela(self):
+        with mock.patch.object(xbmcgui.Dialog, "select", return_value=-1):
+            default.tv_pick({"dash": FakeDash(tv=self.tv_data())}, "channel")
+        self.assertEqual(xbmc.builtins, [])
 
 
 if __name__ == "__main__":
