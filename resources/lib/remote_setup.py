@@ -13,11 +13,17 @@ jen informace, že jsou vyplněná; prázdné pole heslo nemění. Spojení je H
 na domácí Wi-Fi přijatelné, stejně jako webové rozhraní Kodi.
 
 Schéma: `[{"id", "label", "fields": [{"id", "label", "help", "type", "options",
-"enable"}]}]`, `type` je `bool`/`text`/`password`/`choice`/`heading`, `options` u
+"enable"}]}]`, `type` je `bool`/`text`/`password`/`choice`/`order`/`heading`, `options` u
 `choice` seznam `(hodnota, popisek)`, `enable` volitelně `(id jiného pole, hodnota)`
 — pole je jen zašedlé, když závislost neplatí, odešle se stejně. `heading` je jen
 podnadpis uvnitř sekce (např. rozlišení více úložišť) — nemá `id`, do formuláře
 se nic neodesílá a validace ho přeskočí.
+
+`order` je pořadí položek ve více řádcích (např. co ukazovat u streamu): `items` je seznam
+`(klíč, popisek)`, `rows` počet řádků (výchozí 2). Hodnota `a,b|c,d` — řádky oddělené `|`,
+co v hodnotě chybí, se nezobrazuje. Na stránce tři skupiny (řádky a Nezobrazovat) se šipkami
+nahoru a dolů — přetahování prstem v mobilních prohlížečích spolehlivě nefunguje. Server přijme
+jen známé klíče, každý nejvýš jednou.
 """
 import hmac
 import html
@@ -41,7 +47,27 @@ TEXTS = {
     "password_set": "vyplněno — nech prázdné beze změny",
     "expired": "Tahle adresa už neplatí. Na TV spusť Nastavit z mobilu znovu.",
     "invalid": "Neplatná hodnota: {}",
+    "order_rows": "Horní řádek|Dolní řádek",
+    "order_hidden": "Nezobrazovat",
+    "order_up": "Nahoru",
+    "order_down": "Dolů",
 }
+
+
+def parse_order(value, keys, rows=2):
+    """`a,b|c,d` → seznam řádků se známými klíči, nebo None (neznámý klíč, duplicita, moc řádků)."""
+    parts = str(value or "").split("|")
+    if len(parts) > rows:
+        return None
+    out, seen = [], set()
+    for part in parts:
+        row = [k.strip() for k in part.split(",") if k.strip()]
+        for key in row:
+            if key not in keys or key in seen:
+                return None
+            seen.add(key)
+        out.append(row)
+    return out + [[] for _ in range(rows - len(out))]
 
 
 class _Server(ThreadingMixIn, HTTPServer):
@@ -125,6 +151,13 @@ class SetupServer:
                     errors.append(field.get("label") or fid)
                     continue
                 value = raw
+            elif kind == "order":
+                rows = parse_order(raw[:MAX_TEXT], {k for k, _label in field.get("items") or []},
+                                   field.get("rows") or 2)
+                if rows is None:
+                    errors.append(field.get("label") or fid)
+                    continue
+                value = "|".join(",".join(row) for row in rows)
             else:
                 value = raw.strip()[:MAX_TEXT]
             if value != str(self.values.get(fid, "")):
@@ -159,6 +192,8 @@ class SetupServer:
                                    f'{esc(str(lab))}</option>' for v, lab in f.get("options") or [])
                     rows.append(f'<label class="{row_class}"{attrs}><span>{label}{help_text}</span>'
                                 f'<select name="{esc(fid)}" id="{esc(fid)}">{opts}</select></label>')
+                elif kind == "order":
+                    rows.append(self._render_order(f, current, row_class, attrs, label, help_text))
                 elif kind == "password":
                     hint = esc(t["password_set"]) if current else ""
                     rows.append(f'<label class="{row_class}"{attrs}><span>{label}{help_text}</span>'
@@ -173,6 +208,26 @@ class SetupServer:
         note = f'<p class="note{" err" if error else ""}">{esc(message)}</p>' if message else ""
         return PAGE.format(title=esc(t["title"]), intro=esc(t["intro"]), note=note, sections="".join(parts),
                            save=esc(t["save"]), action=f"/s/{esc(self.token)}")
+
+    def _render_order(self, f, current, row_class, attrs, label, help_text):
+        esc, t = html.escape, self.texts
+        items = dict(f.get("items") or [])
+        count = f.get("rows") or 2
+        rows = parse_order(current, set(items), count) or [[] for _ in range(count)]
+        used = {k for row in rows for k in row}
+        titles = (t["order_rows"].split("|") + [""] * count)[:count]
+        zones = list(zip(titles, rows)) + [(t["order_hidden"], [k for k in items if k not in used])]
+
+        def chip(key):
+            return (f'<li data-key="{esc(key)}"><span>{esc(str(items[key]))}</span>'
+                    f'<button type="button" data-mv="-1" aria-label="{esc(t["order_up"])}">▲</button>'
+                    f'<button type="button" data-mv="1" aria-label="{esc(t["order_down"])}">▼</button></li>')
+
+        body = "".join(f'<div class="zone{" hidden-zone" if i == count else ""}"><h5>{esc(title)}</h5>'
+                       f'<ul>{"".join(chip(k) for k in keys)}</ul></div>' for i, (title, keys) in enumerate(zones))
+        fid = esc(f["id"])
+        return (f'<div class="{row_class} order" data-order="{fid}"{attrs}><span>{label}{help_text}</span>'
+                f'<input type="hidden" name="{fid}" id="{fid}" value="{esc(current)}">{body}</div>')
 
     def _handler(self):
         owner = self
@@ -276,6 +331,13 @@ border:1px solid var(--line);border-radius:10px;padding:11px 12px}}
 input:focus,select:focus{{outline:2px solid var(--accent);border-color:transparent}}
 input[type=checkbox]{{width:26px;height:26px;accent-color:var(--accent);flex:none}}
 .off{{opacity:.45}}
+.zone h5{{margin:10px 0 6px;font-size:.78rem;color:var(--dim);text-transform:uppercase;letter-spacing:.02em}}
+.zone ul{{list-style:none;margin:0;padding:6px;min-height:46px;border:1px dashed var(--line);border-radius:10px}}
+.zone li{{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--line);
+border-radius:9px;padding:6px 6px 6px 12px;margin:4px 0}}
+.zone li span{{flex:1}}.hidden-zone li{{opacity:.6}}
+.zone button{{width:auto;display:inline-block;margin:0;padding:8px 13px;font-size:.9rem;border-radius:8px;
+background:var(--line);color:var(--text)}}
 .bar{{position:fixed;left:0;right:0;bottom:0;padding:12px 14px calc(12px + env(safe-area-inset-bottom));
 background:linear-gradient(transparent,var(--bg) 35%)}}
 button{{display:block;width:100%;max-width:640px;margin:auto;font:600 1.05rem system-ui,sans-serif;color:#fff;
@@ -291,6 +353,15 @@ var dep=document.getElementById(row.dataset.dep);if(!dep)return;
 var val=dep.type==="checkbox"?(dep.checked?"true":"false"):dep.value;
 row.classList.toggle("off",val!==row.dataset.val);}});}}
 document.addEventListener("change",sync);sync();
+document.addEventListener("click",function(e){{var b=e.target.closest("button[data-mv]");if(!b)return;
+var li=b.closest("li"),box=b.closest("[data-order]"),uls=[].slice.call(box.querySelectorAll("ul")),
+ul=li.parentNode,up=b.dataset.mv==="-1",i=uls.indexOf(ul);
+if(up){{if(li.previousElementSibling)ul.insertBefore(li,li.previousElementSibling);
+else if(i>0)uls[i-1].appendChild(li);}}
+else{{if(li.nextElementSibling)ul.insertBefore(li.nextElementSibling,li);
+else if(i<uls.length-1)uls[i+1].insertBefore(li,uls[i+1].firstChild);}}
+document.getElementById(box.dataset.order).value=uls.slice(0,-1).map(function(u){{
+return [].map.call(u.children,function(c){{return c.dataset.key;}}).join(",");}}).join("|");}});
 </script></body></html>"""
 
 

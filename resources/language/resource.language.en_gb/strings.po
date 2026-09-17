@@ -495,32 +495,12 @@ msgid "Reads the start of the file to find audio language and channels where the
 msgstr "Reads the start of the file to find audio language and channels where the source stays silent. Only for such streams, from the top of the sorted list, result kept for a month. 0 = off."
 
 msgctxt "#30201"
-msgid "Stream list"
-msgstr "Stream list"
-
-msgctxt "#30202"
-msgid "Show file size"
-msgstr "Show file size"
-
-msgctxt "#30203"
-msgid "Show source"
-msgstr "Show source"
-
-msgctxt "#30204"
-msgid "Show file name"
-msgstr "Show file name"
-
-msgctxt "#30205"
-msgid "Show subtitles"
-msgstr "Show subtitles"
-
-msgctxt "#30206"
-msgid "Show bitrate"
-msgstr "Show bitrate"
+msgid "Stream selection"
+msgstr ""
 
 msgctxt "#30207"
-msgid "Jazyk se zvukem a kvalita zustavaji vzdy. Vlnovka pred jazykem nebo kvalitou znamena odhad z nazvu souboru, bez ni je udaj od zdroje nebo z hlavicky souboru."
-msgstr "Jazyk se zvukem a kvalita zustavaji vzdy. Vlnovka pred jazykem nebo kvalitou znamena odhad z nazvu souboru, bez ni je udaj od zdroje nebo z hlavicky souboru."
+msgid "Quality is shown as a picture, audio languages and the rest of the details are set below. A tilde before a value means an estimate from the file name."
+msgstr ""
 
 msgctxt "#30208"
 msgid "Quality"
@@ -581,10 +561,6 @@ msgstr "Max. bitrate (Mb/s, 0 = unlimited)"
 msgctxt "#30225"
 msgid "Converted to GB using the current title's runtime; without a known runtime (typically fulltext) it assumes a 2-hour movie."
 msgstr "Converted to GB using the current title's runtime; without a known runtime (typically fulltext) it assumes a 2-hour movie."
-
-msgctxt "#30226"
-msgid "Show length"
-msgstr "Show length"
 
 msgctxt "#30229"
 msgid "WebShare subscription status"
@@ -680,30 +656,6 @@ msgstr ""
 
 msgctxt "#30316"
 msgid "'As provided' keeps the source's own order; the other options sort by quality or file size."
-msgstr ""
-
-msgctxt "#30317"
-msgid "Adds the file size in GB to the stream line."
-msgstr ""
-
-msgctxt "#30318"
-msgid "Adds the video length (h:mm) to the stream line. A tilde means it's estimated from the title's runtime, not read from the file."
-msgstr ""
-
-msgctxt "#30319"
-msgid "Adds where the stream comes from (WebShare, Sosáč, Luna, HellSpy) to the stream line."
-msgstr ""
-
-msgctxt "#30320"
-msgid "Adds the file name to the stream line — useful for telling similar streams apart."
-msgstr ""
-
-msgctxt "#30321"
-msgid "Adds whether (and which) subtitles the stream has to the stream line."
-msgstr ""
-
-msgctxt "#30322"
-msgid "Adds the bitrate (Mb/s) to the stream line. A tilde means it's estimated, not measured."
 msgstr ""
 
 msgctxt "#30323"
@@ -1305,4 +1257,84 @@ msgstr ""
 
 msgctxt "#30494"
 msgid "Nothing on in this selection"
+msgstr ""
+
+msgctxt "#30495"
+msgid "What to show for a stream and in which order"
+msgstr ""
+
+msgctxt "#30496"
+msgid "Items separated by commas, the vertical bar splits the top and bottom line of the stream dialog. Whatever is missing is not shown. Items: langs (audio languages), size, video (resolution and codec), audio (audio tracks), bitrate, length, subs (subtitles), source, file (file name). Quality is always the picture on the left. Easier with Set up from phone."
+msgstr ""
+
+msgctxt "#30497"
+msgid "Default order"
+msgstr ""
+
+msgctxt "#30498"
+msgid "Puts back the default items and order. Reopen settings to see the new value."
+msgstr ""
+
+msgctxt "#30499"
+msgid "Top line|Bottom line"
+msgstr ""
+
+msgctxt "#30500"
+msgid "Do not show"
+msgstr ""
+
+msgctxt "#30501"
+msgid "Audio languages"
+msgstr ""
+
+msgctxt "#30502"
+msgid "Size"
+msgstr ""
+
+msgctxt "#30503"
+msgid "Resolution and codec"
+msgstr ""
+
+msgctxt "#30504"
+msgid "Audio tracks"
+msgstr ""
+
+msgctxt "#30505"
+msgid "Bitrate"
+msgstr ""
+
+msgctxt "#30506"
+msgid "Length"
+msgstr ""
+
+msgctxt "#30507"
+msgid "Subtitles"
+msgstr ""
+
+msgctxt "#30508"
+msgid "Source"
+msgstr ""
+
+msgctxt "#30509"
+msgid "File name"
+msgstr ""
+
+msgctxt "#30510"
+msgid "Up"
+msgstr ""
+
+msgctxt "#30511"
+msgid "Down"
+msgstr ""
+
+msgctxt "#30512"
+msgid "Stream details reset to the default order"
+msgstr ""
+
+msgctxt "#30513"
+msgid "Choose stream"
+msgstr ""
+
+msgctxt "#30514"
+msgid "Use the arrows to move details between the top and bottom line of the stream dialog, put what you do not want to see into Do not show. Quality is always the picture on the left."
 msgstr ""

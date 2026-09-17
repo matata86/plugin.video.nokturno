@@ -495,32 +495,12 @@ msgid "Reads the start of the file to find audio language and channels where the
 msgstr "Přečte začátek souboru a zjistí z něj jazyk a počet kanálů tam, kde je zdroj neřekl. Týká se jen takových streamů, bere se od začátku seřazeného seznamu a výsledek se pamatuje měsíc. 0 = nezjišťovat."
 
 msgctxt "#30201"
-msgid "Stream list"
-msgstr "Seznam streamů"
-
-msgctxt "#30202"
-msgid "Show file size"
-msgstr "Ukazovat velikost"
-
-msgctxt "#30203"
-msgid "Show source"
-msgstr "Ukazovat zdroj"
-
-msgctxt "#30204"
-msgid "Show file name"
-msgstr "Ukazovat název souboru"
-
-msgctxt "#30205"
-msgid "Show subtitles"
-msgstr "Ukazovat titulky"
-
-msgctxt "#30206"
-msgid "Show bitrate"
-msgstr "Ukazovat datový tok"
+msgid "Stream selection"
+msgstr "Výběr streamu"
 
 msgctxt "#30207"
-msgid "Jazyk se zvukem a kvalita zustavaji vzdy. Vlnovka pred jazykem nebo kvalitou znamena odhad z nazvu souboru, bez ni je udaj od zdroje nebo z hlavicky souboru."
-msgstr "Jazyk se zvukem a kvalita zůstávají vždy. Vlnovka před jazykem nebo kvalitou znamená odhad z názvu souboru, bez ní je údaj od zdroje nebo z hlavičky souboru."
+msgid "Quality is shown as a picture, audio languages and the rest of the details are set below. A tilde before a value means an estimate from the file name."
+msgstr "Kvalita je vždy obrázek, ostatní údaje a jejich pořadí nastavíš níž. Vlnovka před údajem znamená odhad z názvu souboru, bez ní je údaj od zdroje nebo z hlavičky souboru."
 
 msgctxt "#30208"
 msgid "Quality"
@@ -581,10 +561,6 @@ msgstr "Max. datový tok (Mb/s, 0 = bez omezení)"
 msgctxt "#30225"
 msgid "Converted to GB using the current title's runtime; without a known runtime (typically fulltext) it assumes a 2-hour movie."
 msgstr "Přepočítá se na GB podle stopáže aktuálního titulu; bez známé stopáže (typicky fulltext) se počítá s dvouhodinovým filmem."
-
-msgctxt "#30226"
-msgid "Show length"
-msgstr "Ukazovat délku"
 
 msgctxt "#30229"
 msgid "WebShare subscription status"
@@ -681,30 +657,6 @@ msgstr "Streamy pod 720p se ze seznamu úplně vyhodí, nejdou zobrazit ani pře
 msgctxt "#30316"
 msgid "'As provided' keeps the source's own order; the other options sort by quality or file size."
 msgstr "„Jak přišly“ nechá pořadí ze zdroje, ostatní volby řadí podle kvality nebo velikosti souboru."
-
-msgctxt "#30317"
-msgid "Adds the file size in GB to the stream line."
-msgstr "Přidá do řádku streamu velikost souboru v GB."
-
-msgctxt "#30318"
-msgid "Adds the video length (h:mm) to the stream line. A tilde means it's estimated from the title's runtime, not read from the file."
-msgstr "Přidá do řádku streamu délku videa (h:mm). Vlnovka znamená odhad podle stopáže titulu, ne přesnou hodnotu ze souboru."
-
-msgctxt "#30319"
-msgid "Adds where the stream comes from (WebShare, Sosáč, Luna, HellSpy) to the stream line."
-msgstr "Přidá do řádku streamu, odkud pochází (WebShare, Sosáč, Luna, HellSpy)."
-
-msgctxt "#30320"
-msgid "Adds the file name to the stream line — useful for telling similar streams apart."
-msgstr "Přidá do řádku streamu název souboru – užitečné pro rozlišení podobných streamů."
-
-msgctxt "#30321"
-msgid "Adds whether (and which) subtitles the stream has to the stream line."
-msgstr "Přidá do řádku streamu, jestli a jaké má titulky."
-
-msgctxt "#30322"
-msgid "Adds the bitrate (Mb/s) to the stream line. A tilde means it's estimated, not measured."
-msgstr "Přidá do řádku streamu datový tok (Mb/s). Vlnovka znamená odhad, ne změřenou hodnotu."
 
 msgctxt "#30323"
 msgid "Where downloaded videos and their subtitles are saved on the device."
@@ -1307,3 +1259,83 @@ msgstr "Žádné podobné tituly"
 msgctxt "#30494"
 msgid "Nothing on in this selection"
 msgstr "V tomhle výběru nic nedávají"
+
+msgctxt "#30495"
+msgid "What to show for a stream and in which order"
+msgstr "Co a v jakém pořadí ukazovat u streamu"
+
+msgctxt "#30496"
+msgid "Items separated by commas, the vertical bar splits the top and bottom line of the stream dialog. Whatever is missing is not shown. Items: langs (audio languages), size, video (resolution and codec), audio (audio tracks), bitrate, length, subs (subtitles), source, file (file name). Quality is always the picture on the left. Easier with Set up from phone."
+msgstr "Položky oddělené čárkou, svislítko dělí horní a dolní řádek dialogu výběru streamu. Co chybí, se nezobrazí. Položky: langs (jazyky zvuku), size (velikost), video (rozlišení a kodek), audio (zvukové stopy), bitrate (datový tok), length (délka), subs (titulky), source (zdroj), file (název souboru). Kvalita je vždy obrázek vlevo. Pohodlněji přes Nastavit z mobilu."
+
+msgctxt "#30497"
+msgid "Default order"
+msgstr "Výchozí pořadí"
+
+msgctxt "#30498"
+msgid "Puts back the default items and order. Reopen settings to see the new value."
+msgstr "Vrátí výchozí položky a pořadí. Novou hodnotu uvidíš po znovuotevření nastavení."
+
+msgctxt "#30499"
+msgid "Top line|Bottom line"
+msgstr "Horní řádek|Dolní řádek"
+
+msgctxt "#30500"
+msgid "Do not show"
+msgstr "Nezobrazovat"
+
+msgctxt "#30501"
+msgid "Audio languages"
+msgstr "Jazyky zvuku"
+
+msgctxt "#30502"
+msgid "Size"
+msgstr "Velikost"
+
+msgctxt "#30503"
+msgid "Resolution and codec"
+msgstr "Rozlišení a kodek"
+
+msgctxt "#30504"
+msgid "Audio tracks"
+msgstr "Zvukové stopy"
+
+msgctxt "#30505"
+msgid "Bitrate"
+msgstr "Datový tok"
+
+msgctxt "#30506"
+msgid "Length"
+msgstr "Délka"
+
+msgctxt "#30507"
+msgid "Subtitles"
+msgstr "Titulky"
+
+msgctxt "#30508"
+msgid "Source"
+msgstr "Zdroj"
+
+msgctxt "#30509"
+msgid "File name"
+msgstr "Název souboru"
+
+msgctxt "#30510"
+msgid "Up"
+msgstr "Nahoru"
+
+msgctxt "#30511"
+msgid "Down"
+msgstr "Dolů"
+
+msgctxt "#30512"
+msgid "Stream details reset to the default order"
+msgstr "Pořadí údajů u streamu vráceno na výchozí"
+
+msgctxt "#30513"
+msgid "Choose stream"
+msgstr "Vybrat stream"
+
+msgctxt "#30514"
+msgid "Use the arrows to move details between the top and bottom line of the stream dialog, put what you do not want to see into Do not show. Quality is always the picture on the left."
+msgstr "Šipkami přesuň údaje mezi horním a dolním řádkem dialogu výběru streamu, do Nezobrazovat dej, co nechceš vidět. Kvalita je vždy obrázek vlevo."
