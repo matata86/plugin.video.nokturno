@@ -384,18 +384,6 @@
     </category>
     <category id="playback" label="30004">
       <group id="1">
-        <setting id="stream_mode" type="integer" label="30005" help="30312">
-          <level>0</level>
-          <default>1</default>
-          <constraints>
-            <options>
-              <option label="30006">0</option>
-              <option label="30007">1</option>
-              <option label="30008">2</option>
-            </options>
-          </constraints>
-          <control format="string" type="spinner"/>
-        </setting>
         <setting id="pref_lang" type="integer" label="30110" help="30313">
           <level>0</level>
           <default>1</default>

@@ -30,22 +30,6 @@ msgctxt "#30004"
 msgid "Playback"
 msgstr "Přehrávání"
 
-msgctxt "#30005"
-msgid "Stream selection"
-msgstr "Výběr streamu"
-
-msgctxt "#30006"
-msgid "Play best quality automatically"
-msgstr "Přehrát nejlepší kvalitu automaticky"
-
-msgctxt "#30007"
-msgid "Choose from the stream list"
-msgstr "Vybrat ze seznamu streamů"
-
-msgctxt "#30008"
-msgid "Ask in a dialog"
-msgstr "Zeptat se v dialogu"
-
 msgctxt "#30009"
 msgid "Also search WebShare full-text (Luna: Search, slower)"
 msgstr "Hledat i fulltextem na WebShare (Luna: Search, pomalejší)"
@@ -682,10 +666,6 @@ msgctxt "#30311"
 msgid "Luna can also full-text search WebShare (its own Search feature) — finds more, but takes longer."
 msgstr "Luna umí i fulltext přes WebShare (vlastní funkce Search) – najde víc, ale hledání trvá déle."
 
-msgctxt "#30312"
-msgid "What happens after you pick a title: auto-play the best quality, or choose the stream in a dialog. The full stream list with filters is always in the item's context menu (Stream list)."
-msgstr "Co se stane po výběru titulu: automaticky se přehraje nejlepší kvalita, nebo se stream vybere v dialogu. Celý seznam streamů s filtrem je vždy v kontextovém menu položky (Seznam streamů)."
-
 msgctxt "#30313"
 msgid "Streams with this audio language always come first, then the rest. Nothing gets hidden, just reordered."
 msgstr "Streamy s tímhle jazykem zvuku jsou vždy nahoře, ostatní až pod nimi. Nic se neschovává, jen se to přeřadí."
@@ -1071,10 +1051,6 @@ msgstr "Nokturno je v TMDb Helperu"
 msgctxt "#30413"
 msgid "Adding to TMDb Helper failed"
 msgstr "Přidání do TMDb Helperu selhalo"
-
-msgctxt "#30414"
-msgid "Choose stream and play"
-msgstr "Vybrat stream a přehrát"
 
 msgctxt "#30415"
 msgid "Play from movie details"

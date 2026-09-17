@@ -30,22 +30,6 @@ msgctxt "#30004"
 msgid "Playback"
 msgstr ""
 
-msgctxt "#30005"
-msgid "Stream selection"
-msgstr ""
-
-msgctxt "#30006"
-msgid "Play best quality automatically"
-msgstr ""
-
-msgctxt "#30007"
-msgid "Choose from the stream list"
-msgstr ""
-
-msgctxt "#30008"
-msgid "Ask in a dialog"
-msgstr ""
-
 msgctxt "#30009"
 msgid "Also search WebShare full-text (Luna: Search, slower)"
 msgstr ""
@@ -682,10 +666,6 @@ msgctxt "#30311"
 msgid "Luna can also full-text search WebShare (its own Search feature) — finds more, but takes longer."
 msgstr ""
 
-msgctxt "#30312"
-msgid "What happens after you pick a title: auto-play the best quality, or choose the stream in a dialog. The full stream list with filters is always in the item's context menu (Stream list)."
-msgstr ""
-
 msgctxt "#30313"
 msgid "Streams with this audio language always come first, then the rest. Nothing gets hidden, just reordered."
 msgstr ""
@@ -1070,10 +1050,6 @@ msgstr ""
 
 msgctxt "#30413"
 msgid "Adding to TMDb Helper failed"
-msgstr ""
-
-msgctxt "#30414"
-msgid "Choose stream and play"
 msgstr ""
 
 msgctxt "#30415"

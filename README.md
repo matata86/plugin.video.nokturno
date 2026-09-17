@@ -41,14 +41,14 @@ Streamy samotné (WebShare/HellSpy/Sledujteto/FastShare/Luna) se pak hledají st
 - **rok v dotazu je filtr** — „Pět švestek 2026“ vrátí jen film z roku 2026; číslo, které patří k názvu („2012“, „Blade Runner 2049“), se jako rok nebere
 - **Hledat na WebShare** — soubory přímo z WebShare API (řazení: relevance / nejnovější / hodnocení / velikost)
 - **katalogy** Luny (TMDB) i Sosáče; seriály → série → epizody s plakáty, popisy, hodnocením, obsazením
-- **streamy z více zdrojů u jednoho titulu** — Luna, přímý fulltext WebShare, Sosáč, HellSpy, Sledujteto i FastShare se prohledají **souběžně** a stejný soubor nalezený víc cestami se ukáže jen jednou; u každého streamu je zdroj, kvalita (u souborů bez kvality v názvu odhad podle velikosti se značkou `~`), datový tok, délka, velikost a jazyky zvuku i titulků — zjištěné ze zdroje, nebo dočtené z hlavičky souboru a označené `~`, když jde jen o odhad. Řazení podle nastavení, nebo se pustí automaticky nejlepší
+- **streamy z více zdrojů u jednoho titulu** — Luna, přímý fulltext WebShare, Sosáč, HellSpy, Sledujteto i FastShare se prohledají **souběžně** a stejný soubor nalezený víc cestami se ukáže jen jednou; u každého streamu je zdroj, kvalita (u souborů bez kvality v názvu odhad podle velikosti se značkou `~`), datový tok, délka, velikost a jazyky zvuku i titulků — zjištěné ze zdroje, nebo dočtené z hlavičky souboru a označené `~`, když jde jen o odhad. Řazení podle nastavení
 - **Vlastní úložiště** (od 3.1.0) — až tři složky s vlastními soubory na WebDAV (NAS, Nextcloud, server). Soubor se k titulu přiřadí podle názvu a složek nad ním (rok u filmu, `S01E02` u dílu), mezi streamy je vždy první se jménem úložiště na začátku řádku; **Moje úložiště** v hlavním menu prochází úložiště po složkách. Nic se do úložiště nezapisuje (žádné `.nfo`/`.strm`). Návod a pojmenování souborů: [wiki → Vlastní úložiště](https://github.com/matata86/plugin.video.nokturno/wiki/Vlastni-uloziste)
 - **Zkusit uvolněný fulltext (WebShare, HellSpy, Sledujteto, FastShare)** — tlačítko dole v seznamu streamů spustí uvolněnější hledání pro případ, že přísný filtr (chrání proti nabídnutí úplně jiného titulu, který hledaná slova jen náhodou obsahuje) zahodil skutečnou shodu; takové výsledky jsou označené jako neověřené
 - **Filtr streamů** přímo v seznamu — podle kvality, jazyka zvuku, počtu kanálů (5.1 a víc), kodeku, titulků i zdroje; nabízí jen to, co se v aktuálním seznamu skutečně vyskytuje, s počtem nalezeného v závorce
-- **Výběr streamu podle toho, odkud titul pouštíš** — ve výpisu Nokturna klik otevře seznam streamů (režim *Vybrat ze seznamu streamů*); z widgetu na domovské obrazovce, z detailu filmu nebo z TMDb Helperu se nabídne dialog s výběrem a nahoře v něm **Filtr streamů**, **Zrušit filtr** a **Použít poslední filtr**. Kontextové menu filmu a dílu nabízí druhou cestu: *Vybrat stream a přehrát* (ve výpisu), *Seznam streamů* (ve widgetu)
+- **Výběr streamu v dialogu na dva řádky** — klik na titul ve výpisu, Přehrát v detailu, widget i TMDb Helper nabídnou stejný dialog: nahoře kvalita, jazyk a velikost, pod tím rozlišení a kodek, zvukové stopy, datový tok, délka, titulky a zdroj. Nahoře v něm **Filtr streamů**, **Zrušit filtr** a **Použít poslední filtr**. Streamy se načítají jen s ukazatelem v rohu obrazovky. Celý *Seznam streamů* jako složka (se stažením streamu a uvolněným fulltextem) je v kontextovém menu filmu a dílu
 - **Max. datový tok** místo pevné velikosti v GB — nastavení umí i změřit rychlost internetu a spočítat dovolený tok s 25% rezervou; skutečná velikost se pak dopočítá podle stopáže právě otevřeného titulu, ne podle jednoho čísla pro všechno
 - **Pokračovat ve sledování** (rozkoukané + další díl), **Můj seznam**, **Naposledy zhlédnuté**, historie hledání (posledních 10 dotazů), zhlédnuto/rozkoukáno (i bez Kodi knihovny)
-- **Zapamatovaný stream u seriálu** — jakmile si u seriálu jednou vybereš stream (zdroj, kvalitu, jazyk), další díly se pustí stejně bez ptaní; výběr se nabídne, jen když u dílu ta kombinace chybí
+- **Zapamatovaný stream u seriálu** — jakmile si u seriálu jednou vybereš stream (zdroj, kvalitu, jazyk), v dialogu dalšího dílu je stejná kombinace předvybraná a Up Next nebo Home Assistant ji pustí rovnou bez ptaní
 - **Značka dalšího dílu** — v seznamu epizod je `»` u prvního nezhlédnutého dílu, který navazuje na poslední zhlédnutý
 - **Otestovat zdroje** — tlačítko v *Nastavení → Pokročilé* ověří Lunu, Sosáč i přihlášení k WebShare a řekne, co nefunguje, bez čekání na prázdný seznam streamů
 - **Zkontrolovat aktualizace doplňků** — tlačítko v *Nastavení → Pokročilé* vyžádá kontrolu repozitářů hned, ne až při denní kontrole Kodi
@@ -68,10 +68,8 @@ Streamy samotné (WebShare/HellSpy/Sledujteto/FastShare/Luna) se pak hledají st
 Skiny jako Arctic Fuse ukazují detail filmu nebo dílu přes doplněk TMDb Helper. Jeho
 tlačítko **Přehrát** umí spustit Nokturno: *Nastavení doplňku → Pokročilé → Přidat
 Nokturno do TMDb Helperu*. Doplněk tam uloží player a nabídne ho jako výchozí —
-Přehrát pak podle IMDb id najde streamy v Nokturnu (v režimu *Vybrat ze seznamu
-streamů* nabídne dialog s filtrem). Filmy a díly z widgetů Nokturna se z detailu
-přehrají i bez TMDb Helperu; v detailu otevřeném přímo ve výpisu Nokturna použij
-kontextové menu *Vybrat stream a přehrát*.
+Přehrát pak podle IMDb id najde streamy v Nokturnu a nabídne dialog s filtrem. Filmy
+a díly z výpisů i widgetů Nokturna se z detailu přehrají i bez TMDb Helperu.
 
 ## Předpoklady
 
