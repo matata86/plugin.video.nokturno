@@ -2643,8 +2643,12 @@ def lang_catalog_menu(apis, ctype, want):
         return
     set_content("tvshows" if ctype == "series" else "movies")
     if age is not None and age < LANG_LOCK_STALE:
-        folder_item(L(30438, "Started in the background — you'll get a notification when it's ready."),
-                    build_url(action="lang_catalog_menu", type=ctype, want=want), icon="DefaultAddonsSearch.png")
+        label = L(30438, "Started in the background — you'll get a notification when it's ready.")
+        progress = _lang_progress_text(win.getProperty(f"{LANG_PROGRESS_PROP}:{key}"))
+        if progress:
+            label = f"{label} ({progress})"
+        folder_item(label, build_url(action="lang_catalog_menu", type=ctype, want=want),
+                    icon="DefaultAddonsSearch.png")
     else:
         folder_item(L(30437, "Data aren't ready — checking dubbing/subtitles across your sources can take a "
                               "few minutes. Tap to start."),
@@ -2673,8 +2677,12 @@ def lang_catalog_trigger(apis, ctype, want):
         # nikdo to zrovna nepočítá (zahřívač ani dřívější žádost) — teprve teď o to požádat
         win.setProperty(f"{LANG_TRIGGER_PROP}:{ctype}", "1")
     set_content("tvshows" if ctype == "series" else "movies")
-    folder_item(L(30438, "Started in the background — you'll get a notification when it's ready."),
-                build_url(action="lang_catalog_menu", type=ctype, want=want), icon="DefaultAddonsSearch.png")
+    label = L(30438, "Started in the background — you'll get a notification when it's ready.")
+    progress = _lang_progress_text(win.getProperty(f"{LANG_PROGRESS_PROP}:{key}"))
+    if progress:
+        label = f"{label} ({progress})"
+    folder_item(label, build_url(action="lang_catalog_menu", type=ctype, want=want),
+                icon="DefaultAddonsSearch.png")
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
@@ -2823,22 +2831,41 @@ def _wait_for_lang_catalog(win, prop, progress_prop, show_bar):
             bar.close()
 
 
-def _update_lang_bar(bar, raw):
+def _lang_progress_parts(raw):
     """`raw` = `"{dab}/{cíl}|{titulky}/{cíl}"`, jak ho píše `_build_lang_catalog()`.
-    Prázdné/nerozpoznatelné (výpočet ještě nezapsal první hodnotu, nebo mezitím
-    zmizelo) beze změny přeskočí — bublina zůstane na posledním známém stavu."""
+    `None`, když je prázdný/nerozpoznatelný (výpočet ještě nezapsal první hodnotu,
+    nebo mezitím zmizel) — volající pak nechá poslední známý stav beze změny."""
     if not raw:
-        return
+        return None
     try:
         dub_part, subs_part = raw.split("|")
         dub_done, target = (int(x) for x in dub_part.split("/"))
         subs_done, _ = (int(x) for x in subs_part.split("/"))
     except (TypeError, ValueError):
-        return
-    percent = int((dub_done + subs_done) / (2 * target) * 100) if target else 0
+        return None
+    return dub_done, subs_done, target
+
+
+def _lang_progress_text(raw):
+    """Krátký text s aktuálním postupem („dabing 5/30 · titulky 2/30“) pro položku
+    seznamu (`lang_catalog_menu()`/`lang_catalog_trigger()`) — `None`, když se nedá
+    přečíst (viz `_lang_progress_parts()`)."""
+    parts = _lang_progress_parts(raw)
+    if not parts:
+        return None
+    dub_done, subs_done, target = parts
     dub_label = L(30394, "Nově přidané s CZ dabingem")
     subs_label = L(30401, "Nově přidané s CZ titulky")
-    bar.update(min(percent, 100), message=f"{dub_label} {dub_done}/{target} · {subs_label} {subs_done}/{target}")
+    return f"{dub_label} {dub_done}/{target} · {subs_label} {subs_done}/{target}"
+
+
+def _update_lang_bar(bar, raw):
+    parts = _lang_progress_parts(raw)
+    if not parts:
+        return
+    dub_done, subs_done, target = parts
+    percent = int((dub_done + subs_done) / (2 * target) * 100) if target else 0
+    bar.update(min(percent, 100), message=_lang_progress_text(raw))
 
 
 def _build_lang_catalog(apis, ctype):
