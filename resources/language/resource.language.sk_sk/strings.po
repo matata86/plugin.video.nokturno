@@ -1279,3 +1279,55 @@ msgstr "Posielať hlásenia o chybách"
 msgctxt "#30481"
 msgid "When an error in the add-on's code happens, a short report goes to the author: error type, place in the code, version and a few lines of the Nokturno log. Addresses, accounts, passwords and IPs are removed first. Source outages are not sent. The same error is sent at most once per version."
 msgstr "Keď v doplnku nastane chyba v kóde, pošle sa autorovi krátke hlásenie: typ chyby, miesto v kóde, verzia a pár riadkov logu Nokturna. Adresy, účty, heslá a IP sa vopred vymažú. Výpadky zdrojov sa neposielajú. Rovnaká chyba odíde najviac raz za verziu."
+
+msgctxt "#30482"
+msgid "Similar titles"
+msgstr "Podobné tituly"
+
+msgctxt "#30483"
+msgid "TV guide"
+msgstr "TV program"
+
+msgctxt "#30484"
+msgid "Day"
+msgstr "Deň"
+
+msgctxt "#30485"
+msgid "Channel"
+msgstr "Stanica"
+
+msgctxt "#30486"
+msgid "Type"
+msgstr "Typ"
+
+msgctxt "#30487"
+msgid "All channels"
+msgstr "Všetky stanice"
+
+msgctxt "#30488"
+msgid "Movies and series"
+msgstr "Filmy aj seriály"
+
+msgctxt "#30489"
+msgid "Today"
+msgstr "Dnes"
+
+msgctxt "#30490"
+msgid "Tomorrow"
+msgstr "Zajtra"
+
+msgctxt "#30491"
+msgid "Mon,Tue,Wed,Thu,Fri,Sat,Sun"
+msgstr "po,ut,st,št,pi,so,ne"
+
+msgctxt "#30492"
+msgid "TV guide is not available right now"
+msgstr "TV program teraz nie je dostupný"
+
+msgctxt "#30493"
+msgid "No similar titles found"
+msgstr "Žiadne podobné tituly"
+
+msgctxt "#30494"
+msgid "Nothing on in this selection"
+msgstr "V tomto výbere nič nedávajú"
