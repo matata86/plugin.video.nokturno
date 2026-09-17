@@ -1343,3 +1343,11 @@ msgstr "Šipkami přesuň údaje mezi horním a dolním řádkem dialogu výběr
 msgctxt "#30515"
 msgid "On your phone, move the details with arrows between the top and bottom line — easier than typing the order here."
 msgstr "V mobilu šipkami přesuneš údaje mezi horním a dolním řádkem — pohodlnější než psát pořadí tady."
+
+msgctxt "#30516"
+msgid "Delete"
+msgstr "Smazat"
+
+msgctxt "#30517"
+msgid "OK opens the address in a browser"
+msgstr "OK adresu otevře v prohlížeči"

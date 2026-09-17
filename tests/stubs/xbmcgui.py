@@ -147,6 +147,11 @@ class ControlLabel(_Control):
     pass
 
 
+class ControlButton(_Control):
+    def getId(self):
+        return id(self)
+
+
 class ControlTextBox(_Control):
     pass
 
@@ -157,9 +162,13 @@ windows_shown = []
 class WindowDialog:
     def __init__(self):
         self.controls = []
+        self.focused = None
 
     def addControl(self, control):
         self.controls.append(control)
+
+    def setFocus(self, control):
+        self.focused = control
 
     def show(self):
         windows_shown.append(self)

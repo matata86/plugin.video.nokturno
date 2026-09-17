@@ -2188,6 +2188,38 @@ class TestNastavitZMobilu(unittest.TestCase):
         self.assertIsNone(result)
         self.assertTrue(started[0].finished)
 
+    def test_adresa_na_androidu_klikatelna_jinde_jen_text(self):
+        """2026-09-18: uživatel se na QR díval z mobilu a chtěl adresu otevřít rovnou, ne ji
+        ručně přepisovat — na Androidu je z labelu tlačítko, klik/OK spustí prohlížeč přes
+        StartAndroidActivity. Na CoreELEC/Linux (bez Androidu) ten builtin nic nedělá, takže
+        tam adresa zůstává jen čitelný text bez zaostření."""
+        xbmc.cond_visible.add("System.Platform.Android")
+        try:
+            def zpet(url):
+                time.sleep(0.1)
+                win = xbmcgui.windows_shown[-1]
+                self.assertIsNotNone(win.link, "na Androidu je adresa ControlButton, ne jen label")
+                self.assertIs(win.focused, win.link, "adresa má mít fokus rovnou")
+                win.onControl(win.link)
+                win.onAction(mock.Mock(getId=lambda: 92))
+            result, _started = self.run_setup(zpet)
+        finally:
+            xbmc.cond_visible.discard("System.Platform.Android")
+        self.assertIsNone(result)
+        self.assertTrue(any("StartAndroidActivity" in b and "android.intent.action.VIEW" in b
+                            for b in xbmc.builtins))
+
+        xbmc.builtins.clear()
+        xbmcgui.windows_shown.clear()
+
+        def zpet_bez_androidu(url):
+            time.sleep(0.1)
+            win = xbmcgui.windows_shown[-1]
+            self.assertIsNone(win.link, "bez Androidu zůstává obyčejný label")
+            win.onAction(mock.Mock(getId=lambda: 92))
+        self.run_setup(zpet_bez_androidu)
+        self.assertFalse(any("StartAndroidActivity" in b for b in xbmc.builtins))
+
     def test_zpet_doruceny_jen_behem_cekani_kodi(self):
         """Na Office Zpět dialog nezavřelo: Kodi pouští `onAction` jen uvnitř volání svého API.
         Tady ho proto doručí až podstrčené `MONITOR.waitForAbort` — smyčka ho musí volat."""
@@ -2363,6 +2395,22 @@ class TestFrontaAZahrivani(unittest.TestCase):
             default.download_stream(apis, "streamuj:https://www.streamuj.tv/1", "Sosáč CZ - HD", "sosacd_1", "movie")
         res.assert_called_once()
         self.assertTrue(default.STORE.downloads()[-1]["dest"].endswith("Sosáč CZ - HD.mp4"))
+
+    def test_popisek_smazat_jen_u_hotoveho_stazeni(self):
+        """Kontextové menu u hotového stahování maže skutečný soubor z disku (viz
+        download_remove), takže má psát „Smazat", ne „Odebrat ze seznamu" — ten
+        zůstává u chyby/fronty, kde žádný soubor na disku není (nahlásil uživatel)."""
+        default.STORE.save("downloads", [
+            {"id": "dl:1", "name": "Hotovo.mkv", "status": "done", "dest": "/x/Hotovo.mkv", "size": 10},
+            {"id": "dl:2", "name": "Chyba.mkv", "status": "error", "error": "timeout"},
+            {"id": "dl:3", "name": "Fronta.mkv", "status": "queued"},
+        ])
+        xbmcplugin.items.clear()
+        default.list_downloads()
+        labels = {li.getLabel(): [c[0] for c in li.context] for _h, _u, li, _f in xbmcplugin.items}
+        self.assertIn(default.L(30516, "Delete"), next(lbl for name, lbl in labels.items() if "Hotovo" in name))
+        self.assertIn(default.L(30084), next(lbl for name, lbl in labels.items() if "Chyba" in name))
+        self.assertIn(default.L(30083), next(lbl for name, lbl in labels.items() if "Fronta" in name))
 
     def test_sluzba_rozklicuje_az_pri_stahovani(self):
         self.assertEqual(service.resolve_internal("https://cdn/a.mkv", default.STORE), ("https://cdn/a.mkv", {}))

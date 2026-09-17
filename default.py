@@ -1807,12 +1807,19 @@ def remote_setup_schema(section=None):
 
 
 class RemoteSetupWindow(xbmcgui.WindowDialog):
-    """Okno s QR kódem. Neblokuje — `remote_setup()` mezitím čeká na mobil; Zpět zruší."""
+    """Okno s QR kódem. Neblokuje — `remote_setup()` mezitím čeká na mobil; Zpět zruší.
+
+    Na Androidu je adresa klikatelná — OK/klik ji otevře v systémovém prohlížeči přímo na
+    tomhle zařízení (`StartAndroidActivity`, nahlásil uživatel 2026-09-18: díval se na QR
+    z mobilu a chtěl adresu rovnou otevřít, ne ji přepisovat ručně). Jinde (CoreELEC/Linux,
+    Windows…) ten builtin nic nedělá, takže tam adresa zůstává jen čitelný text jako dřív."""
     CANCEL_ACTIONS = (9, 10, 13, 92)   # PARENT_DIR, PREVIOUS_MENU, STOP, NAV_BACK
 
     def __init__(self, qr_path, backdrop_path, url):
         super().__init__()
         self.cancelled = False
+        self.url = url
+        self.link = None
         self.addControl(xbmcgui.ControlImage(0, 0, 1280, 720, backdrop_path, colorDiffuse="F20D0B14"))
         self.addControl(xbmcgui.ControlLabel(90, 70, 1100, 50, "[B]%s[/B]" % L(30447, "Nastavit z mobilu"),
                                              font="font13", textColor="FFFFFFFF"))
@@ -1821,16 +1828,27 @@ class RemoteSetupWindow(xbmcgui.WindowDialog):
         self.addControl(steps)
         steps.setText(L(30452, "1. Připoj mobil ke stejné Wi-Fi jako tenhle přístroj.[CR]"
                                "2. Naskenuj QR kód fotoaparátem, nebo otevři v prohlížeči adresu:"))
-        self.addControl(xbmcgui.ControlLabel(540, 400, 700, 60, "[B]%s[/B]" % url, font="font13",
-                                             textColor="FFC4B5FD"))
-        self.addControl(xbmcgui.ControlLabel(90, 610, 1100, 40, L(30453, "Zpět zruší · adresa platí 10 minut "
-                                                                          "a pro jedno uložení"),
-                                             font="font13", textColor="FF9B95AD"))
+        footer = L(30453, "Zpět zruší · adresa platí 10 minut a pro jedno uložení")
+        if xbmc.getCondVisibility("System.Platform.Android"):
+            self.link = xbmcgui.ControlButton(540, 400, 700, 60, "[B]%s[/B]" % url, font="font13",
+                                              textColor="FFC4B5FD", focusedColor="FFFFFFFF",
+                                              noFocusTexture="", focusTexture="")
+            self.addControl(self.link)
+            self.setFocus(self.link)
+            footer += " · " + L(30517, "OK adresu otevře v prohlížeči")
+        else:
+            self.addControl(xbmcgui.ControlLabel(540, 400, 700, 60, "[B]%s[/B]" % url, font="font13",
+                                                 textColor="FFC4B5FD"))
+        self.addControl(xbmcgui.ControlLabel(90, 610, 1100, 40, footer, font="font13", textColor="FF9B95AD"))
 
     def onAction(self, action):
         if action.getId() in self.CANCEL_ACTIONS:
             self.cancelled = True
             self.close()
+
+    def onControl(self, control):
+        if self.link is not None and control == self.link:
+            xbmc.executebuiltin('StartAndroidActivity("", "android.intent.action.VIEW", "", "%s")' % self.url)
 
 
 def remote_setup(section=None):
@@ -4033,7 +4051,15 @@ def list_downloads():
         tag.setMediaType("video")
         tag.setTitle(d.get("name", ""))
         tag.setPlot(d.get("dest", ""))
-        ctx = [(L(30083) if status in ("queued", "running") else L(30084), runplugin(action="download_remove", id=d["id"]))]
+        # "done" fakticky maže soubor z disku (po potvrzení, viz download_remove) — "Odebrat ze
+        # seznamu" by tam matlo, že zůstane ležet na kartě (nahlásil uživatel 2026-09-18)
+        if status in ("queued", "running"):
+            remove_label = L(30083)
+        elif status == "done":
+            remove_label = L(30516, "Delete")
+        else:
+            remove_label = L(30084)
+        ctx = [(remove_label, runplugin(action="download_remove", id=d["id"]))]
         if status == "error":
             ctx.append((L(30085), runplugin(action="download_retry", id=d["id"])))
         li.addContextMenuItems(ctx)
