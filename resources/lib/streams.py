@@ -169,6 +169,19 @@ def parse_stream(s):
         audio = label  # „Sosáč CZ - HD“
     s["langs"] = parse_langs(audio)
     s["subs"] = parse_langs(subs)
+    # Bez „Zvuk:“/„Tit.“ v `detail` (probe_audio=False, nebo zdroj typu WebShare/HellSpy,
+    # co o zvuku ve výpisu nic neřekne) zbývá jen odhad z názvu souboru — jinak `langs`/
+    # `subs` zůstanou prázdné i u zjevně označeného „…_cz_dab_1080p.mp4“. Header z
+    # `_fill_audio()` má vždycky přednost, tahle záloha se použije, jen když nic neřekl.
+    # `_langs_from_name` značí, že `langs` je jen odhad z názvu, ne ověřený údaj —
+    # `arrange()` podle toho v `lang_group()` drží ověřené streamy před pouhým odhadem.
+    if not s["langs"]:
+        guess = langs_from_name(label if s.get("_direct") else (s.get("_ws_name") or label))
+        if guess:
+            s["langs"] = guess
+            s["_langs_from_name"] = True
+    if not s["subs"]:
+        s["subs"] = subs_from_name(label if s.get("_direct") else (s.get("_ws_name") or label))
     # kanály zvuku podle jazyka: {"CZ": 5.1, "EN": 7.1}; Sosáč/Luna bez údaje → prázdné
     channels = {}
     for code, ch in AUDIO_RE.findall(audio):
@@ -210,16 +223,18 @@ def arrange(streams, pref_lang="", hide_sd=False, max_size_gb=0.0, order="source
         """Ověřené napřed, odhadnuté až za nimi.
 
         Jazyk ve `langs` přišel od zdroje nebo z hlavičky souboru; stream, který
-        ho nemá, ho v seznamu nanejvýš odhaduje z názvu a takový patří níž.
-        Je to jen remízový klíč — odhadnuté 4K nemá spadnout pod ověřené SD.
+        ho má jen odhadnutý z názvu (`parse_stream()` nastaví `_langs_from_name`,
+        když se do „Zvuk:“ dostat nedalo), patří níž. Je to jen remízový klíč —
+        odhadnuté 4K nemá spadnout pod ověřené SD.
         """
-        return 0 if s.get("langs") else 1
+        return 0 if s.get("langs") and not s.get("_langs_from_name") else 1
 
     def lang_group(s):
         """Preferovaný jazyk je hlavní klíč: nejdřív streamy, kde ho zdroj nebo hlavička
         souboru potvrdila, pak ty, kde ho tvrdí jen název souboru (hlavička se ještě
         nečetla — `Engine._fill_audio` čte hlavičky v tomhle pořadí, takže se ověří
-        dřív než zbytek), a teprve pak všechno ostatní včetně neznámého jazyka.
+        dřív než zbytek — `_langs_from_name` z `parse_stream()` značí přesně tenhle
+        případ), a teprve pak všechno ostatní včetně neznámého jazyka.
 
         Dřív jazyk rozhodoval jen remízy (4K v angličtině nad HD v češtině); na
         přání uživatele (2026-09-16) je to obráceně — kdo chce češtinu, nemá ji
@@ -227,11 +242,7 @@ def arrange(streams, pref_lang="", hide_sd=False, max_size_gb=0.0, order="source
         if not pref_lang:
             return 0
         if pref_lang in s["langs"]:
-            return 0
-        if not s.get("_tracks") or not s.get("langs"):
-            names = " ".join(str(s.get(k) or "") for k in ("label", "_ws_name"))
-            if pref_lang in langs_from_name(names):
-                return 1
+            return 1 if s.get("_langs_from_name") else 0
         return 2
 
     def surround_key(s):
