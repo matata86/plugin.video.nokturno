@@ -123,7 +123,7 @@ class Stats:
     def due(self):
         return time.time() >= (self.data.get("next_try") or 0)
 
-    def payload(self, version="", platform="", kodi="", lang="", sources=None, product=""):
+    def payload(self, version="", platform="", kodi="", lang="", sources=None, product="", client=""):
         plays = sorted(self.data.get("plays", {}).items(), key=lambda kv: kv[1].get("l") or 0, reverse=True)
         out = {
             "id": self.data["id"],
@@ -139,15 +139,19 @@ class Stats:
             out["sources"] = sorted({str(x) for x in sources if x})
         if product:
             out["product"] = product
+        if client:
+            out["client"] = client
         if self.data.get("msg_seen"):
             out["msg_seen"] = self.data["msg_seen"]
         return out
 
-    def ping_payload(self, version="", product=""):
+    def ping_payload(self, version="", product="", client=""):
         """Jen „instalace žije" — při vypnutých statistikách."""
         out = {"id": self.data["id"], "ping": True, "version": version}
         if product:
             out["product"] = product
+        if client:
+            out["client"] = client
         if self.data.get("msg_seen"):
             out["msg_seen"] = self.data["msg_seen"]
         return out
@@ -161,7 +165,7 @@ class Stats:
                 self._save()
 
     def send(self, url, version="", platform="", kodi="", lang="", agent="Kodi plugin.video.nokturno",
-             sources=None, product="", ping=False):
+             sources=None, product="", ping=False, client=""):
         """Odešle stav. Vrací (True, "") nebo (False, důvod) — nikdy nevyhodí výjimku.
 
         `agent` odlišuje odesílatele v přístupovém logu serveru; tentýž modul
@@ -171,8 +175,8 @@ class Stats:
             return False, "chybí adresa"
         self.last_message = None
         with self._lock:
-            data = (self.ping_payload(version, product) if ping
-                    else self.payload(version, platform, kodi, lang, sources, product))
+            data = (self.ping_payload(version, product, client) if ping
+                    else self.payload(version, platform, kodi, lang, sources, product, client))
         body = json.dumps(data).encode("utf-8")
         req = urllib.request.Request(url, data=body, headers={
             "Content-Type": "application/json",
