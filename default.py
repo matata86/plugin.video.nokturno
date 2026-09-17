@@ -1349,7 +1349,11 @@ def choose_stream(streams, preferred=None):
             rows.append(xbmcgui.ListItem(label=label))
         for st in shown:
             top, bottom = stream_lines(st)
-            rows.append(xbmcgui.ListItem(label=top, label2=bottom))
+            row = xbmcgui.ListItem(label=top, label2=bottom)
+            icon = quality_icon(st)
+            if icon:
+                row.setArt({"icon": icon, "thumb": icon})
+            rows.append(row)
         focus = next((i for i, st in enumerate(shown) if st is preferred), None)
         idx = xbmcgui.Dialog().select(L(30024), rows, useDetails=True,
                                       preselect=len(entries) + focus if focus is not None else -1)
@@ -1441,7 +1445,7 @@ def stream_label_parts(s):
         # z ručního „Zkusit fulltext" — přísný filtr ho zahodil jako podobný,
         # ale možná jiný titul; uživatel to musí posoudit sám podle názvu souboru
         head.append(f"[COLOR {WARN_COLOR}]?[/COLOR]")
-    head.append(f"[COLOR {QUALITY_COLORS.get(s.get('quality_rank', 0), GREY)}][B]{quality or raw}[/B][/COLOR]")
+    quality_text = f"[COLOR {QUALITY_COLORS.get(s.get('quality_rank', 0), GREY)}][B]{quality or raw}[/B][/COLOR]"
     audio, langs, seen_langs = [], [], set()
     tracks = s.get("_tracks") or []
     if tracks:
@@ -1466,7 +1470,7 @@ def stream_label_parts(s):
             if code in channels:
                 txt += f" {channels[code]:.1f}"
             audio.append(f"[COLOR {LANG_COLORS.get(code, GREY)}][{txt}][/COLOR]")
-    parts = {"head": head, "audio": audio, "langs": langs, "size": "", "length": "", "bitrate": "",
+    parts = {"head": head, "quality": quality_text, "audio": audio, "langs": langs, "size": "", "length": "", "bitrate": "",
              "subs": "", "tag": "", "rest": "", "video": ""}
     if s.get("size_gb") and on("show_size", "true"):
         parts["size"] = f"[COLOR {GREY}][B]{s['size_gb']:.1f} GB[/B][/COLOR]"
@@ -1489,6 +1493,22 @@ def stream_label_parts(s):
     return parts
 
 
+QUALITY_ICON_DIR = os.path.join(ADDON.getAddonInfo("path"), "resources", "media", "quality")
+QUALITY_ICON_KEYS = {4: "4k", 3: "fhd", 2: "hd", 1: "sd"}
+
+
+def quality_icon(s):
+    """Odznak kvality do dialogu výběru (UHD 4K, FHD 1080…, s HDR i DV) — cesta k PNG, nebo "".
+    Obrázky kreslí `tools/make_quality_icons.py`."""
+    parse_stream(s)
+    key = QUALITY_ICON_KEYS.get(int(s.get("quality_rank") or 0))
+    if not key:
+        return ""
+    tags = video_info({}, s.get("_ws_name") or s.get("label") or "").split()
+    suffix = "-hdr" if ("HDR" in tags or "DV" in tags) else ""
+    return os.path.join(QUALITY_ICON_DIR, f"{key}{suffix}.png")
+
+
 def stream_label(s):
     """Popisek streamu na jeden řádek (výpis ve složce).
 
@@ -1500,7 +1520,7 @@ def stream_label(s):
     jen odhad z názvu souboru — stejně jako „~4K" u odhadnuté kvality.
     """
     p = stream_label_parts(s)
-    return "  ".join(x for x in p["head"] + p["audio"] + [p["size"], p["length"], p["bitrate"], p["subs"],
+    return "  ".join(x for x in p["head"] + [p["quality"]] + p["audio"] + [p["size"], p["length"], p["bitrate"], p["subs"],
                                                           p["tag"], p["rest"]] if x)
 
 
@@ -1509,7 +1529,9 @@ def stream_lines(s):
     a velikost, na co se kouká nejdřív; dole technika — rozlišení a kodek, stopy,
     datový tok, délka, titulky, zdroj a název souboru."""
     p = stream_label_parts(s)
-    top = "  ".join(x for x in p["head"] + p["langs"] + [p["size"]] if x)
+    # s odznakem kvality (`quality_icon`) je nápis zbytečný — zůstává jen odhad „~4K“ a neznámá kvalita
+    shown_quality = [] if quality_icon(s) and not s.get("_estimated") else [p["quality"]]
+    top = "  ".join(x for x in p["head"] + shown_quality + p["langs"] + [p["size"]] if x)
     bottom = "  ".join(x for x in [p["video"]] + p["audio"] + [p["bitrate"], p["length"], p["subs"], p["tag"],
                                                                p["rest"]] if x)
     return top, bottom
@@ -2953,15 +2975,15 @@ class SearchProgress:
         self.audio_done = self.audio_total = 0   # čtení hlaviček (ověření zvuku) — poslední fáze
 
     def _show(self):
-        """„Nalezené streamy: 35“ (součet ze zdrojů, průběžně přibývá) je vidět pořád, během
-        ověřování k němu přibude „Ověřuji metadata: 3/12“. Dřív se vypisoval každý zdroj
+        """„Streamy: 35“ (součet ze zdrojů, průběžně přibývá) je vidět pořád, během ověřování
+        k němu přibude „Meta: 3/12“ (zkrácené 2026-09-17, přání uživatele). Dřív se vypisoval každý zdroj
         zvlášť („Luna: 8 · WebShare: 12 · …“) — na TV nečitelné (2026-09-16, přání uživatele)."""
         percent = int(self.done / self.total * 100)
         parts = []
         if self.sources:
-            parts.append(L(30240, "Nalezené streamy: {count}").format(count=sum(n for _label, n in self.sources)))
+            parts.append(L(30240, "Streamy: {count}").format(count=sum(n for _label, n in self.sources)))
         if self.audio_total:
-            parts.append(L(30239, "Ověřuji metadata: {done}/{total}").format(
+            parts.append(L(30239, "Meta: {done}/{total}").format(
                 done=self.audio_done, total=self.audio_total))
         if parts:
             self.bar.update(percent, " · ".join(parts))
