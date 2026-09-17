@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.21~beta4" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.21~beta5" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,7 +23,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>5.2.21~beta4 – Ani skoro neprůhledný podklad z bety 3 klik na dotyku nedoručil (jen fokusový vzhled zareagoval, potvrzeno uživatelem) — tlačítko teď používá výchozí systémové textury skinu (stejné jako každé OK/Storno v Kodi), vypadá jako opravdové tlačítko, ale mělo by být konečně spolehlivě klikací
+    <news>5.2.21~beta5 – Klik na adresu v „Nastavit z mobilu“ jde nově dvěma nezávislými cestami: řádným kliknutím na tlačítko i přímo z ťuknutí/OK ve chvíli, kdy má adresa fokus (Kodi na některých telefonech to první nedoručí, i když tlačítko na dotyk reaguje); jeden klik = jedno otevření, každé ťuknutí se zapíše do logu
+5.2.21~beta4 – Ani skoro neprůhledný podklad z bety 3 klik na dotyku nedoručil (jen fokusový vzhled zareagoval, potvrzeno uživatelem) — tlačítko teď používá výchozí systémové textury skinu (stejné jako každé OK/Storno v Kodi), vypadá jako opravdové tlačítko, ale mělo by být konečně spolehlivě klikací
 5.2.21~beta3 – Oznámení z bety 2 se při ťuknutí na adresu neobjevilo — Kodi klik vůbec nedoručilo, i když fokusový vzhled (rámeček, barva) reagoval. Podklad tlačítka je teď skoro neprůhledný (vypadá jako malá pilulka, ne jako čitelný text) — dřívější slabá průhlednost možná bránila dotykovému testu, který kliká jen do skutečně vykreslené (neprůhledné) plochy
 5.2.21~beta2 – Dotyková plocha adresy z bety 1 už funguje (rámeček, barva se mění), ale prohlížeč se pořád neotevírá — přidáno krátké oznámení „Otvírám v prohlížeči…“ a záznam do logu při ťuknutí, ať víme, jestli Kodi klik vůbec zaregistruje
 5.2.21~beta1 – Oprava: QR kód v „Nastavit z mobilu“ vypadal na telefonu jako obdélník místo čtverce (Kodi ho na displeji s jiným poměrem stran než 16:9 roztahovalo) — teď si zachová poměr stran

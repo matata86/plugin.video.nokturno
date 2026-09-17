@@ -138,6 +138,9 @@ class _Control:
     def setText(self, text):
         self.text = text
 
+    def getId(self):
+        return id(self)
+
 
 class ControlImage(_Control):
     pass
@@ -148,8 +151,7 @@ class ControlLabel(_Control):
 
 
 class ControlButton(_Control):
-    def getId(self):
-        return id(self)
+    pass
 
 
 class ControlTextBox(_Control):
@@ -169,6 +171,11 @@ class WindowDialog:
 
     def setFocus(self, control):
         self.focused = control
+
+    def getFocusId(self):
+        if self.focused is None:
+            raise RuntimeError("No control has focus")
+        return self.focused.getId()
 
     def show(self):
         windows_shown.append(self)

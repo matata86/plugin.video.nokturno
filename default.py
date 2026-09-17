@@ -1814,18 +1814,27 @@ class RemoteSetupWindow(xbmcgui.WindowDialog):
     z mobilu a chtěl adresu rovnou otevřít, ne ji přepisovat ručně). Jinde (CoreELEC/Linux,
     Windows…) ten builtin nic nedělá, takže tam adresa zůstává jen čitelný text jako dřív.
 
-    `ControlButton` s vlastní (i skoro neprůhlednou) texturou na dotyku nespolehlivě
-    nedoručovala klik do `onControl` — jen fokusový vzhled zareagoval (beta 1–3, viz
-    historie). Bez explicitní `noFocusTexture`/`focusTexture` použije Kodi výchozí
-    systémové tlačítko skinu, stejné jako každé OK/Storno — garantovaně klikací i na
-    dotyku, i když teď vypadá jako opravdové tlačítko, ne jen barevný text."""
+    Klik na adresu (5.2.21~beta1–4, telefon uživatele): ťuknutí prstem měnilo jen fokusový
+    vzhled tlačítka, `onControl` nikdy nepřišel — s prázdnou, poloprůhlednou i neprůhlednou
+    vlastní texturou stejně. Kodi na ťuknutí pošle nejdřív `ACTION_MOUSE_MOVE` (ten tlačítko
+    zaostří, proto ta barva) a pak akci z touch keymapy; kde se cestou k `GUI_MSG_CLICKED`
+    ztrácí, se z logu nezjistilo. Proto se klik bere ze dvou míst: z `onControl` (řádná
+    cesta, srovnání přes `getId()`, ne `==` — Kodi může do callbacku dát jiný Python obal
+    téhož ovládacího prvku) a z `onAction` pro každou klikací akci (OK, levé tlačítko myši,
+    ťuknutí) ve chvíli, kdy má adresa fokus — `Window.onAction` dostává i akce myši/dotyku,
+    jakmile je nějaký prvek zaostřený. `open_link()` obě cesty sloučí (jeden klik = jedno
+    otevření). Tlačítko je bez vlastní textury = výchozí tlačítko skinu jako každé OK/Storno."""
     CANCEL_ACTIONS = (9, 10, 13, 92)   # PARENT_DIR, PREVIOUS_MENU, STOP, NAV_BACK
+    # SELECT_ITEM, MOUSE_LEFT_CLICK, MOUSE_DOUBLE_CLICK, MOUSE_LONG_CLICK, TOUCH_TAP
+    CLICK_ACTIONS = (7, 100, 103, 108, 401)
+    MOUSE_MOVE = 107
 
     def __init__(self, qr_path, backdrop_path, url):
         super().__init__()
         self.cancelled = False
         self.url = url
         self.link = None
+        self._opened_at = 0.0
         self.addControl(xbmcgui.ControlImage(0, 0, 1280, 720, backdrop_path, colorDiffuse="F20D0B14"))
         self.addControl(xbmcgui.ControlLabel(90, 70, 1100, 50, "[B]%s[/B]" % L(30447, "Nastavit z mobilu"),
                                              font="font13", textColor="FFFFFFFF"))
@@ -1836,11 +1845,6 @@ class RemoteSetupWindow(xbmcgui.WindowDialog):
                                "2. Naskenuj QR kód fotoaparátem, nebo otevři v prohlížeči adresu:"))
         footer = L(30453, "Zpět zruší · adresa platí 10 minut a pro jedno uložení")
         if xbmc.getCondVisibility("System.Platform.Android"):
-            # Vlastní (i skoro neprůhledná) textura se na dotyku ukázala nespolehlivě —
-            # klik se přes ni na některých zařízeních vůbec nedoručil (jen fokusový vzhled
-            # zareagoval), viz `_solid_rgba_png()` výš. Bez explicitní textury Kodi použije
-            # výchozí systémové tlačítko skinu — stejné jako každé OK/Storno v Kodi, tedy
-            # garantovaně klikací i na dotyku, byť to teď vypadá jako opravdové tlačítko.
             self.link = xbmcgui.ControlButton(540, 400, 700, 60, "[B]%s[/B]" % url, font="font13",
                                               textColor="FFC4B5FD", focusedColor="FFFFFFFF")
             self.addControl(self.link)
@@ -1852,16 +1856,39 @@ class RemoteSetupWindow(xbmcgui.WindowDialog):
         self.addControl(xbmcgui.ControlLabel(90, 610, 1100, 40, footer, font="font13", textColor="FF9B95AD"))
 
     def onAction(self, action):
-        if action.getId() in self.CANCEL_ACTIONS:
+        aid = action.getId()
+        if aid in self.CANCEL_ACTIONS:
             self.cancelled = True
             self.close()
+            return
+        if self.link is None or aid == self.MOUSE_MOVE:
+            return
+        focus = self._focus_id()
+        xbmc.log(f"[{ADDON_ID}] Nastavit z mobilu: akce {aid}, fokus {focus}, adresa {self.link.getId()}",
+                 xbmc.LOGINFO)
+        if aid in self.CLICK_ACTIONS and focus == self.link.getId():
+            self.open_link("onAction %d" % aid)
 
     def onControl(self, control):
-        if self.link is not None and control == self.link:
-            xbmc.log(f"[{ADDON_ID}] Nastavit z mobilu: klik na adresu, otevírám {self.url}", xbmc.LOGINFO)
-            xbmcgui.Dialog().notification(L(30447, "Nastavit z mobilu"), L(30518, "Otvírám v prohlížeči…"),
-                                          xbmcgui.NOTIFICATION_INFO, 2000)
-            xbmc.executebuiltin('StartAndroidActivity("", "android.intent.action.VIEW", "", "%s")' % self.url)
+        if self.link is not None and control.getId() == self.link.getId():
+            self.open_link("onControl")
+
+    def _focus_id(self):
+        try:
+            return self.getFocusId()
+        except (RuntimeError, SystemError):
+            return -1
+
+    def open_link(self, via):
+        now = time.time()
+        if now - self._opened_at < 1.5:
+            xbmc.log(f"[{ADDON_ID}] Nastavit z mobilu: {via} — tentýž klik, už otevřeno", xbmc.LOGINFO)
+            return
+        self._opened_at = now
+        xbmc.log(f"[{ADDON_ID}] Nastavit z mobilu: {via} — otevírám {self.url}", xbmc.LOGINFO)
+        xbmcgui.Dialog().notification(L(30447, "Nastavit z mobilu"), L(30518, "Otvírám v prohlížeči…"),
+                                      xbmcgui.NOTIFICATION_INFO, 2000)
+        xbmc.executebuiltin('StartAndroidActivity("", "android.intent.action.VIEW", "", "%s")' % self.url)
 
 
 def remote_setup(section=None):

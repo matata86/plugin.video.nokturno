@@ -2220,6 +2220,40 @@ class TestNastavitZMobilu(unittest.TestCase):
         self.run_setup(zpet_bez_androidu)
         self.assertFalse(any("StartAndroidActivity" in b for b in xbmc.builtins))
 
+    def test_tuknuti_na_adresu_projde_i_pres_onAction(self):
+        """5.2.21~beta1–4 (telefon uživatele): ťuknutí měnilo jen fokus tlačítka, `onControl`
+        nikdy nepřišel. Klik se proto bere i z `onAction` (OK, levé tlačítko myši, ťuknutí),
+        když má adresa fokus; obě cesty pro tentýž klik = jedno otevření; ťuknutí jinam
+        (fokus mimo adresu) a pohyb myši nic neotevřou."""
+        xbmc.cond_visible.add("System.Platform.Android")
+        try:
+            def tuknuti(url):
+                time.sleep(0.1)
+                win = xbmcgui.windows_shown[-1]
+                win.onAction(mock.Mock(getId=lambda: 107))          # MOUSE_MOVE zaostří, nic víc
+                self.assertFalse(xbmcgui.notifications)
+                win.onAction(mock.Mock(getId=lambda: 401))          # TOUCH_TAP s fokusem na adrese
+                win.onControl(win.link)                             # a řádná cesta pro tentýž klik
+                win.onAction(mock.Mock(getId=lambda: 100))          # i leftclick z touch keymapy
+                self.assertEqual(len(xbmcgui.notifications), 1, "jeden klik = jedno otevření")
+                win._opened_at = 0
+                win.focused = win.controls[3]                       # fokus na textboxu, ne na adrese
+                win.onAction(mock.Mock(getId=lambda: 7))
+                self.assertEqual(len(xbmcgui.notifications), 1, "OK mimo adresu nic neotevře")
+                win.focused = None                                  # bez fokusu getFocusId vyhodí výjimku
+                win.onAction(mock.Mock(getId=lambda: 100))
+                self.assertEqual(len(xbmcgui.notifications), 1)
+                win.focused = win.link
+                win.onAction(mock.Mock(getId=lambda: 7))            # OK na ovladači
+                self.assertEqual(len(xbmcgui.notifications), 2)
+                win.onAction(mock.Mock(getId=lambda: 92))
+            result, _started = self.run_setup(tuknuti)
+        finally:
+            xbmc.cond_visible.discard("System.Platform.Android")
+        self.assertIsNone(result)
+        self.assertEqual(sum("StartAndroidActivity" in b for b in xbmc.builtins), 2)
+        self.assertEqual(xbmcgui.notifications[0][1], "Otvírám v prohlížeči…")
+
     def test_zpet_doruceny_jen_behem_cekani_kodi(self):
         """Na Office Zpět dialog nezavřelo: Kodi pouští `onAction` jen uvnitř volání svého API.
         Tady ho proto doručí až podstrčené `MONITOR.waitForAbort` — smyčka ho musí volat."""
