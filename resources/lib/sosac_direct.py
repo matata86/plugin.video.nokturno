@@ -272,6 +272,43 @@ class SosacDirect:
                 break
         return items[skip:skip + page]
 
+    def recent_series(self, limit=60):
+        """Seriály z exportu „nově přidané epizody“ — [(meta seriálu, sezóna, díl)], každý seriál
+        jednou s nejnovějším přidaným dílem, v pořadí exportu (nejnovější první), jen s IMDb id.
+
+        Export epizod nese jen název seriálu (bez odkazu, IMDb id i značek jazyka), proto se
+        seriál dohledá v rejstříku `_series_index` podle českého názvu, při shodě víc seriálů
+        i podle originálu. Jazyk dabingu a titulků Sosáč u seriálů neuvádí vůbec — ověřuje ho
+        volající přes streamy dílu (katalogy Stremia `Nově přidané seriály s CZ dabingem`)."""
+        raw = _seznam(self._get(EXPORT + "tvshowsrecentlyadded.json", ttl=LIST_TTL), "tvshowsrecentlyadded")
+        by_name = {}
+        for name, orig, v in self._series_index():
+            by_name.setdefault(name, []).append((orig, v))
+        out, seen = [], set()
+        for ep in raw:
+            if not isinstance(ep, dict):
+                continue
+            name, orig = normalize(self._name(ep.get("t"))), normalize(self._orig(ep.get("t")))
+            if not name or name in seen:
+                continue
+            found = by_name.get(name) or []
+            if len(found) > 1 and orig:
+                found = [f for f in found if f[0] == orig] or found
+            if len(found) != 1:
+                continue
+            try:
+                season, episode = int(ep.get("s") or 0), int(ep.get("e") or 0)
+            except (TypeError, ValueError):
+                continue
+            meta = self.series_meta(found[0][1])
+            if not meta.get("imdb_id") or season < 1 or episode < 1:
+                continue
+            seen.add(name)
+            out.append((meta, season, episode))
+            if len(out) >= limit:
+                break
+        return out
+
     def episode_meta(self, v):
         """Položka z „nově přidané epizody“ – jen k přehrání, bez vazby na seriál."""
         link = v.get("l")
