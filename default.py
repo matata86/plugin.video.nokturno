@@ -15,12 +15,14 @@ import logging
 import os
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import struct
 import sys
 import threading
 import time
 import traceback
 import urllib.parse
 import urllib.request
+import zlib
 
 import xbmc
 import xbmcaddon
@@ -1806,6 +1808,22 @@ def remote_setup_schema(section=None):
     return sections
 
 
+def _solid_rgba_png(rgb, alpha):
+    """PNG 1×1 RGBA jedné barvy — Kodi ji roztáhne na velikost kontroly.
+
+    Podklad tlačítka s adresou v `RemoteSetupWindow`. Výchozí textura skinu (bez vlastní)
+    se na telefonu kreslila užší než tlačítko a posunutá doprava, text přes ni přetékal
+    (5.2.21~beta4/5). Jednobarevná pilulka je stejná v každém skinu."""
+    r, g, b = rgb
+    header = struct.pack(">IIBBBBB", 1, 1, 8, 6, 0, 0, 0)
+
+    def chunk(kind, body):
+        return struct.pack(">I", len(body)) + kind + body + struct.pack(">I", zlib.crc32(kind + body) & 0xFFFFFFFF)
+    raw = bytes([0, r, g, b, alpha])
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header)
+            + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b""))
+
+
 class RemoteSetupWindow(xbmcgui.WindowDialog):
     """Okno s QR kódem. Neblokuje — `remote_setup()` mezitím čeká na mobil; Zpět zruší.
 
@@ -1823,13 +1841,14 @@ class RemoteSetupWindow(xbmcgui.WindowDialog):
     téhož ovládacího prvku) a z `onAction` pro každou klikací akci (OK, levé tlačítko myši,
     ťuknutí) ve chvíli, kdy má adresa fokus — `Window.onAction` dostává i akce myši/dotyku,
     jakmile je nějaký prvek zaostřený. `open_link()` obě cesty sloučí (jeden klik = jedno
-    otevření). Tlačítko je bez vlastní textury = výchozí tlačítko skinu jako každé OK/Storno."""
+    otevření). Podklad tlačítka je vlastní jednobarevná pilulka (`_solid_rgba_png`) — ani
+    prázdná textura, ani výchozí tlačítko skinu nevypadaly na telefonu dobře."""
     CANCEL_ACTIONS = (9, 10, 13, 92)   # PARENT_DIR, PREVIOUS_MENU, STOP, NAV_BACK
     # SELECT_ITEM, MOUSE_LEFT_CLICK, MOUSE_DOUBLE_CLICK, MOUSE_LONG_CLICK, TOUCH_TAP
     CLICK_ACTIONS = (7, 100, 103, 108, 401)
     MOUSE_MOVE = 107
 
-    def __init__(self, qr_path, backdrop_path, url):
+    def __init__(self, qr_path, backdrop_path, url, link_bg_path, link_bg_focus_path):
         super().__init__()
         self.cancelled = False
         self.url = url
@@ -1846,7 +1865,8 @@ class RemoteSetupWindow(xbmcgui.WindowDialog):
         footer = L(30453, "Zpět zruší · adresa platí 10 minut a pro jedno uložení")
         if xbmc.getCondVisibility("System.Platform.Android"):
             self.link = xbmcgui.ControlButton(540, 400, 700, 60, "[B]%s[/B]" % url, font="font13",
-                                              textColor="FFC4B5FD", focusedColor="FFFFFFFF")
+                                              textColor="FFC4B5FD", focusedColor="FFFFFFFF",
+                                              noFocusTexture=link_bg_path, focusTexture=link_bg_focus_path)
             self.addControl(self.link)
             self.setFocus(self.link)
             footer += " · " + L(30517, "OK adresu otevře v prohlížeči")
@@ -1936,6 +1956,8 @@ def remote_setup(section=None):
     url = server.url(ip)
     qr_path = os.path.join(PROFILE, "remote-setup-%s.png" % server.token[:8])
     backdrop = os.path.join(PROFILE, "remote-setup-bg.png")
+    link_bg = os.path.join(PROFILE, "remote-setup-link-bg.png")
+    link_bg_focus = os.path.join(PROFILE, "remote-setup-link-bg-focus.png")
     changes, window = None, None
     try:
         xbmcvfs.mkdirs(PROFILE)
@@ -1943,8 +1965,12 @@ def remote_setup(section=None):
             f.write(qr_png(qr_encode(url), scale=12, border=2))
         with open(backdrop, "wb") as f:
             f.write(qr_png([[False]], scale=1, border=0))
+        with open(link_bg, "wb") as f:
+            f.write(_solid_rgba_png((92, 68, 150), 230))
+        with open(link_bg_focus, "wb") as f:
+            f.write(_solid_rgba_png((124, 92, 200), 255))
         xbmc.log(f"[{ADDON_ID}] nastavení z mobilu: server na portu {server.port}", xbmc.LOGINFO)
-        window = RemoteSetupWindow(qr_path, backdrop, url)
+        window = RemoteSetupWindow(qr_path, backdrop, url, link_bg, link_bg_focus)
         window.show()
         deadline = time.time() + REMOTE_SETUP_TIMEOUT
         while time.time() < deadline and not window.cancelled and not should_stop():
