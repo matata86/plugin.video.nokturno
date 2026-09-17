@@ -1353,6 +1353,13 @@ class TestMenuAZahrivani(unittest.TestCase):
         menu = self.browse({"tmdb": None, "sosac_db": object(), "luna": object(), "cinemeta": None})
         self.assertTrue(self.warm() <= menu, self.warm() - menu)
 
+    def test_zapnuta_luna_bez_tokenu_se_nezahriva(self):
+        """`luna_enabled` je výchozí zapnuté i bez tokenu, ale `get_luna()` pak vrátí None
+        a zahřívaný katalog skončí chybou „Není nastaven žádný zdroj" — čtyři řádky
+        v kodi.logu při každém warm-upu a nic zahřátého (log uživatele 2026-09-17)."""
+        self.assertEqual(xbmcaddon.settings.get("token", ""), "", "výchozí stav je bez tokenu")
+        self.assertEqual({p["src"] for p in map(params_of, service.warm_urls())}, {"trend"})
+
     def test_bez_luny_i_tmdb_zahriva_jen_trend(self):
         xbmcaddon.settings["luna_enabled"] = "false"
         # vlastní žebříček (trend) nepotřebuje ani jedno z nich, zahřívá se vždycky;
@@ -2528,6 +2535,24 @@ class TestUdrzbaKodi(unittest.TestCase):
         build_repo.check(ET.parse(ROOT / "addon.xml").getroot().get("version"))   # aktuální stav projde
         with self.assertRaises(SystemExit):
             build_repo.check("9.9.9")
+
+    def test_repozitar_ma_verzovany_zip(self):
+        """Kodi si při `<datadir zip="true">` skládá adresu zipu z id a verze v addons.xml —
+        `repository.nokturno.beta.zip` bez verze v názvu pro něj neexistuje a instalace
+        beta repozitáře z „Nokturno repozitáře" končila 404 (2026-09-15 až 2026-09-17).
+        Holá kopie zůstává vedle: na ni odkazují návody na fóru."""
+        repo = ROOT / "repo"
+        for addon_id in ("repository.nokturno", "repository.nokturno.beta"):
+            verze = ET.parse(ROOT / addon_id / "addon.xml").getroot().get("version")
+            self.assertTrue((repo / addon_id / f"{addon_id}-{verze}.zip").exists(),
+                            f"{addon_id}-{verze}.zip chybí — Kodi ho hledá přesně pod tímhle jménem")
+            self.assertTrue((repo / addon_id / f"{addon_id}.zip").exists(), addon_id)
+        # addons.xml musí tu verzi inzerovat, jinak Kodi sáhne po jiné adrese
+        addons = (repo / "addons.xml").read_text(encoding="utf-8")
+        for addon_id in ("repository.nokturno", "repository.nokturno.beta"):
+            verze = ET.parse(ROOT / addon_id / "addon.xml").getroot().get("version")
+            self.assertIn(f'<addon id="{addon_id}" name=', addons)
+            self.assertIn(f'version="{verze}"', addons)
 
     def test_readme_bez_zastaralych_tvrzeni(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")

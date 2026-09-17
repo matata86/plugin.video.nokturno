@@ -1974,9 +1974,14 @@ class Engine:
                     else api.streams(ctype, item_id)
             except Exception as err:  # noqa: BLE001 – výpadek zdroje = prázdno, ne chyba služby;
                                        # cross/WebShare/HellSpy níž to samy doženou
-                _LOGGER.warning("streamy %s: %s", item_id, err)
-                # chybějící zdroj (titul z Cinemety, Luna nenastavená) není výpadek
-                if not (isinstance(err, NokturnoError) and "není nastaven" in str(err).lower()):
+                # chybějící zdroj (titul z Cinemety, Luna nenastavená) není výpadek — a ani
+                # zpráva do logu: katalog „Nově přidané s CZ dabingem" prochází desítky
+                # kandidátů naráz, takže bez Luny/Sosáče zaplnila tahle jedna hláška skoro
+                # půlku odeslaného kodi.logu a přebila v něm to, kvůli čemu se posílal
+                if isinstance(err, NokturnoError) and "není nastaven" in str(err).lower():
+                    _LOGGER.debug("streamy %s: %s", item_id, err)
+                else:
+                    _LOGGER.warning("streamy %s: %s", item_id, err)
                     failures.append(("Sosáč" if is_sosac_id(base_id) else "Luna", err))
                 found = []
             tick()

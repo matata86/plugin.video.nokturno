@@ -59,11 +59,14 @@ def zip_addon(addon_id, src, version):
     is_repo = addon_id.startswith("repository.")
     out_dir = os.path.join(REPO, addon_id)
     os.makedirs(out_dir, exist_ok=True)
-    # Repozitářové doplňky se sotva kdy vydávají v nové verzi, takže staré
-    # verzované zipy nemají smysl retenovat (jen matou při ručním prohlížení
-    # repa) — u nich zůstává vždy jediný soubor `{addon_id}.zip`. U samotného
-    # pluginu (níž) jde o víc verzí zůstávajících záměrně, viz komentář dole.
-    out = os.path.join(out_dir, f"{addon_id}.zip" if is_repo else f"{addon_id}-{version}.zip")
+    # Zip musí vždycky ležet i pod verzovaným jménem `{addon_id}-{verze}.zip`:
+    # při `<datadir zip="true">` si Kodi adresu skládá samo z id a verze v
+    # addons.xml, jiné jméno pro něj neexistuje. Repozitářové doplňky k tomu
+    # mají ještě kopii pod holým `{addon_id}.zip` — na tu odkazují návody na
+    # fóru („Instalovat ze zipu" z URL), proto se její jméno nesmí měnit
+    # s verzí. (2026-09-17: verzovaná jména se od 2026-09-15 negenerovala a
+    # instalace beta repozitáře z „Nokturno repozitáře" končila 404.)
+    out = os.path.join(out_dir, f"{addon_id}-{version}.zip")
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zf:
         for base, dirs, files in os.walk(src):
             dirs[:] = [d for d in dirs if d not in EXCLUDE]
@@ -73,8 +76,12 @@ def zip_addon(addon_id, src, version):
                 full = os.path.join(base, f)
                 zf.write(full, os.path.join(addon_id, os.path.relpath(full, src)))
     if is_repo:
+        # Repozitáře se sotva kdy vydávají v nové verzi a starší se nikdy
+        # neinstalují zpátky — z verzovaných zipů zůstává jen ta vydávaná.
+        shutil.copy(out, os.path.join(out_dir, f"{addon_id}.zip"))
         for name in os.listdir(out_dir):
-            if name.startswith(f"{addon_id}-") and name.endswith(".zip"):
+            if name.startswith(f"{addon_id}-") and name.endswith(".zip") \
+                    and name != os.path.basename(out):
                 os.remove(os.path.join(out_dir, name))
     # Staré verzované zipy pluginu se nemažou — zůstávají v repu všechny (jde se
     # k nim vrátit ruční instalací ze ZIPu, kdyby nová verze něco pokazila) a

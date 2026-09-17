@@ -555,7 +555,10 @@ def warm_urls():
         if addon.getSetting("tmdb_api_key").strip():
             for c in ("popular", "top_rated"):
                 urls.append(base.format(src="tmdb", t=t, c=c))
-        elif addon.getSetting("luna_enabled") != "false":
+        # `luna_enabled` je ve výchozím stavu zapnuté i bez vyplněného tokenu — bez něj
+        # ale `get_luna()` vrátí None a zahřívaný katalog skončí chybou „Není nastaven
+        # žádný zdroj" (čtyři řádky v kodi.logu při každém warm-upu, nic zahřátého)
+        elif addon.getSetting("luna_enabled") != "false" and addon.getSetting("token").strip():
             urls.append(base.format(src="luna", t=t, c=f"tmdb.top_{t}"))
             urls.append(base.format(src="luna", t=t, c=f"tmdb.top_rated_{t}"))
         # vlastní žebříček (dashboard) — bez ohledu na TMDB/Lunu, funguje vždycky stejně
