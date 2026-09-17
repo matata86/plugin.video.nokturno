@@ -471,35 +471,23 @@
     </category>
     <category id="streamlist" label="30201" help="30207">
       <group id="1">
-        <setting id="show_size" type="boolean" label="30202" help="30317">
+        <setting id="stream_layout" type="string" label="30495" help="30496">
           <level>0</level>
-          <default>true</default>
-          <control type="toggle"/>
+          <default>langs,size|video,audio,bitrate,length,subs,source,file</default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+            <heading>30495</heading>
+          </control>
         </setting>
-        <setting id="show_length" type="boolean" label="30226" help="30318">
+        <setting id="stream_layout_reset" type="action" label="30497" help="30498">
           <level>0</level>
-          <default>true</default>
-          <control type="toggle"/>
-        </setting>
-        <setting id="show_source" type="boolean" label="30203" help="30319">
-          <level>0</level>
-          <default>true</default>
-          <control type="toggle"/>
-        </setting>
-        <setting id="show_file" type="boolean" label="30204" help="30320">
-          <level>0</level>
-          <default>true</default>
-          <control type="toggle"/>
-        </setting>
-        <setting id="show_subs" type="boolean" label="30205" help="30321">
-          <level>0</level>
-          <default>true</default>
-          <control type="toggle"/>
-        </setting>
-        <setting id="show_bitrate" type="boolean" label="30206" help="30322">
-          <level>0</level>
-          <default>true</default>
-          <control type="toggle"/>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=stream_layout_reset)</data>
+          <control type="button" format="action"/>
         </setting>
       </group>
     </category>

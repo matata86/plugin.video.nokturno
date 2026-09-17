@@ -537,9 +537,9 @@ class TestJadroVKodi(unittest.TestCase):
 
     def test_popisek_s_odhadnutou_kvalitou_z_jadra(self):
         s = {"url": "ws:1", "label": "Film.mkv", "detail": "9 GB", "source": "ws", "quality_rank": 4, "_estimated": True}
-        self.assertIn("~4K", default.stream_label(s))
+        self.assertIn("~4K", default.stream_lines(s)[0])
         s = {"url": "ws:1", "label": "Film.mkv", "detail": "9 GB", "source": "ws", "quality_rank": 4}
-        self.assertNotIn("~", default.stream_label(s).split("[/B]")[0])
+        self.assertNotIn("~", default.stream_lines(s)[0].split("[/B]")[0])
 
 
     def test_dva_radky_vyberu_streamu(self):
@@ -562,9 +562,47 @@ class TestJadroVKodi(unittest.TestCase):
         odhad = {"url": "ws:2", "label": "Film.mkv", "detail": "9 GB", "source": "ws", "quality_rank": 3, "_estimated": True}
         self.assertIn("~FHD", default.stream_lines(odhad)[0], "odhadnutá kvalita zůstává i nápisem")
         self.assertTrue(default.quality_icon(odhad).endswith("fhd.png"))
-        # jednořádkový popisek pro výpis zůstává se stopami hned za kvalitou
-        line = default.stream_label(s)
-        self.assertLess(line.index("AC3"), line.index("GB"))
+
+    def stream(self):
+        s = {"url": "ws:1", "label": "Matrix.1999.2160p.x265.CZ.mkv", "detail": "20 GB", "source": "ws",
+             "_tracks": [{"lang": "CZ", "channels": "5.1", "codec": "AC3"}], "_media": {"width": 3840, "height": 1608}}
+        default.parse_stream(s)
+        s.update(bitrate=25.3, subs=["CZ"])
+        return s
+
+    def test_poradi_polozek_streamu_z_nastaveni(self):
+        s = self.stream()
+        xbmcaddon.settings["stream_layout"] = "bitrate,size|langs"
+        top, bottom = default.stream_lines(s)
+        self.assertLess(top.index("Mb/s"), top.index("GB"))
+        self.assertIn("[B]CZ[/B]", bottom)
+        for skryte in ("AC3", "Tit.:", "3840"):
+            self.assertNotIn(skryte, top + bottom, "co v pořadí není, se neukáže")
+        # prázdný dolní řádek je v pořádku
+        xbmcaddon.settings["stream_layout"] = "size"
+        self.assertEqual(default.stream_layout(), (["size"], []))
+        self.assertEqual(default.stream_lines(s)[1], "")
+
+    def test_neplatne_poradi_a_stare_prepinace(self):
+        top, bottom = default.STREAM_LAYOUT_DEFAULT.split("|")
+        vychozi = (top.split(","), bottom.split(","))
+        for spatne in ("size,nesmysl", "size|size", "a|b|c"):
+            xbmcaddon.settings["stream_layout"] = spatne
+            self.assertEqual(default.stream_layout(), vychozi, spatne)
+        # instalace, která dřív vypnula velikost a soubor, je nevidí ani po přechodu
+        xbmcaddon.settings.clear()
+        xbmcaddon.settings.update(show_size="false", show_file="false")
+        top, bottom = default.stream_layout()
+        self.assertNotIn("size", top)
+        self.assertNotIn("file", bottom)
+        # vlastní pořadí staré přepínače ignoruje
+        xbmcaddon.settings["stream_layout"] = "size|file"
+        self.assertEqual(default.stream_layout(), (["size"], ["file"]))
+
+    def test_vychozi_poradi_tlacitkem(self):
+        xbmcaddon.settings["stream_layout"] = "size"
+        default.stream_layout_reset()
+        self.assertEqual(xbmcaddon.settings["stream_layout"], default.STREAM_LAYOUT_DEFAULT)
 
 
 class TestTmdbHelperPlayer(unittest.TestCase):
@@ -675,11 +713,10 @@ class TestPrehratelnePolozky(unittest.TestCase):
         reset_kodi()
 
     def streams_menu(self, li):
-        akce = dict(li.context).get("Seznam streamů", "")
-        self.assertTrue(akce.startswith("ActivateWindow(Videos,plugin://plugin.video.nokturno/?"), akce)
-        self.assertTrue(akce.endswith(",return)"), akce)
+        akce = dict(li.context).get("Vybrat stream", "")
+        self.assertTrue(akce.startswith("RunPlugin(plugin://plugin.video.nokturno/?"), akce)
         self.assertTrue(any("toggle_watched" in a for _l, a in li.context), "menu se skládá jedním voláním")
-        return params_of(akce[len("ActivateWindow(Videos,"):-len(",return)")])
+        return params_of(akce[len("RunPlugin("):-1])
 
     def test_film_mimo_vypis_prehratelny_s_dialogem_a_seznamem_v_menu(self):
         default.add_meta_item({"id": "tt1", "name": "Film", "year": 2020}, "movie", alt="sosacd_1")
@@ -689,7 +726,7 @@ class TestPrehratelnePolozky(unittest.TestCase):
         p = params_of(url)
         self.assertEqual((p["action"], p["id"], p.get("alt"), p.get("ask")), ("play", "tt1", "sosacd_1", "1"))
         menu = self.streams_menu(li)
-        self.assertEqual((menu["action"], menu["type"], menu["id"], menu["alt"]), ("streams", "movie", "tt1", "sosacd_1"))
+        self.assertEqual((menu["action"], menu["type"], menu["id"], menu["alt"]), ("title", "movie", "tt1", "sosacd_1"))
 
     def test_ve_vypisu_nokturna_je_film_ne_slozka_a_seznam_v_menu(self):
         xbmc.cond_visible.add("Window.IsMedia")
@@ -704,9 +741,7 @@ class TestPrehratelnePolozky(unittest.TestCase):
         self.assertNotEqual(li.properties.get("IsPlayable"), "true")
         self.assertEqual((params_of(url)["action"], params_of(url)["id"], params_of(url)["alt"]),
                          ("title", "tt1", "sosacd_1"))
-        akce = dict(li.context).get("Seznam streamů", "")
-        self.assertTrue(akce.startswith("Container.Update(plugin://plugin.video.nokturno/?"), akce)
-        self.assertEqual(params_of(akce[len("Container.Update("):-1])["action"], "streams")
+        self.assertEqual(self.streams_menu(li)["action"], "title")
 
     def test_rozkoukany_film_ve_vypisu_nokturna_je_prehratelny_ne_slozka(self):
         """2026-09-16: i v režimu „Vybrat ze seznamu streamů“ (folder_mode) musí titul
@@ -784,7 +819,7 @@ class TestPrehratelnePolozky(unittest.TestCase):
         p = params_of(url)
         self.assertEqual((p["action"], p["type"], p["id"], p["series"], p["ask"]), ("play", "series", "tt9:1:1", "tt9", "1"))
         menu = self.streams_menu(li)
-        self.assertEqual((menu["action"], menu["id"], menu["series"]), ("streams", "tt9:1:1", "tt9"))
+        self.assertEqual((menu["action"], menu["id"], menu["series"]), ("title", "tt9:1:1", "tt9"))
 
 
 class TestVyberStreamu(unittest.TestCase):
@@ -890,36 +925,45 @@ class TestSeznamStreamu(unittest.TestCase):
     def setUp(self):
         reset_kodi()
 
-    def test_title_polozky_streamu_je_popis_streamu(self):
-        """Arctic Fuse v některých zobrazeních kreslí ListItem.Title — dřív tam byl u všech streamů název filmu."""
-        streams = [{"url": "ws:1", "label": "Matrix.1999.2160p.CZ.mkv", "detail": "47.8 GB", "source": "ws"},
-                   {"url": "ws:2", "label": "Matrix.1999.1080p.EN.mkv", "detail": "9.1 GB", "source": "ws"}]
-        with mock.patch.object(default, "load_meta", return_value=({"id": "tt1", "name": "Matrix", "year": 1999}, None)), \
-             mock.patch.object(default, "collect_streams", return_value=streams), \
-             mock.patch.object(default, "mark_viewed"):
-            default.list_streams({}, "movie", "tt1")
-        rows = [(url, li) for _h, url, li, folder in xbmcplugin.items if not folder]
-        self.assertEqual(len(rows), 2)
-        for _url, li in rows:
-            titles = [c[1][0] for c in li.tag.calls if c[0] == "setTitle"]
-            self.assertEqual(titles[-1], li.getLabel(), "poslední setTitle = popis streamu")
-            self.assertNotEqual(titles[-1], "Matrix")
-
-    def test_vypis_streamu_nepouziva_modalni_dialog(self):
-        """Načítání streamů jen ukazatelem v rohu (`DialogProgressBG`), i ve výpisu Nokturna —
-        CLAUDE.md „nikdy modál v cestě z widgetu/JSON-RPC" a přání uživatele (2026-09-17)."""
-        xbmc.cond_visible.add("Window.IsMedia")
-        xbmc.info_labels["Container.PluginName"] = default.ADDON_ID
-        self.addCleanup(xbmc.cond_visible.clear)
-        self.addCleanup(xbmc.info_labels.clear)
-        with mock.patch.object(default, "load_meta", return_value=({"id": "tt1", "name": "Film", "year": 2020}, None)), \
-             mock.patch.object(default, "collect_streams",
-                               return_value=[{"url": "ws:1", "label": "Film.mkv", "source": "ws"}]), \
+    def pick(self, streams, select, meta=({"id": "tt1", "name": "Film", "year": 2020}, None), apis=None, item="tt1",
+             ctype="movie"):
+        with mock.patch.object(default, "load_meta", return_value=meta), \
+             mock.patch.object(default, "collect_streams", side_effect=streams) as collect, \
+             mock.patch.object(default, "mark_viewed") as mv, \
              mock.patch.object(xbmcgui, "DialogProgress") as modal, \
-             mock.patch.object(xbmcgui, "DialogProgressBG") as bg:
-            default.list_streams({}, "movie", "tt1")
+             mock.patch.object(xbmcgui, "DialogProgressBG"), \
+             mock.patch.object(xbmcgui.Dialog, "select", side_effect=select):
+            default.pick_title(apis or {}, ctype, item)
         modal.assert_not_called()
-        bg.assert_called_once()
+        return collect, mv
+
+    def test_stary_odkaz_na_vypis_streamu_nic_nevypise(self):
+        """Výpis streamů jako složka zrušen (5.2.14~beta4) — z widgetu/JSON-RPC nic a žádný dialog."""
+        with mock.patch.object(default, "HANDLE", 3), mock.patch.object(default, "get_apis", return_value={}), \
+             mock.patch.object(default, "pick_title") as pick:
+            default.router("action=streams&type=movie&id=tt1")
+        pick.assert_not_called()
+        self.assertFalse(xbmcplugin.ended[-1]["succeeded"])
+        self.assertEqual(xbmc.builtins, [])
+
+    def test_bez_vysledku_zkusi_rovnou_uvolneny_fulltext(self):
+        s = {"url": "ws:1", "label": "Film.mkv", "source": "ws"}
+        collect, _mv = self.pick([[], [s]], lambda *a, **k: len(a[1]) - 1, apis={"ws": object()})
+        self.assertEqual([c[0][6] for c in collect.call_args_list], [True, False], "přísně, pak uvolněně")
+        self.assertTrue(xbmc.builtins and xbmc.builtins[-1].startswith("PlayMedia("))
+
+    def test_dialog_nabidne_uvolneny_fulltext(self):
+        s = {"url": "ws:1", "label": "Film.mkv", "source": "ws"}
+        labels = []
+
+        def select(heading, rows, *a, **k):
+            labels.append([r.getLabel() for r in rows])
+            return len(rows) - 1 if len(labels) == 1 else -1   # poprvé poslední řádek = fulltext
+
+        collect, _mv = self.pick([[s], [s]], select, apis={"ws": object()})
+        self.assertTrue(labels[0][-1].startswith("Zkusit uvolněný fulltext"))
+        self.assertFalse(any(l.startswith("Zkusit") for l in labels[1]), "uvolněný už fulltext nenabízí")
+        self.assertEqual([c[0][6] for c in collect.call_args_list], [True, False])
 
     def test_mark_viewed_u_serialu_posila_nazev_serialu_ne_epizody(self):
         """2026-09-16: statistiky se serverem slučují podle normalizovaného názvu
@@ -930,10 +974,7 @@ class TestSeznamStreamu(unittest.TestCase):
         streams = [{"url": "ws:1", "label": "Lupin.S01E01.mkv", "detail": "1 GB", "source": "ws"}]
         meta = {"id": "tt123", "name": "Lupin", "_title": "Lupin", "year": 2021}
         video = {"title": "Skutečný název epizody, ne placeholder"}
-        with mock.patch.object(default, "load_meta", return_value=(meta, video)), \
-             mock.patch.object(default, "collect_streams", return_value=streams), \
-             mock.patch.object(default, "mark_viewed") as mv:
-            default.list_streams({}, "series", "tt123:1:2")
+        _c, mv = self.pick([streams], lambda *a, **k: -1, meta=(meta, video), item="tt123:1:2", ctype="series")
         mv.assert_called_once()
         self.assertEqual(mv.call_args[0][1], "Lupin")
 
@@ -2052,6 +2093,10 @@ class TestNastavitZMobilu(unittest.TestCase):
         self.assertNotIn("remote_setup_action", fields, "tlačítka akcí na stránku nepatří")
         self.assertNotIn("download_dir", fields)
         self.assertTrue(schema[0]["open"])
+        self.assertEqual(fields["stream_layout"]["type"], "order")
+        self.assertEqual([k for k, _ in fields["stream_layout"]["items"]], list(default.STREAM_PARTS))
+        for stary in ("show_size", "show_file", "stream_layout_reset"):
+            self.assertNotIn(stary, fields)
         storage = next(s for s in schema if s["id"] == "storage")
         headings = [f["label"] for f in storage["fields"] if f.get("type") == "heading"]
         self.assertEqual(headings, ["Úložiště 1", "Úložiště 2", "Úložiště 3"])

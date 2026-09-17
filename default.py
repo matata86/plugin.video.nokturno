@@ -46,7 +46,7 @@ from source_errors import describe_failure, summarize as summarize_failures  # n
 from sync import sync_once  # noqa: E402
 from streams import estimate_rank, langs_from_name, parse_stream, subs_from_name  # noqa: E402
 from qr import encode as qr_encode, to_png as qr_png  # noqa: E402
-from remote_setup import SetupServer  # noqa: E402
+from remote_setup import SetupServer, parse_order  # noqa: E402
 from tracks import FILE_CODES, SUBTITLE_FALLBACK, decode_subtitle, subtitle_format, subtitle_lang  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
 from webshare_api import SORTS, WebshareApi, WebshareError, human_size  # noqa: E402
@@ -945,13 +945,10 @@ def add_playable(li, ctype, item_id, series_id=None, alt=None):
 
 
 def streams_context(ctype, item_id, series_id=None, alt=None):
-    """„Seznam streamů“ jako složka v kontextovém menu — s filtrem, stažením streamu a uvolněným
-    fulltextem. Ve výpisu Nokturna `Container.Update`, jinde `ActivateWindow` (jde i z domovské
-    obrazovky)."""
-    url = build_url(action="streams", type=ctype, id=item_id, series=series_id, alt=alt)
-    if browsing_nokturno():
-        return (L(30201, "Seznam streamů"), f"Container.Update({url})")
-    return (L(30201, "Seznam streamů"), f"ActivateWindow(Videos,{url},return)")
+    """„Vybrat stream“ v kontextovém menu — dialog výběru (`pick_title`) i u položky, která by jinak
+    hrála rovnou (Pokračovat ve sledování s uloženým streamem). Výpis streamů jako složka od
+    `5.2.14~beta4` není (na přání uživatele vše v modálním okně)."""
+    return (L(30513, "Vybrat stream"), runplugin(action="title", type=ctype, id=item_id, series=series_id, alt=alt))
 
 
 def add_snapshot_item(key, snap, extra_context=None):
@@ -1210,7 +1207,7 @@ def stream_facets(s):
 
 
 def apply_stream_filter(streams, fq="", flang="", fch="", fcodec="", fsub="", fsrc=""):
-    """Streamy, které vyhovují filtru z `streams_filter`. Prázdný filtr = beze změny.
+    """Streamy, které vyhovují filtru z dialogu výběru (`filter_dialog`). Prázdný filtr = beze změny.
 
     Jazyk, kanály a kodek se ověřují na téže stopě (viz `stream_tracks`) — stream
     projde, jen když aspoň jedna jeho stopa vyhovuje všem třem najednou.
@@ -1254,7 +1251,7 @@ def filter_params(filt):
 def filter_dialog(streams, active=None):
     """Výběr filtru podle toho, co se u titulu doopravdy našlo → {"q": [...], …}, nebo None
     (zrušeno, nebo není podle čeho filtrovat). Sdílí ho složka se seznamem streamů
-    (`streams_filter`) i dialog výběru streamu (`choose_stream`)."""
+    dialog výběru streamu (`choose_stream`)."""
     facets = [stream_facets(st) for st in streams]
     qualities = sorted({f["quality_rank"] for f in facets if f["quality_rank"]}, reverse=True)
     langs = sorted({c for f in facets for c in f["langs"]})
@@ -1303,28 +1300,15 @@ def filter_dialog(streams, active=None):
     return new
 
 
-def streams_filter(apis, ctype, item_id, series_id, alt, fq, flang, fch, fcodec, fsub, fsrc):
-    """Dialog s nabídkou filtrů podle toho, co se u titulu doopravdy našlo.
-
-    Nejde o samostatnou obrazovku — je to stejné volání GetDirectory jako
-    „streams", jen se mezi nimi otevře dialog. Zrušení (Esc) nebo prázdný výběr
-    beze změny vrátí předchozí filtr, potvrzení jede rovnou na `list_streams`
-    s novým, žádný mezikrok navíc.
-    """
-    meta, video = load_meta(apis, ctype, item_id, series_id)
-    streams = collect_streams(apis, ctype, item_id, meta, alt)
-    active = {k: [x for x in v.split(",") if x] for k, v in zip(FILTER_KINDS, (fq, flang, fch, fcodec, fsub, fsrc))}
-    new = filter_dialog(streams, active)
-    if new is None:
-        list_streams(apis, ctype, item_id, series_id, alt, fq, flang, fch, fcodec, fsub, fsrc)
-        return
-    list_streams(apis, ctype, item_id, series_id, alt, **filter_params(new))
+FULLTEXT = "fulltext"
 
 
-def choose_stream(streams, preferred=None):
+def choose_stream(streams, preferred=None, relax=False):
     """Výběr streamu v dialogu na dva řádky — jediný způsob výběru od `5.2.14~beta2` (klik ve výpisu,
-    Přehrát v detailu, widget, TMDb Helper). Nahoře Filtr streamů, Zrušit filtr, Použít poslední
-    filtr. `preferred` (zapamatovaná volba u seriálu) je předvybraný. Vrací stream, nebo None."""
+    Přehrát v detailu, widget, TMDb Helper), od `beta4` i jediné místo (výpis streamů jako složka zrušen).
+    Nahoře Filtr streamů, Zrušit filtr, Použít poslední filtr. `preferred` (zapamatovaná volba
+    u seriálu) je předvybraný. `relax=True` přidá dole „Zkusit uvolněný fulltext“ a jeho volba
+    vrátí `FULLTEXT`. Vrací stream, `FULLTEXT`, nebo None."""
     active = {}
     while True:
         shown = apply_stream_filter(streams, **filter_params(active))
@@ -1354,11 +1338,15 @@ def choose_stream(streams, preferred=None):
             if icon:
                 row.setArt({"icon": icon, "thumb": icon})
             rows.append(row)
+        if relax:
+            rows.append(xbmcgui.ListItem(label=L(30335, "Zkusit uvolněný fulltext (WebShare, HellSpy, Sledujteto, FastShare)")))
         focus = next((i for i, st in enumerate(shown) if st is preferred), None)
         idx = xbmcgui.Dialog().select(L(30024), rows, useDetails=True,
                                       preselect=len(entries) + focus if focus is not None else -1)
         if idx < 0:
             return None
+        if idx >= len(entries) + len(shown):
+            return FULLTEXT
         if idx >= len(entries):
             return shown[idx - len(entries)]
         volba = entries[idx][1]
@@ -1470,27 +1458,54 @@ def stream_label_parts(s):
             if code in channels:
                 txt += f" {channels[code]:.1f}"
             audio.append(f"[COLOR {LANG_COLORS.get(code, GREY)}][{txt}][/COLOR]")
-    parts = {"head": head, "quality": quality_text, "audio": audio, "langs": langs, "size": "", "length": "", "bitrate": "",
-             "subs": "", "tag": "", "rest": "", "video": ""}
-    if s.get("size_gb") and on("show_size", "true"):
+    # klíče jako v nastavení „stream_layout“ (`STREAM_PARTS`); co uživatel v pořadí nemá, se nezobrazí
+    parts = {"head": head, "quality": quality_text, "audio": "  ".join(audio), "langs": "  ".join(langs),
+             "size": "", "length": "", "bitrate": "", "subs": "", "source": "", "file": "", "video": ""}
+    if s.get("size_gb"):
         parts["size"] = f"[COLOR {GREY}][B]{s['size_gb']:.1f} GB[/B][/COLOR]"
-    if s.get("_length_s") and on("show_length", "true"):
+    if s.get("_length_s"):
         mark = "~" if s.get("_length_est") else ""
         parts["length"] = f"[COLOR {GREY}]{mark}{format_duration(s['_length_s'])}[/COLOR]"
-    if s.get("bitrate") and on("show_bitrate", "true"):
+    if s.get("bitrate"):
         mark = "~" if s.get("_bitrate_est") else ""
         parts["bitrate"] = f"[COLOR {GREY}]{mark}{s['bitrate']:g} Mb/s[/COLOR]"
     subs = set(s.get("subs") or []) | subs_from_name(raw)
-    if subs and on("show_subs", "true"):
+    if subs:
         parts["subs"] = f"[COLOR {GREY}]Tit.: {' '.join(sorted(subs))}[/COLOR]"
-    if tag and on("show_source", "true"):
-        parts["tag"] = tag
-    if rest and quality and on("show_file", "true"):
-        parts["rest"] = f"[COLOR {GREY}]{rest}[/COLOR]"
+    if tag:
+        parts["source"] = tag
+    if rest and quality:
+        parts["file"] = f"[COLOR {GREY}]{rest}[/COLOR]"
     video = video_info(s, s.get("_ws_name") or raw)
     if video:
         parts["video"] = f"[COLOR {GREY}]{video}[/COLOR]"
     return parts
+
+
+# Co ukazovat u streamu a v jakém pořadí (nastavení „stream_layout“, od `5.2.14~beta4`): `a,b|c,d`,
+# svislítko odděluje horní a dolní řádek dialogu. Nahradilo šest přepínačů show_size a spol.
+STREAM_PARTS = ("langs", "size", "video", "audio", "bitrate", "length", "subs", "source", "file")
+STREAM_LAYOUT_DEFAULT = "langs,size|video,audio,bitrate,length,subs,source,file"
+_OLD_SHOW = {"size": "show_size", "length": "show_length", "source": "show_source", "file": "show_file",
+             "subs": "show_subs", "bitrate": "show_bitrate"}
+
+
+def stream_layout():
+    """(horní řádek, dolní řádek) jako seznamy klíčů. Neplatná hodnota → výchozí pořadí.
+    Výchozí hodnota u instalace, která dřív vypnula některý přepínač `show_*`, ho vynechá."""
+    raw = setting("stream_layout", STREAM_LAYOUT_DEFAULT).strip()
+    rows = parse_order(raw, set(STREAM_PARTS)) if raw else None
+    if rows is None:
+        rows = parse_order(STREAM_LAYOUT_DEFAULT, set(STREAM_PARTS))
+    if raw in ("", STREAM_LAYOUT_DEFAULT):
+        off = {key for key, old in _OLD_SHOW.items() if setting(old, "true") == "false"}
+        rows = [[k for k in row if k not in off] for row in rows]
+    return rows[0], rows[1]
+
+
+def stream_layout_reset():
+    ADDON.setSetting("stream_layout", STREAM_LAYOUT_DEFAULT)
+    notify(L(30512, "Pořadí údajů u streamu vráceno na výchozí"))
 
 
 QUALITY_ICON_DIR = os.path.join(ADDON.getAddonInfo("path"), "resources", "media", "quality")
@@ -1509,31 +1524,19 @@ def quality_icon(s):
     return os.path.join(QUALITY_ICON_DIR, f"{key}{suffix}.png")
 
 
-def stream_label(s):
-    """Popisek streamu na jeden řádek (výpis ve složce).
-
-    Arctic Fuse v seznamu druhý řádek nevykreslí, takže všechno musí do jednoho
-    a záleží na pořadí: co skin ořízne, je konec. Napřed tedy zvukové stopy
-    a velikost, pak teprve datový tok, titulky, zdroj a název souboru.
+def stream_lines(s):
+    """Dva řádky streamu v dialogu výběru (`select(useDetails=True)`) — jednořádkový popisek ani
+    výpis streamů jako složka od `5.2.14~beta4` nejsou. Co a v jakém pořadí, určuje `stream_layout()`;
+    výchozí je nahoře jazyk a velikost, dole technika.
 
     Jazyk bez vlnovky přišel od zdroje nebo z hlavičky souboru, s vlnovkou je
-    jen odhad z názvu souboru — stejně jako „~4K" u odhadnuté kvality.
-    """
-    p = stream_label_parts(s)
-    return "  ".join(x for x in p["head"] + [p["quality"]] + p["audio"] + [p["size"], p["length"], p["bitrate"], p["subs"],
-                                                          p["tag"], p["rest"]] if x)
-
-
-def stream_lines(s):
-    """Dva řádky pro dialog výběru (`select(useDetails=True)`): nahoře kvalita, jazyk
-    a velikost, na co se kouká nejdřív; dole technika — rozlišení a kodek, stopy,
-    datový tok, délka, titulky, zdroj a název souboru."""
+    jen odhad z názvu souboru — stejně jako „~4K" u odhadnuté kvality."""
     p = stream_label_parts(s)
     # s odznakem kvality (`quality_icon`) je nápis zbytečný — zůstává jen odhad „~4K“ a neznámá kvalita
     shown_quality = [] if quality_icon(s) and not s.get("_estimated") else [p["quality"]]
-    top = "  ".join(x for x in p["head"] + shown_quality + p["langs"] + [p["size"]] if x)
-    bottom = "  ".join(x for x in [p["video"]] + p["audio"] + [p["bitrate"], p["length"], p["subs"], p["tag"],
-                                                               p["rest"]] if x)
+    top_keys, bottom_keys = stream_layout()
+    top = "  ".join(x for x in p["head"] + shown_quality + [p[k] for k in top_keys] if x)
+    bottom = "  ".join(x for x in [p[k] for k in bottom_keys] if x)
     return top, bottom
 
 
@@ -1733,6 +1736,8 @@ def accounts_set():
 REMOTE_SETUP_CATEGORIES = ("ws", "sosac", "hs", "st", "fs", "luna", "storage", "database", "playback",
                            "streamlist", "trakt", "sync", "stats")
 REMOTE_SETUP_TIMEOUT = 1800
+STREAM_PART_LABELS = (("langs", 30501), ("size", 30502), ("video", 30503), ("audio", 30504), ("bitrate", 30505),
+                      ("length", 30506), ("subs", 30507), ("source", 30508), ("file", 30509))
 KODI_TAG_RE = re.compile(r"\[/?(?:B|I|CR|COLOR|UPPERCASE|LOWERCASE|CAPITALIZE|LIGHT)[^\]]*\]")
 
 
@@ -1758,7 +1763,10 @@ def remote_setup_schema():
             for node in group.findall("setting"):
                 kind, control = node.get("type"), node.find("control")
                 field = {"id": node.get("id")}
-                if kind == "boolean":
+                if node.get("id") == "stream_layout":
+                    field["type"] = "order"
+                    field["items"] = [(key, L(label, key)) for key, label in STREAM_PART_LABELS]
+                elif kind == "boolean":
                     field["type"] = "bool"
                 elif kind == "string":
                     field["type"] = ("password" if control is not None and control.find("hidden") is not None
@@ -1778,7 +1786,11 @@ def remote_setup_schema():
                 field["default"] = (node.findtext("default") or "").strip()
                 field["label"] = (_plain(L(int(node.get("label")), node.get("id"))) if node.get("label")
                                   else node.get("id"))
-                if node.get("help"):
+                if field["type"] == "order":   # nápověda z Kodi popisuje zápis `a,b|c`, tady jsou šipky
+                    field["help"] = L(30514, "Šipkami přesuň údaje mezi horním a dolním řádkem dialogu výběru "
+                                             "streamu, do Nezobrazovat dej, co nechceš vidět. Kvalita je vždy "
+                                             "obrázek vlevo.")
+                elif node.get("help"):
                     field["help"] = _plain(L(int(node.get("help"))))
                 dep = node.find("dependencies/dependency[@type='enable']")
                 if dep is not None and dep.get("setting"):
@@ -1848,6 +1860,10 @@ def remote_setup():
         "password_set": L(30461, "vyplněno — nech prázdné beze změny"),
         "expired": L(30462, "Tahle adresa už neplatí. Na TV spusť Nastavit z mobilu znovu."),
         "invalid": L(30463, "Neplatná hodnota: %s").replace("%s", "{}"),
+        "order_rows": L(30499, "Horní řádek|Dolní řádek"),
+        "order_hidden": L(30500, "Nezobrazovat"),
+        "order_up": L(30510, "Nahoru"),
+        "order_down": L(30511, "Dolů"),
     }
     server = SetupServer(schema, values, texts)
     try:
@@ -2189,7 +2205,7 @@ def prefetch(apis, kind):
 
     Katalogy zahřívá služba přes běžný výpis (Files.GetDirectory), protože ten
     projde i doplněním popisů; tohle je jen pro streamy dalších dílů, kde by
-    běžná cesta (`list_streams`) započítala zobrazení do statistik.
+    běžná cesta (`pick_title`) započítala zobrazení do statistik.
     """
     if kind == "next":
         seen = set()
@@ -3638,129 +3654,6 @@ def tv_pick(apis, field, day="", kind="", channel=""):
 
 # --- přehrávání ------------------------------------------------------------------
 
-def fulltext_item(ctype, item_id, series_id, alt):
-    """Odkaz na tuhle obrazovku znovu, ale s uvolněným filtrem fulltextových zdrojů
-    (viz `Engine._title_queries`, `strict=False`) — pro případ, že přísný automatický
-    filtr skutečnou shodu zahodil, protože název souboru je neobvyklý."""
-    folder_item(L(30335, "Zkusit uvolněný fulltext (WebShare, HellSpy, Sledujteto, FastShare)"),
-                build_url(action="streams", type=ctype, id=item_id, series=series_id, alt=alt, fulltext="1"),
-                icon="DefaultAddonsSearch.png")
-
-
-def list_streams(apis, ctype, item_id, series_id=None, alt=None, fq="", flang="", fch="", fcodec="", fsub="", fsrc="",
-                 fulltext=""):
-    meta, video = load_meta(apis, ctype, item_id, series_id)
-    strict = fulltext != "1"
-    has_fulltext_source = bool(apis.get("ws") or apis.get("hs") or apis.get("st") or apis.get("fs"))
-    # ukazatel průběhu: pár kroků na dotazy zdrojům, pak (obvykle nejdelší část) jeden na každý
-    # soubor, kterému jádro čte hlavičku. Vždy `DialogProgressBG` v rohu, ne modální okno — výpis
-    # spouští i widget a JSON-RPC a uživatel si nepřál načítání v modálu (2026-09-17, `5.2.14~beta2`).
-    bar = xbmcgui.DialogProgressBG()
-    bar.create(L(30000, "Nokturno"), L(30238, "Načítám streamy…"))
-    errors = []
-    try:
-        streams = collect_streams(apis, ctype, item_id, meta, alt,
-                                  SearchProgress(bar, Engine.STREAM_SOURCE_STEPS + AUDIO_PROBE_MAX), strict, errors)
-    finally:
-        bar.close()
-    if errors:
-        # jen upozornění, ne dialog — výpis může spustit widget nebo JSON-RPC z HA
-        notify(skipped_notice(errors), xbmcgui.NOTIFICATION_WARNING, 7000)
-    if not streams:
-        if strict and has_fulltext_source:
-            # rovnou selhat by uživateli vzalo možnost zkusit to uvolněněji —
-            # nabídne se aspoň ta jedna položka místo prázdné/chybové obrazovky
-            set_content("episodes")
-            fulltext_item(ctype, item_id, series_id, alt)
-            xbmcplugin.endOfDirectory(HANDLE)
-            return
-        if not errors:
-            notify(L(30102))
-        xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
-        return
-    filtered = apply_stream_filter(streams, fq, flang, fch, fcodec, fsub, fsrc)
-    if not filtered:
-        # filtr nic nenechal — spíš zmatek než prázdný seznam, ukázat radši vše
-        notify(L(30214, "Filtr nic nenechal, zobrazeny všechny streamy"), xbmcgui.NOTIFICATION_WARNING)
-        filtered, fq, flang, fch, fcodec, fsub, fsrc = streams, "", "", "", "", "", ""
-    # Bez tohohle skin nezná typ obsahu a nabídne jen holý „Seznam základní“
-    # (jediné místo v doplňku, kde to chybělo). "videos" nestačí — bohatší
-    # zobrazení (Seznam médií) skin nabízí jen pro konkrétní typy.
-    #
-    # Past: Kodi/skin si zvolené zobrazení pamatuje podle TYPU OBSAHU okna,
-    # ne podle konkrétní obrazovky pluginu — použití "movies" tady (stejně
-    # jako u výsledků hledání) svázalo obě obrazovky do jednoho nastavení,
-    # takže změna zobrazení na jedné přepnula i tu druhou. "episodes" sdílí
-    # identitu jen s obrazovkou Epizody, na kterou se z hledání chodí přes
-    # mezikrok — kolize je tam mnohem méně nápadná než přímo s hledáním.
-    set_content("episodes")
-    title = (video or {}).get("title") or display_name(meta)
-    year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
-    # do statistik jde vždy název seriálu, ne epizody (na rozdíl od mark_playing níž) —
-    # server slučuje statistiky podle normalizovaného názvu (`db.canonical_key`), takže
-    # skutečný (nikoli jen generický placeholder) název konkrétní epizody by rozštěpil
-    # sledovanost jednoho seriálu na tolik „titulů", kolik různých epizod se sledovalo
-    stats_title = bare_title(meta)
-    mark_viewed(item_id, stats_title, year if year.isdigit() else None, "series" if video else ctype)
-    if len(streams) > 1:
-        active = bool(fq or flang or fch or fcodec or fsub or fsrc)
-        # počet vždy — beze filtru aspoň řekne, z kolika streamů se vybírá,
-        # s filtrem navíc kolik z nich filtru vyhovělo
-        count = f"({len(filtered)}/{len(streams)})" if active else f"({len(streams)})"
-        label = f"{L(30213, 'Filtr streamů')}  {count}"
-        # aktivní filtr = zaškrtávací seznam kritérií, ne kolečko aktualizace —
-        # to bylo matoucí, protože stejnou ikonu měly i „Vymazat mezipaměť"
-        # a „Vymazat historii" (úplně jiná akce, teď mají křížek)
-        folder_item(label, build_url(action="streams_filter", type=ctype, id=item_id, series=series_id, alt=alt,
-                                     fq=fq, flang=flang, fch=fch, fcodec=fcodec, fsub=fsub, fsrc=fsrc),
-                   icon="DefaultPlaylist.png" if active else "DefaultAddonsSearch.png")
-        if active:
-            folder_item(L(30363, "Zrušit filtr"),
-                       build_url(action="streams", type=ctype, id=item_id, series=series_id, alt=alt,
-                                 fulltext=fulltext),
-                       icon="DefaultVideoDeleted.png")
-        last = STORE.last_stream_filter()
-        last_f = {k: ",".join(last.get(k) or []) for k in ("q", "lang", "ch", "codec", "sub", "src")}
-        if any(last_f.values()) and (last_f["q"], last_f["lang"], last_f["ch"], last_f["codec"], last_f["sub"],
-                                     last_f["src"]) != (fq, flang, fch, fcodec, fsub, fsrc):
-            last_count = len(apply_stream_filter(streams, **{
-                "fq": last_f["q"], "flang": last_f["lang"], "fch": last_f["ch"],
-                "fcodec": last_f["codec"], "fsub": last_f["sub"], "fsrc": last_f["src"]}))
-            # 0 shodných streamů by bylo jen matoucí tlačítko do prázdna — radši ho vůbec nenabízet
-            if last_count:
-                # hvězda jako u Můj seznam — „tvoje obvyklá volba", ne další lupa
-                folder_item(f"{L(30364, 'Použít poslední filtr')}  ({last_count})",
-                           build_url(action="streams", type=ctype, id=item_id, series=series_id, alt=alt,
-                                     fulltext=fulltext, fq=last_f["q"], flang=last_f["lang"], fch=last_f["ch"],
-                                     fcodec=last_f["codec"], fsub=last_f["sub"], fsrc=last_f["src"]),
-                           icon="DefaultFavourites.png")
-    for s in filtered:
-        li = xbmcgui.ListItem(label=stream_label(s))
-        li.setArt(art_for(meta, video))
-        # popis a obrázky titulu do InfoTagu (panel s detailem); stopáž a hodnocení ne — skin by
-        # z nich udělal sloupce a ukrojil šířku popisku streamu
-        fill_info(li, meta, "series" if video else ctype, video=video, tech=False)
-        # Title = popis streamu: část zobrazení Arctic Fuse kreslí v řádku `ListItem.Title`, ne popisek,
-        # a pak byl celý seznam jen „Matrix“ pod sebou (Office 2026-09-14). Název filmu v OSD dává
-        # přehrávaná položka z play(), ne tahle.
-        li.getVideoInfoTag().setTitle(li.getLabel())
-        fill_streamdetails(li, s)
-        apply_watched(li, item_id, [(L(30070), runplugin(action="download", url=s["url"], name=f"{title} [{s['label']}]",
-                                                         id=item_id, type=ctype, series=series_id, alt=alt))])
-        li.setProperty("IsPlayable", "true")
-        # přehrání jde přes plugin (ne přímo URL), aby služba věděla, co se hraje
-        url = build_url(action="play", type=ctype, id=item_id, series=series_id, alt=alt, url=s["url"],
-                        subs="|".join(s.get("subtitles") or []), pref=pref_param(s))
-        xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=False)
-    if strict and has_fulltext_source:
-        # i mezi nalezenými streamy může být omyl (viz `phrase_leads`) — možnost
-        # dohledat víc je dobré mít i tady, ne jen když se nenajde nic
-        fulltext_item(ctype, item_id, series_id, alt)
-    if ctype == "movie":
-        similar_item("movie", item_id)
-    xbmcplugin.endOfDirectory(HANDLE)
-
-
 def upnext_episode(meta, v, series_id):
     """Popis dílu ve tvaru, jaký čeká služba Up Next (service.upnext)."""
     art = art_for(meta, v)
@@ -3818,35 +3711,49 @@ def upnext_notify(meta, video, series_id, alt=None):
         "sender": f"{ADDON_ID}.SIGNAL", "message": "upnext_data", "data": [encoded]}}))
 
 
-def pick_title(apis, ctype, item_id, series_id=None, alt=None):
-    """Klik na titul ve výpisu Nokturna (handle −1, viz `add_playable`): najít streamy s ukazatelem
-    průběhu v rohu (`DialogProgressBG`), ukázat dialog a vybraný stream pustit přes `PlayMedia` s jeho referencí —
-    `play()` ji jen rozklíčuje a zapamatuje volbu u seriálu. Modál je tu v pořádku: tuhle cestu
-    spouští jen klik uživatele, widget ani JSON-RPC položku `action=title` nerozklíčují jako skript."""
+def pick_title(apis, ctype, item_id, series_id=None, alt=None, fulltext=False):
+    """Klik na titul ve výpisu Nokturna (handle −1, viz `add_playable`) i „Vybrat stream“ v kontextovém
+    menu: najít streamy s ukazatelem průběhu v rohu (`DialogProgressBG`), ukázat dialog a vybraný stream
+    pustit přes `PlayMedia` s jeho referencí — `play()` ji jen rozklíčuje a zapamatuje volbu u seriálu.
+    Modál je tu v pořádku: tuhle cestu spouští jen klik uživatele, widget ani JSON-RPC položku
+    `action=title` nerozklíčují jako skript.
+
+    Přísný filtr fulltextových zdrojů (`Engine._title_queries`) může skutečnou shodu zahodit kvůli
+    neobvyklému názvu souboru: bez výsledku se rovnou zkusí uvolněný, s výsledky ho nabídne dialog."""
     meta, video = load_meta(apis, ctype, item_id, series_id)
-    bar = xbmcgui.DialogProgressBG()   # načítání jen ukazatelem v rohu, modální je až výběr streamu
-    bar.create(L(30000, "Nokturno"), L(30238, "Načítám streamy…"))
-    errors = []
-    try:
-        streams = collect_streams(apis, ctype, item_id, meta, alt,
-                                  SearchProgress(bar, Engine.STREAM_SOURCE_STEPS + AUDIO_PROBE_MAX), True, errors)
-    finally:
-        bar.close()
-    if errors:
-        notify(skipped_notice(errors), xbmcgui.NOTIFICATION_WARNING, 7000)
-    year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
-    mark_viewed(item_id, bare_title(meta), year if year.isdigit() else None, "series" if video else ctype)
+    has_fulltext_source = bool(apis.get("ws") or apis.get("hs") or apis.get("st") or apis.get("fs"))
+
+    def collect(strict):
+        bar = xbmcgui.DialogProgressBG()   # načítání jen ukazatelem v rohu, modální je až výběr streamu
+        bar.create(L(30000, "Nokturno"), L(30238, "Načítám streamy…"))
+        errors = []
+        try:
+            found = collect_streams(apis, ctype, item_id, meta, alt,
+                                    SearchProgress(bar, Engine.STREAM_SOURCE_STEPS + AUDIO_PROBE_MAX), strict, errors)
+        finally:
+            bar.close()
+        if errors:
+            notify(skipped_notice(errors), xbmcgui.NOTIFICATION_WARNING, 7000)
+        return found, errors
+
+    strict = not fulltext
+    streams, errors = collect(strict)
+    if not fulltext:
+        year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
+        mark_viewed(item_id, bare_title(meta), year if year.isdigit() else None, "series" if video else ctype)
+    if not streams and strict and has_fulltext_source:
+        strict = False
+        streams, errors = collect(strict)
     if not streams:
-        if apis.get("ws") or apis.get("hs") or apis.get("st") or apis.get("fs"):
-            # nic přísně — seznam streamů nabídne „Zkusit uvolněný fulltext“
-            xbmc.executebuiltin("Container.Update(%s)" % build_url(
-                action="streams", type=ctype, id=item_id, series=series_id, alt=alt))
-        elif not errors:
+        if not errors:
             notify(L(30102))
         return
     pref_key = (series_id or split_episode_id(item_id)[0]) if video else None
     remembered = preferred_stream(streams, STORE.stream_pref(pref_key)) if pref_key else None
-    picked = choose_stream(streams, remembered)
+    picked = choose_stream(streams, remembered, relax=strict and has_fulltext_source)
+    if picked == FULLTEXT:
+        pick_title(apis, ctype, item_id, series_id, alt, fulltext=True)
+        return
     if picked is None:
         return
     xbmc.executebuiltin("PlayMedia(%s)" % build_url(
@@ -3884,7 +3791,7 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
         # „nikdy modální dialog v cestě, kterou může spustit widget nebo JSON-RPC“), a modální
         # dialog v tomhle přehrávacím kontextu přehrání buď spadlo, nebo se nic nezobrazilo
         # (Office 2026-09-16, nahlásil uživatel po zavedení cancelable_search v betě 7).
-        # Zpět tu tedy hledání nezruší — jen v `list_streams()`, kam se chodí přes menu.
+        # Zpět tu tedy hledání nezruší.
         bar = xbmcgui.DialogProgressBG()
         bar.create(L(30000, "Nokturno"), L(30238, "Načítám streamy…"))
         try:
@@ -4183,6 +4090,8 @@ def router(query):
         "website_info": website_info,
         "test_sources": test_sources,
         "remote_setup": remote_setup_action,
+        "stream_layout_reset": lambda: (stream_layout_reset(),
+                                        xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
         "setup_wizard": lambda: (setup_wizard(force=True),
                                  xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
         "sub_status": sub_status,
@@ -4195,10 +4104,18 @@ def router(query):
         "settings": lambda: (xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False), ADDON.openSettings()),
     }
     try:
-        if action == "title" and HANDLE < 0:
+        if action in ("title", "streams") and HANDLE < 0:
             # klik na titul ve výpisu Nokturna: Kodi ne-přehratelnou položku spustí jako skript
             # bez handle → streamy v dialogu na dva řádky (viz add_playable, pick_title)
             pick_title(get_apis(), p.get("type", "movie"), p["id"], p.get("series"), alt=p.get("alt"))
+            return
+        if action in ("streams", "streams_filter"):
+            # výpis streamů jako složka zrušen v `5.2.14~beta4` — starý odkaz (oblíbené, widget) nic
+            # nevypíše, z okna Nokturna otevře dialog; z widgetu/JSON-RPC nikdy modál
+            xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
+            if browsing_nokturno():
+                xbmc.executebuiltin(runplugin(action="title", type=p.get("type", "movie"), id=p.get("id"),
+                                              series=p.get("series"), alt=p.get("alt")))
             return
         if action == "tv_pick":
             # volba nad TV programem: dialog jen po kliku ve výpisu (handle −1), jinak nic
@@ -4253,15 +4170,6 @@ def router(query):
             # Přehrát nad titulem v režimu seznamu (Estuary/Arctic Fuse/TMDb Helper/tlačítko Play):
             # Kodi položku rozklíčovává a čeká setResolvedUrl → dialog výběru streamu
             play(apis, p.get("type", "movie"), p["id"], p.get("series"), alt=p.get("alt"), ask="1")
-        elif action == "streams":
-            list_streams(apis, p["type"], p["id"], p.get("series"), alt=p.get("alt"),
-                        fq=p.get("fq", ""), flang=p.get("flang", ""), fch=p.get("fch", ""),
-                        fcodec=p.get("fcodec", ""), fsub=p.get("fsub", ""), fsrc=p.get("fsrc", ""),
-                        fulltext=p.get("fulltext", ""))
-        elif action == "streams_filter":
-            streams_filter(apis, p["type"], p["id"], p.get("series"), p.get("alt"),
-                          p.get("fq", ""), p.get("flang", ""), p.get("fch", ""), p.get("fcodec", ""),
-                          p.get("fsub", ""), p.get("fsrc", ""))
         elif action == "play":
             play(apis, p["type"], p["id"], p.get("series"), url=p.get("url"), alt=p.get("alt"), subs=p.get("subs", ""),
                  pref=p.get("pref", ""), ask=p.get("ask", ""))

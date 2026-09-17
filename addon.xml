@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.14~beta3" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.14~beta4" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,7 +23,9 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>5.2.14~beta3 – Dialog výběru streamu s obrázky kvality (UHD 4K, FHD 1080, HD 720, SD 480, s HDR)
+    <news>5.2.14~beta4 – Co a v jakém pořadí se u streamu ukazuje, si nastavíš (Nastavení → Výběr streamu, z mobilu šipkami); nahradilo šest přepínačů
+5.2.14~beta4 – Výpis streamů jako složka zrušen, vše v dialogu: v kontextovém menu „Vybrat stream“, uvolněný fulltext jako řádek dialogu
+5.2.14~beta3 – Dialog výběru streamu s obrázky kvality (UHD 4K, FHD 1080, HD 720, SD 480, s HDR)
 5.2.14~beta3 – Kratší ukazatel načítání: „Streamy: 35 · Meta: 5/24“
 5.2.14~beta2 – Zrušeno nastavení „Výběr streamu“: stream se vždy vybírá v dialogu na dva řádky, i klikem na titul ve výpisu (dřív otevřel seznam streamů). Celý seznam streamů zůstal v kontextovém menu
 5.2.14~beta2 – Streamy se načítají jen s ukazatelem v rohu obrazovky, bez okna přes celou obrazovku
