@@ -1623,7 +1623,7 @@ def accounts_set():
 # Stahování chce cestu vybranou v Kodi
 REMOTE_SETUP_CATEGORIES = ("ws", "sosac", "hs", "st", "fs", "luna", "storage", "database", "playback",
                            "streamlist", "trakt", "sync", "stats")
-REMOTE_SETUP_TIMEOUT = 600
+REMOTE_SETUP_TIMEOUT = 1800
 KODI_TAG_RE = re.compile(r"\[/?(?:B|I|CR|COLOR|UPPERCASE|LOWERCASE|CAPITALIZE|LIGHT)[^\]]*\]")
 
 
@@ -1640,34 +1640,41 @@ def remote_setup_schema():
     for category in root.iter("category"):
         if category.get("id") not in REMOTE_SETUP_CATEGORIES:
             continue
+        groups = category.findall("group")
         fields = []
-        for node in category.iter("setting"):
-            kind, control = node.get("type"), node.find("control")
-            field = {"id": node.get("id")}
-            if kind == "boolean":
-                field["type"] = "bool"
-            elif kind == "string":
-                field["type"] = "password" if control is not None and control.find("hidden") is not None else "text"
-            elif kind == "integer" and node.find("constraints/options") is not None:
-                field["type"] = "choice"
-                field["options"] = [(opt.text, _plain(L(int(opt.get("label")), opt.text)) if opt.get("label")
-                                     else opt.text) for opt in node.find("constraints/options")]
-            elif kind == "integer" and node.find("constraints/maximum") is not None:
-                low = int(node.findtext("constraints/minimum") or 0)
-                step = int(node.findtext("constraints/step") or 1)
-                high = int(node.findtext("constraints/maximum"))
-                field["type"] = "choice"
-                field["options"] = [(str(v), str(v)) for v in range(low, high + 1, step)]
-            else:
-                continue
-            field["default"] = (node.findtext("default") or "").strip()
-            field["label"] = _plain(L(int(node.get("label")), node.get("id"))) if node.get("label") else node.get("id")
-            if node.get("help"):
-                field["help"] = _plain(L(int(node.get("help"))))
-            dep = node.find("dependencies/dependency[@type='enable']")
-            if dep is not None and dep.get("setting"):
-                field["enable"] = (dep.get("setting"), (dep.text or "").strip())
-            fields.append(field)
+        for group in groups:
+            if group.get("label") and len(groups) > 1:
+                fallback = f"Úložiště {group.get('id')}"
+                fields.append({"type": "heading", "label": _plain(L(int(group.get("label")), fallback))})
+            for node in group.findall("setting"):
+                kind, control = node.get("type"), node.find("control")
+                field = {"id": node.get("id")}
+                if kind == "boolean":
+                    field["type"] = "bool"
+                elif kind == "string":
+                    field["type"] = ("password" if control is not None and control.find("hidden") is not None
+                                     else "text")
+                elif kind == "integer" and node.find("constraints/options") is not None:
+                    field["type"] = "choice"
+                    field["options"] = [(opt.text, _plain(L(int(opt.get("label")), opt.text)) if opt.get("label")
+                                         else opt.text) for opt in node.find("constraints/options")]
+                elif kind == "integer" and node.find("constraints/maximum") is not None:
+                    low = int(node.findtext("constraints/minimum") or 0)
+                    step = int(node.findtext("constraints/step") or 1)
+                    high = int(node.findtext("constraints/maximum"))
+                    field["type"] = "choice"
+                    field["options"] = [(str(v), str(v)) for v in range(low, high + 1, step)]
+                else:
+                    continue
+                field["default"] = (node.findtext("default") or "").strip()
+                field["label"] = (_plain(L(int(node.get("label")), node.get("id"))) if node.get("label")
+                                  else node.get("id"))
+                if node.get("help"):
+                    field["help"] = _plain(L(int(node.get("help"))))
+                dep = node.find("dependencies/dependency[@type='enable']")
+                if dep is not None and dep.get("setting"):
+                    field["enable"] = (dep.get("setting"), (dep.text or "").strip())
+                fields.append(field)
         if fields:
             sections.append({"id": category.get("id"), "label": _plain(L(int(category.get("label")))),
                              "fields": fields, "open": not sections})
@@ -1722,7 +1729,8 @@ def remote_setup():
     schema = remote_setup_schema()
     # neuložená položka: výchozí hodnota ze settings.xml — jinak by prohlížeč u výběru poslal
     # první volbu a u přepínače „vypnuto“ a uložilo by se, co uživatel neměnil
-    values = {f["id"]: ADDON.getSetting(f["id"]) or f["default"] for section in schema for f in section["fields"]}
+    values = {f["id"]: ADDON.getSetting(f["id"]) or f["default"] for section in schema for f in section["fields"]
+              if f.get("type") != "heading"}
     texts = {
         "title": "Nokturno — " + L(30447, "Nastavit z mobilu"),
         "intro": L(30458, "Vyplň, co chceš změnit, a ulož. Nastavení se hned propíše do Kodi."),

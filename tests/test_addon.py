@@ -2010,7 +2010,7 @@ class TestNastavitZMobilu(unittest.TestCase):
         self.assertEqual(ids[0], "ws")
         self.assertNotIn("advanced", ids)
         self.assertNotIn("info", ids)
-        fields = {f["id"]: f for s in schema for f in s["fields"]}
+        fields = {f["id"]: f for s in schema for f in s["fields"] if f.get("type") != "heading"}
         self.assertEqual(fields["ws_password"]["type"], "password")
         self.assertEqual(fields["ws_username"]["type"], "text")
         self.assertEqual(fields["ws_username"]["enable"], ("ws_enabled", "true"))
@@ -2020,6 +2020,9 @@ class TestNastavitZMobilu(unittest.TestCase):
         self.assertNotIn("remote_setup_action", fields, "tlačítka akcí na stránku nepatří")
         self.assertNotIn("download_dir", fields)
         self.assertTrue(schema[0]["open"])
+        storage = next(s for s in schema if s["id"] == "storage")
+        headings = [f["label"] for f in storage["fields"] if f.get("type") == "heading"]
+        self.assertEqual(headings, ["Úložiště 1", "Úložiště 2", "Úložiště 3"])
 
     def run_setup(self, submit):
         """Spustí remote_setup, `submit(url)` hraje roli mobilu."""

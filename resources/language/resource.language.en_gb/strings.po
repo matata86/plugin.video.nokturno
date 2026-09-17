@@ -1229,7 +1229,7 @@ msgid "1. Connect your phone to the same Wi-Fi as this device.[CR]2. Scan the QR
 msgstr ""
 
 msgctxt "#30453"
-msgid "Back cancels · the address is valid for 10 minutes and one save"
+msgid "Back cancels · the address is valid for 30 minutes and one save"
 msgstr ""
 
 msgctxt "#30454"
