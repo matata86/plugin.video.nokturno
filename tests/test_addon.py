@@ -1852,11 +1852,13 @@ class TestSluzbaStatistiky(unittest.TestCase):
         self.assertNotIn("platform", kwargs)
 
     def test_zprava_z_dashboardu_se_zobrazi_a_oznaci_precteno(self):
+        """`textviewer()`, ne `.ok()` — delší zprávu jde posouvat, `.ok()` ji prostě ořízne."""
         stats = FakeStats(due=True)
         stats.last_message = {"id": 7, "text": "Nová verze je venku"}
         service.stats_tick(stats)
-        self.assertEqual(len(xbmcgui.oks), 1)
-        self.assertEqual(xbmcgui.oks[0][1], "Nová verze je venku")
+        self.assertEqual(xbmcgui.oks, [])
+        self.assertEqual(len(xbmcgui.textviewers), 1)
+        self.assertEqual(xbmcgui.textviewers[0][1], "Nová verze je venku")
         self.assertEqual(stats.seen, [7])
 
     def test_zprava_prijde_i_pri_vypnutych_statistikach(self):
@@ -1870,6 +1872,7 @@ class TestSluzbaStatistiky(unittest.TestCase):
         stats = FakeStats(due=True)
         service.stats_tick(stats)
         self.assertEqual(xbmcgui.oks, [])
+        self.assertEqual(xbmcgui.textviewers, [])
         self.assertEqual(stats.seen, [])
 
     def test_udalosti_z_pluginu_se_prevezmou_a_smazou(self):

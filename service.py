@@ -794,12 +794,14 @@ def stats_context(addon):
 
 def _show_pending_message(stats):
     """Zpráva napsaná v dashboardu (obrazovka Zprávy) — `stats.send()` ji zachytil
-    do `last_message`. `Dialog().ok()` je tady bezpečný: běží ze služby na pozadí,
-    ne z cesty, kterou může spustit widget nebo JSON-RPC (viz pravidlo v CLAUDE.md)."""
+    do `last_message`. `textviewer()` (ne `.ok()`, ten zprávu delší než pár řádků
+    prostě ořízne bez posouvání — nahlásil uživatel 2026-09-18) je tady bezpečný:
+    běží ze služby na pozadí, ne z cesty, kterou může spustit widget nebo JSON-RPC
+    (viz pravidlo v CLAUDE.md)."""
     msg = stats.last_message
     if not msg:
         return
-    xbmcgui.Dialog().ok(L(30000), msg.get("text") or "")
+    xbmcgui.Dialog().textviewer(L(30000), msg.get("text") or "")
     stats.mark_message_seen(msg["id"])
 
 

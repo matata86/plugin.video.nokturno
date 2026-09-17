@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.18" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.19" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,7 +23,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>5.2.18 – Katalogy „Nedávno přidané s CZ dabingem/titulky“ bez Sosáče/Luny: jazyk se u ostatních zdrojů (WebShare, HellSpy, Sledujteto, FastShare) místo pořád prázdného výsledku odhadne z názvu souboru
+    <news>5.2.19 – Zpráva z dashboardu (Nastavení → Pokročilé) se teď zobrazí ve větším, posouvatelném okně — dřív ji delší text prostě uřízl
+5.2.18 – Katalogy „Nedávno přidané s CZ dabingem/titulky“ bez Sosáče/Luny: jazyk se u ostatních zdrojů (WebShare, HellSpy, Sledujteto, FastShare) místo pořád prázdného výsledku odhadne z názvu souboru
 5.2.16 – Stabilní vydání, souhrn bet 5.2.14~beta1–6:
 5.2.16 – Výběr streamu vždy v dialogu na dva řádky s obrázky kvality (UHD 4K, FHD 1080, HD 720, SD 480, s HDR): klik na titul, Přehrát v detailu, widget i TMDb Helper. Nahoře filtr, dole uvolněný fulltext, u seriálu předvybraný naposledy zvolený stream
 5.2.16 – Co a v jakém pořadí se u streamu ukazuje (jazyky, velikost, rozlišení a kodek, stopy, datový tok, délka, titulky, zdroj, název souboru), si nastavíš v Nastavení → Výběr streamu, pohodlně z mobilu šipkami
