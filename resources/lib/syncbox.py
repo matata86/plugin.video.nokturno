@@ -40,6 +40,7 @@ Nahrává se **celý stav zařízení**, ne přírůstky — je tak malý, že f
 byla práce navíc: relay drží jeden přepisovaný řádek na zařízení, nový člen
 skupiny dostane rovnou všechno a ztracený blob nic nerozbije.
 """
+import base64
 import gzip
 import hashlib
 import hmac
@@ -248,8 +249,8 @@ class Relay(object):
         blobs = []
         for item in answer.get("devices") or []:
             try:
-                blobs.append(bytes.fromhex(item.get("blob") or ""))
-            except ValueError:
+                blobs.append(base64.b64decode(item.get("blob") or ""))
+            except (ValueError, TypeError):   # binascii.Error je podtřída ValueError
                 continue
         return int(answer.get("rev") or 0), blobs
 
