@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.21~beta6" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.21" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,7 +23,11 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>5.2.21~beta6 – Klik na adresu z bety 5 funguje (ověřeno na telefonu); tlačítko s adresou má zpátky fialový podklad — výchozí textura skinu se na telefonu kreslila užší než tlačítko a posunutá, text přes ni přetékal
+    <news>5.2.21 – Stabilní vydání, souhrn bet 5.2.21~beta1–6:
+5.2.21 – Nastavit z mobilu na telefonu s Androidem: ťuknutí na adresu opravdu otevře prohlížeč (dřív jen zaostřilo tlačítko) — klik se bere i přímo z ťuknutí/OK, ne jen z kliknutí na tlačítko; krátké oznámení „Otvírám v prohlížeči…“
+5.2.21 – QR kód v Nastavit z mobilu zůstává čtvercový i na displeji s jiným poměrem stran než 16:9 (dřív roztažený obdélník)
+5.2.21 – Tlačítko s adresou má vlastní fialový podklad přes celou šířku, stejný v každém skinu
+5.2.21~beta6 – Klik na adresu z bety 5 funguje (ověřeno na telefonu); tlačítko s adresou má zpátky fialový podklad — výchozí textura skinu se na telefonu kreslila užší než tlačítko a posunutá, text přes ni přetékal
 5.2.21~beta5 – Klik na adresu v „Nastavit z mobilu“ jde nově dvěma nezávislými cestami: řádným kliknutím na tlačítko i přímo z ťuknutí/OK ve chvíli, kdy má adresa fokus (Kodi na některých telefonech to první nedoručí, i když tlačítko na dotyk reaguje); jeden klik = jedno otevření, každé ťuknutí se zapíše do logu
 5.2.21~beta4 – Ani skoro neprůhledný podklad z bety 3 klik na dotyku nedoručil (jen fokusový vzhled zareagoval, potvrzeno uživatelem) — tlačítko teď používá výchozí systémové textury skinu (stejné jako každé OK/Storno v Kodi), vypadá jako opravdové tlačítko, ale mělo by být konečně spolehlivě klikací
 5.2.21~beta3 – Oznámení z bety 2 se při ťuknutí na adresu neobjevilo — Kodi klik vůbec nedoručilo, i když fokusový vzhled (rámeček, barva) reagoval. Podklad tlačítka je teď skoro neprůhledný (vypadá jako malá pilulka, ne jako čitelný text) — dřívější slabá průhlednost možná bránila dotykovému testu, který kliká jen do skutečně vykreslené (neprůhledné) plochy
