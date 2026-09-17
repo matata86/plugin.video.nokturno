@@ -1813,10 +1813,13 @@ def _solid_rgba_png(rgb, alpha):
 
     Na Androidu se dotyk na `ControlButton` s prázdnou `noFocusTexture`/`focusTexture`
     (`""`) nezaregistroval jako klik (nahlásil uživatel 2026-09-18: adresa v „Nastavit
-    z mobilu“ zbělala fokusem, tedy větev pro Android běžela, ale ťuknutí nic neudělalo) —
-    bez texturového obrázku Kodi na dotykových zařízeních tlačítku zřejmě nedá skutečnou
-    klikací plochu. Tenhle jednobarevný podklad (jemně poloprůhledný, aby adresa dál
-    vypadala jako čitelný text, ne jako plné tlačítko) mu ji dá."""
+    z mobilu“ zbělala fokusem, tedy větev pro Android běžela, ale ťuknutí nic neudělalo).
+    Bezbarvý (`aspectRatio` výchozí, žádná viditelná plocha) podklad situaci nezlepšil —
+    ani s jemně poloprůhlednou texturou (beta 1/2) se `onControl` nezavolal, jen fokusový
+    vzhled prvku (barva/rámeček), což naznačuje, že Kodi na dotyk testuje skutečnou
+    neprůhlednost textury pod prstem, ne jen hranice kontroly. Podklad je proto skoro
+    neprůhledný — vypadá jako malé tlačítko/pilulka, ne jako čitelný text bez pozadí,
+    ale dotyk by konečně měl mít co „trefit“."""
     r, g, b = rgb
     header = struct.pack(">IIBBBBB", 1, 1, 8, 6, 0, 0, 0)
 
@@ -1931,9 +1934,9 @@ def remote_setup(section=None):
         with open(backdrop, "wb") as f:
             f.write(qr_png([[False]], scale=1, border=0))
         with open(link_bg, "wb") as f:
-            f.write(_solid_rgba_png((196, 181, 253), 30))
+            f.write(_solid_rgba_png((92, 68, 150), 230))
         with open(link_bg_focus, "wb") as f:
-            f.write(_solid_rgba_png((196, 181, 253), 60))
+            f.write(_solid_rgba_png((124, 92, 200), 255))
         xbmc.log(f"[{ADDON_ID}] nastavení z mobilu: server na portu {server.port}", xbmc.LOGINFO)
         window = RemoteSetupWindow(qr_path, backdrop, url, link_bg, link_bg_focus)
         window.show()
