@@ -121,8 +121,8 @@ def fresh_addon():
         return None
 
 
-def L(sid):
-    return ADDON.getLocalizedString(sid)
+def L(sid, fallback=""):
+    return ADDON.getLocalizedString(sid) or fallback
 
 
 def Lf(sid, *args):
