@@ -13,9 +13,11 @@ jen informace, že jsou vyplněná; prázdné pole heslo nemění. Spojení je H
 na domácí Wi-Fi přijatelné, stejně jako webové rozhraní Kodi.
 
 Schéma: `[{"id", "label", "fields": [{"id", "label", "help", "type", "options",
-"enable"}]}]`, `type` je `bool`/`text`/`password`/`choice`, `options` u `choice`
-seznam `(hodnota, popisek)`, `enable` volitelně `(id jiného pole, hodnota)` —
-pole je jen zašedlé, když závislost neplatí, odešle se stejně.
+"enable"}]}]`, `type` je `bool`/`text`/`password`/`choice`/`heading`, `options` u
+`choice` seznam `(hodnota, popisek)`, `enable` volitelně `(id jiného pole, hodnota)`
+— pole je jen zašedlé, když závislost neplatí, odešle se stejně. `heading` je jen
+podnadpis uvnitř sekce (např. rozlišení více úložišť) — nemá `id`, do formuláře
+se nic neodesílá a validace ho přeskočí.
 """
 import hmac
 import html
@@ -53,7 +55,7 @@ class SetupServer:
         self.values = dict(values)
         self.texts = dict(TEXTS, **(texts or {}))
         self.token = token or secrets.token_urlsafe(12)
-        self.fields = {f["id"]: f for section in schema for f in section["fields"]}
+        self.fields = {f["id"]: f for section in schema for f in section["fields"] if f.get("type") != "heading"}
         self.port = None
         self._httpd = None
         self._thread = None
@@ -135,7 +137,14 @@ class SetupServer:
         parts = []
         for section in self.schema:
             rows = []
+            after_heading = False
             for f in section["fields"]:
+                if f.get("type") == "heading":
+                    rows.append(f'<h4 class="group">{esc(f.get("label") or "")}</h4>')
+                    after_heading = True
+                    continue
+                row_class = "row grouped" if after_heading else "row"
+                after_heading = False
                 fid, kind, label = f["id"], f.get("type"), esc(f.get("label") or f["id"])
                 current = str(self.values.get(fid, ""))
                 enable = f.get("enable")
@@ -143,20 +152,20 @@ class SetupServer:
                 help_text = f'<small>{esc(f["help"])}</small>' if f.get("help") else ""
                 if kind == "bool":
                     checked = " checked" if current == "true" else ""
-                    rows.append(f'<label class="row bool"{attrs}><span>{label}{help_text}</span>'
+                    rows.append(f'<label class="{row_class} bool"{attrs}><span>{label}{help_text}</span>'
                                 f'<input type="checkbox" name="{esc(fid)}" id="{esc(fid)}"{checked}></label>')
                 elif kind == "choice":
                     opts = "".join(f'<option value="{esc(str(v))}"{" selected" if str(v) == current else ""}>'
                                    f'{esc(str(lab))}</option>' for v, lab in f.get("options") or [])
-                    rows.append(f'<label class="row"{attrs}><span>{label}{help_text}</span>'
+                    rows.append(f'<label class="{row_class}"{attrs}><span>{label}{help_text}</span>'
                                 f'<select name="{esc(fid)}" id="{esc(fid)}">{opts}</select></label>')
                 elif kind == "password":
                     hint = esc(t["password_set"]) if current else ""
-                    rows.append(f'<label class="row"{attrs}><span>{label}{help_text}</span>'
+                    rows.append(f'<label class="{row_class}"{attrs}><span>{label}{help_text}</span>'
                                 f'<input type="password" name="{esc(fid)}" id="{esc(fid)}" autocomplete="off" '
                                 f'placeholder="{hint}"></label>')
                 else:
-                    rows.append(f'<label class="row"{attrs}><span>{label}{help_text}</span>'
+                    rows.append(f'<label class="{row_class}"{attrs}><span>{label}{help_text}</span>'
                                 f'<input type="text" name="{esc(fid)}" id="{esc(fid)}" value="{esc(current)}" '
                                 f'autocapitalize="off" autocorrect="off" spellcheck="false"></label>')
             parts.append(f'<details{" open" if section.get("open") else ""}><summary>{esc(section["label"])}'
@@ -255,7 +264,11 @@ details{{background:var(--card);border:1px solid var(--line);border-radius:14px;
 summary{{padding:14px 16px;font-weight:600;cursor:pointer;list-style:none}}
 summary::after{{content:"›";float:right;transition:transform .2s;color:var(--dim)}}
 details[open] summary::after{{transform:rotate(90deg)}}
+.group{{margin:0;padding:12px 16px 4px;font-size:.8rem;font-weight:600;letter-spacing:.02em;
+color:var(--dim);text-transform:uppercase;border-top:1px solid var(--line)}}
+.group:first-child{{border-top:0}}
 .row{{display:flex;flex-direction:column;gap:6px;padding:12px 16px;border-top:1px solid var(--line)}}
+.row.grouped{{border-top:0}}
 .row span{{font-size:.95rem}}.row small{{display:block;color:var(--dim);font-size:.8rem;margin-top:2px}}
 .row.bool{{flex-direction:row;align-items:center;justify-content:space-between;gap:14px}}
 input[type=text],input[type=password],select{{width:100%;font:inherit;color:var(--text);background:var(--bg);

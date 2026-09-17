@@ -1229,8 +1229,8 @@ msgid "1. Connect your phone to the same Wi-Fi as this device.[CR]2. Scan the QR
 msgstr "1. Připoj mobil ke stejné Wi-Fi jako tenhle přístroj.[CR]2. Naskenuj QR kód fotoaparátem, nebo otevři v prohlížeči adresu:"
 
 msgctxt "#30453"
-msgid "Back cancels · the address is valid for 10 minutes and one save"
-msgstr "Zpět zruší · adresa platí 10 minut a pro jedno uložení"
+msgid "Back cancels · the address is valid for 30 minutes and one save"
+msgstr "Zpět zruší · adresa platí 30 minut a pro jedno uložení"
 
 msgctxt "#30454"
 msgid "This device has no local network address. Connect it to Wi-Fi or a cable and try again."
