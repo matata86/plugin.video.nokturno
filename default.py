@@ -1745,14 +1745,15 @@ def _plain(text):
     return KODI_TAG_RE.sub(" ", text or "").strip()
 
 
-def remote_setup_schema():
+def remote_setup_schema(section=None):
     """Formulář pro mobil přímo ze `settings.xml` — nová položka nastavení se na stránce
-    objeví sama. Popisky a nápověda jdou z `strings.po` v jazyce Kodi."""
+    objeví sama. Popisky a nápověda jdou z `strings.po` v jazyce Kodi. `section` = jen jedna
+    kategorie (tlačítko Nastavit z mobilu přímo v ní, např. Výběr streamu)."""
     import xml.etree.ElementTree as ET
     root = ET.parse(os.path.join(ADDON_PATH, "resources", "settings.xml")).getroot()
     sections = []
     for category in root.iter("category"):
-        if category.get("id") not in REMOTE_SETUP_CATEGORIES:
+        if category.get("id") not in REMOTE_SETUP_CATEGORIES or section and category.get("id") != section:
             continue
         groups = category.findall("group")
         fields = []
@@ -1829,7 +1830,7 @@ class RemoteSetupWindow(xbmcgui.WindowDialog):
             self.close()
 
 
-def remote_setup():
+def remote_setup(section=None):
     """„Nastavit z mobilu“ (Nastavení → Pokročilé, průvodce): QR s místní adresou, mobil ve
     stejné Wi-Fi vyplní formulář, Kodi uloží změny. Server (`lib/remote_setup.py`) běží jen
     po dobu dialogu. Vrací počet uložených položek, nebo None při zrušení/chybě.
@@ -1847,7 +1848,7 @@ def remote_setup():
                             L(30454, "Tenhle přístroj nemá adresu v místní síti. Připoj ho k Wi-Fi nebo kabelem "
                                      "a zkus to znovu."))
         return None
-    schema = remote_setup_schema()
+    schema = remote_setup_schema(section)
     # neuložená položka: výchozí hodnota ze settings.xml — jinak by prohlížeč u výběru poslal
     # první volbu a u přepínače „vypnuto“ a uložilo by se, co uživatel neměnil
     values = {f["id"]: ADDON.getSetting(f["id"]) or f["default"] for section in schema for f in section["fields"]
@@ -1916,9 +1917,10 @@ def remote_setup():
     return len(changes)
 
 
-def remote_setup_action():
-    """Tlačítko v nastavení (RunPlugin, bez výpisu) — po uložení otevře nastavení znovu."""
-    saved = remote_setup()
+def remote_setup_action(section=None):
+    """Tlačítko v nastavení (RunPlugin, bez výpisu) — po uložení otevře nastavení znovu.
+    `section` = stránka jen s jednou kategorií (`remote_setup_schema`)."""
+    saved = remote_setup(section if section in REMOTE_SETUP_CATEGORIES else None)
     if HANDLE >= 0:
         xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
     if saved:
@@ -4089,7 +4091,7 @@ def router(query):
         "log_send": log_send,
         "website_info": website_info,
         "test_sources": test_sources,
-        "remote_setup": remote_setup_action,
+        "remote_setup": lambda: remote_setup_action(p.get("section")),
         "stream_layout_reset": lambda: (stream_layout_reset(),
                                         xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
         "setup_wizard": lambda: (setup_wizard(force=True),
