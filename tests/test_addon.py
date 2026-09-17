@@ -468,38 +468,38 @@ class TestJadroVKodi(unittest.TestCase):
         self.assertEqual([type(e).__name__ for e in errors], ["SourceFailure", "SourceFailure"])
         self.assertEqual(default.skipped_notice(errors),
                          "Luna neodpovídá; WebShare: login: Wrong password — přeskočeno")
-        bar.update.assert_called_with(int(3 / 8 * 100), "Nalezené streamy: 1 · Ověřuji metadata: 2/4")
+        bar.update.assert_called_with(int(3 / 8 * 100), "Streamy: 1 · Meta: 2/4")
         # chyba jádra v hlášce nese zdroj sama
         self.assertEqual(default.describe_error(default.NokturnoError("WebShare: soubor není")), "WebShare: soubor není")
         self.assertEqual(default.error_label(default.NokturnoError("Chybí odkaz na stream.")), "Nokturno")
 
     def test_search_progress_hlasi_nalezene_streamy(self):
-        """Dokud přicházejí zdroje, jen součet „Nalezené streamy: N“ — ne výčet po zdrojích
+        """Dokud přicházejí zdroje, jen součet „Streamy: N“ — ne výčet po zdrojích
         (2026-09-16, přání uživatele: na TV nečitelné)."""
         bar = mock.Mock()
         progress = default.SearchProgress(bar, 10)
         progress.tick()
         bar.update.assert_called_with(10)
         progress.source("Luna", 7)
-        bar.update.assert_called_with(10, "Nalezené streamy: 7")
+        bar.update.assert_called_with(10, "Streamy: 7")
         progress.source("WebShare", 28)
-        bar.update.assert_called_with(10, "Nalezené streamy: 35")
+        bar.update.assert_called_with(10, "Streamy: 35")
 
     def test_search_progress_metadata_pribudou_k_nalezenym_streamum(self):
-        """Poslední fáze (čtení hlaviček) — „Nalezené streamy“ zůstávají, přibude
-        „Ověřuji metadata: x/y“ (2026-09-16, přání uživatele)."""
+        """Poslední fáze (čtení hlaviček) — „Streamy“ zůstávají, přibude
+        „Meta: x/y“ (2026-09-16, přání uživatele)."""
         bar = mock.Mock()
         progress = default.SearchProgress(bar, 10)
         progress.source("WebShare", 12)
         progress.audio(0, 5)
-        bar.update.assert_called_with(0, "Nalezené streamy: 12 · Ověřuji metadata: 0/5")
+        bar.update.assert_called_with(0, "Streamy: 12 · Meta: 0/5")
         progress.audio(3, 5)
-        bar.update.assert_called_with(0, "Nalezené streamy: 12 · Ověřuji metadata: 3/5")
+        bar.update.assert_called_with(0, "Streamy: 12 · Meta: 3/5")
         progress.source("Vlastní úložiště", 2)   # zdroj dorazí až během ověřování
-        bar.update.assert_called_with(0, "Nalezené streamy: 14 · Ověřuji metadata: 3/5")
+        bar.update.assert_called_with(0, "Streamy: 14 · Meta: 3/5")
         holy = default.SearchProgress(mock.Mock(), 10)   # bez zdrojů jen metadata
         holy.audio(1, 2)
-        holy.bar.update.assert_called_with(0, "Ověřuji metadata: 1/2")
+        holy.bar.update.assert_called_with(0, "Meta: 1/2")
 
     def test_resolve_url_pres_jadro_a_token(self):
         engine = default.KodiEngine()
@@ -550,12 +550,18 @@ class TestJadroVKodi(unittest.TestCase):
         s.update(bitrate=25.3, subs=["CZ"])
         with mock.patch.object(default, "on", return_value=True):
             top, bottom = default.stream_lines(s)
-        self.assertIn("4K", top)
         self.assertIn("[B]CZ[/B]", top)
         self.assertIn("GB", top)
         self.assertNotIn("AC3", top)
         for kus in ("3840×1608", "HEVC", "HDR", "AC3 5.1 CZ", "TrueHD 7.1 EN", "25.3 Mb/s", "Tit.: CZ"):
             self.assertIn(kus, bottom)
+        # odznak kvality místo nápisu: 4K s HDR, nápis kvality v horním řádku odpadne
+        self.assertTrue(default.quality_icon(s).endswith(os.path.join("quality", "4k-hdr.png")))
+        self.assertTrue(os.path.exists(default.quality_icon(s)))
+        self.assertNotIn("4K", top)
+        odhad = {"url": "ws:2", "label": "Film.mkv", "detail": "9 GB", "source": "ws", "quality_rank": 3, "_estimated": True}
+        self.assertIn("~FHD", default.stream_lines(odhad)[0], "odhadnutá kvalita zůstává i nápisem")
+        self.assertTrue(default.quality_icon(odhad).endswith("fhd.png"))
         # jednořádkový popisek pro výpis zůstává se stopami hned za kvalitou
         line = default.stream_label(s)
         self.assertLess(line.index("AC3"), line.index("GB"))
@@ -657,7 +663,7 @@ class TestTmdbHelperPlayer(unittest.TestCase):
             self.assertEqual(select.called, asked, f"ask={ask!r}")
             if asked:
                 rows = select.call_args[0][1]
-                self.assertIn("4K", rows[select.call_args.kwargs["preselect"]].getLabel())
+                self.assertTrue(rows[select.call_args.kwargs["preselect"]].art["icon"].endswith("4k.png"))
             else:
                 self.assertTrue(xbmcplugin.resolved[-1][1], "bez ask hraje zapamatovaný stream bez ptaní")
 

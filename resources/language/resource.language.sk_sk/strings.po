@@ -735,12 +735,12 @@ msgid "Loading streams…"
 msgstr "Načítavam streamy…"
 
 msgctxt "#30239"
-msgid "Checking metadata: {done}/{total}"
-msgstr "Overujem metadáta: {done}/{total}"
+msgid "Meta: {done}/{total}"
+msgstr "Meta: {done}/{total}"
 
 msgctxt "#30240"
-msgid "Streams found: {count}"
-msgstr "Nájdené streamy: {count}"
+msgid "Streams: {count}"
+msgstr "Streamy: {count}"
 
 msgctxt "#30332"
 msgid "TMDB API"

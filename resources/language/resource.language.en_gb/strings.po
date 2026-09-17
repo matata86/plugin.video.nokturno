@@ -735,11 +735,11 @@ msgid "Loading streams…"
 msgstr ""
 
 msgctxt "#30239"
-msgid "Checking metadata: {done}/{total}"
+msgid "Meta: {done}/{total}"
 msgstr ""
 
 msgctxt "#30240"
-msgid "Streams found: {count}"
+msgid "Streams: {count}"
 msgstr ""
 
 msgctxt "#30332"
