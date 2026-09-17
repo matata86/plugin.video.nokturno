@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.13" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.14~beta1" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,7 +23,11 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>5.2.13 – Nastavit z mobilu má vlastní první záložku v nastavení (dřív schované pod WebShare); vlastní úložiště na stránce z mobilu rozlišené na Úložiště 1/2/3; adresa z mobilu platí 30 minut místo 10
+    <news>5.2.14~beta1 – Výběr streamu v dialogu na dva řádky: nahoře kvalita, jazyk a velikost, pod tím rozlišení a kodek (HDR, HEVC), zvukové stopy, datový tok, délka, titulky a zdroj
+5.2.14~beta1 – Podobné tituly: v kontextovém menu filmů a seriálů a jako složka pod seznamem streamů filmu a pod sériemi seriálu. S vlastním TMDB klíčem přímo z TMDB, bez něj přes server Nokturna
+5.2.14~beta1 – TV program: filmy a seriály, které dnes a v dalších dnech dávají české a slovenské stanice, s volbou dne, stanice a typu. Klik otevře streamy titulu
+5.2.14~beta1 – Katalogy ze serveru Nokturna: sezónní a tematické výběry (třeba vánoční filmy) se v menu objeví bez nové verze doplňku
+5.2.13 – Nastavit z mobilu má vlastní první záložku v nastavení (dřív schované pod WebShare); vlastní úložiště na stránce z mobilu rozlišené na Úložiště 1/2/3; adresa z mobilu platí 30 minut místo 10
 5.2.12 – Oprava pádu služby na pozadí při upozornění na vypršelé WebShare předplatné (nevystavovalo se uživateli, jen padlo hlášení o chybě)
 5.2.11 – Stabilní vydání, souhrn bet 5.2.10~beta1–3:
 5.2.11 – Zvuk a titulky podle preferovaného jazyka: po spuštění se přepne na český (slovenský, anglický) zvuk, i když má soubor jako výchozí jinou stopu; když zvuk v tom jazyce chybí, zapnou se české titulky, u dabingu se titulky vypnou. Nastavení → Přehrávání
