@@ -31,7 +31,8 @@ import xbmcplugin
 import xbmcvfs
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "lib"))
-from luna_api import LunaApi, LunaError, parse_base_url, parse_token  # noqa: E402
+from luna_api import (LunaApi, LunaError, diagnose as luna_diagnose,  # noqa: E402
+                      discover as luna_discover, parse_base_url, parse_token)
 from cinemeta_api import CinemetaApi, CinemetaError  # noqa: E402
 from tmdb_api import TmdbApi, TmdbError  # noqa: E402
 from trend_api import CATALOG_ID as TREND_CATALOG_ID, TrendApi  # noqa: E402
@@ -588,8 +589,33 @@ def dash_catalog_items(apis, placement, ctype=None):
     if dash is None:
         return
     for e in dash.menu(placement=placement, ctype=ctype):
-        folder_item(e["title"], build_url(action="catalog", type=e["kind"], catalog=e["slug"], src="dash"),
-                    icon=DASH_ICONS.get(e["icon"], DASH_ICONS[""]))
+        dash_entry_item(e)
+
+
+def dash_entry_item(entry):
+    """Jedna položka menu z dashboardu: složka s podkategoriemi (`children`) vede na
+    další výpis, obyčejný katalog rovnou na tituly."""
+    icon = DASH_ICONS.get(entry["icon"], DASH_ICONS[""])
+    if entry.get("children"):
+        folder_item(entry["title"], build_url(action="dash_group", catalog=entry["slug"], type=entry["kind"]),
+                    icon=icon)
+    else:
+        folder_item(entry["title"], build_url(action="catalog", type=entry["kind"], catalog=entry["slug"],
+                                              src="dash"), icon=icon)
+
+
+def list_dash_group(apis, slug, ctype):
+    """Podkategorie složky z dashboardu. Když složka mezitím zmizela nebo podkategorie
+    ztratila (server posílá jen neprázdné), otevře se rovnou jako katalog — server u
+    složky vrátí slité položky potomků, takže uživatel neskončí v prázdném výpisu."""
+    dash = apis.get("dash")
+    children = dash.group(slug) if dash else []
+    if not children:
+        list_catalog(apis, ctype, slug, "dash")
+        return
+    for entry in children:
+        dash_entry_item(entry)
+    xbmcplugin.endOfDirectory(HANDLE)
 
 
 IMDB_ID_RE = re.compile(r"^tt\d{5,10}$")
@@ -2038,9 +2064,21 @@ def _wizard_accounts(dialog):
 
     if dialog.yesno(L(30348, "Luna: Absolute Cinema"),
                      L(30349, "Máš v síti spuštěný server Luna: Absolute Cinema?")):
-        addr = dialog.input(L(30350, "Adresa doplňku nebo token ze setu Luny"))
+        # adresu Luny uživatel při prvním spuštění zpravidla nezná — najdeme ji za něj
+        # (sken podsítě trvá vteřiny) a rovnou mu řekneme, kam si má jít pro token
+        try:
+            found = luna_discover(should_stop=should_stop)
+        except Exception:  # noqa: BLE001 – bez sítě, bez IPv4 adresy
+            found = []
+        if found:
+            ADDON.setSetting("luna_url", found[0]["url"])
+            heading = Lf(30542, found[0]["url"])
+        else:
+            heading = L(30350, "Adresa doplňku nebo token ze setu Luny")
+        addr = dialog.input(heading)
         if addr:
             ADDON.setSetting("token", addr)
+        if addr or found:
             ADDON.setSetting("luna_enabled", "true")
 
     if dialog.yesno(L(30351, "HellSpy"), L(30352, "Zapnout HellSpy? Je zdarma a nepotřebuje žádný účet.")):
@@ -2160,8 +2198,17 @@ def test_sources():
             return L(30425, "neomezené stahování")
         return f"{L(30426, 'kredit')} {account.get('credit_mb', 0) / 1024:.1f} GB"
 
+    def check_luna():
+        # manifest Luna vydá i pro neplatný token (jen s výchozím nastavením), takže
+        # „přišel manifest" nic neznamená — viz `luna_api.diagnose`
+        result = luna_diagnose(setting("luna_url"), setting("token"))
+        if result["level"] == "ok":
+            return result["version"]
+        sid, fallback = LUNA_DIAG_SHORT.get(result["code"], LUNA_DIAG_SHORT["unreachable"])
+        raise LunaError(L(sid, fallback))
+
     checks = {
-        "Luna": (lambda: len((luna._get(luna._meta_url("manifest.json")) or {}).get("catalogs", []))) if luna else None,
+        "Luna": check_luna if luna else None,
         "Sosáč": (lambda: len(sosac._get(SOSAC_EXPORT + "souboryzanry.json", ttl=0) or {}))
         if isinstance(sosac, SosacDirect) else None,
         "WebShare": (lambda: bool(ws.login())) if ws else None,
@@ -2188,6 +2235,144 @@ def test_sources():
     if ws:
         remember_ws_token(ws)
     xbmcgui.Dialog().ok(L(30170), "\n".join(lines))
+
+
+# --- Luna: najít v síti a ověřit -------------------------------------------
+#
+# Luna je ze všech zdrojů jediná, která se instaluje mimo doplněk (server někde
+# v síti), a „nefunguje mi to" o ní chodí nejčastěji. Test zdrojů výš na ni
+# nestačí: manifest Luna vrátí i pro naprosto neplatný token, takže se tvářila
+# zeleně i ve chvíli, kdy z ní nikdy nemohl přijít jediný stream.
+
+# kód z `luna_api.diagnose` → (id řetězce, český fallback); %s je verze Luny a její adresa
+LUNA_DIAG_TEXTS = {
+    "ok": (30520, "Luna %s odpovídá a vrací streamy. Nastavení je v pořádku."),
+    "no_url": (30521, "Není vyplněná adresa Luny ani token.[CR]Použij „Najít Lunu v síti“, nebo vlož "
+                      "do pole Token celou adresu doplňku ze stránky /setup Luny."),
+    "bad_url": (30522, "Adrese %s nerozumím.[CR]Čekám tvar jako 192.168.1.10:7126."),
+    "unreachable": (30523, "Na adrese %s se nikdo neozval.[CR][CR]Běží počítač, kde je Luna spuštěná? "
+                           "Je ve stejné síti jako tahle televize? Zkus „Najít Lunu v síti“."),
+    "not_luna": (30524, "Na adrese %s něco odpovídá, ale není to Luna.[CR]Zkontroluj port — Luna má "
+                        "výchozí 7126."),
+    "no_token": (30525, "Luna %s běží, ale chybí token.[CR][CR]Otevři v prohlížeči %s/setup, zkopíruj "
+                        "adresu doplňku a vlož ji celou do pole Token — adresu i token z ní doplněk "
+                        "vytáhne sám."),
+    "bad_token_format": (30526, "V poli Token není token.[CR][CR]Token začíná „e1.“ a je dlouhý. Otevři "
+                                "%s/setup a zkopíruj celou adresu doplňku."),
+    "bad_token": (30527, "Luna %s běží, ale tenhle token nepřijala.[CR][CR]Vygeneruj si adresu doplňku "
+                         "znovu na %s/setup a vlož ji celou do pole Token."),
+    "main_empty": (30528, "Luna %s odpovídá a hledání na WebShare funguje, ale její hlavní zdroj nic "
+                          "nevrací.[CR][CR]Zkontroluj na %s/setup účet WebShare a jestli je token "
+                          "opravdu z téhle Luny."),
+    "no_streams": (30529, "Luna %s běží, ale nenašla streamy ani u známých filmů.[CR][CR]Nejčastěji "
+                          "chybí účet WebShare v samotné Luně — otevři %s/setup a doplň ho."),
+}
+
+
+# totéž na jeden řádek — „Ověřit zdroje" má pro každý zdroj jen řádek, ne odstavec
+LUNA_DIAG_SHORT = {
+    "no_url": (30543, "chybí adresa i token"),
+    "bad_url": (30544, "adresa nedává smysl"),
+    "unreachable": (30545, "server neodpovídá"),
+    "not_luna": (30546, "na té adrese neběží Luna"),
+    "no_token": (30547, "běží, ale chybí token"),
+    "bad_token_format": (30548, "v poli Token není token"),
+    "bad_token": (30549, "token Luna nepřijala"),
+    "main_empty": (30550, "hlavní zdroj nic nevrací — účet WebShare v Luně?"),
+    "no_streams": (30551, "nenašla žádné streamy — účet WebShare v Luně?"),
+}
+
+# co se v které hlášce dosazuje za %s (pořadí podle textu)
+LUNA_DIAG_ARGS = {
+    "ok": ("version",),
+    "bad_url": ("base",),
+    "unreachable": ("base",),
+    "not_luna": ("base",),
+    "no_token": ("version", "base"),
+    "bad_token_format": ("base",),
+    "bad_token": ("version", "base"),
+    "main_empty": ("version", "base"),
+    "no_streams": ("version", "base"),
+}
+
+
+def luna_find():
+    """Tlačítko v nastavení: projde vlastní podsíť a najde server Luny.
+
+    Adresa je první, co lidem nesedí — opisují ji z návodu, ne ze své sítě.
+    Sken je levný (TCP klepnutí na 7126, celá podsíť do pár vteřin) a za Lunu
+    se prohlásí jen to, co se k ní přizná v manifestu.
+    """
+    dialog = xbmcgui.DialogProgress()
+    dialog.create(L(30000, "Nokturno"), L(30530, "Hledám Lunu v místní síti…"))
+    try:
+        found = luna_discover(
+            on_progress=lambda done, total: dialog.update(int(done * 100 / max(total, 1))),
+            should_stop=lambda: dialog.iscanceled() or should_stop())
+    except Exception as e:  # noqa: BLE001 – bez sítě, bez IPv4 adresy
+        found = []
+        xbmc.log(f"[Nokturno] hledání Luny selhalo: {e}", xbmc.LOGWARNING)
+    finally:
+        dialog.close()
+
+    if not found:
+        xbmcgui.Dialog().ok(L(30000, "Nokturno"),
+                            L(30531, "V téhle síti jsem Lunu nenašel.[CR][CR]Běží na některém počítači "
+                                     "v domácnosti? Má výchozí port 7126? Pokud běží jinde nebo na jiném "
+                                     "portu, vyplň adresu ručně."))
+        return
+    pick = 0 if len(found) == 1 else xbmcgui.Dialog().select(
+        L(30532, "Nalezené servery Luny"), [f"{f['url']}   ({f['name']} {f['version']})" for f in found])
+    if pick < 0:
+        return
+    ADDON.setSetting("luna_url", found[pick]["url"])
+    ADDON.setSetting("luna_enabled", "true")
+    # rovnou navážeme ověřením — samotná adresa bez tokenu ještě nic nepřehraje
+    luna_check()
+
+
+def luna_check():
+    """Tlačítko v nastavení: řekne, na kterém článku řetězu to stojí.
+
+    Vrací jednu větu a k ní radu, co s tím — ne technický výpis. Když to
+    nevyjde, nabídne rovnou odeslání logu, aby nebylo nutné popisovat problém
+    slovy („nejde mi to“ se nedá opravit).
+    """
+    dialog = xbmcgui.DialogProgress()
+    dialog.create(L(30000, "Nokturno"), L(30533, "Ověřuji Lunu…"))
+    try:
+        result = luna_diagnose(setting("luna_url"), setting("token"))
+    except Exception as e:  # noqa: BLE001 – ať tlačítko nikdy nespadne bez vysvětlení
+        result = {"level": "fail", "code": "unreachable", "base": setting("luna_url"), "token": "",
+                  "version": "", "detail": str(e)}
+    finally:
+        dialog.close()
+
+    # co jde spravit za uživatele, spravíme rovnou: celá adresa vložená do pole
+    # tokenu (nejčastější vložení ze /setup) se rozdělí na adresu a token
+    if result.get("base") and result["base"] != setting("luna_url"):
+        ADDON.setSetting("luna_url", result["base"])
+    if result.get("token") and result["token"] != setting("token"):
+        ADDON.setSetting("token", result["token"])
+
+    sid, fallback = LUNA_DIAG_TEXTS.get(result["code"], LUNA_DIAG_TEXTS["unreachable"])
+    hodnoty = {"version": result.get("version") or "?", "base": result.get("base") or setting("luna_url")}
+    try:
+        text = L(sid, fallback) % tuple(hodnoty[k] for k in LUNA_DIAG_ARGS.get(result["code"], ()))
+    except TypeError:   # překlad se zástupnými symboly nesouhlasí — radši holý text než pád
+        text = L(sid, fallback)
+    mark = {"ok": "[COLOR green]✔[/COLOR]", "warn": "[COLOR orange]![/COLOR]"}.get(result["level"],
+                                                                                  "[COLOR red]✘[/COLOR]")
+    if result.get("detail") and result["level"] != "ok":
+        xbmc.log(f"[Nokturno] diagnostika Luny: {result['code']} – {result['detail']}", xbmc.LOGINFO)
+
+    if result["level"] == "ok":
+        xbmcgui.Dialog().ok(L(30534, "Ověření Luny"), f"{mark} {text}")
+        return
+    if xbmcgui.Dialog().yesno(L(30534, "Ověření Luny"), f"{mark} {text}[CR][CR]" +
+                              L(30535, "Poslat log autorovi doplňku, ať se na to podívá?"),
+                              yeslabel=L(30536, "Poslat log"), nolabel=L(30537, "Zavřít")):
+        log_send(ask=False)
 
 
 SPEEDTEST_URL = "https://speed.cloudflare.com/__down?bytes=52428800"  # 50 MB, i na rychlém připojení stačí pár vteřin
@@ -2346,14 +2531,14 @@ def stats_send():
 LOG_TAIL_BYTES = 500 * 1024   # celý xbmc.log bývá desítky MB, server bere jen ~500 KB
 
 
-def log_send():
+def log_send(ask=True):
     """Ruční odeslání Kodi logu z nastavení – poslední ~500 KB `kodi.log`, gzip.
 
     Instance id bere ze stejného `stats.json` jako statistiky, ať jde log
     v dashboardu spárovat s instalací. Vlastní endpoint (`/logs`, ne `/collect`)
     bere syrová gzip data v těle, ne JSON — soubor je řádově větší.
     """
-    if not xbmcgui.Dialog().yesno(L(30000, "Nokturno"), L(30431, "Opravdu odeslat log?")):
+    if ask and not xbmcgui.Dialog().yesno(L(30000, "Nokturno"), L(30431, "Opravdu odeslat log?")):
         return
 
     import gzip
@@ -4228,6 +4413,8 @@ def router(query):
         "setup_wizard": lambda: (setup_wizard(force=True),
                                  xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
         "sub_status": sub_status,
+        "luna_check": luna_check,
+        "luna_find": luna_find,
         "speedtest": speedtest,
         "update_repos": update_repos,
         "tmdbhelper_player": tmdbhelper_player,
@@ -4284,6 +4471,8 @@ def router(query):
             list_tv(apis, p.get("date", ""), p.get("kind", ""), p.get("channel", ""))
         elif action == "genres":
             list_genres(apis, p["type"], p["catalog"], p.get("src", "luna"), show_all=not p.get("noall"))
+        elif action == "dash_group":
+            list_dash_group(apis, p["catalog"], p.get("type", "movie"))
         elif action == "catalog":
             list_catalog(apis, p["type"], p["catalog"], p.get("src", "luna"), genre=p.get("genre"),
                          search=p.get("search"), skip=int(p.get("skip") or 0))

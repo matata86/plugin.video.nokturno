@@ -1354,3 +1354,131 @@ msgstr ""
 msgctxt "#30518"
 msgid "Opening in browser…"
 msgstr ""
+
+msgctxt "#30520"
+msgid "Luna %s responds and returns streams. The setup is fine."
+msgstr ""
+
+msgctxt "#30521"
+msgid "Neither the Luna address nor the token is filled in.[CR]Use “Find Luna on the network”, or paste the whole add-on address from Luna's /setup page into the Token field."
+msgstr ""
+
+msgctxt "#30522"
+msgid "I do not understand the address %s.[CR]Expected something like 192.168.1.10:7126."
+msgstr ""
+
+msgctxt "#30523"
+msgid "Nobody answered at %s.[CR][CR]Is the computer running Luna switched on? Is it on the same network as this TV? Try “Find Luna on the network”."
+msgstr ""
+
+msgctxt "#30524"
+msgid "Something answers at %s, but it is not Luna.[CR]Check the port — Luna uses 7126 by default."
+msgstr ""
+
+msgctxt "#30525"
+msgid "Luna %s is running, but the token is missing.[CR][CR]Open %s/setup in a browser, copy the add-on address and paste the whole thing into the Token field — the add-on will pull both the address and the token out of it."
+msgstr ""
+
+msgctxt "#30526"
+msgid "What is in the Token field is not a token.[CR][CR]A token starts with “e1.” and is long. Open %s/setup and copy the whole add-on address."
+msgstr ""
+
+msgctxt "#30527"
+msgid "Luna %s is running, but it did not accept this token.[CR][CR]Generate the add-on address again at %s/setup and paste the whole thing into the Token field."
+msgstr ""
+
+msgctxt "#30528"
+msgid "Luna %s answers and the WebShare search works, but its main source returns nothing.[CR][CR]Check the WebShare account at %s/setup and whether the token really comes from this Luna."
+msgstr ""
+
+msgctxt "#30529"
+msgid "Luna %s is running, but it found no streams even for well-known films.[CR][CR]Usually the WebShare account is missing in Luna itself — open %s/setup and fill it in."
+msgstr ""
+
+msgctxt "#30530"
+msgid "Looking for Luna on the local network…"
+msgstr ""
+
+msgctxt "#30531"
+msgid "I did not find Luna on this network.[CR][CR]Is it running on some computer at home? Does it use the default port 7126? If it runs elsewhere or on another port, fill the address in by hand."
+msgstr ""
+
+msgctxt "#30532"
+msgid "Luna servers found"
+msgstr ""
+
+msgctxt "#30533"
+msgid "Checking Luna…"
+msgstr ""
+
+msgctxt "#30534"
+msgid "Luna check"
+msgstr ""
+
+msgctxt "#30535"
+msgid "Send the log to the add-on author to look into it?"
+msgstr ""
+
+msgctxt "#30536"
+msgid "Send log"
+msgstr ""
+
+msgctxt "#30537"
+msgid "Close"
+msgstr ""
+
+msgctxt "#30538"
+msgid "Find Luna on the network"
+msgstr ""
+
+msgctxt "#30539"
+msgid "Check Luna setup"
+msgstr ""
+
+msgctxt "#30540"
+msgid "Goes through your home network and fills in the address where Luna is running. It only takes a few seconds."
+msgstr ""
+
+msgctxt "#30541"
+msgid "Says exactly what is wrong: whether the server answers, whether the token is valid and whether any streams come back."
+msgstr ""
+
+msgctxt "#30542"
+msgid "Paste the add-on address from %s/setup"
+msgstr ""
+
+msgctxt "#30543"
+msgid "address and token are both missing"
+msgstr ""
+
+msgctxt "#30544"
+msgid "the address makes no sense"
+msgstr ""
+
+msgctxt "#30545"
+msgid "the server does not answer"
+msgstr ""
+
+msgctxt "#30546"
+msgid "Luna is not running at that address"
+msgstr ""
+
+msgctxt "#30547"
+msgid "running, but the token is missing"
+msgstr ""
+
+msgctxt "#30548"
+msgid "what is in the Token field is not a token"
+msgstr ""
+
+msgctxt "#30549"
+msgid "Luna did not accept the token"
+msgstr ""
+
+msgctxt "#30550"
+msgid "the main source returns nothing — WebShare account in Luna?"
+msgstr ""
+
+msgctxt "#30551"
+msgid "no streams found — WebShare account in Luna?"
+msgstr ""

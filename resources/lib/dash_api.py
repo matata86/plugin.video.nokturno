@@ -7,6 +7,10 @@ Tři veřejné endpointy, které server skládá sám z TMDB (klient nic nedohle
   deklarativní položky: slug, název, druh, umístění a ikonu. **Klient je bere přes
   vlastní whitelist** (`_clean_entry`) — neznámé umístění, druh nebo ikona se zahodí,
   nic ze serveru se nespouští ani nesestavuje do adresy jinak než jako slug.
+  Položka s `children` je **složka s podkategoriemi** (Vánoce → Komedie, Rodinné →
+  teprve filmy); zanoření se ořízne na `MAX_DEPTH` a počet dětí na `MAX_CHILDREN`,
+  ať server nemůže klientovi poslat nekonečné menu. Složku jde otevřít i jako obyčejný
+  katalog — server pak vrátí slité položky jejích podkategorií.
 * `GET /similar?kind=&id=` — podobné tituly pro uživatele bez vlastního TMDB klíče.
 * `GET /tv-program?date=&kind=&channel=` — filmy a seriály v české a slovenské TV,
   jen ty, které server spároval s TMDB (mají `tt…` id).
@@ -47,6 +51,8 @@ PLACEMENTS = ("root", "browse")
 # ikony, které klient umí přeložit na obrázek — neznámá se zahodí na výchozí
 ICONS = ("", "movies", "series", "star", "top", "new", "family", "christmas", "halloween", "calendar", "trophy")
 MAX_TITLE = 60
+MAX_DEPTH = 3       # kolik úrovní menu se ze serveru vezme (složka → složka → katalog)
+MAX_CHILDREN = 60   # kolik podkategorií na jedné úrovni
 _CONTROL_RE = re.compile(r"[\x00-\x1f\x7f\[\]]")   # [] kvůli formátovacím značkám Kodi ([COLOR] a spol.)
 
 
@@ -58,8 +64,9 @@ def _text(value, limit):
     return _CONTROL_RE.sub("", str(value or "")).strip()[:limit]
 
 
-def _clean_entry(raw):
-    """Položka menu ze serveru → bezpečný slovník, nebo None."""
+def _clean_entry(raw, depth=1):
+    """Položka menu ze serveru → bezpečný slovník, nebo None. `children` (podkategorie)
+    se čistí stejně, jen do hloubky `MAX_DEPTH`; hlubší úrovně se zahodí."""
     if not isinstance(raw, dict):
         return None
     slug, kind, placement = raw.get("slug"), raw.get("kind"), raw.get("placement")
@@ -69,7 +76,14 @@ def _clean_entry(raw):
     if not title:
         return None
     icon = raw.get("icon") if raw.get("icon") in ICONS else ""
-    return {"slug": slug, "title": title, "kind": kind, "placement": placement, "icon": icon}
+    children = []
+    if depth < MAX_DEPTH and isinstance(raw.get("children"), list):
+        for child in raw["children"][:MAX_CHILDREN]:
+            entry = _clean_entry(child, depth + 1)
+            if entry:
+                children.append(entry)
+    return {"slug": slug, "title": title, "kind": kind, "placement": placement, "icon": icon,
+            "children": children}
 
 
 def _clean_items(items, ctype):
@@ -124,7 +138,8 @@ class DashApi:
 
     def menu(self, placement=None, ctype=None):
         """Aktivní katalogy z dashboardu (už ověřené whitelistem), volitelně jen pro
-        jedno umístění (`root`/`browse`) a druh (`movie`/`series`)."""
+        jedno umístění (`root`/`browse`) a druh (`movie`/`series`). Filtruje se jen
+        nejvyšší úroveň — podkategorie ve `children` patří ke své složce."""
         def fetch():
             data = self._get("/catalogs")
             return data.get("catalogs") if isinstance(data, dict) and isinstance(data.get("catalogs"), list) else None
@@ -133,6 +148,21 @@ class DashApi:
                    if e]
         return [e for e in entries
                 if (placement is None or e["placement"] == placement) and (ctype is None or e["kind"] == ctype)]
+
+    def group(self, slug):
+        """Podkategorie složky `slug` (jedna úroveň). Prázdný seznam = neznámá složka
+        nebo katalog bez podkategorií — volající pak nabídne rovnou položky."""
+        if not (isinstance(slug, str) and SLUG_RE.match(slug)):
+            return []
+        level = self.menu()
+        for _ in range(MAX_DEPTH):
+            match = next((e for e in level if e["slug"] == slug), None)
+            if match is not None:
+                return match["children"]
+            level = [c for e in level for c in e["children"]]
+            if not level:
+                break
+        return []
 
     def catalogs(self, ctype):
         return [{"id": e["slug"], "name": e["title"], "search": False, "genre_required": False, "genres": []}
