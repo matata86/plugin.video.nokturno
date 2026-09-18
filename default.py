@@ -168,7 +168,7 @@ VIEWED_PROP = "nokturno.viewed"   # služba si odsud bere „u titulu se zobrazi
 SYNC_PROP = "nokturno.sync"      # plugin → služba: synchronizuj hned, ne až za pět minut
 FORCE_STATS_PROP = "nokturno.force_stats"   # plugin → služba: aktualizace doplňku, nečekat na SEND_EVERY
 USED_PROP = "nokturno.used"    # služba si odsud bere „doplněk byl otevřen“ pro statistiky
-PREF_LANGS = ("", "CZ", "SK", "EN")
+PREF_LANGS = ("", "CZ", "SK", "EN", "HU")
 STREAM_ORDERS = ("source", "quality", "size_desc", "size_asc")
 
 # přechod z ID plugin.video.luna: data i nastavení ze starého profilu

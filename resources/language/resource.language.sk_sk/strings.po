@@ -1508,3 +1508,7 @@ msgstr "Overuje sa uložené nastavenie — čo si práve prepísal v políčku,
 msgctxt "#30558"
 msgid "Show all streams"
 msgstr "Zobraziť všetky streamy"
+
+msgctxt "#30559"
+msgid "Hungarian"
+msgstr "Maďarčina"
