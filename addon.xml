@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.30~beta3" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.32" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,16 +23,13 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>5.2.30~beta3 – „Ověřit nastavení Luny“ se na adresu zeptá rovnou (předvyplněná je ta uložená), takže nastavení se kvůli ověření nemusí nejdřív ukládat — Kodi totiž tlačítku v nastavení nedá to, co je zrovna rozepsané v políčku
-5.2.30~beta2 – Výsledek ověření Luny je čitelný i na televizi: stav se píše slovem („V pořádku“ / „Pozor“ / „Nepovedlo se“), místo symbolu, ze kterého fonty skinů dělaly prázdný proužek
-5.2.30~beta2 – Po „Najít Lunu v síti“ se ověřuje opravdu ta nalezená adresa (dřív hlásilo „Adrese nerozumím“ nad adresou, kterou si doplněk sám právě vyplnil)
-5.2.30~beta2 – V ověření jde rovnou zadat jinou adresu a hned ji zkusit, aniž by se cokoli ukládalo — ověřuje se totiž uložené nastavení, ne to, co je zrovna rozepsané v políčku
-5.2.30~beta1 – Nové tlačítko „Najít Lunu v síti“ v nastavení: doplněk projde domácí síť a adresu serveru Luny vyplní sám (trvá pár vteřin)
-5.2.30~beta1 – Nové tlačítko „Ověřit nastavení Luny“ řekne konkrétně, na čem to stojí — server neodpovídá, chybí token, Luna token nepřijala, nebo v ní není vyplněný účet WebShare. Když to nevyjde, nabídne rovnou odeslání logu
-5.2.30~beta1 – „Ověřit zdroje“ u Luny už nehlásí zeleně nastavení, ze kterého nemůže přijít jediný stream: Luna vydá manifest i pro neplatný token, takže se doplněk nově ptá rovnou na streamy
-5.2.30~beta1 – Celá adresa doplňku vložená do pole Token se sama rozdělí na adresu a token, projde i holá IP bez portu
-5.2.30~beta1 – Průvodce prvním nastavením Lunu nejdřív najde v síti a rovnou ukáže, na jaké adrese si vyzvednout token
-5.2.30~beta1 – Katalogy z dashboardu můžou mít podsložky (třeba Vánoce → Komedie, Rodinné)
+    <news>5.2.32 – Nové tlačítko „Najít Lunu v síti“ v nastavení: doplněk projde domácí síť a adresu serveru Luny vyplní sám (trvá pár vteřin)
+5.2.32 – Nové tlačítko „Ověřit nastavení Luny“ řekne konkrétně, na čem to stojí — server neodpovídá, chybí token, Luna token nepřijala, nebo v ní není vyplněný účet WebShare. Když to nevyjde, nabídne rovnou odeslání logu
+5.2.32 – Ověření se na adresu zeptá rovnou (předvyplněná je ta uložená), takže kvůli němu není nutné nastavení nejdřív ukládat
+5.2.32 – „Ověřit zdroje“ u Luny už nehlásí zeleně nastavení, ze kterého nemůže přijít jediný stream: Luna vydá manifest i pro neplatný token, takže se doplněk nově ptá rovnou na streamy
+5.2.32 – Celá adresa doplňku vložená do pole Token se sama rozdělí na adresu a token, projde i holá IP bez portu
+5.2.32 – Průvodce prvním nastavením Lunu nejdřív najde v síti a rovnou ukáže, na jaké adrese si vyzvednout token
+5.2.32 – Katalogy z dashboardu můžou mít podsložky (třeba Vánoce → Komedie, Rodinné)
 5.2.22 – Beta kanál („Nokturno repozitář (beta)“) jde konečně nainstalovat přímo z „Nokturno repozitáře“ — instalace od 15. 9. končila chybou 404, protože zip repozitáře ležel na serveru pod jiným jménem, než pod jakým si pro něj Kodi sahá
 5.2.22 – Kodi log je čitelný i bez Luny a Sosáče: katalog „Nově přidané s CZ dabingem/titulky“ do něj u každého z desítek titulů psal, že zdroj není nastavený — zabralo to skoro půlku logu odeslaného na podporu
 5.2.22 – Zahřívání na pozadí přeskočí katalogy Luny, dokud k ní není vyplněný přístup (zapnutá bez tokenu předtím při každém zahřátí jen zapsala čtyři chyby do logu)
