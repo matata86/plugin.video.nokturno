@@ -1143,7 +1143,20 @@ def collect_streams(apis, ctype, item_id, meta, alt=None, progress=None, strict=
     finally:
         errors.extend(SourceFailure(label, err) for label, err in failures)
         remember_ws_token(engine.ws)
+    xbmc.log(f"[{ADDON_ID}] streamy {item_id}: {describe_timings(engine.last_timings)}", xbmc.LOGINFO)
     return streams
+
+
+def describe_timings(t):
+    """Jeden řádek do logu: kolik která fáze hledání streamů trvala (`Engine.last_timings`)."""
+    if t.get("cache"):
+        return (f"z cache, celkem {t.get('celkem', 0)} s · hlavičky {t.get('hlavičky', 0)}"
+                f" ({t.get('hlaviček', 0)}, nedočteno {t.get('hlaviček nedočteno', 0)}) · {t.get('streamů', 0)} streamů")
+    zdroje = ", ".join(f"{k} {v}" for k, v in sorted((t.get("zdroje") or {}).items(), key=lambda kv: kv[1]))
+    return (f"celkem {t.get('celkem', 0)} s · hlavní {t.get('hlavni', 0)} · souběžně {t.get('souběžně', 0)}"
+            f" ({zdroje}){' · znovu česky' if t.get('znovu česky') else ''} · úložiště navíc {t.get('úložiště navíc', 0)}"
+            f" · hlavičky {t.get('hlavičky', 0)} ({t.get('hlaviček', 0)}, nedočteno {t.get('hlaviček nedočteno', 0)})"
+            f" · {t.get('streamů', 0)} streamů")
 
 
 def storage_first(streams):

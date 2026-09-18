@@ -57,6 +57,15 @@ SEARCH_CACHE_TTL = 43200      # 12 h – seznam nalezených titulů podle dotazu
 STREAMS_CACHE_TTL = 259200    # 72 h – seznam streamů k titulu, ale JEN když nějaké našel (viz `cached_if`)
 
 _LOGGER = logging.getLogger(__name__)
+# hlavičky souborů se čtou souběžně. 16 vláken místo 8 nic nezrychlilo (Office 2026-09-18,
+# Bláznivá dovolená, 24 souborů): všechny začnou do ~1 s, konec drží pár pomalých souborů
+# z HellSpy (stažení výřezu 2–3,7 s), ne počet vláken
+PROBE_WORKERS = 8
+# Na hlavičky se čeká nejvýš tolik sekund — pak se výběr streamu ukáže hned a pomalé
+# soubory (typicky pár z HellSpy, 2–3,7 s) se dočtou na pozadí do cache (`media:`,
+# 30 dní), takže při dalším otevření titulu už mají ověřený zvuk i rozlišení.
+PROBE_DEADLINE = 3.0
+SUBS_TASK = "Titulky"   # úloha v souběžném hledání streamů, ne zdroj (nehlásí se do průběhu ani výpadků)
 
 SOURCE_NAMES = {"main": "Luna", "search": "WebShare", "ws": "WebShare", "sosac": "Sosáč",
                 "hs": "HellSpy", "st": "Sledujteto", "fs": "FastShare", "torrent": "Torrent", "dav": "Úložiště"}
@@ -281,6 +290,7 @@ class Engine:
         self.store = store or Store(storage_dir)
         self.opener = opener
         self.should_stop = should_stop or never
+        self.last_timings = {}   # časy fází posledního `raw_streams()` (s), viz tam
         self._luna = None
         self._sosac = None
         self._ws = None
@@ -1258,6 +1268,8 @@ class Engine:
     def _media_from_file(self, url):
         """Co se o souboru dá přečíst z jeho hlavičky. Prázdné, když to nejde."""
         def load():
+            if self.should_stop():
+                return {}   # doběh na pozadí po `PROBE_DEADLINE` — hostitel končí, nezačínat
             try:
                 return probe_media(self.resolve(url))
             except Exception as err:  # noqa: BLE001 – čtení hlavičky je bonus, nikdy nesmí shodit výpis
@@ -1326,7 +1338,7 @@ class Engine:
         # ne `with ThreadPoolExecutor()`: jeho `__exit__` čeká na všechna vlákna, i když
         # hostitel končí — `gather()` se mezi tím ptá `should_stop()` a při přerušení
         # nezačaté hlavičky zruší (viz `lib/abort.py`)
-        pool = ThreadPoolExecutor(max_workers=8)
+        pool = ThreadPoolExecutor(max_workers=PROBE_WORKERS)
         futures = {pool.submit(self._media_from_file, s["url"]): s for s in todo}
         results = {}
 
@@ -1338,8 +1350,9 @@ class Engine:
             probed += 1
             if on_audio_progress:
                 on_audio_progress(probed, total)
-        gather(pool, list(futures), self.should_stop, on_done=hotovo)
-        for stream, info in ((s, results[id(s)]) for s in todo):
+        gather(pool, list(futures), self.should_stop, on_done=hotovo, deadline=PROBE_DEADLINE)
+        self.last_timings["hlaviček nedočteno"] = len(todo) - len(results)
+        for stream, info in ((s, results.get(id(s))) for s in todo):
             if not info:
                 continue
             text = describe_media(info)
@@ -1936,7 +1949,7 @@ class Engine:
         return mbps * 1_000_000 * seconds / 8 / 2 ** 30
 
     # kroků v _fetch_streams(), než začne (obvykle nejdelší) čtení hlaviček
-    STREAM_SOURCE_STEPS = 6
+    STREAM_SOURCE_STEPS = 7   # hlavní zdroj + pět dalších + titulky, viz `_fetch_streams`
 
     def streams(self, ctype, item_id, alt=None, series_id=None, on_progress=None, failures=None):
         """Seřazené streamy titulu ze všech dostupných zdrojů, popsané pro HA/Stremio
@@ -1989,6 +2002,13 @@ class Engine:
         failures = [] if failures is None else failures
         total = self.STREAM_SOURCE_STEPS + AUDIO_PROBE_MAX
         done = [0]
+        # časy fází v sekundách od začátku — `last_timings`, volající je může zalogovat
+        started = time.monotonic()
+        timings = {"cache": True, "zdroje": {}}
+        self.last_timings = timings
+
+        def since(mark=None):
+            return round(time.monotonic() - (started if mark is None else mark), 2)
 
         def tick():
             if not on_progress:
@@ -2000,6 +2020,7 @@ class Engine:
             # titul obvykle nemá zdaleka AUDIO_PROBE_MAX streamů k ověření —
             # bez přepočtu by ukazatel skončil vysoko pod 100 % ještě před koncem
             nonlocal total
+            timings["hlaviček"] = n
             total = self.STREAM_SOURCE_STEPS + n
             if on_progress:
                 on_progress(min(done[0], total), total)
@@ -2010,65 +2031,91 @@ class Engine:
 
         def _fetch_streams():
             nonlocal meta
+            timings["cache"] = False
             self._check_stop()
-            try:
-                api = self.api_for(base_id)
-                found = api.streams(ctype, item_id, include_search=include_search) if isinstance(api, LunaApi) \
-                    else api.streams(ctype, item_id)
-            except Exception as err:  # noqa: BLE001 – výpadek zdroje = prázdno, ne chyba služby;
-                                       # cross/WebShare/HellSpy níž to samy doženou
-                # chybějící zdroj (titul z Cinemety, Luna nenastavená) není výpadek — a ani
-                # zpráva do logu: katalog „Nově přidané s CZ dabingem" prochází desítky
-                # kandidátů naráz, takže bez Luny/Sosáče zaplnila tahle jedna hláška skoro
-                # půlku odeslaného kodi.logu a přebila v něm to, kvůli čemu se posílal
-                if isinstance(err, NokturnoError) and "není nastaven" in str(err).lower():
-                    _LOGGER.debug("streamy %s: %s", item_id, err)
-                else:
-                    _LOGGER.warning("streamy %s: %s", item_id, err)
-                    failures.append(("Sosáč" if is_sosac_id(base_id) else "Luna", err))
-                found = []
-            tick()
-            if on_source_done:
-                on_source_done("Sosáč" if is_sosac_id(base_id) else "Luna", len(found))
-            # titul otevřený jen podle IMDb id (z databáze filmů) má v metadatech mezinárodní přepis
-            # („Sunday League…“), pod kterým Sosáč nic nenajde — podstrčíme mu český název z TMDB
-            if not found and not alt and not is_sosac_id(base_id) and str(base_id).startswith("tt"):
-                meta = self._with_local_title(ctype, base_id, meta)
-            self._check_stop()
-            # zdroje jsou nezávislé a každý má vlastní timeouty (15–40 s) — za sebou byl studený
-            # výpis 8–15 sériových dotazů. Líné klienty (login WebShare) založit ještě tady,
-            # v hlavním vlákně, ať se čtyři vlákna neperou o `_ws_ready`.
+            primary_label = "Sosáč" if is_sosac_id(base_id) else "Luna"
+
+            def primary():
+                try:
+                    api = self.api_for(base_id)
+                    return api.streams(ctype, item_id, include_search=include_search) if isinstance(api, LunaApi) \
+                        else api.streams(ctype, item_id)
+                except Exception as err:  # noqa: BLE001 – výpadek zdroje = prázdno, ne chyba služby;
+                                           # cross/WebShare/HellSpy to samy doženou
+                    # chybějící zdroj (titul z Cinemety, Luna nenastavená) není výpadek — a ani
+                    # zpráva do logu: katalog „Nově přidané s CZ dabingem" prochází desítky
+                    # kandidátů naráz, takže bez Luny/Sosáče zaplnila tahle jedna hláška skoro
+                    # půlku odeslaného kodi.logu a přebila v něm to, kvůli čemu se posílal
+                    if isinstance(err, NokturnoError) and "není nastaven" in str(err).lower():
+                        _LOGGER.debug("streamy %s: %s", item_id, err)
+                    else:
+                        _LOGGER.warning("streamy %s: %s", item_id, err)
+                        failures.append((primary_label, err))
+                    return []
+
+            # Líné klienty (login WebShare) založit ještě tady, v hlavním vlákně, ať se
+            # vlákna neperou o `_ws_ready`.
             self.ws, self.hs, self.st, self.fs, self.sosac  # noqa: B018 – jen inicializace
             cross = self._cross_streams if self._opt("cross_search", True) else (lambda *a, **k: [])
-            zdroje = (
-                ("Luna" if is_sosac_id(base_id) else "Sosáč", lambda: cross(ctype, item_id, meta, alt, failures)),
-                ("WebShare", lambda: self._webshare_streams(meta, video, ctype, alt, strict, failures)),
-                ("HellSpy", lambda: self._hellspy_streams(meta, video, ctype, alt, strict, failures)),
-                ("Sledujteto", lambda: self._sledujteto_streams(meta, video, ctype, alt, strict, failures)),
-                ("FastShare", lambda: self._fastshare_streams(meta, video, ctype, alt, strict, failures)),
-            )
+
+            def ostatni(m):
+                """Zdroje, které hledají podle názvu z `m`, a nakonec titulky z WebShare."""
+                return (
+                    ("Luna" if is_sosac_id(base_id) else "Sosáč", lambda: cross(ctype, item_id, m, alt, failures)),
+                    ("WebShare", lambda: self._webshare_streams(m, video, ctype, alt, strict, failures)),
+                    ("HellSpy", lambda: self._hellspy_streams(m, video, ctype, alt, strict, failures)),
+                    ("Sledujteto", lambda: self._sledujteto_streams(m, video, ctype, alt, strict, failures)),
+                    ("FastShare", lambda: self._fastshare_streams(m, video, ctype, alt, strict, failures)),
+                    (SUBS_TASK, lambda: self._webshare_subtitles(m, video, ctype, alt)),
+                )
 
             def bezpecne(label, fetch):
                 try:
                     return fetch()
                 except Exception as err:  # noqa: BLE001 – ani nečekaná chyba zdroje nesmí shodit ostatní
                     _LOGGER.warning("streamy %s (%s): %s", item_id, label, err)
-                    failures.append((label, err))
+                    if label != SUBS_TASK:   # bez titulků se streamy cachovat smí
+                        failures.append((label, err))
                     return []
-            pool = ThreadPoolExecutor(max_workers=len(zdroje))
-            futures = [pool.submit(bezpecne, label, fetch) for label, fetch in zdroje]
-            label_by_future = dict(zip(futures, (label for label, _fetch in zdroje)))
 
-            def hotovo(future):
-                tick()
-                if on_source_done:
-                    on_source_done(label_by_future[future], len(future.result()))
-            # čeká po vteřinách a ptá se `should_stop()` — Kodi při vypnutí nečeká na
-            # doběhnutí všech zdrojů, jen na to, co už běží (viz `lib/abort.py`)
-            gather(pool, futures, self.should_stop, on_done=hotovo)
+            def kolo(ulohy):
+                """Jedna souběžná dávka: vrátí výsledky v pořadí úloh. Zdroje jsou nezávislé
+                a každý má vlastní timeouty (15–40 s) — za sebou byl studený výpis 8–15
+                sériových dotazů. `gather` čeká po vteřinách a ptá se `should_stop()`."""
+                pool = ThreadPoolExecutor(max_workers=len(ulohy))
+                futures = [pool.submit(bezpecne, label, fetch) for label, fetch in ulohy]
+                label_by_future = dict(zip(futures, (label for label, _fetch in ulohy)))
+
+                def hotovo(future):
+                    label = label_by_future[future]
+                    timings["zdroje"][label] = since(mark)
+                    tick()
+                    if on_source_done and label != SUBS_TASK:
+                        on_source_done(label, len(future.result()))
+                return [future.result() for future in gather(pool, futures, self.should_stop, on_done=hotovo)]
+
+            # Hlavní zdroj (Luna/Sosáč podle id) běží souběžně s ostatními — dřív se na něj
+            # čekalo předem (studená Luna ~6 s, Office 2026-09-18), jen kvůli výjimce níž.
+            mark = time.monotonic()
+            vysledky = kolo([(primary_label, primary)] + list(ostatni(meta)))
+            found, vysledky = vysledky[0], vysledky[1:]
+            timings["hlavni"] = timings["zdroje"].get(primary_label, 0)
+            # titul otevřený jen podle IMDb id (z databáze filmů) má v metadatech mezinárodní
+            # přepis („Sunday League…“), pod kterým Sosáč nic nenajde. Když hlavní zdroj nic
+            # nevrátil a český název z TMDB se liší, ostatní zdroje hledají znovu s ním —
+            # stejný výsledek jako dřív, kdy se na hlavní zdroj čekalo předem.
+            if not found and not alt and not is_sosac_id(base_id) and str(base_id).startswith("tt"):
+                local = self._with_local_title(ctype, base_id, meta)
+                if local is not meta:
+                    meta = local
+                    timings["znovu česky"] = True
+                    self._check_stop()
+                    vysledky = kolo(list(ostatni(meta)))
+            timings["souběžně"] = since(mark)
+            subs = vysledky[-1]
             # pořadí zdrojů drží (Luna/Sosáč napřed) — na něm stojí párování v _merge_direct
-            for future in futures:
-                found += future.result()
+            for part in vysledky[:-1]:
+                found = found + part
             for stream in found:
                 parse_stream(stream)
                 # bez kvality v názvu („Matrix (1999).mkv") by soubor spadl na konec seznamu,
@@ -2083,8 +2130,6 @@ class Engine:
             found = self._merge_direct(found)
             self._check_stop()
             # titulky z WebShare ke streamům, které žádné nemají (Sosáč si posílá svoje)
-            subs = self._webshare_subtitles(meta, video, ctype, alt)
-            tick()
             if subs:
                 for stream in found:
                     if not stream.get("subtitles"):
@@ -2138,7 +2183,9 @@ class Engine:
             storage_pool.shutdown(wait=False)
             raise
         # úložiště hlídá `should_stop` samo; tady se jen čeká, ať se dá přerušit i čekání
+        mark = time.monotonic()
         local = gather(storage_pool, [storage_future], self.should_stop)[0].result()
+        timings["úložiště navíc"] = since(mark)
         for stream in local:
             parse_stream(stream)
             if not stream.get("quality_rank"):
@@ -2172,13 +2219,17 @@ class Engine:
         # na začátek seznamu, tedy na to, co má uživatel před očima. Po doplnění
         # kanálů se řadí znovu, protože 5.1 může pořadím pohnout.
         self._check_stop()
+        mark = time.monotonic()
         with_audio = self._fill_audio(sort(found), tick, on_count, on_audio_progress) if probe_audio else sort(found)
+        timings["hlavičky"] = since(mark)
         ordered = sort(self._ensure_bitrate(with_audio, video or meta))
         # vlastní úložiště vždy nahoru — mezi desítkami streamů zdrojů se jinak ztrácí
         ordered = [s for s in ordered if s.get("source") == "dav"] + [s for s in ordered if s.get("source") != "dav"]
         if on_progress and done[0] < total:
             done[0] = total
             on_progress(done[0], total)
+        timings["streamů"] = len(ordered)
+        timings["celkem"] = since()
         return ordered
 
     # co WebShare vrací u nedostupných souborů — hlášky jsou anglické a nic neříkající

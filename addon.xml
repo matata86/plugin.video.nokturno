@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.38" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="5.3.0" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,7 +23,9 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>5.2.38 – „Označit jako zhlédnuté“ z kontextového menu Kodi (skinu) u filmů a dílů v Nokturnu dřív nedělalo nic: fajfka se neukázala a Nokturno o tom nevědělo. Teď se označení i jeho zrušení promítne do Nokturna, do Traktu i do synchronizace s Home Assistantem
+    <news>5.3.0 – Rychlejší načítání streamů: hlavní zdroj (Luna nebo Sosáč) se už nečeká předem, hledá se ve všech zdrojích najednou i s titulky
+5.3.0 – Výběr streamu čeká na ověření zvuku a rozlišení nejvýš 3 sekundy. Pomalé soubory se dočtou na pozadí a při dalším otevření titulu už ověřené jsou
+5.2.38 – „Označit jako zhlédnuté“ z kontextového menu Kodi (skinu) u filmů a dílů v Nokturnu dřív nedělalo nic: fajfka se neukázala a Nokturno o tom nevědělo. Teď se označení i jeho zrušení promítne do Nokturna, do Traktu i do synchronizace s Home Assistantem
 5.2.38 – Zhlédnuto z Nokturna se zapisuje i do databáze Kodi, takže s ní souhlasí i doplňky, které ji čtou
 5.2.38 – Zhlédnutý titul už nemůže ukazovat starý pruh rozkoukání z databáze Kodi
 5.2.37 – Ověřit zdroje" teď ověří i TMDB API klíč, pokud je vyplněný (dřív se chyba klíče poznala jen z chybějících popisů a obrázků)
