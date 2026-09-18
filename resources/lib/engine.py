@@ -30,6 +30,7 @@ from sosac_api import is_sosac_id as _is_legacy_sosac_id
 from sosac_direct import SosacDirect, is_direct_id
 from store import Store
 from streams import arrange, estimate_rank, fold, langs_from_name, parse_stream
+from tracks import SUBTITLE_FALLBACK
 from hellspy_api import HellspyApi, HellspyError
 from sledujteto_api import SledujtetoApi, SledujtetoError
 from fastshare_api import FastshareApi, FastshareError, make_ref as fastshare_ref
@@ -89,6 +90,32 @@ def runtime_minutes(text):
 
 
 _fold = fold   # HA a Kodi ho importují odsud
+
+
+SUBTITLE_NAME_RE = {
+    "CZ": re.compile(r"(^|[^a-z])(cz|cze|ces|czech|cesky|cestina|cs)([^a-z]|$)"),
+    "SK": re.compile(r"(^|[^a-z])(sk|slo|slk|slovak|slovensky|slovencina)([^a-z]|$)"),
+    "EN": re.compile(r"(^|[^a-z])(en|eng|english|anglicky)([^a-z]|$)"),
+}
+
+
+def _subtitle_rank(folded, ranking):
+    """Pořadí titulkového souboru podle jazyka ve jménu; menší číslo = dřív.
+
+    `ranking` je pořadí jazyků podle předvolby (`SUBTITLE_FALLBACK`). Soubor bez
+    jakékoli jazykové značky skončí hned za nimi — jazyk se z názvu poznat nedá
+    a zahodit ho by znamenalo přijít i o správné titulky (pojmenované jen podle
+    releasu). Označený cizí jazyk jde úplně dozadu. Bez předvolby jazyka se
+    nerozlišuje nic a pořadí zůstane takové, v jakém soubory přišly z WebShare.
+    """
+    if not ranking:
+        return 0
+    for index, lang in enumerate(ranking):
+        if SUBTITLE_NAME_RE[lang].search(folded):
+            return index
+    if not any(pattern.search(folded) for pattern in SUBTITLE_NAME_RE.values()):
+        return len(ranking)
+    return len(ranking) + 1
 
 
 YEAR_RE = re.compile(r"\b(19\d{2}|20\d{2})\b")
@@ -1520,17 +1547,32 @@ class Engine:
         return out
 
     def _webshare_subtitles(self, meta, video=None, ctype="movie", alt=None):
-        """Titulky k titulu z WebShare (`.srt`), české napřed — `ws:<ident>` jako u streamů."""
+        """Titulky k titulu z WebShare (`.srt`), v preferovaném jazyce napřed — `ws:<ident>`.
+
+        Číslo dílu v dotazu je pro fulltext WebShare jen nápověda, ne podmínka: na
+        „Outlander: Blood of My Blood S02E01 srt" vrátil titulky k S01E04 a S01E05
+        a ty se (2026-09-18) připnuly k prvnímu dílu druhé série, protože filtr
+        hlídal jen slova názvu. U epizody proto musí být značka dílu i v názvu
+        souboru, stejně jako u streamů (`_fulltext_plan`).
+        """
         if not self.ws:
             return []
         title = meta.get("_title") or meta.get("name") or ""
         year = self._year(meta)
         names = [title] + self.original_titles(meta, ctype, alt)
+        episode_re = None
         if video:
-            suffix = f" S{int(video.get('season') or 0):02d}E{int(video.get('episode') or 0):02d} srt"
+            se, ep = int(video.get("season") or 0), int(video.get("episode") or 0)
+            suffix = f" S{se:02d}E{ep:02d} srt"
+            episode_re = re.compile(rf"s{se:02d}e{ep:02d}|(?<!\d){se:02d}?x{ep:02d}(?!\d)|(?<!\d){se}x{ep:02d}(?!\d)")
         else:
             suffix = f" {year} srt" if year else " srt"
         groups = [[w for w in re.split(r"\W+", _fold(n)) if len(w) > 2] for n in names]
+        # pořadí jazyků podle předvolby uživatele: CZ → SK, SK → CZ (jako u stop v souboru).
+        # Jazyk se pozná jen ze značky v názvu; soubor bez značky patří za označené
+        # v preferovaném jazyce, ale před ty ve zjevně cizím.
+        pref = self._opt("pref_lang", "")
+        ranking = SUBTITLE_FALLBACK.get(pref, ())
         found, seen = [], set()
         for query in [n + suffix for n in names]:
             try:
@@ -1545,11 +1587,12 @@ class Engine:
                 folded = _fold(name)
                 if groups and not any(g and all(w in folded for w in g) for g in groups):
                     continue
+                if episode_re and not episode_re.search(folded):
+                    continue
                 seen.add(ident)
                 if year and not video and str(year) not in folded:
                     continue
-                czech = bool(re.search(r"(^|[^a-z])(cz|cze|czech|cs)([^a-z]|$)", folded))
-                found.append((0 if czech else 1, name, ident))
+                found.append((_subtitle_rank(folded, ranking), name, ident))
         found.sort()
         return ["ws:" + ident for _rank, _name, ident in found[:SUBS_MAX]]
 
