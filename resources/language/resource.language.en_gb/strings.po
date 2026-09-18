@@ -1415,9 +1415,6 @@ msgctxt "#30534"
 msgid "Luna check"
 msgstr ""
 
-msgctxt "#30535"
-msgid "Send the log to the add-on author to look into it?"
-msgstr ""
 
 msgctxt "#30536"
 msgid "Send log"
@@ -1481,4 +1478,28 @@ msgstr ""
 
 msgctxt "#30551"
 msgid "no streams found — WebShare account in Luna?"
+msgstr ""
+
+msgctxt "#30552"
+msgid "All good"
+msgstr ""
+
+msgctxt "#30553"
+msgid "Careful"
+msgstr ""
+
+msgctxt "#30554"
+msgid "Did not work"
+msgstr ""
+
+msgctxt "#30555"
+msgid "Enter address"
+msgstr ""
+
+msgctxt "#30556"
+msgid "Luna address (or the whole add-on address from /setup)"
+msgstr ""
+
+msgctxt "#30557"
+msgid "The saved setup is what gets checked — what you just typed into the field counts only after OK. You can enter a different address right here."
 msgstr ""

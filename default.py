@@ -2327,23 +2327,33 @@ def luna_find():
         return
     ADDON.setSetting("luna_url", found[pick]["url"])
     ADDON.setSetting("luna_enabled", "true")
-    # rovnou navážeme ověřením — samotná adresa bez tokenu ještě nic nepřehraje
-    luna_check()
+    # rovnou navážeme ověřením — samotná adresa bez tokenu ještě nic nepřehraje.
+    # Adresu předáme přímo: `getSetting` by při otevřeném dialogu nastavení vrátil
+    # ještě tu starou (prázdnou) a ověření by hlásilo „adrese nerozumím“
+    luna_check(found[pick]["url"])
 
 
-def luna_check():
+def luna_check(base=None, token=None, kolo=0):
     """Tlačítko v nastavení: řekne, na kterém článku řetězu to stojí.
 
     Vrací jednu větu a k ní radu, co s tím — ne technický výpis. Když to
-    nevyjde, nabídne rovnou odeslání logu, aby nebylo nutné popisovat problém
-    slovy („nejde mi to“ se nedá opravit).
+    nevyjde, nabídne zadat adresu rovnou tady a poslat log, aby nebylo nutné
+    popisovat problém slovy („nejde mi to“ se nedá opravit).
+
+    `base`/`token` se předávají **přímo**, ne přes nastavení: dokud je otevřený
+    dialog nastavení, Kodi v něm rozepsanou hodnotu drží zvlášť — `getSetting()`
+    vrátí ještě tu uloženou, i když `setSetting()` už novou do políčka zapsal
+    (`luna_find` → `luna_check` na to doplatilo hláškou „adrese nerozumím“ nad
+    adresou, kterou právě samo našlo a vyplnilo).
     """
+    base = setting("luna_url") if base is None else base
+    token = setting("token") if token is None else token
     dialog = xbmcgui.DialogProgress()
     dialog.create(L(30000, "Nokturno"), L(30533, "Ověřuji Lunu…"))
     try:
-        result = luna_diagnose(setting("luna_url"), setting("token"))
+        result = luna_diagnose(base, token)
     except Exception as e:  # noqa: BLE001 – ať tlačítko nikdy nespadne bez vysvětlení
-        result = {"level": "fail", "code": "unreachable", "base": setting("luna_url"), "token": "",
+        result = {"level": "fail", "code": "unreachable", "base": base, "token": "",
                   "version": "", "detail": str(e)}
     finally:
         dialog.close()
@@ -2361,17 +2371,33 @@ def luna_check():
         text = L(sid, fallback) % tuple(hodnoty[k] for k in LUNA_DIAG_ARGS.get(result["code"], ()))
     except TypeError:   # překlad se zástupnými symboly nesouhlasí — radši holý text než pád
         text = L(sid, fallback)
-    mark = {"ok": "[COLOR green]✔[/COLOR]", "warn": "[COLOR orange]![/COLOR]"}.get(result["level"],
-                                                                                  "[COLOR red]✘[/COLOR]")
+    # stav slovem, ne symbolem: fonty skinů Kodi znaky jako ✔/✘ většinou nemají a
+    # nakreslí místo nich prázdný proužek (totéž řeší EMOJI_MAP v jádru u popisků Luny).
+    # Barvy hexem jako ostatní štítky — pojmenované („green“) závisí na skinu.
+    mark = {"ok": f"[COLOR FF7BC96F]{L(30552, 'V pořádku')}[/COLOR][CR]",
+            "warn": f"[COLOR FFF2C14E]{L(30553, 'Pozor')}[/COLOR][CR]"}.get(
+        result["level"], f"[COLOR FFFF8A6B]{L(30554, 'Nepovedlo se')}[/COLOR][CR]")
     if result.get("detail") and result["level"] != "ok":
         xbmc.log(f"[Nokturno] diagnostika Luny: {result['code']} – {result['detail']}", xbmc.LOGINFO)
 
     if result["level"] == "ok":
-        xbmcgui.Dialog().ok(L(30534, "Ověření Luny"), f"{mark} {text}")
+        xbmcgui.Dialog().ok(L(30534, "Ověření Luny"), f"{mark}{text}")
         return
-    if xbmcgui.Dialog().yesno(L(30534, "Ověření Luny"), f"{mark} {text}[CR][CR]" +
-                              L(30535, "Poslat log autorovi doplňku, ať se na to podívá?"),
-                              yeslabel=L(30536, "Poslat log"), nolabel=L(30537, "Zavřít")):
+    # Zadat adresu je první volba schválně: ověřuje se uložené nastavení, takže
+    # hodnota právě přepsaná v políčku (bez OK) se sem jinak nedostane
+    volba = xbmcgui.Dialog().yesnocustom(
+        L(30534, "Ověření Luny"), f"{mark}{text}[CR][CR]" + L(30557, "Ověřuje se uložené nastavení — co jsi "
+                                                                    "právě přepsal v políčku, se počítá až po OK. "
+                                                                    "Jinou adresu můžeš zadat rovnou tady."),
+        customlabel=L(30536, "Poslat log"), nolabel=L(30537, "Zavřít"), yeslabel=L(30555, "Zadat adresu"))
+    if volba == 1 and kolo < 3:      # Zadat adresu → zkusit znovu s ní
+        nova = xbmcgui.Dialog().input(L(30556, "Adresa Luny (nebo celá adresa doplňku ze /setup)"),
+                                      defaultt=result.get("base") or base)
+        if nova:
+            # token nechat čistý: kdyby v něm zůstala stará celá adresa, přebila by
+            # tuhle zadanou (`diagnose` bere adresu přednostně z tokenu)
+            luna_check(nova, parse_token(token) or token, kolo + 1)
+    elif volba == 2:                 # Poslat log
         log_send(ask=False)
 
 

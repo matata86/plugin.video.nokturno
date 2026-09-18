@@ -1416,9 +1416,6 @@ msgctxt "#30534"
 msgid "Luna check"
 msgstr "Overenie Luny"
 
-msgctxt "#30535"
-msgid "Send the log to the add-on author to look into it?"
-msgstr "Poslať log autorovi doplnku, nech sa na to pozrie?"
 
 msgctxt "#30536"
 msgid "Send log"
@@ -1483,3 +1480,27 @@ msgstr "hlavný zdroj nič nevracia — účet WebShare v Lune?"
 msgctxt "#30551"
 msgid "no streams found — WebShare account in Luna?"
 msgstr "nenašla žiadne streamy — účet WebShare v Lune?"
+
+msgctxt "#30552"
+msgid "All good"
+msgstr "V poriadku"
+
+msgctxt "#30553"
+msgid "Careful"
+msgstr "Pozor"
+
+msgctxt "#30554"
+msgid "Did not work"
+msgstr "Nepodarilo sa"
+
+msgctxt "#30555"
+msgid "Enter address"
+msgstr "Zadať adresu"
+
+msgctxt "#30556"
+msgid "Luna address (or the whole add-on address from /setup)"
+msgstr "Adresa Luny (alebo celá adresa doplnku zo /setup)"
+
+msgctxt "#30557"
+msgid "The saved setup is what gets checked — what you just typed into the field counts only after OK. You can enter a different address right here."
+msgstr "Overuje sa uložené nastavenie — čo si práve prepísal v políčku, sa počíta až po OK. Inú adresu môžeš zadať rovno tu."
