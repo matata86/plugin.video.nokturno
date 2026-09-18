@@ -2333,7 +2333,7 @@ def luna_find():
     luna_check(found[pick]["url"])
 
 
-def luna_check(base=None, token=None, kolo=0):
+def luna_check(base=None, token=None, kolo=0, ask=False):
     """Tlačítko v nastavení: řekne, na kterém článku řetězu to stojí.
 
     Vrací jednu větu a k ní radu, co s tím — ne technický výpis. Když to
@@ -2348,6 +2348,15 @@ def luna_check(base=None, token=None, kolo=0):
     """
     base = setting("luna_url") if base is None else base
     token = setting("token") if token is None else token
+    if ask:
+        # Kodi nedá akci to, co má uživatel rozepsané v políčku (uloží se až na OK),
+        # takže se na adresu ptáme rovnou tady — nastavení se kvůli ověření nemusí
+        # ukládat vůbec. Předvyplněná je ta uložená, takže „OK" stačí beze změny.
+        zadano = xbmcgui.Dialog().input(L(30556, "Adresa Luny (nebo celá adresa doplňku ze /setup)"),
+                                        defaultt=base)
+        if not zadano:
+            return
+        base, token = zadano, parse_token(token) or token
     dialog = xbmcgui.DialogProgress()
     dialog.create(L(30000, "Nokturno"), L(30533, "Ověřuji Lunu…"))
     try:
@@ -4439,7 +4448,7 @@ def router(query):
         "setup_wizard": lambda: (setup_wizard(force=True),
                                  xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
         "sub_status": sub_status,
-        "luna_check": luna_check,
+        "luna_check": lambda: luna_check(ask=True),
         "luna_find": luna_find,
         "speedtest": speedtest,
         "update_repos": update_repos,

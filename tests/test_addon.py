@@ -2905,6 +2905,31 @@ class TestLunaDiagnostika(unittest.TestCase):
             default.luna_check()
         self.assertLessEqual(len(diag.call_args_list), 4)
 
+    def test_tlacitko_se_pta_na_adresu_predvyplnenou_ulozenou(self):
+        """Kodi akci nedá, co má uživatel rozepsané v políčku — ptáme se rovnou."""
+        xbmcaddon.settings.update({"luna_url": "http://ulozena:7126", "token": "e1.abc"})
+        with mock.patch.object(default, "luna_diagnose",
+                               return_value=self.diag(level="ok", code="ok")) as diag, \
+                mock.patch.object(xbmcgui.Dialog, "input", return_value="192.168.1.7") as vstup:
+            default.router("?action=luna_check")
+        self.assertEqual(vstup.call_args[1]["defaultt"], "http://ulozena:7126")
+        self.assertEqual(diag.call_args[0][0], "192.168.1.7")
+
+    def test_prazdny_vstup_neoveruje(self):
+        with mock.patch.object(default, "luna_diagnose", side_effect=AssertionError("nemá ověřovat")), \
+                mock.patch.object(xbmcgui.Dialog, "input", return_value=""):
+            default.router("?action=luna_check")
+
+    def test_cela_adresa_zadana_v_overeni_da_i_token(self):
+        xbmcaddon.settings.update({"luna_url": "", "token": ""})
+        with mock.patch.object(default, "luna_diagnose",
+                               return_value=self.diag(level="ok", code="ok", token="e1.novy")) as diag, \
+                mock.patch.object(xbmcgui.Dialog, "input",
+                                  return_value="http://192.168.1.10:7126/metadata/e1.novy/manifest.json"):
+            default.router("?action=luna_check")
+        self.assertIn("e1.novy", diag.call_args[0][0])
+        self.assertEqual(xbmcaddon.settings["token"], "e1.novy")
+
     def test_obe_akce_zna_router(self):
         for action in ("luna_check", "luna_find"):
             with mock.patch.object(default, action) as fn:

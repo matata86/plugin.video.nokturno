@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.30~beta2" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.30~beta3" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,7 +23,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>5.2.30~beta2 – Výsledek ověření Luny je čitelný i na televizi: stav se píše slovem („V pořádku“ / „Pozor“ / „Nepovedlo se“), místo symbolu, ze kterého fonty skinů dělaly prázdný proužek
+    <news>5.2.30~beta3 – „Ověřit nastavení Luny“ se na adresu zeptá rovnou (předvyplněná je ta uložená), takže nastavení se kvůli ověření nemusí nejdřív ukládat — Kodi totiž tlačítku v nastavení nedá to, co je zrovna rozepsané v políčku
+5.2.30~beta2 – Výsledek ověření Luny je čitelný i na televizi: stav se píše slovem („V pořádku“ / „Pozor“ / „Nepovedlo se“), místo symbolu, ze kterého fonty skinů dělaly prázdný proužek
 5.2.30~beta2 – Po „Najít Lunu v síti“ se ověřuje opravdu ta nalezená adresa (dřív hlásilo „Adrese nerozumím“ nad adresou, kterou si doplněk sám právě vyplnil)
 5.2.30~beta2 – V ověření jde rovnou zadat jinou adresu a hned ji zkusit, aniž by se cokoli ukládalo — ověřuje se totiž uložené nastavení, ne to, co je zrovna rozepsané v políčku
 5.2.30~beta1 – Nové tlačítko „Najít Lunu v síti“ v nastavení: doplněk projde domácí síť a adresu serveru Luny vyplní sám (trvá pár vteřin)
