@@ -52,6 +52,7 @@ from trend_api import CATALOG_ID as TREND_CATALOG_ID  # noqa: E402
 from tracks import SUBS_WHEN_NEEDED, pick_audio, pick_subtitle, track_lang  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
 from webshare_api import WebshareApi, WebshareError  # noqa: E402
+import kodi_marks  # noqa: E402 – vedle service.py, čte videodatabázi Kodi
 
 PROP = "nokturno.playing"
 VIEWED_PROP = "nokturno.viewed"
@@ -61,6 +62,7 @@ CRASH_PROP = "nokturno.crash"   # plugin → služba: nové hlášení o pádu v
 CRASH_EVERY = 30 * 60           # fronta hlášení bez nového pádu (neodeslané kvůli síti) — jednou za čas
 FORCE_STATS_PROP = "nokturno.force_stats"   # plugin → služba: aktualizace doplňku, nečekat na SEND_EVERY
 SYNC_EVERY = 5 * 60   # výměna s HA; změny (dokoukáno, Můj seznam) ji vyvolají hned
+KODI_MARKS_EVERY = 60   # s – „Označit jako zhlédnuté“ ze skinu, viz KodiMarks
 SUB_CHECK_EVERY = 12 * 3600   # jak často se ptát WebShare na stav předplatného
 WATCHED_PCT = 0.90
 MIN_RESUME = 90  # s – po takové době přehrávání patří titul do rozkoukaných
@@ -531,6 +533,46 @@ class Syncer:
         threading.Thread(target=run, daemon=True).start()
 
 
+class KodiMarks:
+    """„Označit jako zhlédnuté“ ze skinu Kodi → evidence, HA a Trakt (viz `kodi_marks`).
+
+    Plugin změnu převezme sám, když Kodi po označení obnoví výpis. Tohle je pojistka
+    pro chvíle, kdy se výpis neobnoví (widget na domovské obrazovce, jiné okno) —
+    jednou za `KODI_MARKS_EVERY` jeden dotaz do videodatabáze, bez sítě. Zároveň zrcadlí
+    do Kodi změny, které přišly odjinud (menu Nokturna v jiném okně, synchronizace z HA)."""
+
+    def __init__(self, store):
+        self.store = store
+        self.next = time.time() + KODI_MARKS_EVERY
+
+    def tick(self):
+        if time.time() < self.next:
+            return
+        self.next = time.time() + KODI_MARKS_EVERY
+        try:
+            kodi_marks.collect(self.store, xbmcvfs.translatePath("special://database/"), apply=self.apply,
+                               write=kodi_marks.rpc_writer(xbmc.executeJSONRPC))
+        except Exception as e:  # noqa: BLE001 – cizí databáze, cokoli neočekávaného jen do logu
+            log(f"zhlédnuto z Kodi: {e}", xbmc.LOGWARNING)
+
+    def apply(self, changes):
+        changed = [(key, watched) for key, watched in changes.items()
+                   if bool(self.store.playcount(key)) != watched]
+        if not changed:
+            return
+        trakt = get_trakt(self.store)
+        for key, watched in changed:
+            log(f"zhlédnuto z Kodi: {key} → {'ano' if watched else 'ne'}")
+            self.store.set_watched(key, watched)
+            if trakt:
+                base, season, episode = split_key(key)
+                try:
+                    (trakt.mark_watched if watched else trakt.unmark_watched)(base, season, episode)
+                except TraktError as e:
+                    log(f"trakt: {e}", xbmc.LOGWARNING)
+        xbmcgui.Window(10000).setProperty(SYNC_PROP, "1")
+
+
 # --- zahřívání cache -----------------------------------------------------------------
 # Domovská obrazovka (widgety) i hlavní menu čtou katalogy z cache doplňku. Když ji
 # služba potichu obnoví dřív, než vyprší, uživatel čeká na síť jen výjimečně.
@@ -949,6 +991,7 @@ def main():
     threading.Thread(target=lang_trigger_watcher, args=(monitor,), daemon=True).start()
     syncer = Syncer(store)
     sub_checker = SubscriptionChecker(store)
+    marks = KodiMarks(store)
     crash_sender = CrashSender(CrashReporter(PROFILE))
     log("start")
     refresh_tmdbhelper_player()
@@ -958,6 +1001,7 @@ def main():
             stats_tick(stats)
             syncer.tick()
             sub_checker.tick()
+            marks.tick()
             crash_sender.tick()
             if monitor.waitForAbort(POLL):
                 break

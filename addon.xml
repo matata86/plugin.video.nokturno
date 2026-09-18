@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.37" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.38" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,7 +23,10 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>5.2.37 – Ověřit zdroje" teď ověří i TMDB API klíč, pokud je vyplněný (dřív se chyba klíče poznala jen z chybějících popisů a obrázků)
+    <news>5.2.38 – „Označit jako zhlédnuté“ z kontextového menu Kodi (skinu) u filmů a dílů v Nokturnu dřív nedělalo nic: fajfka se neukázala a Nokturno o tom nevědělo. Teď se označení i jeho zrušení promítne do Nokturna, do Traktu i do synchronizace s Home Assistantem
+5.2.38 – Zhlédnuto z Nokturna se zapisuje i do databáze Kodi, takže s ní souhlasí i doplňky, které ji čtou
+5.2.38 – Zhlédnutý titul už nemůže ukazovat starý pruh rozkoukání z databáze Kodi
+5.2.37 – Ověřit zdroje" teď ověří i TMDB API klíč, pokud je vyplněný (dřív se chyba klíče poznala jen z chybějících popisů a obrázků)
 5.2.34 – Titulky stažené z WebShare u seriálů patřily občas k úplně jinému dílu: vyhledávání WebShare bere číslo dílu jen jako nápovědu, takže se k prvnímu dílu druhé série mohly připnout titulky ze čtvrtého dílu první. Teď musí číslo dílu sedět i v názvu souboru
 5.2.34 – Pořadí nabídnutých titulků se řídí jazykem nastaveným v Přehrávání (čeština, pak slovenština, nebo obráceně), ne vždycky češtinou
 5.2.32 – Nové tlačítko „Najít Lunu v síti“ v nastavení: doplněk projde domácí síť a adresu serveru Luny vyplní sám (trvá pár vteřin)
