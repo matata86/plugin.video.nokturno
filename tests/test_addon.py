@@ -90,23 +90,24 @@ class TestKnihovnaJeKopieJadra(unittest.TestCase):
 class TestRetezce(unittest.TestCase):
     def test_kazdy_pouzity_retezec_ma_preklad(self):
         used = ids_in_code()
-        for lang in ("cs_cz", "en_gb", "sk_sk"):
+        for lang in ("cs_cz", "en_gb", "sk_sk", "hu_hu"):
             chybi = sorted(used - set(po_ids(lang)))
             self.assertEqual(chybi, [], f"{lang}: chybí #{chybi}")
 
     def test_bez_duplicit_a_stejna_sada_ve_vsech_jazycich(self):
         sady = {}
-        for lang in ("cs_cz", "en_gb", "sk_sk"):
+        for lang in ("cs_cz", "en_gb", "sk_sk", "hu_hu"):
             ids = po_ids(lang)
             dup = sorted({i for i in ids if ids.count(i) > 1})
             self.assertEqual(dup, [], f"{lang}: duplicitní #{dup}")
             sady[lang] = set(ids)
         self.assertEqual(sady["cs_cz"], sady["en_gb"])
         self.assertEqual(sady["cs_cz"], sady["sk_sk"])
+        self.assertEqual(sady["cs_cz"], sady["hu_hu"])
 
     def test_zadny_prazdny_preklad(self):
         # angličtina je zdrojový jazyk: text nese msgid a msgstr je podle zvyklostí Kodi prázdný
-        for lang, pole in (("cs_cz", "msgstr"), ("sk_sk", "msgstr"), ("en_gb", "msgid")):
+        for lang, pole in (("cs_cz", "msgstr"), ("sk_sk", "msgstr"), ("hu_hu", "msgstr"), ("en_gb", "msgid")):
             text = (LANG_DIR / f"resource.language.{lang}" / "strings.po").read_text(encoding="utf-8")
             bloky = re.findall(r'msgctxt "#(\d+)"\nmsgid "([^"]*)"\nmsgstr "([^"]*)"\n', text)
             prazdne = [sid for sid, msgid, msgstr in bloky if not (msgid if pole == "msgid" else msgstr)]

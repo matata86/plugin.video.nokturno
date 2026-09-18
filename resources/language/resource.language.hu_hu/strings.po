@@ -4,11 +4,11 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: plugin.video.nokturno\n"
-"Language: cs_CZ\n"
+"Language: hu_HU\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 msgctxt "#30000"
 msgid "Nokturno"
@@ -20,59 +20,59 @@ msgstr "Luna"
 
 msgctxt "#30002"
 msgid "Luna server address (http://IP:7126)"
-msgstr "Adresa serveru Luna (http://IP:7126)"
+msgstr "Luna szerver címe (http://IP:7126)"
 
 msgctxt "#30003"
 msgid "Addon URL or token from Luna setup page"
-msgstr "Adresa doplňku nebo token ze setup stránky Luny"
+msgstr "Bővítmény URL-je vagy token a Luna beállítási oldaláról"
 
 msgctxt "#30004"
 msgid "Playback"
-msgstr "Přehrávání"
+msgstr "Lejátszás"
 
 msgctxt "#30009"
 msgid "Also search WebShare full-text (Luna: Search, slower)"
-msgstr "Hledat i fulltextem na WebShare (Luna: Search, pomalejší)"
+msgstr "WebShare teljes szöveges keresése is (Luna: Search, lassabb)"
 
 msgctxt "#30010"
 msgid "Search movies"
-msgstr "Hledat film"
+msgstr "Film keresése"
 
 msgctxt "#30011"
 msgid "Search series"
-msgstr "Hledat seriál"
+msgstr "Sorozat keresése"
 
 msgctxt "#30012"
 msgid "Movies"
-msgstr "Filmy"
+msgstr "Filmek"
 
 msgctxt "#30013"
 msgid "Series"
-msgstr "Seriály"
+msgstr "Sorozatok"
 
 msgctxt "#30020"
 msgid "All"
-msgstr "Vše"
+msgstr "Összes"
 
 msgctxt "#30021"
 msgid "Next page »"
-msgstr "Další strana »"
+msgstr "Következő oldal »"
 
 msgctxt "#30022"
 msgid "Specials"
-msgstr "Speciály"
+msgstr "Extrák"
 
 msgctxt "#30023"
 msgid "Season %d"
-msgstr "%d. série"
+msgstr "%d. évad"
 
 msgctxt "#30024"
 msgid "Choose stream"
-msgstr "Vyber stream"
+msgstr "Stream kiválasztása"
 
 msgctxt "#30102"
 msgid "No stream found"
-msgstr "Žádný stream nenalezen"
+msgstr "Nem található stream"
 
 msgctxt "#30030"
 msgid "Sosáč"
@@ -80,187 +80,187 @@ msgstr "Sosáč"
 
 msgctxt "#30031"
 msgid "Enable Sosáč (catalogues from tv.sosac.to, streams from streamuj.tv)"
-msgstr "Zapnout Sosáč (katalogy z tv.sosac.to, streamy ze streamuj.tv)"
+msgstr "Sosáč engedélyezése (katalógusok a tv.sosac.to-ról, streamek a streamuj.tv-ről)"
 
 msgctxt "#30034"
 msgid "Also look up streams for a title in the other source"
-msgstr "Dohledat streamy titulu i v druhém zdroji"
+msgstr "A cím streamjeinek keresése a másik forrásban is"
 
 msgctxt "#30014"
 msgid "Enable Luna source"
-msgstr "Zapnout zdroj Luna"
+msgstr "Luna forrás engedélyezése"
 
 msgctxt "#30040"
 msgid "New search…"
-msgstr "Nové hledání…"
+msgstr "Új keresés…"
 
 msgctxt "#30041"
 msgid "Clear history"
-msgstr "Vymazat historii"
+msgstr "Előzmények törlése"
 
 msgctxt "#30042"
 msgid "Remove from history"
-msgstr "Odstranit z historie"
+msgstr "Eltávolítás az előzményekből"
 
 msgctxt "#30043"
 msgid "Mark as watched"
-msgstr "Označit jako zhlédnuté"
+msgstr "Megjelölés megnézettként"
 
 msgctxt "#30044"
 msgid "Mark as unwatched"
-msgstr "Označit jako nezhlédnuté"
+msgstr "Megjelölés nem nézettként"
 
 msgctxt "#30045"
 msgid "Search WebShare"
-msgstr "Hledat na WebShare"
+msgstr "WebShare keresése"
 
 msgctxt "#30050"
 msgid "WebShare (direct)"
-msgstr "WebShare (přímo)"
+msgstr "WebShare (közvetlen)"
 
 msgctxt "#30051"
 msgid "Search WebShare directly (no Luna server needed)"
-msgstr "Hledat přímo na WebShare (bez serveru Luna)"
+msgstr "WebShare közvetlen keresése (Luna szerver nem szükséges)"
 
 msgctxt "#30052"
 msgid "WebShare user name / e-mail"
-msgstr "WebShare uživatel / e-mail"
+msgstr "WebShare felhasználónév / e-mail"
 
 msgctxt "#30053"
 msgid "WebShare password (or 40-char salted hash)"
-msgstr "WebShare heslo (nebo 40znakový salted hash)"
+msgstr "WebShare jelszó (vagy 40 karakteres sózott hash)"
 
 msgctxt "#30054"
 msgid "Sort results"
-msgstr "Řazení výsledků"
+msgstr "Eredmények rendezése"
 
 msgctxt "#30055"
 msgid "Relevance"
-msgstr "Relevance"
+msgstr "Relevancia"
 
 msgctxt "#30056"
 msgid "Newest"
-msgstr "Nejnovější"
+msgstr "Legújabb"
 
 msgctxt "#30057"
 msgid "Rating"
-msgstr "Hodnocení"
+msgstr "Értékelés"
 
 msgctxt "#30058"
 msgid "Largest"
-msgstr "Největší"
+msgstr "Legnagyobb"
 
 msgctxt "#30059"
 msgid "Smallest"
-msgstr "Nejmenší"
+msgstr "Legkisebb"
 
 msgctxt "#30104"
 msgid "No source is configured – enable Luna, Sosáč or WebShare in settings"
-msgstr "Není nastaven žádný zdroj – zapni v nastavení Lunu, Sosáč nebo WebShare"
+msgstr "Nincs beállítva forrás – engedélyezd a Lunát, a Sosáčot vagy a WebShare-t a beállításokban"
 
 msgctxt "#30060"
 msgid "My list"
-msgstr "Můj seznam"
+msgstr "Saját lista"
 
 msgctxt "#30061"
 msgid "Add to My list"
-msgstr "Přidat do Mého seznamu"
+msgstr "Hozzáadás a Saját listához"
 
 msgctxt "#30062"
 msgid "Remove from My list"
-msgstr "Odebrat z Mého seznamu"
+msgstr "Eltávolítás a Saját listából"
 
 msgctxt "#30063"
 msgid "Continue watching"
-msgstr "Pokračovat ve sledování"
+msgstr "Folytatás"
 
 msgctxt "#30064"
 msgid "Recently watched"
-msgstr "Naposledy zhlédnuté"
+msgstr "Nemrég nézett"
 
 msgctxt "#30065"
 msgid "Added to My list"
-msgstr "Přidáno do Mého seznamu"
+msgstr "Hozzáadva a Saját listához"
 
 msgctxt "#30066"
 msgid "Removed from My list"
-msgstr "Odebráno z Mého seznamu"
+msgstr "Eltávolítva a Saját listából"
 
 msgctxt "#30067"
 msgid "Next episode"
-msgstr "Další díl"
+msgstr "Következő rész"
 
 msgctxt "#30070"
 msgid "Download"
-msgstr "Stáhnout"
+msgstr "Letöltés"
 
 msgctxt "#30071"
 msgid "Downloads"
-msgstr "Stahování"
+msgstr "Letöltések"
 
 msgctxt "#30072"
 msgid "Queued for download: %s"
-msgstr "Zařazeno ke stažení: %s"
+msgstr "Letöltési sorba állítva: %s"
 
 msgctxt "#30073"
 msgid "Downloading: %s"
-msgstr "Stahuji: %s"
+msgstr "Letöltés: %s"
 
 msgctxt "#30074"
 msgid "Downloaded: %s"
-msgstr "Staženo: %s"
+msgstr "Letöltve: %s"
 
 msgctxt "#30075"
 msgid "Download failed: %s"
-msgstr "Stahování selhalo: %s"
+msgstr "Letöltés sikertelen: %s"
 
 msgctxt "#30076"
 msgid "Set the download folder in settings first."
-msgstr "Nejdřív nastav složku pro stahování v nastavení."
+msgstr "Először állítsd be a letöltési mappát a beállításokban."
 
 msgctxt "#30077"
 msgid "Already in the download queue"
-msgstr "Už je ve frontě stahování"
+msgstr "Már a letöltési sorban van"
 
 msgctxt "#30078"
 msgid "queued"
-msgstr "ve frontě"
+msgstr "sorban"
 
 msgctxt "#30079"
 msgid "downloading"
-msgstr "stahuje se"
+msgstr "letöltés alatt"
 
 msgctxt "#30080"
 msgid "done"
-msgstr "hotovo"
+msgstr "kész"
 
 msgctxt "#30081"
 msgid "error"
-msgstr "chyba"
+msgstr "hiba"
 
 msgctxt "#30082"
 msgid "cancelling"
-msgstr "ruší se"
+msgstr "megszakítás"
 
 msgctxt "#30083"
 msgid "Cancel download"
-msgstr "Zrušit stahování"
+msgstr "Letöltés megszakítása"
 
 msgctxt "#30084"
 msgid "Remove from list"
-msgstr "Odebrat ze seznamu"
+msgstr "Eltávolítás a listából"
 
 msgctxt "#30085"
 msgid "Retry"
-msgstr "Zkusit znovu"
+msgstr "Újra"
 
 msgctxt "#30086"
 msgid "Delete the downloaded file %s as well?"
-msgstr "Smazat i stažený soubor %s?"
+msgstr "A letöltött %s fájlt is törölni?"
 
 msgctxt "#30087"
 msgid "Download folder"
-msgstr "Složka pro stahování"
+msgstr "Letöltési mappa"
 
 msgctxt "#30090"
 msgid "Trakt.tv"
@@ -268,7 +268,7 @@ msgstr "Trakt.tv"
 
 msgctxt "#30091"
 msgid "Sync watched status with Trakt"
-msgstr "Synchronizovat zhlédnuto s Traktem"
+msgstr "Megnézettségi állapot szinkronizálása a Trakttal"
 
 msgctxt "#30092"
 msgid "Trakt client id (trakt.tv/oauth/applications)"
@@ -280,195 +280,195 @@ msgstr "Trakt client secret"
 
 msgctxt "#30094"
 msgid "Fill in Trakt client id and secret first (create an app at trakt.tv/oauth/applications)."
-msgstr "Nejdřív vyplň Trakt client id a secret (aplikaci vytvoříš na trakt.tv/oauth/applications)."
+msgstr "Először add meg a Trakt client id-t és secretet (hozz létre egy appot a trakt.tv/oauth/applications oldalon)."
 
 msgctxt "#30095"
 msgid "Open %s and enter the code: [B]%s[/B]"
-msgstr "Otevři %s a zadej kód: [B]%s[/B]"
+msgstr "Nyisd meg: %s, és add meg a kódot: [B]%s[/B]"
 
 msgctxt "#30096"
 msgid "Trakt sign-in failed"
-msgstr "Přihlášení k Traktu se nezdařilo"
+msgstr "Trakt bejelentkezés sikertelen"
 
 msgctxt "#30097"
 msgid "Signed in to Trakt"
-msgstr "Přihlášeno k Traktu"
+msgstr "Bejelentkezve a Traktba"
 
 msgctxt "#30098"
 msgid "Sign out of Trakt"
-msgstr "Odhlásit od Traktu"
+msgstr "Kijelentkezés a Traktból"
 
 msgctxt "#30099"
 msgid "Cache cleared"
-msgstr "Cache vymazána"
+msgstr "Gyorsítótár törölve"
 
 msgctxt "#30100"
 msgid "Sign in to Trakt (device code)"
-msgstr "Přihlásit k Traktu (kód zařízení)"
+msgstr "Bejelentkezés a Traktba (eszközkód)"
 
 msgctxt "#30105"
 msgid "Advanced"
-msgstr "Pokročilé"
+msgstr "Speciális"
 
 msgctxt "#30106"
 msgid "Clear API cache (catalogues, series)"
-msgstr "Vymazat cache API (katalogy, seriály)"
+msgstr "API gyorsítótár törlése (katalógusok, sorozatok)"
 
 msgctxt "#30110"
 msgid "Preferred audio language"
-msgstr "Preferovaný jazyk zvuku"
+msgstr "Preferált hangnyelv"
 
 msgctxt "#30111"
 msgid "Any"
-msgstr "Libovolný"
+msgstr "Bármilyen"
 
 msgctxt "#30112"
 msgid "Czech"
-msgstr "Čeština"
+msgstr "Cseh"
 
 msgctxt "#30113"
 msgid "Slovak"
-msgstr "Slovenština"
+msgstr "Szlovák"
 
 msgctxt "#30114"
 msgid "English"
-msgstr "Angličtina"
+msgstr "Angol"
 
 msgctxt "#30115"
 msgid "Hide SD streams"
-msgstr "Skrýt SD streamy"
+msgstr "SD streamek elrejtése"
 
 msgctxt "#30117"
 msgid "Sort streams"
-msgstr "Řazení streamů"
+msgstr "Streamek rendezése"
 
 msgctxt "#30118"
 msgid "As provided"
-msgstr "Jak přišly"
+msgstr "Eredeti sorrendben"
 
 msgctxt "#30119"
 msgid "Best quality first"
-msgstr "Nejlepší kvalita první"
+msgstr "Legjobb minőség elöl"
 
 msgctxt "#30120"
 msgid "Largest first"
-msgstr "Největší první"
+msgstr "Legnagyobb elöl"
 
 msgctxt "#30121"
 msgid "Smallest first"
-msgstr "Nejmenší první"
+msgstr "Legkisebb elöl"
 
 msgctxt "#30128"
 msgid "Streamuj.tv user name"
-msgstr "Streamuj.tv uživatelské jméno"
+msgstr "Streamuj.tv felhasználónév"
 
 msgctxt "#30129"
 msgid "Streamuj.tv password"
-msgstr "Streamuj.tv heslo"
+msgstr "Streamuj.tv jelszó"
 
 msgctxt "#30107"
 msgid "Open settings"
-msgstr "Otevřít nastavení"
+msgstr "Beállítások megnyitása"
 
 msgctxt "#30131"
 msgid "Prefer surround sound (5.1 and up)"
-msgstr "Preferovat prostorový zvuk (5.1 a víc)"
+msgstr "Térhatású hang előnyben részesítése (5.1-től)"
 
 msgctxt "#30150"
 msgid "Search"
-msgstr "Hledat"
+msgstr "Keresés"
 
 msgctxt "#30160"
 msgid "Statistics"
-msgstr "Statistiky"
+msgstr "Statisztika"
 
 msgctxt "#30161"
 msgid "Send anonymous usage statistics"
-msgstr "Odesílat anonymní statistiky"
+msgstr "Névtelen használati statisztika küldése"
 
 msgctxt "#30163"
 msgid "Send statistics now"
-msgstr "Odeslat statistiky nyní"
+msgstr "Statisztika küldése most"
 
 msgctxt "#30164"
 msgid "Sends a random installation id, add-on version, platform, last use and per-title stream view counts. Nothing else leaves the device. When switched off, only the random installation id and add-on version are still sent, so it is known the installation is alive."
-msgstr "Posílá se náhodné id instalace, verze doplňku, platforma, poslední použití a počty zobrazení streamů jednotlivých titulů. Nic dalšího zařízení neopouští. Po vypnutí se dál posílá jen náhodné id instalace a verze doplňku, aby bylo vidět, že instalace žije."
+msgstr "Elküld egy véletlen telepítés-azonosítót, a bővítmény verzióját, a platformot, az utolsó használatot és a címenkénti stream-megtekintések számát. Más semmi nem hagyja el az eszközt. Kikapcsolva csak a véletlen telepítés-azonosító és a bővítmény verziója megy el, hogy tudni lehessen, a telepítés él."
 
 msgctxt "#30165"
 msgid "Statistics sent"
-msgstr "Statistiky odeslány"
+msgstr "Statisztika elküldve"
 
 msgctxt "#30166"
 msgid "Statistics could not be sent"
-msgstr "Statistiky se nepodařilo odeslat"
+msgstr "A statisztikát nem sikerült elküldeni"
 
 msgctxt "#30167"
 msgid "Test sources"
-msgstr "Otestovat zdroje"
+msgstr "Források tesztelése"
 
 msgctxt "#30168"
 msgid "OK"
-msgstr "v pořádku"
+msgstr "OK"
 
 msgctxt "#30169"
 msgid "not set up"
-msgstr "není nastaveno"
+msgstr "nincs beállítva"
 
 msgctxt "#30170"
 msgid "Sources check"
-msgstr "Kontrola zdrojů"
+msgstr "Források ellenőrzése"
 
 msgctxt "#30180"
 msgid "Sync"
-msgstr "Synchronizace"
+msgstr "Szinkronizálás"
 
 msgctxt "#30181"
 msgid "Sync via Home Assistant"
-msgstr "Synchronizovat přes Home Assistant"
+msgstr "Szinkronizálás Home Assistanten keresztül"
 
 msgctxt "#30182"
 msgid "Home Assistant address"
-msgstr "Adresa Home Assistantu"
+msgstr "Home Assistant címe"
 
 msgctxt "#30183"
 msgid "Key (from the Nokturno integration settings)"
-msgstr "Klíč (z nastavení integrace Nokturno)"
+msgstr "Kulcs (a Nokturno integráció beállításaiból)"
 
 msgctxt "#30184"
 msgid "Sync now"
-msgstr "Synchronizovat teď"
+msgstr "Szinkronizálás most"
 
 msgctxt "#30185"
 msgid "Watched, in-progress and My list are shared across every Kodi through the Nokturno HA integration"
-msgstr "Zhlédnuto, rozkoukané a Můj seznam se sdílí mezi všemi Kodi s integrací Nokturno v HA"
+msgstr "A megnézett, folyamatban lévő és Saját lista tételek minden Kodin megosztva a Nokturno HA integráción keresztül"
 
 msgctxt "#30186"
 msgid "Sync is off or the address and key are missing"
-msgstr "Synchronizace není zapnutá nebo chybí adresa a klíč"
+msgstr "A szinkronizálás ki van kapcsolva, vagy hiányzik a cím és a kulcs"
 
 msgctxt "#30187"
 msgid "Synced: sent %d, received %d"
-msgstr "Synchronizováno: odesláno %d, přijato %d"
+msgstr "Szinkronizálva: elküldve %d, fogadva %d"
 
 msgctxt "#30188"
 msgid "Sync failed"
-msgstr "Synchronizace selhala"
+msgstr "Szinkronizálás sikertelen"
 
 msgctxt "#30190"
 msgid "Downloaded in HA"
-msgstr "Staženo v HA"
+msgstr "Letöltve a HA-ban"
 
 msgctxt "#30191"
 msgid "What's new"
-msgstr "Novinky"
+msgstr "Újdonságok"
 
 msgctxt "#30192"
 msgid "What's new in version"
-msgstr "Novinky ve verzi"
+msgstr "Újdonságok ebben a verzióban"
 
 msgctxt "#30193"
 msgid "No news"
-msgstr "Žádné novinky"
+msgstr "Nincs újdonság"
 
 msgctxt "#30194"
 msgid "HellSpy"
@@ -476,63 +476,63 @@ msgstr "HellSpy"
 
 msgctxt "#30195"
 msgid "Search HellSpy for titles"
-msgstr "U titulů hledat i na HellSpy"
+msgstr "Címek keresése a HellSpyn"
 
 msgctxt "#30196"
 msgid "HellSpy needs no account. It offers the original files, same as WebShare."
-msgstr "HellSpy nepotřebuje účet. Nabízí původní soubory, stejně jako WebShare."
+msgstr "A HellSpyhez nem kell fiók. Az eredeti fájlokat kínálja, akárcsak a WebShare."
 
 msgctxt "#30197"
 msgid "Search HellSpy"
-msgstr "Hledat na HellSpy"
+msgstr "HellSpy keresése"
 
 msgctxt "#30198"
 msgid "Detect audio from the file (how many streams)"
-msgstr "Zjišťovat zvuk ze souboru (kolik streamů)"
+msgstr "Hang felismerése a fájlból (hány stream)"
 
 msgctxt "#30199"
 msgid "Reads the start of the file to find audio language and channels where the source stays silent. Only for such streams, from the top of the sorted list, result kept for a month. 0 = off."
-msgstr "Přečte začátek souboru a zjistí z něj jazyk a počet kanálů tam, kde je zdroj neřekl. Týká se jen takových streamů, bere se od začátku seřazeného seznamu a výsledek se pamatuje měsíc. 0 = nezjišťovat."
+msgstr "Beolvassa a fájl elejét, hogy megtalálja a hangnyelvet és a csatornákat ott, ahol a forrás nem mond erről semmit. Csak az ilyen streameknél, a rendezett lista tetejétől, az eredmény egy hónapig megmarad. 0 = kikapcsolva."
 
 msgctxt "#30201"
 msgid "Stream selection"
-msgstr "Výběr streamu"
+msgstr "Stream kiválasztása"
 
 msgctxt "#30207"
 msgid "Quality is shown as a picture, audio languages and the rest of the details are set below. A tilde before a value means an estimate from the file name."
-msgstr "Kvalita je vždy obrázek, ostatní údaje a jejich pořadí nastavíš níž. Vlnovka před údajem znamená odhad z názvu souboru, bez ní je údaj od zdroje nebo z hlavičky souboru."
+msgstr "A minőség képként jelenik meg, a hangnyelvek és a többi részlet alább állítható be. A hullámvonal egy érték előtt azt jelenti, hogy az becslés a fájlnévből."
 
 msgctxt "#30208"
 msgid "Quality"
-msgstr "Kvalita"
+msgstr "Minőség"
 
 msgctxt "#30209"
 msgid "Audio"
-msgstr "Zvuk"
+msgstr "Hang"
 
 msgctxt "#30210"
 msgid "Subtitles"
-msgstr "Titulky"
+msgstr "Felirat"
 
 msgctxt "#30211"
 msgid "Source"
-msgstr "Zdroj"
+msgstr "Forrás"
 
 msgctxt "#30212"
 msgid "Nothing to filter by"
-msgstr "Není podle čeho filtrovat"
+msgstr "Nincs mi alapján szűrni"
 
 msgctxt "#30213"
 msgid "Filter streams"
-msgstr "Filtr streamů"
+msgstr "Streamek szűrése"
 
 msgctxt "#30214"
 msgid "Filter left nothing, showing all streams"
-msgstr "Filtr nic nenechal, zobrazeny všechny streamy"
+msgstr "A szűrő semmit nem hagyott, mind a streamek látszanak"
 
 msgctxt "#30215"
 msgid "Channels"
-msgstr "Kanály"
+msgstr "Csatornák"
 
 msgctxt "#30216"
 msgid "Codec"
@@ -540,151 +540,151 @@ msgstr "Kodek"
 
 msgctxt "#30220"
 msgid "Measure speed and set the limit"
-msgstr "Změřit rychlost a nastavit datový tok"
+msgstr "Sebesség mérése és a korlát beállítása"
 
 msgctxt "#30221"
 msgid "Speed measurement failed"
-msgstr "Měření rychlosti selhalo"
+msgstr "Sebességmérés sikertelen"
 
 msgctxt "#30222"
 msgid "Too little data downloaded, try again"
-msgstr "Stáhlo se moc málo dat, zkus to znovu"
+msgstr "Túl kevés adat töltődött le, próbáld újra"
 
 msgctxt "#30223"
 msgid "Speed %s Mb/s -> allowed %s Mb/s (e.g. %s GB for a 2-hour movie)"
-msgstr "Rychlost %s Mb/s → dovoleno %s Mb/s (např. %s GB u dvouhodinového filmu)"
+msgstr "Sebesség %s Mb/s → engedélyezett %s Mb/s (pl. %s GB egy 2 órás filmhez)"
 
 msgctxt "#30224"
 msgid "Max. bitrate (Mb/s, 0 = unlimited)"
-msgstr "Max. datový tok (Mb/s, 0 = bez omezení)"
+msgstr "Max. bitráta (Mb/s, 0 = korlátlan)"
 
 msgctxt "#30225"
 msgid "Converted to GB using the current title's runtime; without a known runtime (typically fulltext) it assumes a 2-hour movie."
-msgstr "Přepočítá se na GB podle stopáže aktuálního titulu; bez známé stopáže (typicky fulltext) se počítá s dvouhodinovým filmem."
+msgstr "GB-ba átszámítva az aktuális cím hosszával; ismeretlen hossz esetén (jellemzően fulltextnél) 2 órás filmet feltételez."
 
 msgctxt "#30229"
 msgid "WebShare subscription status"
-msgstr "Stav předplatného WebShare"
+msgstr "WebShare előfizetés állapota"
 
 msgctxt "#30230"
 msgid "WebShare is off or has no account filled in."
-msgstr "WebShare není zapnutý nebo nemá vyplněný účet."
+msgstr "A WebShare ki van kapcsolva, vagy nincs megadva fiók."
 
 msgctxt "#30231"
 msgid "VIP active, %s days left (until %s)"
-msgstr "VIP aktivní, zbývá %s dní (do %s)"
+msgstr "VIP aktív, még %s nap van hátra (eddig: %s)"
 
 msgctxt "#30232"
 msgid "VIP is not active."
-msgstr "VIP není aktivní."
+msgstr "A VIP nem aktív."
 
 msgctxt "#30233"
 msgid "Notifies a few days before the subscription runs out and every day after it does."
-msgstr "Upozorní pár dní před koncem předplatného a pak každý den, dokud nevyprší."
+msgstr "Néhány nappal az előfizetés lejárta előtt, majd utána minden nap értesít."
 
 msgctxt "#30234"
 msgid "Warn this many days before expiry (0 = only after expiry)"
-msgstr "Upozornit tolik dní před koncem (0 = jen po vypršení)"
+msgstr "Ennyi nappal a lejárat előtt figyelmeztessen (0 = csak lejárat után)"
 
 msgctxt "#30236"
 msgid "WebShare subscription runs out in %s day(s)."
-msgstr "Předplatné WebShare vyprší za %s dní."
+msgstr "A WebShare előfizetés %s nap múlva jár le."
 
 msgctxt "#30237"
 msgid "WebShare subscription has run out."
-msgstr "WebShare předplatné vypršelo."
+msgstr "A WebShare előfizetés lejárt."
 
 msgctxt "#30300"
 msgid "Works without a Luna server — logs into WebShare directly with your own account and searches full-text by title."
-msgstr "Funguje bez serveru Luna – doplněk se přihlásí přímo na WebShare tvým účtem a hledá fulltextem podle názvu."
+msgstr "Luna szerver nélkül is működik — közvetlenül bejelentkezik a WebShare-be a saját fiókoddal, és cím szerint teljes szöveges keresést végez."
 
 msgctxt "#30301"
 msgid "E-mail or user name you log into webshare.cz with."
-msgstr "E-mail nebo uživatelské jméno, kterým se přihlašuješ na webshare.cz."
+msgstr "Az e-mail vagy felhasználónév, amivel a webshare.cz-re bejelentkezel."
 
 msgctxt "#30302"
 msgid "Password from webshare.cz, or a 40-character salted hash if you'd rather not type it in plain text."
-msgstr "Heslo z webshare.cz, nebo 40znakový salted hash, pokud ho nechceš zadávat v čitelné podobě."
+msgstr "A webshare.cz jelszava, vagy egy 40 karakteres sózott hash, ha nem szeretnéd sima szövegként beírni."
 
 msgctxt "#30303"
 msgid "Order of WebShare full-text results, before they get matched with Luna or Sosáč."
-msgstr "Řazení výsledků fulltextového hledání na WebShare, než se spárují s Lunou nebo Sosáčem."
+msgstr "A WebShare teljes szöveges találatok sorrendje, mielőtt párosításra kerülnek a Lunával vagy a Sosáčcsal."
 
 msgctxt "#30304"
 msgid "Catalogues and descriptions come from tv.sosac.to's public exports; playback itself goes through your Streamuj.tv account."
-msgstr "Katalogy a popisy titulů se berou z veřejných exportů tv.sosac.to, samotné přehrání jde přes tvůj účet Streamuj.tv."
+msgstr "A katalógusok és leírások a tv.sosac.to nyilvános exportjaiból származnak; maga a lejátszás a Streamuj.tv fiókodon keresztül megy."
 
 msgctxt "#30305"
 msgid "Streamuj.tv user name — needed to play streams found on Sosáč."
-msgstr "Uživatelské jméno pro streamuj.tv – potřeba k přehrání streamů ze Sosáče."
+msgstr "Streamuj.tv felhasználónév — a Sosáčon talált streamek lejátszásához kell."
 
 msgctxt "#30306"
 msgid "Streamuj.tv password. It's stored as a one-way hash, not in plain text, so it can't be used to log into the streamuj.tv website itself."
-msgstr "Heslo pro streamuj.tv. Ukládá se jako jednosměrný otisk, ne v čitelné podobě, takže se s ním nejde přihlásit na web streamuj.tv."
+msgstr "Streamuj.tv jelszó. Egyirányú hashként tárolódik, nem sima szövegként, így nem használható a streamuj.tv weboldalra való bejelentkezéshez."
 
 msgctxt "#30307"
 msgid "When a title has streams in only one of the two sources, also look it up in the other. Slower search, but more streams."
-msgstr "Když má titul streamy jen v jednom ze dvou zdrojů, dohledá se i ve druhém. Hledání je pomalejší, ale streamů je víc."
+msgstr "Ha egy címnek csak az egyik forrásban vannak streamjei, a másikban is keresse meg. Lassabb keresés, de több stream."
 
 msgctxt "#30308"
 msgid "Luna supplies catalogues, posters and Czech descriptions. Without it, only WebShare and Sosáč work."
-msgstr "Luna dodává katalogy, plakáty a české popisy titulů. Bez ní fungují jen WebShare a Sosáč."
+msgstr "A Luna katalógusokat, plakátokat és cseh leírásokat ad. Nélküle csak a WebShare és a Sosáč működik."
 
 msgctxt "#30309"
 msgid "Address of your Luna server on the local network, e.g. http://192.168.1.10:7126."
-msgstr "Adresa tvého serveru Luna v místní síti, např. http://192.168.1.10:7126."
+msgstr "A Luna szervered címe a helyi hálózaton, pl. http://192.168.1.10:7126."
 
 msgctxt "#30310"
 msgid "Paste the whole add-on URL from Luna's setup page (…/setup), or just the token itself starting with 'e1.'."
-msgstr "Vlož celou adresu doplňku ze setup stránky Luny (…/setup), nebo jen samotný token začínající na 'e1.'."
+msgstr "Illeszd be a teljes bővítmény URL-t a Luna beállítási oldaláról (…/setup), vagy csak magát a tokent, ami 'e1.'-vel kezdődik."
 
 msgctxt "#30311"
 msgid "Luna can also full-text search WebShare (its own Search feature) — finds more, but takes longer."
-msgstr "Luna umí i fulltext přes WebShare (vlastní funkce Search) – najde víc, ale hledání trvá déle."
+msgstr "A Luna a WebShare-t is tudja teljes szöveggel keresni (saját Search funkciója) — többet talál, de tovább tart."
 
 msgctxt "#30313"
 msgid "Streams with this audio language always come first, then the rest. Nothing gets hidden, just reordered."
-msgstr "Streamy s tímhle jazykem zvuku jsou vždy nahoře, ostatní až pod nimi. Nic se neschovává, jen se to přeřadí."
+msgstr "Az ezzel a hangnyelvvel rendelkező streamek mindig elöl vannak, utánuk a többi. Semmi nem tűnik el, csak átrendeződik."
 
 msgctxt "#30314"
 msgid "At equal quality, a stream with surround sound (5.1 and up) is sorted higher."
-msgstr "Při stejné kvalitě jde nahoru stream s prostorovým zvukem (5.1 a víc)."
+msgstr "Azonos minőség esetén a térhatású hanggal (5.1-től) rendelkező stream kerül feljebb."
 
 msgctxt "#30315"
 msgid "Streams below 720p are removed from the list entirely — the filter can't bring them back either."
-msgstr "Streamy pod 720p se ze seznamu úplně vyhodí, nejdou zobrazit ani přes filtr."
+msgstr "A 720p alatti streamek teljesen kikerülnek a listából — a szűrő sem hozza vissza őket."
 
 msgctxt "#30316"
 msgid "'As provided' keeps the source's own order; the other options sort by quality or file size."
-msgstr "„Jak přišly“ nechá pořadí ze zdroje, ostatní volby řadí podle kvality nebo velikosti souboru."
+msgstr "Az „Eredeti sorrendben” megtartja a forrás saját sorrendjét; a többi opció minőség vagy fájlméret szerint rendez."
 
 msgctxt "#30323"
 msgid "Where downloaded videos and their subtitles are saved on the device."
-msgstr "Kam se na zařízení ukládají stažená videa a jejich titulky."
+msgstr "Hova mentődnek a letöltött videók és feliratjaik az eszközön."
 
 msgctxt "#30324"
 msgid "Needs a Trakt.tv app (client id and secret) filled in below, then a one-time sign-in via the device code button."
-msgstr "Potřebuje níže vyplněnou aplikaci Trakt.tv (client id a secret), pak jedno přihlášení tlačítkem s kódem zařízení."
+msgstr "Alább egy Trakt.tv app (client id és secret) megadása szükséges, majd egyszeri bejelentkezés az eszközkód gombbal."
 
 msgctxt "#30325"
 msgid "From an app you create at trakt.tv/oauth/applications."
-msgstr "Z aplikace, kterou si vytvoříš na trakt.tv/oauth/applications."
+msgstr "Egy appból, amit a trakt.tv/oauth/applications oldalon hozol létre."
 
 msgctxt "#30326"
 msgid "The secret that belongs to the same Trakt.tv app as the client id above."
-msgstr "Tajný klíč patřící ke stejné aplikaci Trakt.tv jako client id výše."
+msgstr "A secret, ami a fenti client id-vel azonos Trakt.tv apphoz tartozik."
 
 msgctxt "#30327"
 msgid "Address of the Home Assistant instance running the Nokturno integration."
-msgstr "Adresa Home Assistantu, na kterém běží integrace Nokturno."
+msgstr "A Nokturno integrációt futtató Home Assistant példány címe."
 
 msgctxt "#30328"
 msgid "Must match the sync key shown in the Nokturno integration's settings in Home Assistant."
-msgstr "Musí sedět se synchronizačním klíčem z nastavení integrace Nokturno v Home Assistantu."
+msgstr "Egyeznie kell a Nokturno integráció beállításaiban a Home Assistantban látható szinkronizálási kulccsal."
 
 msgctxt "#30238"
 msgid "Loading streams…"
-msgstr "Načítám streamy…"
+msgstr "Streamek betöltése…"
 
 msgctxt "#30239"
 msgid "Meta: {done}/{total}"
@@ -692,7 +692,7 @@ msgstr "Meta: {done}/{total}"
 
 msgctxt "#30240"
 msgid "Streams: {count}"
-msgstr "Streamy: {count}"
+msgstr "Streamek: {count}"
 
 msgctxt "#30332"
 msgid "TMDB API"
@@ -700,25 +700,23 @@ msgstr "TMDB API"
 
 msgctxt "#30333"
 msgid "TMDB API key"
-msgstr "API klíč TMDB"
+msgstr "TMDB API kulcs"
 
 msgctxt "#30334"
 msgid "TMDB API key help"
-msgstr "Vlastní klíč pro TMDB (themoviedb.org) — hledání a katalog filmů/seriálů ho použije, když zrovna není dostupná Luna: Absolute Cinema (ta má TMDB napojení zabudované). Bez klíče se použije zdarma veřejný katalog Sosáče a Cinemeta, ale ty nemají popis filmu v češtině (Sosáč popis vůbec nemá, Cinemeta jen anglicky). S klíčem budou i bez Luny tituly, popisy, žánry i herci česky.\n\nZaložení je zdarma: registrace na themoviedb.org → ikona profilu → Nastavení → API (v levém menu) → Request an API Key → Developer → krátký formulář (název aplikace stačí „Nokturno“) → zkopírovat „API Key (v3 auth)“ (ne delší „API Read Access Token“)."
+msgstr "A saját TMDB (themoviedb.org) kulcsod — a keresés és a film/sorozat katalógus ezt használja, valahányszor a Luna: Absolute Cinema nem elérhető (a Lunának saját beépített TMDB kapcsolata van). Kulcs nélkül az ingyenes nyilvános Sosáč katalógus és a Cinemeta használódik, de egyiknek sincs cseh leírása (a Sosáčnak egyáltalán nincs, a Cinemeta csak angol). Kulccsal a címek, leírások, műfajok és szereplők csehül lesznek Luna nélkül is.\n\nIngyenes beszerezni: regisztrálj a themoviedb.org-on → profilikon → Settings → API (bal menü) → Request an API Key → Developer → rövid űrlap („Nokturno” jó lesz app névnek) → másold ki az „API Key (v3 auth)” kulcsot (nem a hosszabb „API Read Access Token”-t)."
 
 msgctxt "#30335"
 msgid "Try fulltext on WebShare/HellSpy"
-msgstr "Zkusit uvolněný fulltext (WebShare, HellSpy, Sledujteto, FastShare)"
+msgstr "Fulltext próbálása a WebShare-en/HellSpyn"
 
 msgctxt "#30336"
 msgid "Vítej v Nokturnu"
-msgstr "Vítej v Nokturnu"
-
-
+msgstr "Üdv a Nokturnóban"
 
 msgctxt "#30339"
 msgid "Skip"
-msgstr "Přeskočit"
+msgstr "Kihagyás"
 
 msgctxt "#30340"
 msgid "WebShare"
@@ -726,7 +724,7 @@ msgstr "WebShare"
 
 msgctxt "#30341"
 msgid "Do you have a WebShare account?"
-msgstr "Máš účet WebShare?"
+msgstr "Van WebShare fiókod?"
 
 msgctxt "#30342"
 msgid "WebShare — email"
@@ -734,7 +732,7 @@ msgstr "WebShare — e-mail"
 
 msgctxt "#30343"
 msgid "WebShare — password"
-msgstr "WebShare — heslo"
+msgstr "WebShare — jelszó"
 
 msgctxt "#30344"
 msgid "Sosáč"
@@ -742,15 +740,15 @@ msgstr "Sosáč"
 
 msgctxt "#30345"
 msgid "Do you have a Streamuj.tv account (Sosáč player)?"
-msgstr "Máš účet Streamuj.tv (přehrávač Sosáče)?\nKatalogy Sosáče fungují i bez účtu, jen pro přehrávání je potřeba."
+msgstr "Van Streamuj.tv fiókod (Sosáč lejátszó)?"
 
 msgctxt "#30346"
 msgid "Streamuj.tv — username"
-msgstr "Streamuj.tv — uživatel"
+msgstr "Streamuj.tv — felhasználónév"
 
 msgctxt "#30347"
 msgid "Streamuj.tv — password"
-msgstr "Streamuj.tv — heslo"
+msgstr "Streamuj.tv — jelszó"
 
 msgctxt "#30348"
 msgid "Luna: Absolute Cinema"
@@ -758,11 +756,11 @@ msgstr "Luna: Absolute Cinema"
 
 msgctxt "#30349"
 msgid "Do you have a Luna: Absolute Cinema server running on your network?"
-msgstr "Máš v síti spuštěný server Luna: Absolute Cinema?"
+msgstr "Fut a hálózatodon Luna: Absolute Cinema szerver?"
 
 msgctxt "#30350"
 msgid "Add-on address or token from setup"
-msgstr "Adresa doplňku nebo token ze setu Luny"
+msgstr "Bővítmény címe vagy token a beállításból"
 
 msgctxt "#30351"
 msgid "HellSpy"
@@ -770,63 +768,63 @@ msgstr "HellSpy"
 
 msgctxt "#30352"
 msgid "Enable HellSpy? It's free and needs no account."
-msgstr "Zapnout HellSpy? Je zdarma a nepotřebuje žádný účet."
+msgstr "Engedélyezed a HellSpyt? Ingyenes, és nem kell hozzá fiók."
 
 msgctxt "#30353"
 msgid "Own movie/series database"
-msgstr "Vlastní databáze filmů a seriálů"
+msgstr "Saját film/sorozat adatbázis"
 
 msgctxt "#30354"
 msgid "Do you want to enter a free TMDB key so descriptions and cast are in Czech? (optional)"
-msgstr "Chceš zadat zdarma klíč TMDB, aby popisy a obsazení filmů byly česky? (nepovinné)"
+msgstr "Megadsz egy ingyenes TMDB kulcsot, hogy a leírások és a szereposztás csehül legyenek? (opcionális)"
 
 msgctxt "#30355"
 msgid "Get a free key at themoviedb.org"
-msgstr "Klíč se zakládá zdarma na themoviedb.org -> ikona profilu -> Nastavení -> API -> Request an API Key -> Developer -> zkopírovat "API Key (v3 auth)".\nPodrobný návod je i v nápovědě u tohoto nastavení."
+msgstr "Ingyenes kulcs a themoviedb.org oldalon"
 
 msgctxt "#30356"
 msgid "TMDB API key"
-msgstr "API klíč TMDB"
+msgstr "TMDB API kulcs"
 
 msgctxt "#30357"
 msgid "Settings saved"
-msgstr "Nastavení uloženo"
+msgstr "Beállítások elmentve"
 
 msgctxt "#30358"
 msgid "Done! You can change any of this later in the add-on settings."
-msgstr "Hotovo! Cokoli z tohohle můžeš kdykoli změnit v Nastavení doplňku.\nBez zadaného zdroje budou katalog a hledání fungovat i tak, jen anglicky."
+msgstr "Kész! Bármit módosíthatsz később a bővítmény beállításaiban."
 
 msgctxt "#30359"
 msgid "Run setup wizard"
-msgstr "Průvodce nastavením"
+msgstr "Beállítási varázsló indítása"
 
 msgctxt "#30360"
 msgid "Source did not respond"
-msgstr "Zdroj neodpověděl"
+msgstr "A forrás nem válaszolt"
 
 msgctxt "#30361"
 msgid "Internet speed"
-msgstr "Rychlost internetu"
+msgstr "Internetsebesség"
 
 msgctxt "#30362"
 msgid "Measure your internet speed now?"
-msgstr "Chceš teď změřit rychlost internetu a podle ní nastavit nejvyšší dovolený datový tok streamů? Zabrání to sekání při přehrávání příliš velkého souboru.\nZabere necelou minutu, jde udělat i později v Nastavení -> Přehrávání."
+msgstr "Megméred most az internetsebességedet?"
 
 msgctxt "#30363"
 msgid "Clear filter"
-msgstr "Zrušit filtr"
+msgstr "Szűrő törlése"
 
 msgctxt "#30364"
 msgid "Apply last filter"
-msgstr "Použít poslední filtr"
+msgstr "Utolsó szűrő alkalmazása"
 
 msgctxt "#30365"
 msgid "Remove from Continue watching"
-msgstr "Odebrat z Pokračovat ve sledování"
+msgstr "Eltávolítás a Folytatásból"
 
 msgctxt "#30366"
 msgid "skipped"
-msgstr "přeskočeno"
+msgstr "kihagyva"
 
 msgctxt "#30367"
 msgid "Sledujteto"
@@ -834,11 +832,11 @@ msgstr "Sledujteto"
 
 msgctxt "#30368"
 msgid "Search Sledujteto for titles"
-msgstr "U titulů hledat i na Sledujteto"
+msgstr "Címek keresése a Sledujtetón"
 
 msgctxt "#30369"
 msgid "Sledujteto.cz is a Czech video hosting. Searching needs an account, playback needs a Premium account."
-msgstr "Sledujteto.cz je česká úschovna videí. Hledání chce účet, přehrávání účet Premium — bez něj Sledujteto odkaz na soubor nevydá."
+msgstr "A Sledujteto.cz egy cseh videótár. A kereséshez fiók, a lejátszáshoz Premium fiók kell."
 
 msgctxt "#30370"
 msgid "Sledujteto — e-mail"
@@ -846,79 +844,79 @@ msgstr "Sledujteto — e-mail"
 
 msgctxt "#30371"
 msgid "E-mail you use to sign in to sledujteto.cz."
-msgstr "E-mail, kterým se přihlašuješ na sledujteto.cz."
+msgstr "Az e-mail, amivel a sledujteto.cz-re bejelentkezel."
 
 msgctxt "#30372"
 msgid "Sledujteto — password"
-msgstr "Sledujteto — heslo"
+msgstr "Sledujteto — jelszó"
 
 msgctxt "#30373"
 msgid "Password for sledujteto.cz. It is sent only when signing in; requests then use a token."
-msgstr "Heslo ze sledujteto.cz. Posílá se jen při přihlášení, další dotazy jdou s tokenem."
+msgstr "A sledujteto.cz jelszava. Csak bejelentkezéskor kerül elküldésre; utána a kérések tokent használnak."
 
 msgctxt "#30329"
 msgid "Like Nokturno? Support the author: Ko-fi ko-fi.com/matata86 · PayPal paypal.me/matata86 · Bitcoin bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc"
-msgstr "Líbí se ti Nokturno? Podpoř autora: Ko-fi ko-fi.com/matata86 · PayPal paypal.me/matata86 · Bitcoin bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc"
+msgstr "Tetszik a Nokturno? Támogasd a szerzőt: Ko-fi ko-fi.com/matata86 · PayPal paypal.me/matata86 · Bitcoin bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc"
 
 msgctxt "#30374"
 msgid "Own storage"
-msgstr "Vlastní úložiště"
+msgstr "Saját tárhely"
 
 msgctxt "#30375"
 msgid "Up to three WebDAV folders with your own files (NAS, Nextcloud, server). Files are matched to titles by file name and the folders above it and show up among streams and in search."
-msgstr "Až tři složky na WebDAV s vlastními soubory (NAS, Nextcloud, server). Soubory se k titulům přiřazují podle názvu souboru a složek nad ním a objeví se mezi streamy i ve vyhledávání."
+msgstr "Akár három WebDAV mappa a saját fájljaiddal (NAS, Nextcloud, szerver). A fájlok a fájlnév és a fölötte lévő mappák alapján párosulnak a címekkel, és megjelennek a streamek között és a keresésben."
 
 msgctxt "#30376"
 msgid "Storage 1"
-msgstr "Úložiště 1"
+msgstr "Tárhely 1"
 
 msgctxt "#30377"
 msgid "Storage 2"
-msgstr "Úložiště 2"
+msgstr "Tárhely 2"
 
 msgctxt "#30378"
 msgid "Storage 3"
-msgstr "Úložiště 3"
+msgstr "Tárhely 3"
 
 msgctxt "#30379"
 msgid "Folder address"
-msgstr "Adresa složky"
+msgstr "Mappa címe"
 
 msgctxt "#30380"
 msgid "WebDAV folder, e.g. davs://nokturno.tailf0014.ts.net:10000/ or https://nas/remote.php/dav/files/me/Video/. Empty = storage off. The file list is refreshed at most once an hour."
-msgstr "Složka na WebDAV, třeba davs://nokturno.tailf0014.ts.net:10000/ nebo https://nas/remote.php/dav/files/ja/Video/. Prázdné = úložiště vypnuté. Seznam souborů se obnovuje nejvýš jednou za hodinu."
+msgstr "WebDAV mappa, pl. davs://nokturno.tailf0014.ts.net:10000/ vagy https://nas/remote.php/dav/files/me/Video/. Üres = tárhely kikapcsolva. A fájllista legfeljebb óránként frissül."
 
 msgctxt "#30381"
 msgid "Username"
-msgstr "Uživatelské jméno"
+msgstr "Felhasználónév"
 
 msgctxt "#30382"
 msgid "Login for the storage (HTTP Basic). Leave empty if the storage has no password."
-msgstr "Přihlášení k úložišti (HTTP Basic). Když úložiště heslo nemá, nech prázdné."
+msgstr "Bejelentkezés a tárhelyhez (HTTP Basic). Hagyd üresen, ha a tárhelynek nincs jelszava."
 
 msgctxt "#30383"
 msgid "Password"
-msgstr "Heslo"
+msgstr "Jelszó"
 
 msgctxt "#30384"
 msgid "Name"
-msgstr "Název"
+msgstr "Név"
 
 msgctxt "#30385"
 msgid "Shown next to streams from this storage, e.g. NAS. Empty = server name."
-msgstr "Ukáže se u streamů z tohohle úložiště, třeba NAS. Prázdné = jméno serveru."
+msgstr "Ez jelenik meg az erről a tárhelyről származó streamek mellett, pl. NAS. Üres = szerver neve."
 
 msgctxt "#30386"
 msgid "Search own storage"
-msgstr "Hledat ve vlastním úložišti"
+msgstr "Saját tárhely keresése"
 
 msgctxt "#30387"
 msgid "My storage"
-msgstr "Moje úložiště"
+msgstr "Saját tárhely"
 
 msgctxt "#30388"
 msgid "Do you have a Sledujteto account?[CR]Search uses your account, playback needs Premium."
-msgstr "Máš účet Sledujteto?[CR]Hledá se přes tvůj účet, přehrávat jde jen s Premium."
+msgstr "Van Sledujteto fiókod?[CR]A keresés a fiókodat használja, a lejátszáshoz Premium kell."
 
 msgctxt "#30389"
 msgid "Sledujteto — e-mail"
@@ -926,91 +924,91 @@ msgstr "Sledujteto — e-mail"
 
 msgctxt "#30390"
 msgid "Sledujteto — password"
-msgstr "Sledujteto — heslo"
+msgstr "Sledujteto — jelszó"
 
 msgctxt "#30391"
 msgid "Downloaded"
-msgstr "Stažené"
+msgstr "Letöltve"
 
 msgctxt "#30392"
 msgid "Settings"
-msgstr "Nastavení"
+msgstr "Beállítások"
 
 msgctxt "#30393"
 msgid "Most watched this week"
-msgstr "Nejsledovanější tento týden"
+msgstr "Legnézettebb a héten"
 
 msgctxt "#30394"
 msgid "Recently added with Czech dubbing"
-msgstr "Nově přidané s CZ dabingem"
+msgstr "Nemrég hozzáadva, cseh szinkronnal"
 
 msgctxt "#30398"
 msgid "Popular on TMDB"
-msgstr "Populární na TMDB"
+msgstr "Népszerű a TMDB-n"
 
 msgctxt "#30399"
 msgid "Top rated"
-msgstr "Nejlépe hodnocené"
+msgstr "Legjobbra értékelt"
 
 msgctxt "#30401"
 msgid "New with Czech subtitles"
-msgstr "Nově přidané s CZ titulky"
+msgstr "Új, cseh felirattal"
 
 msgctxt "#30402"
 msgid "Measuring download speed…"
-msgstr "Měřím rychlost stahování…"
+msgstr "Letöltési sebesség mérése…"
 
 msgctxt "#30403"
 msgid "Per day"
-msgstr "Za den"
+msgstr "Naponta"
 
 msgctxt "#30404"
 msgid "Per week"
-msgstr "Za týden"
+msgstr "Hetente"
 
 msgctxt "#30405"
 msgid "Storage"
-msgstr "Úložiště"
+msgstr "Tárhely"
 
 msgctxt "#30406"
 msgid "no Premium — playback will not work"
-msgstr "bez Premium — přehrávání nepůjde"
+msgstr "nincs Premium — a lejátszás nem fog működni"
 
 msgctxt "#30407"
 msgid "Check for add-on updates"
-msgstr "Zkontrolovat aktualizace doplňků"
+msgstr "Bővítményfrissítés keresése"
 
 msgctxt "#30408"
 msgid "Checking for add-on updates…"
-msgstr "Kontroluji aktualizace doplňků…"
+msgstr "Bővítményfrissítés keresése…"
 
 msgctxt "#30409"
 msgid "Add Nokturno to TMDb Helper (Play on movie details)"
-msgstr "Přidat Nokturno do TMDb Helperu (Přehrát v detailu filmu)"
+msgstr "Nokturno hozzáadása a TMDb Helperhez (Lejátszás a film adatlapján)"
 
 msgctxt "#30410"
 msgid "TMDb Helper is not installed"
-msgstr "TMDb Helper není nainstalovaný"
+msgstr "A TMDb Helper nincs telepítve"
 
 msgctxt "#30411"
 msgid "Set Nokturno as the default player in TMDb Helper? Play on a movie or episode details page will then search streams in Nokturno."
-msgstr "Nastavit Nokturno jako výchozí přehrávač v TMDb Helperu? Přehrát v detailu filmu nebo dílu pak rovnou hledá streamy v Nokturnu."
+msgstr "Beállítod a Nokturnót alapértelmezett lejátszónak a TMDb Helperben? A Lejátszás gomb a film vagy epizód adatlapján ezután a Nokturnóban fog streameket keresni."
 
 msgctxt "#30412"
 msgid "Nokturno added to TMDb Helper"
-msgstr "Nokturno je v TMDb Helperu"
+msgstr "Nokturno hozzáadva a TMDb Helperhez"
 
 msgctxt "#30413"
 msgid "Adding to TMDb Helper failed"
-msgstr "Přidání do TMDb Helperu selhalo"
+msgstr "A TMDb Helperhez adás sikertelen"
 
 msgctxt "#30415"
 msgid "Play from movie details"
-msgstr "Přehrát z detailu filmu"
+msgstr "Lejátszás a film adatlapjáról"
 
 msgctxt "#30416"
 msgid "You have TMDb Helper (movie details in Arctic Fuse and other skins).[CR]Set Nokturno as its player? The Play button on the details page will then search streams in Nokturno."
-msgstr "Máš doplněk TMDb Helper (detail filmu v Arctic Fuse a dalších skinech).[CR]Nastavit Nokturno jako jeho přehrávač? Tlačítko Přehrát v detailu pak hledá streamy v Nokturnu."
+msgstr "Van TMDb Helpered (film adatlap az Arctic Fuse-ban és más felületeken).[CR]Beállítod a Nokturnót a lejátszójának? A Lejátszás gomb az adatlapon ezután a Nokturnóban fog streameket keresni."
 
 msgctxt "#30417"
 msgid "FastShare"
@@ -1018,35 +1016,35 @@ msgstr "FastShare"
 
 msgctxt "#30418"
 msgid "Search FastShare for titles"
-msgstr "U titulů hledat i na FastShare"
+msgstr "Címek keresése a FastShare-en"
 
 msgctxt "#30419"
 msgid "FastShare.cz is a Czech file host. Search works without an account; playback needs one and is charged from your credit unless you have unlimited downloads."
-msgstr "FastShare.cz je česká úschovna souborů. Hledá se i bez účtu, k přehrání je potřeba účet — soubor se odečte z kreditu, pokud nemáš neomezené stahování."
+msgstr "A FastShare.cz egy cseh fájltárhely. A keresés fiók nélkül is működik; a lejátszáshoz fiók kell, és a kreditedből vonódik le, hacsak nincs korlátlan letöltésed."
 
 msgctxt "#30420"
 msgid "FastShare — username"
-msgstr "FastShare — uživatel"
+msgstr "FastShare — felhasználónév"
 
 msgctxt "#30421"
 msgid "Name you use to sign in to fastshare.cz."
-msgstr "Jméno, kterým se přihlašuješ na fastshare.cz."
+msgstr "A név, amivel a fastshare.cz-re bejelentkezel."
 
 msgctxt "#30422"
 msgid "FastShare — password"
-msgstr "FastShare — heslo"
+msgstr "FastShare — jelszó"
 
 msgctxt "#30423"
 msgid "Password for fastshare.cz. It is sent only when signing in; playback then uses a cookie."
-msgstr "Heslo z fastshare.cz. Posílá se jen při přihlášení, přehrávání pak jde s cookie."
+msgstr "A fastshare.cz jelszava. Csak bejelentkezéskor kerül elküldésre; a lejátszás utána sütit használ."
 
 msgctxt "#30424"
 msgid "Do you have a FastShare account?[CR]Search works without it, playback is charged from your credit or unlimited plan."
-msgstr "Máš účet FastShare?[CR]Hledá se i bez něj, přehrání jde z tvého kreditu nebo neomezeného tarifu."
+msgstr "Van FastShare fiókod?[CR]A keresés nélküle is működik, a lejátszás a kreditedből vagy a korlátlan csomagodból vonódik le."
 
 msgctxt "#30425"
 msgid "unlimited downloads"
-msgstr "neomezené stahování"
+msgstr "korlátlan letöltés"
 
 msgctxt "#30426"
 msgid "credit"
@@ -1054,461 +1052,460 @@ msgstr "kredit"
 
 msgctxt "#30427"
 msgid "Send Kodi log"
-msgstr "Odeslat log Kodi"
+msgstr "Kodi napló küldése"
 
 msgctxt "#30428"
 msgid "Sends the last ~500 KB of kodi.log to the same server as statistics, so the reported problem can be diagnosed. Nothing else leaves the device."
-msgstr "Odešle posledních ~500 KB souboru kodi.log na stejný server jako statistiky, aby šel nahlášený problém rozklíčovat. Nic dalšího zařízení neopouští."
+msgstr "Elküldi a kodi.log utolsó ~500 KB-ját ugyanarra a szerverre, mint a statisztikát, hogy a jelentett probléma diagnosztizálható legyen. Más semmi nem hagyja el az eszközt."
 
 msgctxt "#30429"
 msgid "Log sent"
-msgstr "Log odeslán"
+msgstr "Napló elküldve"
 
 msgctxt "#30430"
 msgid "Log could not be sent"
-msgstr "Log se nepodařilo odeslat"
+msgstr "A naplót nem sikerült elküldeni"
 
 msgctxt "#30431"
 msgid "Really send the log?"
-msgstr "Opravdu odeslat log?"
+msgstr "Tényleg elküldöd a naplót?"
 
 msgctxt "#30432"
 msgid "Info"
-msgstr "Info"
+msgstr "Infó"
 
 msgctxt "#30433"
 msgid "Nokturno website"
-msgstr "Web Nokturno"
+msgstr "Nokturno weboldal"
 
 msgctxt "#30434"
 msgid "Support the project or follow news here. Besides this Kodi add-on, the Nokturno family also has a Stremio add-on and a Home Assistant integration/card."
-msgstr "Zde jde podpořit projekt nebo sledovat novinky. Rodina Nokturno má kromě doplňku pro Kodi i doplněk pro Stremio a integraci/kartu pro Home Assistant."
+msgstr "Támogasd a projektet, vagy kövesd itt az újdonságokat. Ezen a Kodi bővítményen kívül a Nokturno családnak van Stremio bővítménye és Home Assistant integrációja/kártyája is."
 
 msgctxt "#30435"
 msgid "This list is normally built in the background, but the data isn't ready yet. Checking dubbing/subtitles across your sources, this can take a few minutes…"
-msgstr "Tenhle seznam se standardně sestavuje na pozadí, teď ale nejsou data připravená. Zjišťuji dabing/titulky napříč tvými zdroji, může to trvat pár minut…"
+msgstr "Ez a lista általában a háttérben épül fel, de az adatok még nincsenek készen. A szinkron/felirat ellenőrzése a forrásaidban eltarthat pár percig…"
 
 msgctxt "#30436"
 msgid "The list is being built in the background right now, following the progress…"
-msgstr "Seznam se právě sestavuje na pozadí, sleduji průběh…"
+msgstr "A lista éppen most épül fel a háttérben, a folyamat követése…"
 
 msgctxt "#30437"
 msgid "Data aren't ready — checking dubbing/subtitles across your sources can take a few minutes. Tap to start."
-msgstr "Data nejsou připravená — zjištění dabingu/titulků napříč tvými zdroji může trvat pár minut. Klepnutím spustíš."
+msgstr "Az adatok nincsenek készen — a szinkron/felirat ellenőrzése a forrásaidban eltarthat pár percig. Érintsd meg az indításhoz."
 
 msgctxt "#30438"
 msgid "Started in the background — you'll get a notification when it's ready."
-msgstr "Spuštěno na pozadí — až to bude hotové, přijde upozornění."
+msgstr "Elindult a háttérben — értesítést kapsz, ha kész."
 
 msgctxt "#30439"
 msgid "Newly added with CZ dubbing/subtitles (%s) is ready"
-msgstr "Nově přidané s CZ dabingem/titulky (%s) je připravené"
+msgstr "Az „Új, cseh szinkronnal/felirattal” (%s) elkészült"
 
 msgctxt "#30440"
 msgid "Switch audio to the preferred language automatically"
-msgstr "Automaticky přepnout zvuk na preferovaný jazyk"
+msgstr "Automatikus váltás a preferált nyelvű hangra"
 
 msgctxt "#30441"
 msgid "When playback starts, the audio track in the preferred language is selected, even if the file has a different default track (often English in re-muxed movies)."
-msgstr "Po spuštění přehrávání se vybere zvuková stopa v preferovaném jazyce, i když má soubor jako výchozí jinou (u přebalených filmů často anglickou)."
+msgstr "Lejátszás indításakor a preferált nyelvű hangsáv lesz kiválasztva, akkor is, ha a fájl más alapértelmezett sávval rendelkezik (átcsomagolt filmeknél ez gyakran angol)."
 
 msgctxt "#30442"
 msgid "Subtitles"
-msgstr "Titulky"
+msgstr "Felirat"
 
 msgctxt "#30443"
 msgid "Leave to Kodi"
-msgstr "Nechat na Kodi"
+msgstr "Kodira bízva"
 
 msgctxt "#30444"
 msgid "When audio in the preferred language is missing"
-msgstr "Když chybí zvuk v preferovaném jazyce"
+msgstr "Ha a preferált nyelvű hang hiányzik"
 
 msgctxt "#30445"
 msgid "Always in the preferred language"
-msgstr "Vždy v preferovaném jazyce"
+msgstr "Mindig a preferált nyelven"
 
 msgctxt "#30446"
 msgid "Subtitles in the preferred language (or a close one: Czech and Slovak substitute for each other) are turned on when the audio isn't in that language. When the audio is in the preferred language, subtitles are turned off, forced ones included. Subtitles from the source are downloaded and their language is recognised from the text."
-msgstr "Titulky v preferovaném jazyce (nebo blízkém, čeština a slovenština se zastoupí) se zapnou, když zvuk v tom jazyce není. Když zvuk v preferovaném jazyce je, titulky se vypnou, i vynucené. Titulky ze zdroje se stáhnou a jejich jazyk se pozná z textu."
+msgstr "A preferált nyelvű felirat (vagy egy közeli: a cseh és a szlovák helyettesíti egymást) bekapcsol, ha a hang nem azon a nyelven szól. Ha a hang a preferált nyelven szól, a felirat kikapcsol, a kényszerítettel együtt. A forrásból származó feliratok letöltődnek, nyelvüket a szöveg alapján ismeri fel."
 
 msgctxt "#30447"
 msgid "Set up from phone"
-msgstr "Nastavit z mobilu"
+msgstr "Beállítás telefonról"
 
 msgctxt "#30448"
 msgid "Shows a QR code on the TV. Open it on a phone connected to the same Wi-Fi and fill in the settings in the browser — no typing passwords with the remote. Works only on the local network."
-msgstr "Na TV se ukáže QR kód. Otevři ho mobilem připojeným ke stejné Wi-Fi a vyplň nastavení v prohlížeči — bez psaní hesel ovladačem. Funguje jen v místní síti."
+msgstr "QR-kódot mutat a TV-n. Nyisd meg egy ugyanahhoz a Wi-Fihez csatlakozó telefonon, és töltsd ki a beállításokat a böngészőben — nem kell jelszót gépelni a távirányítóval. Csak a helyi hálózaton működik."
 
 msgctxt "#30449"
 msgid "You can fill in accounts and sources on your phone — the TV shows a QR code, the phone just needs the same Wi-Fi and you don't type passwords with the remote. Or go through a short wizard with the remote.[CR]You can skip this and fill it in later in the add-on settings."
-msgstr "Účty a zdroje můžeš vyplnit v mobilu — na TV se ukáže QR kód, stačí mobil ve stejné Wi-Fi a hesla nepíšeš ovladačem. Nebo projdi krátkého průvodce ovladačem.[CR]Kdykoli to můžeš přeskočit a doplnit později v Nastavení doplňku."
+msgstr "A fiókokat és forrásokat a telefonodon is kitöltheted — a TV mutat egy QR-kódot, a telefonnak csak ugyanaz a Wi-Fi kell, és nem kell jelszót gépelni a távirányítóval. Vagy végigmehetsz egy rövid varázslón a távirányítóval.[CR]Ezt kihagyhatod, és később is kitöltheted a bővítmény beállításaiban."
 
 msgctxt "#30450"
 msgid "From phone"
-msgstr "Z mobilu"
+msgstr "Telefonról"
 
 msgctxt "#30451"
 msgid "Wizard with remote"
-msgstr "Průvodce ovladačem"
+msgstr "Varázsló távirányítóval"
 
 msgctxt "#30452"
 msgid "1. Connect your phone to the same Wi-Fi as this device.[CR]2. Scan the QR code with the camera, or open this address in a browser:"
-msgstr "1. Připoj mobil ke stejné Wi-Fi jako tenhle přístroj.[CR]2. Naskenuj QR kód fotoaparátem, nebo otevři v prohlížeči adresu:"
+msgstr "1. Csatlakoztasd a telefonodat ugyanahhoz a Wi-Fihez, mint ezt az eszközt.[CR]2. Olvasd be a QR-kódot a kamerával, vagy nyisd meg ezt a címet egy böngészőben:"
 
 msgctxt "#30453"
 msgid "Back cancels · the address is valid for 30 minutes and one save"
-msgstr "Zpět zruší · adresa platí 30 minut a pro jedno uložení"
+msgstr "Vissza megszakítja · a cím 30 percig és egy mentésig érvényes"
 
 msgctxt "#30454"
 msgid "This device has no local network address. Connect it to Wi-Fi or a cable and try again."
-msgstr "Tenhle přístroj nemá adresu v místní síti. Připoj ho k Wi-Fi nebo kabelem a zkus to znovu."
+msgstr "Ennek az eszköznek nincs helyi hálózati címe. Csatlakoztasd Wi-Fihez vagy kábellel, és próbáld újra."
 
 msgctxt "#30455"
 msgid "Couldn't start setup from phone (%s)."
-msgstr "Nastavení z mobilu se nepodařilo spustit (%s)."
+msgstr "Nem sikerült elindítani a telefonos beállítást (%s)."
 
 msgctxt "#30456"
 msgid "Settings from phone saved (%s)"
-msgstr "Nastavení z mobilu uloženo (%s)"
+msgstr "A telefonról érkezett beállítások elmentve (%s)"
 
 msgctxt "#30457"
 msgid "No changes came from the phone"
-msgstr "Z mobilu nepřišla žádná změna"
+msgstr "Nem érkezett változás a telefonról"
 
 msgctxt "#30458"
 msgid "Fill in what you want to change and save. The settings go straight to Kodi."
-msgstr "Vyplň, co chceš změnit, a ulož. Nastavení se hned propíše do Kodi."
+msgstr "Töltsd ki, amit módosítani szeretnél, és mentsd el. A beállítások egyenesen a Kodiba kerülnek."
 
 msgctxt "#30459"
 msgid "Save to Kodi"
-msgstr "Uložit do Kodi"
+msgstr "Mentés a Kodiba"
 
 msgctxt "#30460"
 msgid "Saved. The settings are in Kodi, you can close this page."
-msgstr "Uloženo. Nastavení je v Kodi, stránku můžeš zavřít."
+msgstr "Elmentve. A beállítások a Kodiban vannak, ezt az oldalt bezárhatod."
 
 msgctxt "#30461"
 msgid "filled in — leave empty to keep"
-msgstr "vyplněno — nech prázdné beze změny"
+msgstr "kitöltve — hagyd üresen a megtartáshoz"
 
 msgctxt "#30462"
 msgid "This address is no longer valid. Start Set up from phone on the TV again."
-msgstr "Tahle adresa už neplatí. Na TV spusť Nastavit z mobilu znovu."
+msgstr "Ez a cím már nem érvényes. Indítsd el újra a Beállítás telefonról funkciót a TV-n."
 
 msgctxt "#30463"
 msgid "Invalid value: %s"
-msgstr "Neplatná hodnota: %s"
+msgstr "Érvénytelen érték: %s"
 
 msgctxt "#30480"
 msgid "Send error reports"
-msgstr "Posílat hlášení o chybách"
+msgstr "Hibajelentések küldése"
 
 msgctxt "#30481"
 msgid "When an error in the add-on's code happens, a short report goes to the author: error type, place in the code, version and a few lines of the Nokturno log. Addresses, accounts, passwords and IPs are removed first. Source outages are not sent. The same error is sent at most once per version."
-msgstr "Když v doplňku nastane chyba v kódu, pošle se autorovi krátké hlášení: typ chyby, místo v kódu, verze a pár řádků logu Nokturna. Adresy, účty, hesla a IP se předem vymažou. Výpadky zdrojů se neposílají. Stejná chyba odejde nejvýš jednou za verzi."
+msgstr "Amikor hiba történik a bővítmény kódjában, egy rövid jelentés megy a szerzőnek: hibatípus, hely a kódban, verzió és pár sor a Nokturno naplóból. Címek, fiókok, jelszavak és IP-k előbb eltávolításra kerülnek. Forráskiesések nem kerülnek elküldésre. Ugyanaz a hiba verziónként legfeljebb egyszer kerül elküldésre."
 
 msgctxt "#30482"
 msgid "Similar titles"
-msgstr "Podobné tituly"
+msgstr "Hasonló címek"
 
 msgctxt "#30483"
 msgid "TV guide"
-msgstr "TV program"
+msgstr "Műsorújság"
 
 msgctxt "#30484"
 msgid "Day"
-msgstr "Den"
+msgstr "Nap"
 
 msgctxt "#30485"
 msgid "Channel"
-msgstr "Stanice"
+msgstr "Csatorna"
 
 msgctxt "#30486"
 msgid "Type"
-msgstr "Typ"
+msgstr "Típus"
 
 msgctxt "#30487"
 msgid "All channels"
-msgstr "Všechny stanice"
+msgstr "Minden csatorna"
 
 msgctxt "#30488"
 msgid "Movies and series"
-msgstr "Filmy i seriály"
+msgstr "Filmek és sorozatok"
 
 msgctxt "#30489"
 msgid "Today"
-msgstr "Dnes"
+msgstr "Ma"
 
 msgctxt "#30490"
 msgid "Tomorrow"
-msgstr "Zítra"
+msgstr "Holnap"
 
 msgctxt "#30491"
 msgid "Mon,Tue,Wed,Thu,Fri,Sat,Sun"
-msgstr "po,út,st,čt,pá,so,ne"
+msgstr "Hé,Ke,Sze,Csü,Pé,Szo,Va"
 
 msgctxt "#30492"
 msgid "TV guide is not available right now"
-msgstr "TV program teď není dostupný"
+msgstr "A műsorújság most nem elérhető"
 
 msgctxt "#30493"
 msgid "No similar titles found"
-msgstr "Žádné podobné tituly"
+msgstr "Nem található hasonló cím"
 
 msgctxt "#30494"
 msgid "Nothing on in this selection"
-msgstr "V tomhle výběru nic nedávají"
+msgstr "Ebben a válogatásban nincs semmi"
 
 msgctxt "#30495"
 msgid "What to show for a stream and in which order"
-msgstr "Co a v jakém pořadí ukazovat u streamu"
+msgstr "Mit mutasson egy streamnél és milyen sorrendben"
 
 msgctxt "#30496"
 msgid "Items separated by commas, the vertical bar splits the top and bottom line of the stream dialog. Whatever is missing is not shown. Items: langs (audio languages), size, video (resolution and codec), audio (audio tracks), bitrate, length, subs (subtitles), source, file (file name). Quality is always the picture on the left. Easier with Set up from phone."
-msgstr "Položky oddělené čárkou, svislítko dělí horní a dolní řádek dialogu výběru streamu. Co chybí, se nezobrazí. Položky: langs (jazyky zvuku), size (velikost), video (rozlišení a kodek), audio (zvukové stopy), bitrate (datový tok), length (délka), subs (titulky), source (zdroj), file (název souboru). Kvalita je vždy obrázek vlevo. Pohodlněji přes Nastavit z mobilu."
+msgstr "A tételeket vessző választja el, a függőleges vonal osztja fel a stream párbeszédablak felső és alsó sorát. Ami hiányzik, az nem jelenik meg. Tételek: langs (hangnyelvek), size (méret), video (felbontás és kodek), audio (hangsávok), bitrate (bitráta), length (hossz), subs (feliratok), source (forrás), file (fájlnév). A minőség mindig a bal oldali kép. Egyszerűbb a Beállítás telefonról funkcióval."
 
 msgctxt "#30497"
 msgid "Default order"
-msgstr "Výchozí pořadí"
+msgstr "Alapértelmezett sorrend"
 
 msgctxt "#30498"
 msgid "Puts back the default items and order. Reopen settings to see the new value."
-msgstr "Vrátí výchozí položky a pořadí. Novou hodnotu uvidíš po znovuotevření nastavení."
+msgstr "Visszaállítja az alapértelmezett tételeket és sorrendet. Nyisd meg újra a beállításokat az új érték megtekintéséhez."
 
 msgctxt "#30499"
 msgid "Top line|Bottom line"
-msgstr "Horní řádek|Dolní řádek"
+msgstr "Felső sor|Alsó sor"
 
 msgctxt "#30500"
 msgid "Do not show"
-msgstr "Nezobrazovat"
+msgstr "Ne mutassa"
 
 msgctxt "#30501"
 msgid "Audio languages"
-msgstr "Jazyky zvuku"
+msgstr "Hangnyelvek"
 
 msgctxt "#30502"
 msgid "Size"
-msgstr "Velikost"
+msgstr "Méret"
 
 msgctxt "#30503"
 msgid "Resolution and codec"
-msgstr "Rozlišení a kodek"
+msgstr "Felbontás és kodek"
 
 msgctxt "#30504"
 msgid "Audio tracks"
-msgstr "Zvukové stopy"
+msgstr "Hangsávok"
 
 msgctxt "#30505"
 msgid "Bitrate"
-msgstr "Datový tok"
+msgstr "Bitráta"
 
 msgctxt "#30506"
 msgid "Length"
-msgstr "Délka"
+msgstr "Hossz"
 
 msgctxt "#30507"
 msgid "Subtitles"
-msgstr "Titulky"
+msgstr "Felirat"
 
 msgctxt "#30508"
 msgid "Source"
-msgstr "Zdroj"
+msgstr "Forrás"
 
 msgctxt "#30509"
 msgid "File name"
-msgstr "Název souboru"
+msgstr "Fájlnév"
 
 msgctxt "#30510"
 msgid "Up"
-msgstr "Nahoru"
+msgstr "Fel"
 
 msgctxt "#30511"
 msgid "Down"
-msgstr "Dolů"
+msgstr "Le"
 
 msgctxt "#30512"
 msgid "Stream details reset to the default order"
-msgstr "Pořadí údajů u streamu vráceno na výchozí"
+msgstr "A stream részletei visszaálltak az alapértelmezett sorrendre"
 
 msgctxt "#30513"
 msgid "Choose stream"
-msgstr "Vybrat stream"
+msgstr "Stream kiválasztása"
 
 msgctxt "#30514"
 msgid "Use the arrows to move details between the top and bottom line of the stream dialog, put what you do not want to see into Do not show. Quality is always the picture on the left."
-msgstr "Šipkami přesuň údaje mezi horním a dolním řádkem dialogu výběru streamu, do Nezobrazovat dej, co nechceš vidět. Kvalita je vždy obrázek vlevo."
+msgstr "A nyilakkal mozgathatod a részleteket a stream párbeszédablak felső és alsó sora között, amit nem szeretnél látni, tedd a Ne mutassa közé. A minőség mindig a bal oldali kép."
 
 msgctxt "#30515"
 msgid "On your phone, move the details with arrows between the top and bottom line — easier than typing the order here."
-msgstr "V mobilu šipkami přesuneš údaje mezi horním a dolním řádkem — pohodlnější než psát pořadí tady."
+msgstr "A telefonodon a nyilakkal mozgathatod a részleteket a felső és alsó sor között — egyszerűbb, mint itt begépelni a sorrendet."
 
 msgctxt "#30516"
 msgid "Delete"
-msgstr "Smazat"
+msgstr "Törlés"
 
 msgctxt "#30517"
 msgid "OK opens the address in a browser"
-msgstr "OK adresu otevře v prohlížeči"
+msgstr "Az OK megnyitja a címet egy böngészőben"
 
 msgctxt "#30518"
 msgid "Opening in browser…"
-msgstr "Otvírám v prohlížeči…"
+msgstr "Megnyitás böngészőben…"
 
 msgctxt "#30520"
 msgid "Luna %s responds and returns streams. The setup is fine."
-msgstr "Luna %s odpovídá a vrací streamy. Nastavení je v pořádku."
+msgstr "A Luna %s válaszol, és streameket ad vissza. A beállítás rendben van."
 
 msgctxt "#30521"
 msgid "Neither the Luna address nor the token is filled in.[CR]Use “Find Luna on the network”, or paste the whole add-on address from Luna's /setup page into the Token field."
-msgstr "Není vyplněná adresa Luny ani token.[CR]Použij „Najít Lunu v síti“, nebo vlož do pole Token celou adresu doplňku ze stránky /setup Luny."
+msgstr "Sem a Luna címe, sem a token nincs kitöltve.[CR]Használd a „Luna keresése a hálózaton” funkciót, vagy illeszd be a teljes bővítmény címet a Luna /setup oldaláról a Token mezőbe."
 
 msgctxt "#30522"
 msgid "I do not understand the address %s.[CR]Expected something like 192.168.1.10:7126."
-msgstr "Adrese %s nerozumím.[CR]Čekám tvar jako 192.168.1.10:7126."
+msgstr "Nem értem a(z) %s címet.[CR]Valami ilyesmit vártam: 192.168.1.10:7126."
 
 msgctxt "#30523"
 msgid "Nobody answered at %s.[CR][CR]Is the computer running Luna switched on? Is it on the same network as this TV? Try “Find Luna on the network”."
-msgstr "Na adrese %s se nikdo neozval.[CR][CR]Běží počítač, kde je Luna spuštěná? Je ve stejné síti jako tahle televize? Zkus „Najít Lunu v síti“."
+msgstr "Senki nem válaszolt a(z) %s címen.[CR][CR]Be van kapcsolva a Lunát futtató számítógép? Ugyanazon a hálózaton van, mint ez a TV? Próbáld a „Luna keresése a hálózaton” funkciót."
 
 msgctxt "#30524"
 msgid "Something answers at %s, but it is not Luna.[CR]Check the port — Luna uses 7126 by default."
-msgstr "Na adrese %s něco odpovídá, ale není to Luna.[CR]Zkontroluj port — Luna má výchozí 7126."
+msgstr "Valami válaszol a(z) %s címen, de az nem a Luna.[CR]Ellenőrizd a portot — a Luna alapból a 7126-ot használja."
 
 msgctxt "#30525"
 msgid "Luna %s is running, but the token is missing.[CR][CR]Open %s/setup in a browser, copy the add-on address and paste the whole thing into the Token field — the add-on will pull both the address and the token out of it."
-msgstr "Luna %s běží, ale chybí token.[CR][CR]Otevři v prohlížeči %s/setup, zkopíruj adresu doplňku a vlož ji celou do pole Token — adresu i token z ní doplněk vytáhne sám."
+msgstr "A Luna %s fut, de hiányzik a token.[CR][CR]Nyisd meg a(z) %s/setup oldalt egy böngészőben, másold ki a bővítmény címét, és illeszd be az egészet a Token mezőbe — a bővítmény ebből kinyeri mind a címet, mind a tokent."
 
 msgctxt "#30526"
 msgid "What is in the Token field is not a token.[CR][CR]A token starts with “e1.” and is long. Open %s/setup and copy the whole add-on address."
-msgstr "V poli Token není token.[CR][CR]Token začíná „e1.“ a je dlouhý. Otevři %s/setup a zkopíruj celou adresu doplňku."
+msgstr "Ami a Token mezőben van, az nem token.[CR][CR]A token „e1.”-gyel kezdődik, és hosszú. Nyisd meg a(z) %s/setup oldalt, és másold ki a teljes bővítmény címét."
 
 msgctxt "#30527"
 msgid "Luna %s is running, but it did not accept this token.[CR][CR]Generate the add-on address again at %s/setup and paste the whole thing into the Token field."
-msgstr "Luna %s běží, ale tenhle token nepřijala.[CR][CR]Vygeneruj si adresu doplňku znovu na %s/setup a vlož ji celou do pole Token."
+msgstr "A Luna %s fut, de nem fogadta el ezt a tokent.[CR][CR]Generáld újra a bővítmény címét a(z) %s/setup oldalon, és illeszd be az egészet a Token mezőbe."
 
 msgctxt "#30528"
 msgid "Luna %s answers and the WebShare search works, but its main source returns nothing.[CR][CR]Check the WebShare account at %s/setup and whether the token really comes from this Luna."
-msgstr "Luna %s odpovídá a hledání na WebShare funguje, ale její hlavní zdroj nic nevrací.[CR][CR]Zkontroluj na %s/setup účet WebShare a jestli je token opravdu z téhle Luny."
+msgstr "A Luna %s válaszol, és a WebShare keresés működik, de a fő forrása semmit nem ad vissza.[CR][CR]Ellenőrizd a WebShare fiókot a(z) %s/setup oldalon, és hogy a token tényleg ebből a Lunából származik-e."
 
 msgctxt "#30529"
 msgid "Luna %s is running, but it found no streams even for well-known films.[CR][CR]Usually the WebShare account is missing in Luna itself — open %s/setup and fill it in."
-msgstr "Luna %s běží, ale nenašla streamy ani u známých filmů.[CR][CR]Nejčastěji chybí účet WebShare v samotné Luně — otevři %s/setup a doplň ho."
+msgstr "A Luna %s fut, de még jól ismert filmekhez sem talált streameket.[CR][CR]Általában a WebShare fiók hiányzik magából a Lunából — nyisd meg a(z) %s/setup oldalt, és add meg."
 
 msgctxt "#30530"
 msgid "Looking for Luna on the local network…"
-msgstr "Hledám Lunu v místní síti…"
+msgstr "Luna keresése a helyi hálózaton…"
 
 msgctxt "#30531"
 msgid "I did not find Luna on this network.[CR][CR]Is it running on some computer at home? Does it use the default port 7126? If it runs elsewhere or on another port, fill the address in by hand."
-msgstr "V téhle síti jsem Lunu nenašel.[CR][CR]Běží na některém počítači v domácnosti? Má výchozí port 7126? Pokud běží jinde nebo na jiném portu, vyplň adresu ručně."
+msgstr "Nem találtam Lunát ezen a hálózaton.[CR][CR]Fut valamelyik otthoni számítógépen? Az alapértelmezett 7126-os portot használja? Ha máshol vagy más porton fut, add meg a címet kézzel."
 
 msgctxt "#30532"
 msgid "Luna servers found"
-msgstr "Nalezené servery Luny"
+msgstr "Talált Luna szerverek"
 
 msgctxt "#30533"
 msgid "Checking Luna…"
-msgstr "Ověřuji Lunu…"
+msgstr "Luna ellenőrzése…"
 
 msgctxt "#30534"
 msgid "Luna check"
-msgstr "Ověření Luny"
-
+msgstr "Luna ellenőrzés"
 
 msgctxt "#30536"
 msgid "Send log"
-msgstr "Poslat log"
+msgstr "Napló küldése"
 
 msgctxt "#30537"
 msgid "Close"
-msgstr "Zavřít"
+msgstr "Bezárás"
 
 msgctxt "#30538"
 msgid "Find Luna on the network"
-msgstr "Najít Lunu v síti"
+msgstr "Luna keresése a hálózaton"
 
 msgctxt "#30539"
 msgid "Check Luna setup"
-msgstr "Ověřit nastavení Luny"
+msgstr "Luna beállítás ellenőrzése"
 
 msgctxt "#30540"
 msgid "Goes through your home network and fills in the address where Luna is running. It only takes a few seconds."
-msgstr "Projde domácí síť a vyplní adresu, kde Luna běží. Trvá to pár vteřin."
+msgstr "Végigmegy az otthoni hálózatodon, és kitölti a címet, ahol a Luna fut. Csak pár másodpercig tart."
 
 msgctxt "#30541"
 msgid "Says exactly what is wrong: whether the server answers, whether the token is valid and whether any streams come back."
-msgstr "Řekne, co přesně nesedí: jestli server odpovídá, jestli platí token a jestli chodí streamy."
+msgstr "Pontosan megmondja, mi a baj: válaszol-e a szerver, érvényes-e a token, és jönnek-e vissza streamek."
 
 msgctxt "#30542"
 msgid "Paste the add-on address from %s/setup"
-msgstr "Vlož adresu doplňku z %s/setup"
+msgstr "Illeszd be a bővítmény címét a(z) %s/setup oldalról"
 
 msgctxt "#30543"
 msgid "address and token are both missing"
-msgstr "chybí adresa i token"
+msgstr "a cím és a token is hiányzik"
 
 msgctxt "#30544"
 msgid "the address makes no sense"
-msgstr "adresa nedává smysl"
+msgstr "a cím értelmezhetetlen"
 
 msgctxt "#30545"
 msgid "the server does not answer"
-msgstr "server neodpovídá"
+msgstr "a szerver nem válaszol"
 
 msgctxt "#30546"
 msgid "Luna is not running at that address"
-msgstr "na té adrese neběží Luna"
+msgstr "Azon a címen nem fut Luna"
 
 msgctxt "#30547"
 msgid "running, but the token is missing"
-msgstr "běží, ale chybí token"
+msgstr "fut, de hiányzik a token"
 
 msgctxt "#30548"
 msgid "what is in the Token field is not a token"
-msgstr "v poli Token není token"
+msgstr "ami a Token mezőben van, az nem token"
 
 msgctxt "#30549"
 msgid "Luna did not accept the token"
-msgstr "token Luna nepřijala"
+msgstr "A Luna nem fogadta el a tokent"
 
 msgctxt "#30550"
 msgid "the main source returns nothing — WebShare account in Luna?"
-msgstr "hlavní zdroj nic nevrací — účet WebShare v Luně?"
+msgstr "a fő forrás semmit nem ad vissza — van WebShare fiók a Lunában?"
 
 msgctxt "#30551"
 msgid "no streams found — WebShare account in Luna?"
-msgstr "nenašla žádné streamy — účet WebShare v Luně?"
+msgstr "nem találhatók streamek — van WebShare fiók a Lunában?"
 
 msgctxt "#30552"
 msgid "All good"
-msgstr "V pořádku"
+msgstr "Minden rendben"
 
 msgctxt "#30553"
 msgid "Careful"
-msgstr "Pozor"
+msgstr "Vigyázat"
 
 msgctxt "#30554"
 msgid "Did not work"
-msgstr "Nepovedlo se"
+msgstr "Nem sikerült"
 
 msgctxt "#30555"
 msgid "Enter address"
-msgstr "Zadat adresu"
+msgstr "Cím megadása"
 
 msgctxt "#30556"
 msgid "Luna address (or the whole add-on address from /setup)"
-msgstr "Adresa Luny (nebo celá adresa doplňku ze /setup)"
+msgstr "Luna címe (vagy a teljes bővítmény cím a /setup oldalról)"
 
 msgctxt "#30557"
 msgid "The saved setup is what gets checked — what you just typed into the field counts only after OK. You can enter a different address right here."
-msgstr "Ověřuje se uložené nastavení — co jsi právě přepsal v políčku, se počítá až po OK. Jinou adresu můžeš zadat rovnou tady."
+msgstr "A mentett beállítás kerül ellenőrzésre — amit a mezőbe most beírtál, csak OK után számít. Itt rögtön megadhatsz másik címet is."
 
 msgctxt "#30558"
 msgid "Show all streams"
-msgstr "Zobrazit všechny streamy"
+msgstr "Az összes stream megjelenítése"
 
 msgctxt "#30559"
 msgid "Hungarian"
-msgstr "Maďarština"
+msgstr "Magyar"

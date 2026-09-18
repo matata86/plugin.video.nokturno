@@ -42,7 +42,7 @@ CONF_DOWNLOAD_DIR = "download_dir"
 CONF_EXTERNAL_HOST = "external_host"
 
 # --- povolené hodnoty ----------------------------------------------------
-LANGS = ["", "CZ", "SK", "EN"]
+LANGS = ["", "CZ", "SK", "EN", "HU"]
 SORT_ORDERS = ["source", "quality", "size_desc", "size_asc"]
 
 DEFAULT_LUNA_URL = "http://192.168.1.10:7126"

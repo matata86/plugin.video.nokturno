@@ -19,12 +19,13 @@ LANG_CODES = {
     "CZ": {"cze", "ces", "cs", "cz", "czech", "cesky", "cestina"},
     "SK": {"slo", "slk", "sk", "slovak", "slovensky", "slovencina"},
     "EN": {"eng", "en", "english", "anglicky", "anglictina"},
+    "HU": {"hun", "hu", "hungarian", "magyar", "madarsky", "madarstina"},
 }
 # ISO 639-2/B do názvu staženého souboru — Kodi z něj jazyk stopy vyčte samo
-FILE_CODES = {"CZ": "cze", "SK": "slo", "EN": "eng"}
+FILE_CODES = {"CZ": "cze", "SK": "slo", "EN": "eng", "HU": "hun"}
 # titulky blízkého jazyka jsou lepší než žádné; zvuk se tak nezaměňuje (slovenský dabing
-# místo originálu je věc vkusu, ne náhrada)
-SUBTITLE_FALLBACK = {"CZ": ("CZ", "SK"), "SK": ("SK", "CZ"), "EN": ("EN",)}
+# místo originálu je věc vkusu, ne náhrada) — maďarština blízký jazyk nemá, jen sama sebe
+SUBTITLE_FALLBACK = {"CZ": ("CZ", "SK"), "SK": ("SK", "CZ"), "EN": ("EN",), "HU": ("HU",)}
 
 # režimy titulků (nastavení `auto_subs`)
 SUBS_KEEP = 0         # nechat na Kodi
@@ -144,8 +145,10 @@ def pick_subtitle(subtitles, pref_lang, audio_ok, mode=SUBS_WHEN_NEEDED):
 TIMING_RE = re.compile(r"^\s*[\d:,.\->\s]+$|^\s*\d+\s*$|<[^>]+>|\{[^}]*\}")
 CZ_ONLY = set("ěřůĚŘŮ")
 SK_ONLY = set("ľĺŕôäĽĹŔÔÄ")
-# polština a maďarština sdílí se slovenštinou slova i část diakritiky („nie“, „co“, á/é)
-OTHER_ONLY = set("ąęłśćźńőűĄĘŁŚĆŹŃŐŰ")
+# ő/ű nemá žádný ze sousedních jazyků – stačí na jistou detekci, řeší se zvlášť před OTHER_ONLY
+HU_ONLY = set("őűŐŰ")
+# polština sdílí se slovenštinou slova i část diakritiky („nie“, „co“, á/é)
+OTHER_ONLY = set("ąęłśćźńĄĘŁŚĆŹŃ")
 EN_WORDS = {"the", "you", "and", "what", "that", "this", "is", "are", "don't", "it's", "i'm", "your"}
 # „to“ ani „a“ ne — jsou i anglicky; bez diakritiky rozhodnou slova, která ta druhá řeč nemá
 CZ_WORDS = {"jsem", "jsi", "jsme", "jste", "není", "neni", "proč", "proc", "taky", "tady", "můžu", "muzu", "že", "ze"}
@@ -177,11 +180,12 @@ def subtitle_format(text):
 
 
 def subtitle_lang(text):
-    """Jazyk titulků podle textu: `CZ`, `SK`, `EN`, nebo "" když si není jistý.
+    """Jazyk titulků podle textu: `CZ`, `SK`, `EN`, `HU`, nebo "" když si není jistý.
 
     Čeština a slovenština se liší písmeny, která ta druhá nemá (ř/ě/ů proti
     ľ/ô/ä/ĺ/ŕ), angličtina nemá diakritiku a pozná se podle nejčastějších slov.
-    Jiné jazyky (polština, maďarština…) vrátí prázdný řetězec, ne omylem CZ."""
+    Maďarština má vlastní ő/ű, žádný ze sousedních jazyků je nepoužívá.
+    Jiné jazyky (polština…) vrátí prázdný řetězec, ne omylem CZ."""
     lines = [TIMING_RE.sub(" ", line) for line in text.splitlines()]
     body = " ".join(line for line in lines if line.strip())
     letters = [ch for ch in body if ch.isalpha()]
@@ -189,11 +193,14 @@ def subtitle_lang(text):
         return ""
     cz = sum(1 for ch in letters if ch in CZ_ONLY)
     sk = sum(1 for ch in letters if ch in SK_ONLY)
+    hu = sum(1 for ch in letters if ch in HU_ONLY)
     words = re.findall(r"[a-zá-žA-ZÁ-Ž']+", body.lower())
     total = max(len(words), 1)
     czsk = sum(1 for w in words if w in CZSK_WORDS) / total
     en = sum(1 for w in words if w in EN_WORDS) / total
     per_mille = 1000.0 / len(letters)
+    if hu * per_mille >= 2:
+        return "HU"
     if sum(1 for ch in letters if ch in OTHER_ONLY) * per_mille >= 2:
         return ""
     if czsk >= 0.03 or (cz + sk) * per_mille >= 3:

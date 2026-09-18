@@ -108,11 +108,13 @@ def parse_langs(segment):
 # Hledá se po rozdělení názvu na slova, jinak by „Číslo“ dalo „slo“ (= SK).
 NAME_SPLIT_RE = re.compile(r"[^0-9A-Za-zÀ-ž]+")
 NAME_LANG_RE = re.compile(
-    r"^(cz|cze|czech|dab|dabing|dabovano|sk|slo|slovak|slovensky|en|eng|english)$", re.IGNORECASE)
-NAME_SUB_RE = re.compile(r"^(cz|sk|en)?(tit|titulky|sub|subs)$", re.IGNORECASE)
+    r"^(cz|cze|czech|dab|dabing|dabovano|sk|slo|slovak|slovensky|en|eng|english|hu|hun|hungarian|magyar)$",
+    re.IGNORECASE)
+NAME_SUB_RE = re.compile(r"^(cz|sk|en|hu)?(tit|titulky|sub|subs)$", re.IGNORECASE)
 NAME_LANG_MAP = {"cz": "CZ", "cze": "CZ", "czech": "CZ", "dab": "CZ", "dabing": "CZ", "dabovano": "CZ",
                  "sk": "SK", "slo": "SK", "slovak": "SK", "slovensky": "SK",
-                 "en": "EN", "eng": "EN", "english": "EN"}
+                 "en": "EN", "eng": "EN", "english": "EN",
+                 "hu": "HU", "hun": "HU", "hungarian": "HU", "magyar": "HU"}
 
 
 def langs_from_name(name):

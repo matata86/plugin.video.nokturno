@@ -105,6 +105,7 @@ SUBTITLE_NAME_RE = {
     "CZ": re.compile(r"(^|[^a-z])(cz|cze|ces|czech|cesky|cestina|cs)([^a-z]|$)"),
     "SK": re.compile(r"(^|[^a-z])(sk|slo|slk|slovak|slovensky|slovencina)([^a-z]|$)"),
     "EN": re.compile(r"(^|[^a-z])(en|eng|english|anglicky)([^a-z]|$)"),
+    "HU": re.compile(r"(^|[^a-z])(hu|hun|hungarian|magyar)([^a-z]|$)"),
 }
 
 
@@ -134,8 +135,9 @@ SEQUEL_AFTER_RE = re.compile(r"[\s._\-:,(\[]*(?:[2-9]|ii|iii|iv|vi|vii|viii)(?![
 # značky, které smí stát kolem krátkého názvu („To", „It") místo dalšího slova
 RELEASE_TAGS = frozenset((
     "cz", "sk", "en", "eng", "cze", "czech", "cesky", "dabing", "dab", "dub", "titulky", "tit",
-    "cztit", "sktit", "subs", "hd", "fullhd", "uhd", "bluray", "bdrip", "brrip", "webrip", "web",
-    "webdl", "dl", "dvdrip", "hdtv", "remux", "hevc", "avc", "film", "movie", "mkv", "avi", "mp4",
+    "cztit", "sktit", "hu", "hun", "hungarian", "magyar", "hutit", "subs", "hd", "fullhd", "uhd",
+    "bluray", "bdrip", "brrip", "webrip", "web", "webdl", "dl", "dvdrip", "hdtv", "remux", "hevc",
+    "avc", "film", "movie", "mkv", "avi", "mp4",
 ))
 
 
