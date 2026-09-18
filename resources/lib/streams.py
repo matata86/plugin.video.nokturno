@@ -169,6 +169,10 @@ def parse_stream(s):
         audio = label  # „Sosáč CZ - HD“
     s["langs"] = parse_langs(audio)
     s["subs"] = parse_langs(subs)
+    # přepočet po přečtení hlavičky (`Engine._fill_audio` smaže `quality_rank`): příznak
+    # odhadu z minula pryč, jinak soubor s „(CZ)“ v názvu zůstal i s ověřenou češtinou
+    # za všemi ověřenými streamy — 1080p z FastShare pod 480p ze Sosáče (Čertí brko 2026-09-18)
+    s.pop("_langs_from_name", None)
     # Bez „Zvuk:“/„Tit.“ v `detail` (probe_audio=False, nebo zdroj typu WebShare/HellSpy,
     # co o zvuku ve výpisu nic neřekne) zbývá jen odhad z názvu souboru — jinak `langs`/
     # `subs` zůstanou prázdné i u zjevně označeného „…_cz_dab_1080p.mp4“. Header z
@@ -201,6 +205,67 @@ def is_surround(s, pref_lang=""):
     return any(v >= 5.1 for v in ch.values())
 
 
+HDR_RE = re.compile(r"(?<![A-Za-z0-9])(HDR10\+?|HDR|DV|DoVi|Dolby[ ._-]?Vision)(?![A-Za-z0-9])", re.IGNORECASE)
+MERGE_SIZE_TOLERANCE = 0.10   # verze do ±10 % velikosti jsou pro výběr totéž (přání uživatele 2026-09-18)
+
+
+def stream_hdr(s):
+    """HDR / Dolby Vision podle popisku nebo názvu souboru — na televizi jiný obraz,
+    na starší i chyba přehrání, takže se takové verze se SDR neslučují."""
+    text = " ".join(str(s.get(k) or "") for k in ("label", "_ws_name", "name"))
+    return bool(HDR_RE.search(text))
+
+
+def merge_key(s):
+    """Co uživatel při výběru streamu opravdu řeší: kvalita, jazyky zvuku a titulků,
+    prostorový zvuk a HDR. Velikost se porovnává zvlášť, s tolerancí."""
+    return (int(s.get("quality_rank") or 0), tuple(sorted(s.get("langs") or ())),
+            tuple(sorted(s.get("subs") or ())), is_surround(s), stream_hdr(s))
+
+
+def _same_size(a, b):
+    if not a or not b:
+        return not a and not b   # neznámá velikost se slučuje jen s neznámou
+    return abs(a - b) <= MERGE_SIZE_TOLERANCE * max(a, b)
+
+
+def group_streams(streams):
+    """Sloučí verze, mezi kterými by uživatel nevybíral (`merge_key` + velikost ±10 %).
+
+    Vstup musí být seřazený — zástupcem skupiny je první, tedy nejlepší podle řazení.
+    Ostatní se schovají do jeho `_alts` (náhradní odkazy při selhání, „Zobrazit všechny
+    streamy“). Vlastní úložiště a výsledky uvolněného fulltextu se neslučují nikdy —
+    úložiště má být vždy vidět a uvolněný fulltext posuzuje uživatel podle názvu.
+
+    Slučuje se před čtením hlaviček, takže jazyk může být jen odhad z názvu souboru;
+    hlavičky se pak čtou jen u zástupců (rychlejší výběr)."""
+    out, reps = [], {}
+    for s in streams:
+        s.pop("_alts", None)
+        if s.get("source") == "dav" or s.get("_loose"):
+            out.append(s)
+            continue
+        key = merge_key(s)
+        size = s.get("size_gb") or 0
+        rep = next((r for r in reps.get(key, ()) if _same_size(r.get("size_gb") or 0, size)), None)
+        if rep is None:
+            reps.setdefault(key, []).append(s)
+            out.append(s)
+        else:
+            rep.setdefault("_alts", []).append(s)
+    return out
+
+
+def expand_groups(streams):
+    """Opak `group_streams`: zástupci i schované verze, každá zvlášť."""
+    out = []
+    for s in streams:
+        alts = s.pop("_alts", None) or []
+        out.append(s)
+        out.extend(alts)
+    return out
+
+
 def arrange(streams, pref_lang="", hide_sd=False, max_size_gb=0.0, order="source", pref_surround=False):
     """Vyfiltruje a seřadí streamy; když by filtr nic nenechal, vrátí původní pořadí.
 
@@ -230,20 +295,19 @@ def arrange(streams, pref_lang="", hide_sd=False, max_size_gb=0.0, order="source
         return 0 if s.get("langs") and not s.get("_langs_from_name") else 1
 
     def lang_group(s):
-        """Preferovaný jazyk je hlavní klíč: nejdřív streamy, kde ho zdroj nebo hlavička
-        souboru potvrdila, pak ty, kde ho tvrdí jen název souboru (hlavička se ještě
-        nečetla — `Engine._fill_audio` čte hlavičky v tomhle pořadí, takže se ověří
-        dřív než zbytek — `_langs_from_name` z `parse_stream()` značí přesně tenhle
-        případ), a teprve pak všechno ostatní včetně neznámého jazyka.
+        """Preferovaný jazyk je hlavní klíč: nejdřív streamy s ním, pak všechno ostatní
+        včetně neznámého jazyka (přání uživatele 2026-09-16 — kdo chce češtinu, nemá ji
+        hledat mezi desítkami anglických streamů).
 
-        Dřív jazyk rozhodoval jen remízy (4K v angličtině nad HD v češtině); na
-        přání uživatele (2026-09-16) je to obráceně — kdo chce češtinu, nemá ji
-        hledat mezi desítkami anglických streamů."""
+        Čeština odhadnutá z názvu souboru (`_langs_from_name`) patří do stejné skupiny
+        jako ověřená — ověření rozhoduje až remízu (`verified`). Dřív byla o patro níž
+        a 4K z FastShare s „CZ“ v názvu tak skončilo pod 480p ze Sosáče (Matrix
+        2026-09-18): se stropem na čtení hlaviček zůstane neověřených víc a dobré
+        soubory by propadaly na konec. Hlavička, která jazyk vyvrátí, ho z `langs`
+        vyřadí, takže takový soubor spadne dolů sám."""
         if not pref_lang:
             return 0
-        if pref_lang in s["langs"]:
-            return 1 if s.get("_langs_from_name") else 0
-        return 2
+        return 0 if pref_lang in s["langs"] else 1
 
     def surround_key(s):
         return 0 if (pref_surround and is_surround(s, pref_lang)) else 1

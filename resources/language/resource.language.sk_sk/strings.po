@@ -1504,3 +1504,7 @@ msgstr "Adresa Luny (alebo celá adresa doplnku zo /setup)"
 msgctxt "#30557"
 msgid "The saved setup is what gets checked — what you just typed into the field counts only after OK. You can enter a different address right here."
 msgstr "Overuje sa uložené nastavenie — čo si práve prepísal v políčku, sa počíta až po OK. Inú adresu môžeš zadať rovno tu."
+
+msgctxt "#30558"
+msgid "Show all streams"
+msgstr "Zobraziť všetky streamy"

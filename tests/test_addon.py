@@ -544,6 +544,18 @@ class TestJadroVKodi(unittest.TestCase):
         self.assertNotIn("~", default.stream_lines(s)[0].split("[/B]")[0])
 
 
+    def test_odhadnuty_jazyk_s_vlnovkou(self):
+        # jádro dá odhad z názvu do `langs` s příznakem `_langs_from_name` — v popisku vlnovka
+        s = {"url": "fs:1", "label": "Matrix.1999.2160p.CZ.mkv", "detail": "20 GB", "source": "fs"}
+        default.parse_stream(s)
+        s.update(langs=["CZ"], _langs_from_name=True)
+        top = default.stream_lines(s)[0]
+        self.assertIn("~CZ", top)
+        # ověřený z detailu zdroje: bez vlnovky
+        s.pop("_langs_from_name")
+        self.assertNotIn("~CZ", default.stream_lines(s)[0])
+
+
     def test_dva_radky_vyberu_streamu(self):
         s = {"url": "ws:1", "label": "Matrix.1999.2160p.HDR.x265.CZ.EN.mkv", "detail": "20 GB", "source": "ws",
              "_tracks": [{"lang": "CZ", "channels": "5.1", "codec": "AC3"}, {"lang": "EN", "channels": "7.1", "codec": "TrueHD"}],
@@ -3182,3 +3194,61 @@ class TestZhlednutoZKodi(unittest.TestCase):
         li = xbmcgui.ListItem("Film")
         default.apply_watched(li, "tt_kodi_mark")
         self.assertIn(("setResumePoint", (600.0, 6000.0), {}), li.tag.calls)
+
+
+class TestSloucenéVerze(unittest.TestCase):
+    """Sloučené verze (jádro `group_streams`): jeden řádek s ×N, „Zobrazit všechny streamy“ nad
+    fulltextem a náhradní odkaz, když zástupce nejde přehrát (Pelíšky 2026-09-18)."""
+
+    def setUp(self):
+        reset_kodi()
+        default.STORE.set_last_stream_filter({})
+        self.alt = {"url": "ws:2", "label": "Pelisky.1999.1080p.CZ.mkv", "detail": "17.3 GB", "source": "ws"}
+        self.rep = {"url": "hs:1", "label": "Pelisky 1999 1080p CZ.mkv", "detail": "18.6 GB", "source": "hs",
+                    "_alts": [self.alt]}
+
+    def test_radek_s_poctem_a_zobrazit_vsechny_pred_fulltextem(self):
+        rozbaleno = []
+
+        def expand():
+            rozbaleno.append(1)
+            return [dict(self.rep, _alts=[]), self.alt]
+        volby = iter([3, -1])   # 0 = Filtr, 1–2 = streamy, 3 = Zobrazit všechny, 4 = fulltext
+        dialogy = []
+
+        def select(heading, rows, **kw):
+            dialogy.append([r.getLabel() for r in rows])
+            return next(volby)
+        extra = {"url": "st:9", "label": "Pelisky.720p.CZ.mkv", "detail": "3 GB", "source": "st"}
+        with mock.patch.object(xbmcgui.Dialog, "select", side_effect=select):
+            self.assertIsNone(default.choose_stream([self.rep, extra], relax=True, expand=expand))
+        prvni = dialogy[0]
+        self.assertIn("×2", prvni[1])
+        self.assertTrue(prvni[-2].startswith("Zobrazit všechny streamy") and "(3)" in prvni[-2], prvni)
+        self.assertTrue(prvni[-1].startswith("Zkusit uvolněný fulltext"))
+        self.assertEqual(rozbaleno, [1])
+        self.assertFalse(any(label.startswith("Zobrazit všechny") for label in dialogy[1]), "po rozbalení už není co")
+
+    def test_fulltext_zustava_posledni_volbou(self):
+        with mock.patch.object(xbmcgui.Dialog, "select", return_value=2):
+            self.assertIs(default.choose_stream([self.rep], relax=True, expand=lambda: []), default.FULLTEXT)
+
+    def test_bez_sloucenych_se_zobrazit_vsechny_nenabizi(self):
+        with mock.patch.object(xbmcgui.Dialog, "select", return_value=-1) as select:
+            default.choose_stream([self.alt], relax=True, expand=lambda: [])
+        labels = [r.getLabel() for r in select.call_args[0][1]]
+        self.assertFalse(any(label.startswith("Zobrazit všechny") for label in labels))
+
+    def test_nahradni_odkaz_kdyz_zastupce_nejde(self):
+        def resolve(apis, url):
+            if url == "hs:1":
+                raise default.HellspyError("soubor smazán")
+            return "https://cdn/" + url
+        with mock.patch.object(default, "resolve_url", side_effect=resolve):
+            self.assertEqual(default.resolve_first({}, ["hs:1", "ws:2"]), ("ws:2", "https://cdn/ws:2"))
+            with self.assertRaises(default.HellspyError):
+                default.resolve_first({}, ["hs:1"])
+
+    def test_adresa_prehrani_nese_nahradni_odkazy(self):
+        self.assertEqual(default.alts_param(self.rep), "ws:2")
+        self.assertIsNone(default.alts_param(self.alt))
