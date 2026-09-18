@@ -2790,14 +2790,14 @@ class TestLunaDiagnostika(unittest.TestCase):
         xbmcaddon.settings.update({"luna_url": "192.168.1.99", "token": "e1.abc"})
         with mock.patch.object(default, "luna_diagnose",
                                return_value=self.diag(base="http://192.168.1.99:7126")), \
-                mock.patch.object(xbmcgui.Dialog, "yesno", return_value=False) as yesno:
+                mock.patch.object(xbmcgui.Dialog, "yesnocustom", return_value=0) as dialog:
             default.luna_check()
-        self.assertIn("192.168.1.99:7126", yesno.call_args[0][1])
+        self.assertIn("192.168.1.99:7126", dialog.call_args[0][1])
 
     def test_chyba_nabidne_poslani_logu(self):
         xbmcaddon.settings["token"] = "e1.abc"
         with mock.patch.object(default, "luna_diagnose", return_value=self.diag(code="bad_token", version="1.7.0")), \
-                mock.patch.object(xbmcgui.Dialog, "yesno", return_value=True), \
+                mock.patch.object(xbmcgui.Dialog, "yesnocustom", return_value=2), \
                 mock.patch.object(default, "log_send") as log_send:
             default.luna_check()
         log_send.assert_called_once_with(ask=False)   # ptát se podruhé „opravdu?“ nemá smysl
@@ -2819,7 +2819,7 @@ class TestLunaDiagnostika(unittest.TestCase):
 
     def test_diagnostika_nikdy_nespadne(self):
         with mock.patch.object(default, "luna_diagnose", side_effect=OSError("síť spadla")), \
-                mock.patch.object(xbmcgui.Dialog, "yesno", return_value=False):
+                mock.patch.object(xbmcgui.Dialog, "yesnocustom", return_value=0):
             default.luna_check()   # nesmí vyhodit ven
 
     def test_nalezeny_server_se_ulozi_a_zapne(self):
@@ -2860,6 +2860,50 @@ class TestLunaDiagnostika(unittest.TestCase):
         with mock.patch.object(default, "luna_discover", side_effect=OSError("bez sítě")):
             default.luna_find()
         self.assertTrue(xbmcgui.oks)
+
+    def test_nalezena_adresa_se_overi_hned_ne_z_nastaveni(self):
+        """Past, na kterou uživatel narazil: `setSetting` políčko přepíše, ale `getSetting`
+        při otevřeném dialogu nastavení vrátí ještě starou hodnotu → „adrese nerozumím“
+        nad adresou, kterou doplněk právě sám našel. Adresa se proto předává přímo."""
+        xbmcaddon.settings["luna_url"] = ""          # uživatel ji smazal a uložil
+        found = [{"url": "http://192.168.1.10:7126", "version": "1.7.0", "name": "Luna"}]
+        with mock.patch.object(default, "luna_discover", return_value=found), \
+                mock.patch.object(default, "luna_diagnose",
+                                  return_value=self.diag(level="ok", code="ok", version="1.7.0")) as diag, \
+                mock.patch.object(xbmcgui.Dialog, "yesnocustom", return_value=0):
+            default.luna_find()
+        self.assertEqual(diag.call_args[0][0], "http://192.168.1.10:7126")
+
+    def test_predana_adresa_prebije_ulozenou(self):
+        xbmcaddon.settings.update({"luna_url": "http://stara:7126", "token": "e1.abc"})
+        with mock.patch.object(default, "luna_diagnose",
+                               return_value=self.diag(level="ok", code="ok")) as diag:
+            default.luna_check("http://nova:7126")
+        self.assertEqual(diag.call_args[0][0], "http://nova:7126")
+
+    def test_zadat_adresu_overi_znovu_tou_zadanou(self):
+        xbmcaddon.settings.update({"luna_url": "http://stara:7126", "token": "e1.abc"})
+        with mock.patch.object(default, "luna_diagnose", return_value=self.diag(code="unreachable")) as diag, \
+                mock.patch.object(xbmcgui.Dialog, "yesnocustom", side_effect=[1, 0]), \
+                mock.patch.object(xbmcgui.Dialog, "input", return_value="192.168.1.5"):
+            default.luna_check()
+        self.assertEqual([c[0][0] for c in diag.call_args_list], ["http://stara:7126", "192.168.1.5"])
+
+    def test_zadat_adresu_posle_cisty_token(self):
+        """Kdyby v tokenu zůstala stará celá adresa, přebila by tu právě zadanou."""
+        xbmcaddon.settings.update({"luna_url": "", "token": "http://stara:7126/metadata/e1.abc/manifest.json"})
+        with mock.patch.object(default, "luna_diagnose", return_value=self.diag(code="unreachable")) as diag, \
+                mock.patch.object(xbmcgui.Dialog, "yesnocustom", side_effect=[1, 0]), \
+                mock.patch.object(xbmcgui.Dialog, "input", return_value="192.168.1.5"):
+            default.luna_check()
+        self.assertEqual(diag.call_args[0][1], "e1.abc")
+
+    def test_zadavani_adresy_se_nezacykli(self):
+        with mock.patch.object(default, "luna_diagnose", return_value=self.diag(code="unreachable")) as diag, \
+                mock.patch.object(xbmcgui.Dialog, "yesnocustom", return_value=1), \
+                mock.patch.object(xbmcgui.Dialog, "input", return_value="192.168.1.5"):
+            default.luna_check()
+        self.assertLessEqual(len(diag.call_args_list), 4)
 
     def test_obe_akce_zna_router(self):
         for action in ("luna_check", "luna_find"):
