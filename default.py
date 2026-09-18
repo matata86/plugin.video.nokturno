@@ -273,6 +273,36 @@ def get_sosac_db():
                        should_stop=should_stop)
 
 
+def expand_streams(apis, streams, meta, video):
+    """„Zobrazit všechny streamy“: sloučené verze zvlášť. Schované verze nemají přečtené
+    hlavičky — dočtou se (nejvýš `PROBE_DEADLINE`), ukazatel v rohu jako při hledání."""
+    bar = xbmcgui.DialogProgressBG()
+    bar.create(L(30000, "Nokturno"), L(30238, "Načítám streamy…"))
+    try:
+        return engine_of(apis).expand_streams(
+            streams, (meta, video), on_audio_progress=lambda done, total: bar.update(int(done * 100 / max(total, 1))))
+    finally:
+        bar.close()
+
+
+def alts_param(stream):
+    """Náhradní odkazy sloučené verze (`_alts`) do adresy přehrání — viz `resolve_first`."""
+    return "|".join(a["url"] for a in stream.get("_alts") or [] if a.get("url")) or None
+
+
+def resolve_first(apis, urls):
+    """Rozklíčovat první odkaz, který jde — sloučené verze jsou tentýž film jinde. Vrátí
+    (reference, odkaz); když nejde žádný, vyhodí chybu toho prvního."""
+    first = None
+    for url in urls:
+        try:
+            return url, resolve_url(apis, url)
+        except Errors as e:
+            xbmc.log(f"[{ADDON_ID}] stream nejde přehrát, zkouším další verzi: {e}", xbmc.LOGINFO)
+            first = first or e
+    raise first or NokturnoError(L(30102))
+
+
 def resolve_url(apis, url):
     """'streamuj:…' (Sosáč), 'ws:<ident>' (WebShare), 'hs:', 'st:' a 'dav:' se mění na
     finální odkaz až při přehrání — odkazy zdrojů vyprší po pár hodinách. Rozklíčování
@@ -404,6 +434,8 @@ def engine_options():
         "audio_probe": setting("audio_probe", str(AUDIO_PROBE_MAX)),
         "cross_search": on("cross_search"),
         "search_streams": on("search_streams"),
+        "merge_streams": True,   # verze, mezi kterými se nevybírá, jako jeden řádek (`group_streams`)
+        "probe_background": True,   # hlavičky nad limit a sloučených verzí dočíst na pozadí do cache
         "fresh": warming(),
         "luna_url": setting("luna_url", "http://192.168.1.10:7126"),
         "ws_username": setting("ws_username") if on("ws_enabled", "false") else "",
@@ -1155,8 +1187,8 @@ def describe_timings(t):
     zdroje = ", ".join(f"{k} {v}" for k, v in sorted((t.get("zdroje") or {}).items(), key=lambda kv: kv[1]))
     return (f"celkem {t.get('celkem', 0)} s · hlavní {t.get('hlavni', 0)} · souběžně {t.get('souběžně', 0)}"
             f" ({zdroje}){' · znovu česky' if t.get('znovu česky') else ''} · úložiště navíc {t.get('úložiště navíc', 0)}"
-            f" · hlavičky {t.get('hlavičky', 0)} ({t.get('hlaviček', 0)}, nedočteno {t.get('hlaviček nedočteno', 0)})"
-            f" · {t.get('streamů', 0)} streamů")
+            f" · hlavičky {t.get('hlavičky', 0)} ({t.get('hlaviček', 0)}, nedočteno {t.get('hlaviček nedočteno', 0)},"
+            f" na pozadí {t.get('hlavičky na pozadí', 0)}) · {t.get('streamů', 0)} streamů (sloučeno {t.get('sloučeno', 0)})")
 
 
 def storage_first(streams):
@@ -1354,12 +1386,14 @@ def filter_dialog(streams, active=None):
 FULLTEXT = "fulltext"
 
 
-def choose_stream(streams, preferred=None, relax=False):
+def choose_stream(streams, preferred=None, relax=False, expand=None):
     """Výběr streamu v dialogu na dva řádky — jediný způsob výběru od `5.2.14~beta2` (klik ve výpisu,
     Přehrát v detailu, widget, TMDb Helper), od `beta4` i jediné místo (výpis streamů jako složka zrušen).
     Nahoře Filtr streamů, Zrušit filtr, Použít poslední filtr. `preferred` (zapamatovaná volba
     u seriálu) je předvybraný. `relax=True` přidá dole „Zkusit uvolněný fulltext“ a jeho volba
-    vrátí `FULLTEXT`. Vrací stream, `FULLTEXT`, nebo None."""
+    vrátí `FULLTEXT`. `expand()` vrátí seznam se sloučenými verzemi (`_alts`) každou zvlášť —
+    nabízí se jako „Zobrazit všechny streamy“ před fulltextem, jen když je co rozbalit.
+    Vrací stream, `FULLTEXT`, nebo None."""
     active = {}
     while True:
         shown = apply_stream_filter(streams, **filter_params(active))
@@ -1384,12 +1418,20 @@ def choose_stream(streams, preferred=None, relax=False):
             rows.append(xbmcgui.ListItem(label=label))
         for st in shown:
             top, bottom = stream_lines(st)
+            if st.get("_alts"):
+                top = f"{top}  [COLOR {GREY}]×{len(st['_alts']) + 1}[/COLOR]"
             row = xbmcgui.ListItem(label=top, label2=bottom)
             icon = quality_icon(st)
             if icon:
                 row.setArt({"icon": icon, "thumb": icon})
             rows.append(row)
+        tail = []   # volby pod seznamem streamů
+        hidden = sum(len(st.get("_alts") or ()) for st in streams)
+        if expand and hidden:
+            tail.append("all")
+            rows.append(xbmcgui.ListItem(label=f"{L(30558, 'Zobrazit všechny streamy')}  ({len(streams) + hidden})"))
         if relax:
+            tail.append(FULLTEXT)
             rows.append(xbmcgui.ListItem(label=L(30335, "Zkusit uvolněný fulltext (WebShare, HellSpy, Sledujteto, FastShare)")))
         focus = next((i for i, st in enumerate(shown) if st is preferred), None)
         idx = xbmcgui.Dialog().select(L(30024), rows, useDetails=True,
@@ -1397,7 +1439,10 @@ def choose_stream(streams, preferred=None, relax=False):
         if idx < 0:
             return None
         if idx >= len(entries) + len(shown):
-            return FULLTEXT
+            if tail[idx - len(entries) - len(shown)] == FULLTEXT:
+                return FULLTEXT
+            streams = expand()
+            continue
         if idx >= len(entries):
             return shown[idx - len(entries)]
         volba = entries[idx][1]
@@ -1501,8 +1546,11 @@ def stream_label_parts(s):
         # zdroj o stopách mlčí — poskládá se z toho, co je po ruce
         channels = s.get("channels") or {}
         pref = PREF_LANGS[int(setting("pref_lang", "0"))]
-        known = set(s.get("langs") or [])
-        for code in sorted(known | langs_from_name(raw), key=lambda c: (c != pref, c)):
+        # jazyk odhadnutý z názvu souboru (`_langs_from_name` z jádra) leží přímo v `langs`,
+        # ale ověřený není — vlnovka jako u odhadu, který se do `langs` nedostal
+        guessed = set(s.get("langs") or []) if s.get("_langs_from_name") else set()
+        known = set(s.get("langs") or []) - guessed
+        for code in sorted(known | guessed | langs_from_name(raw), key=lambda c: (c != pref, c)):
             mark = "" if code in known else "~"
             txt = f"{mark}{code}"
             langs.append(f"[COLOR {LANG_COLORS.get(code, GREY)}][B]{txt}[/B][/COLOR]")
@@ -4135,7 +4183,8 @@ def pick_title(apis, ctype, item_id, series_id=None, alt=None, fulltext=False, d
         return
     pref_key = (series_id or split_episode_id(item_id)[0]) if video else None
     remembered = preferred_stream(streams, STORE.stream_pref(pref_key)) if pref_key else None
-    picked = choose_stream(streams, remembered, relax=strict and has_fulltext_source)
+    picked = choose_stream(streams, remembered, relax=strict and has_fulltext_source,
+                           expand=lambda: expand_streams(apis, streams, meta, video))
     if picked == FULLTEXT:
         pick_title(apis, ctype, item_id, series_id, alt, fulltext=True, download=download)
         return
@@ -4147,10 +4196,10 @@ def pick_title(apis, ctype, item_id, series_id=None, alt=None, fulltext=False, d
         return
     xbmc.executebuiltin("PlayMedia(%s)" % build_url(
         action="play", type=ctype, id=item_id, series=series_id, alt=alt, url=picked["url"],
-        subs="|".join(picked.get("subtitles") or []), pref=pref_param(picked)))
+        subs="|".join(picked.get("subtitles") or []), pref=pref_param(picked), alts=alts_param(picked)))
 
 
-def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref="", ask=""):
+def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref="", ask="", alts=""):
     """`ask=1` = Přehrát nad položkou Nokturna (detail, widget) nebo player TMDb Helperu → výběr
     v dialogu (`choose_stream`, zapamatovaný stream předvybraný). Bez `ask` (Up Next, HA) hraje
     zapamatovaný nebo nejlepší stream bez ptaní."""
@@ -4161,7 +4210,8 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
     resolved_path = None
     if url:
         try:
-            resolved_path = resolve_url(apis, url)
+            # sloučené verze (`alts`) jsou tentýž film jinde — zkusí se, než se hledá znovu
+            url, resolved_path = resolve_first(apis, [url] + [a for a in (alts or "").split("|") if a])
         except Errors as e:
             # uložená reference streamu (Pokračovat ve sledování, viz add_playable) nebo dřív
             # vybraný stream ze seznamu mezitím zmizely ze zdroje — vzít to jako by url vůbec
@@ -4198,7 +4248,7 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
         remembered = preferred_stream(streams, STORE.stream_pref(pref_key)) if pref_key else None
         chosen = remembered or streams[0]
         if ask:
-            picked = choose_stream(streams, remembered)
+            picked = choose_stream(streams, remembered, expand=lambda: expand_streams(apis, streams, meta, video))
             if picked is None:
                 xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
                 return
@@ -4207,7 +4257,11 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
                 STORE.set_stream_pref(pref_key, stream_signature(chosen))
     title = (video or {}).get("title") or display_name(meta)
     # label i InfoTag: při přímém otevření (JSON-RPC, widgety) nemá Kodi původní položku seznamu
-    li = xbmcgui.ListItem(label=title, path=resolved_path if resolved_path else resolve_url(apis, chosen["url"]))
+    if not resolved_path:
+        used, resolved_path = resolve_first(apis, [chosen["url"]] + [a["url"] for a in chosen.get("_alts") or []])
+        if used != chosen["url"]:
+            chosen = next(a for a in chosen["_alts"] if a["url"] == used)
+    li = xbmcgui.ListItem(label=title, path=resolved_path)
     li.setArt(art_for(meta, video))
     fill_info(li, meta, "series" if video else ctype, video=video)
     # bez tohohle Kodi u přímého přehrání (HA karta, widget, Up Next) nevědělo o rozkoukanosti
@@ -4581,7 +4635,7 @@ def router(query):
             play(apis, p.get("type", "movie"), p["id"], p.get("series"), alt=p.get("alt"), ask="1")
         elif action == "play":
             play(apis, p["type"], p["id"], p.get("series"), url=p.get("url"), alt=p.get("alt"), subs=p.get("subs", ""),
-                 pref=p.get("pref", ""), ask=p.get("ask", ""))
+                 pref=p.get("pref", ""), ask=p.get("ask", ""), alts=p.get("alts", ""))
         elif action == "play_ws":
             play_ws(apis, p["ident"], p.get("name", ""))
         elif action == "play_hs":

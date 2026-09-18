@@ -29,7 +29,7 @@ from sosac_api import SosacError, names_match
 from sosac_api import is_sosac_id as _is_legacy_sosac_id
 from sosac_direct import SosacDirect, is_direct_id
 from store import Store
-from streams import arrange, estimate_rank, fold, langs_from_name, parse_stream
+from streams import arrange, estimate_rank, expand_groups, fold, group_streams, langs_from_name, parse_stream
 from tracks import SUBTITLE_FALLBACK
 from hellspy_api import HellspyApi, HellspyError
 from sledujteto_api import SledujtetoApi, SledujtetoError
@@ -1265,6 +1265,21 @@ class Engine:
                 })
         return out
 
+    def _probe_in_background(self, urls):
+        """Hlavičky do cache (`media:`) bez čekání — výsledek dostane až další výpis.
+
+        Až po hlavním čtení, ať nebere linku tomu, na co se čeká. Hostitel na konci
+        skriptu na vlákna počká (Kodi: plugin doběhne i během přehrávání); při vypínání
+        se nezačaté přeskočí (`_media_from_file` se ptá `should_stop`)."""
+        urls = list(dict.fromkeys(u for u in urls if u))
+        if not urls or not self._opt("probe_background", False):
+            return
+        self.last_timings["hlavičky na pozadí"] = len(urls)
+        pool = ThreadPoolExecutor(max_workers=PROBE_WORKERS)
+        for url in urls:
+            pool.submit(self._media_from_file, url)
+        pool.shutdown(wait=False)
+
     def _media_from_file(self, url):
         """Co se o souboru dá přečíst z jeho hlavičky. Prázdné, když to nejde."""
         def load():
@@ -1291,7 +1306,7 @@ class Engine:
             _LOGGER.debug("FastShare účet: %s", err)
             return False
 
-    def _fill_audio(self, streams, on_tick=None, on_count=None, on_audio_progress=None):
+    def _fill_audio(self, streams, on_tick=None, on_count=None, on_audio_progress=None, background=()):
         """Doplní zvuk, titulky a rozlišení tam, kde je zdroj neřekl, a ověří je
         tam, kde je řekl jen název souboru.
 
@@ -1324,12 +1339,19 @@ class Engine:
             schemes += ("fs:",)
         candidates = [s for s in streams if not s.get("_tracks")
                       and str(s.get("url") or "").startswith(schemes)]
-        todo = sorted(candidates, key=lambda s: bool(s.get("channels")))[:limit]
+        ordered = sorted(candidates, key=lambda s: bool(s.get("channels")))
+        todo = ordered[:limit]
+        # `probe_background`: co se nečte teď (nad limit, sloučené verze v `background`),
+        # se přečte na pozadí do cache — další otevření titulu i „Zobrazit všechny“
+        # pak mají ověřené všechno, bez čekání
+        rest = [s["url"] for s in ordered[limit:]] + [
+            s["url"] for s in background if not s.get("_tracks") and str(s.get("url") or "").startswith(schemes)]
         # skutečný počet čtených hlaviček bývá výrazně nižší než limit —
         # ukazatel průběhu si podle něj dopočítá reálné 100 %, ne odhad
         if on_count:
             on_count(len(todo))
         if not todo:
+            self._probe_in_background(rest)
             return streams
         total = len(todo)
         probed = 0
@@ -1352,6 +1374,7 @@ class Engine:
                 on_audio_progress(probed, total)
         gather(pool, list(futures), self.should_stop, on_done=hotovo, deadline=PROBE_DEADLINE)
         self.last_timings["hlaviček nedočteno"] = len(todo) - len(results)
+        self._probe_in_background(rest)
         for stream, info in ((s, results.get(id(s))) for s in todo):
             if not info:
                 continue
@@ -2201,9 +2224,38 @@ class Engine:
         if on_progress and done[0] < self.STREAM_SOURCE_STEPS:
             done[0] = self.STREAM_SOURCE_STEPS
             on_progress(done[0], total)
-        max_gb = self._effective_max_gb(video or meta)
+        sort = self._sorter(video or meta)
+
+        # Hlavičky se čtou až po seřazení. Kandidátů bývá víc, než se vyplatí číst,
+        # a před seřazením se rozpočet utratil za řádky, které skončí dole; teď padne
+        # na začátek seznamu, tedy na to, co má uživatel před očima. Po doplnění
+        # kanálů se řadí znovu, protože 5.1 může pořadím pohnout.
+        self._check_stop()
+        ranked = sort(found)
+        if self._opt("merge_streams", False):
+            # verze, mezi kterými by uživatel nevybíral, jsou jeden řádek — a hlavičky
+            # se pak čtou jen u zástupců (viz `lib/streams.group_streams`)
+            ranked = group_streams(ranked)
+            timings["sloučeno"] = len(found) - len(ranked)
+        mark = time.monotonic()
+        alts = [a for st in ranked for a in st.get("_alts") or ()]
+        with_audio = self._fill_audio(ranked, tick, on_count, on_audio_progress, background=alts) \
+            if probe_audio else ranked
+        timings["hlavičky"] = since(mark)
+        ordered = self._finish(sort, with_audio, video or meta)
+        if on_progress and done[0] < total:
+            done[0] = total
+            on_progress(done[0], total)
+        timings["streamů"] = len(ordered)
+        timings["celkem"] = since()
+        return ordered
+
+    def _sorter(self, meta_or_video):
+        """Řazení a filtr podle předvoleb (jazyk, velikost, pořadí) — funkce nad seznamem streamů."""
+        max_gb = self._effective_max_gb(meta_or_video)
         lang = self._opt("pref_lang", "")
         order = self._opt("sort_streams", DEFAULT_SORT)
+
         def sort(items):
             return arrange(
                 items,
@@ -2213,24 +2265,22 @@ class Engine:
                 order=order if order in SORT_ORDERS else DEFAULT_SORT,
                 pref_surround=bool(self.options.get("pref_surround")),
             )
+        return sort
 
-        # Hlavičky se čtou až po seřazení. Kandidátů bývá víc, než se vyplatí číst,
-        # a před seřazením se rozpočet utratil za řádky, které skončí dole; teď padne
-        # na začátek seznamu, tedy na to, co má uživatel před očima. Po doplnění
-        # kanálů se řadí znovu, protože 5.1 může pořadím pohnout.
-        self._check_stop()
-        mark = time.monotonic()
-        with_audio = self._fill_audio(sort(found), tick, on_count, on_audio_progress) if probe_audio else sort(found)
-        timings["hlavičky"] = since(mark)
-        ordered = sort(self._ensure_bitrate(with_audio, video or meta))
+    def _finish(self, sort, streams, meta_or_video):
+        ordered = sort(self._ensure_bitrate(streams, meta_or_video))
         # vlastní úložiště vždy nahoru — mezi desítkami streamů zdrojů se jinak ztrácí
-        ordered = [s for s in ordered if s.get("source") == "dav"] + [s for s in ordered if s.get("source") != "dav"]
-        if on_progress and done[0] < total:
-            done[0] = total
-            on_progress(done[0], total)
-        timings["streamů"] = len(ordered)
-        timings["celkem"] = since()
-        return ordered
+        return [s for s in ordered if s.get("source") == "dav"] + [s for s in ordered if s.get("source") != "dav"]
+
+    def expand_streams(self, streams, meta_video, on_audio_progress=None):
+        """„Zobrazit všechny streamy“: sloučené verze (`_alts`) zpátky každou zvlášť.
+
+        Schované verze hlavičky ještě nemají — dočtou se teď (stejný strop jako při
+        hledání, u zástupců jsou už v cache). `meta_video` = (meta, video) titulu."""
+        meta, video = meta_video
+        sort = self._sorter(video or meta)
+        items = sort(expand_groups(list(streams)))
+        return self._finish(sort, self._fill_audio(items, on_audio_progress=on_audio_progress), video or meta)
 
     # co WebShare vrací u nedostupných souborů — hlášky jsou anglické a nic neříkající
     WS_ERRORS = {
