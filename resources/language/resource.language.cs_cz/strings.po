@@ -1355,3 +1355,131 @@ msgstr "OK adresu otevře v prohlížeči"
 msgctxt "#30518"
 msgid "Opening in browser…"
 msgstr "Otvírám v prohlížeči…"
+
+msgctxt "#30520"
+msgid "Luna %s responds and returns streams. The setup is fine."
+msgstr "Luna %s odpovídá a vrací streamy. Nastavení je v pořádku."
+
+msgctxt "#30521"
+msgid "Neither the Luna address nor the token is filled in.[CR]Use “Find Luna on the network”, or paste the whole add-on address from Luna's /setup page into the Token field."
+msgstr "Není vyplněná adresa Luny ani token.[CR]Použij „Najít Lunu v síti“, nebo vlož do pole Token celou adresu doplňku ze stránky /setup Luny."
+
+msgctxt "#30522"
+msgid "I do not understand the address %s.[CR]Expected something like 192.168.1.10:7126."
+msgstr "Adrese %s nerozumím.[CR]Čekám tvar jako 192.168.1.10:7126."
+
+msgctxt "#30523"
+msgid "Nobody answered at %s.[CR][CR]Is the computer running Luna switched on? Is it on the same network as this TV? Try “Find Luna on the network”."
+msgstr "Na adrese %s se nikdo neozval.[CR][CR]Běží počítač, kde je Luna spuštěná? Je ve stejné síti jako tahle televize? Zkus „Najít Lunu v síti“."
+
+msgctxt "#30524"
+msgid "Something answers at %s, but it is not Luna.[CR]Check the port — Luna uses 7126 by default."
+msgstr "Na adrese %s něco odpovídá, ale není to Luna.[CR]Zkontroluj port — Luna má výchozí 7126."
+
+msgctxt "#30525"
+msgid "Luna %s is running, but the token is missing.[CR][CR]Open %s/setup in a browser, copy the add-on address and paste the whole thing into the Token field — the add-on will pull both the address and the token out of it."
+msgstr "Luna %s běží, ale chybí token.[CR][CR]Otevři v prohlížeči %s/setup, zkopíruj adresu doplňku a vlož ji celou do pole Token — adresu i token z ní doplněk vytáhne sám."
+
+msgctxt "#30526"
+msgid "What is in the Token field is not a token.[CR][CR]A token starts with “e1.” and is long. Open %s/setup and copy the whole add-on address."
+msgstr "V poli Token není token.[CR][CR]Token začíná „e1.“ a je dlouhý. Otevři %s/setup a zkopíruj celou adresu doplňku."
+
+msgctxt "#30527"
+msgid "Luna %s is running, but it did not accept this token.[CR][CR]Generate the add-on address again at %s/setup and paste the whole thing into the Token field."
+msgstr "Luna %s běží, ale tenhle token nepřijala.[CR][CR]Vygeneruj si adresu doplňku znovu na %s/setup a vlož ji celou do pole Token."
+
+msgctxt "#30528"
+msgid "Luna %s answers and the WebShare search works, but its main source returns nothing.[CR][CR]Check the WebShare account at %s/setup and whether the token really comes from this Luna."
+msgstr "Luna %s odpovídá a hledání na WebShare funguje, ale její hlavní zdroj nic nevrací.[CR][CR]Zkontroluj na %s/setup účet WebShare a jestli je token opravdu z téhle Luny."
+
+msgctxt "#30529"
+msgid "Luna %s is running, but it found no streams even for well-known films.[CR][CR]Usually the WebShare account is missing in Luna itself — open %s/setup and fill it in."
+msgstr "Luna %s běží, ale nenašla streamy ani u známých filmů.[CR][CR]Nejčastěji chybí účet WebShare v samotné Luně — otevři %s/setup a doplň ho."
+
+msgctxt "#30530"
+msgid "Looking for Luna on the local network…"
+msgstr "Hledám Lunu v místní síti…"
+
+msgctxt "#30531"
+msgid "I did not find Luna on this network.[CR][CR]Is it running on some computer at home? Does it use the default port 7126? If it runs elsewhere or on another port, fill the address in by hand."
+msgstr "V téhle síti jsem Lunu nenašel.[CR][CR]Běží na některém počítači v domácnosti? Má výchozí port 7126? Pokud běží jinde nebo na jiném portu, vyplň adresu ručně."
+
+msgctxt "#30532"
+msgid "Luna servers found"
+msgstr "Nalezené servery Luny"
+
+msgctxt "#30533"
+msgid "Checking Luna…"
+msgstr "Ověřuji Lunu…"
+
+msgctxt "#30534"
+msgid "Luna check"
+msgstr "Ověření Luny"
+
+msgctxt "#30535"
+msgid "Send the log to the add-on author to look into it?"
+msgstr "Poslat log autorovi doplňku, ať se na to podívá?"
+
+msgctxt "#30536"
+msgid "Send log"
+msgstr "Poslat log"
+
+msgctxt "#30537"
+msgid "Close"
+msgstr "Zavřít"
+
+msgctxt "#30538"
+msgid "Find Luna on the network"
+msgstr "Najít Lunu v síti"
+
+msgctxt "#30539"
+msgid "Check Luna setup"
+msgstr "Ověřit nastavení Luny"
+
+msgctxt "#30540"
+msgid "Goes through your home network and fills in the address where Luna is running. It only takes a few seconds."
+msgstr "Projde domácí síť a vyplní adresu, kde Luna běží. Trvá to pár vteřin."
+
+msgctxt "#30541"
+msgid "Says exactly what is wrong: whether the server answers, whether the token is valid and whether any streams come back."
+msgstr "Řekne, co přesně nesedí: jestli server odpovídá, jestli platí token a jestli chodí streamy."
+
+msgctxt "#30542"
+msgid "Paste the add-on address from %s/setup"
+msgstr "Vlož adresu doplňku z %s/setup"
+
+msgctxt "#30543"
+msgid "address and token are both missing"
+msgstr "chybí adresa i token"
+
+msgctxt "#30544"
+msgid "the address makes no sense"
+msgstr "adresa nedává smysl"
+
+msgctxt "#30545"
+msgid "the server does not answer"
+msgstr "server neodpovídá"
+
+msgctxt "#30546"
+msgid "Luna is not running at that address"
+msgstr "na té adrese neběží Luna"
+
+msgctxt "#30547"
+msgid "running, but the token is missing"
+msgstr "běží, ale chybí token"
+
+msgctxt "#30548"
+msgid "what is in the Token field is not a token"
+msgstr "v poli Token není token"
+
+msgctxt "#30549"
+msgid "Luna did not accept the token"
+msgstr "token Luna nepřijala"
+
+msgctxt "#30550"
+msgid "the main source returns nothing — WebShare account in Luna?"
+msgstr "hlavní zdroj nic nevrací — účet WebShare v Luně?"
+
+msgctxt "#30551"
+msgid "no streams found — WebShare account in Luna?"
+msgstr "nenašla žádné streamy — účet WebShare v Luně?"

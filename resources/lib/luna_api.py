@@ -197,6 +197,204 @@ class LunaApi:
         return streams
 
 
+# --- Rozpoznání serveru, diagnostika a hledání v síti ----------------------
+#
+# Proč tady a ne v Kodi: „nefunguje mi to" je u Luny vždycky stejná věta, ale
+# stojí za ní šest různých příčin (server neběží, jiná adresa, firewall, token
+# nezkopírovaný celý, neplatný token, WebShare nevyplněný v samotné Luně) a
+# uživatel je od sebe nerozezná. Diagnóza je čistý Python, aby ji mohl použít
+# i Stremio a HA a aby šla otestovat bez sítě; texty pro uživatele si podle
+# vráceného kódu poskládá každá větev sama ve svém jazyce.
+
+LUNA_MANIFEST_ID = "luna.absolutecinema"   # `GET /manifest.json` jde bez tokenu a Luna se v něm jmenuje
+LUNA_PORT = 7126
+# Známé tituly pro zkušební dotaz: hlavní zdroj Luny nemá všechno (třeba Matrix
+# nevrátí nic ani s platným tokenem), takže se zkouší víc, než prohlásíme „nic".
+PROBE_IDS = ("tt0111161", "tt0068646", "tt0133093")
+DISCOVER_WORKERS = 64
+DISCOVER_CONNECT_TIMEOUT = 0.4   # v LAN odpoví server do pár ms; delší čekání jen prodlužuje sken
+DISCOVER_HTTP_TIMEOUT = 3
+
+# stavy diagnózy
+OK, WARN, FAIL = "ok", "warn", "fail"
+
+
+def normalize_base_url(value, default_port=LUNA_PORT):
+    """Z toho, co člověk vloží, udělá adresu serveru.
+
+    Bere celou instalační adresu i s tokenem, holou IP bez schématu i adresu
+    bez portu — všechny tři tvary lidem chodí z návodů a všechny tři končily
+    tím, že se doplněk neměl kam připojit.
+    """
+    value = (value or "").strip()
+    if not value:
+        return ""
+    value = re.sub(r"^https?://", lambda m: m.group(0).lower(), value)
+    if not re.match(r"^https?://", value):
+        value = "http://" + value
+    m = re.match(r"(https?)://([^/:\s]+)(?::(\d+))?", value)
+    if not m:
+        return ""
+    scheme, host, port = m.group(1), m.group(2), m.group(3)
+    if not port:
+        port = "443" if scheme == "https" else str(default_port)
+    return f"{scheme}://{host}:{port}"
+
+
+def _fetch_json(url, timeout):
+    req = urllib.request.Request(url, headers={"User-Agent": "Nokturno (+https://github.com/matata86/nokturno-core)"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read().decode("utf-8", "replace"))
+
+
+def server_info(base_url, timeout=6):
+    """Běží na téhle adrese Luna? Vrátí ``{"version": …, "name": …}``.
+
+    Vyhazuje ``LunaError`` — rozlišit „nikdo neodpovídá" od „odpovídá něco
+    jiného" musí volající, proto je důvod v textu výjimky i v ``code``.
+    """
+    base = normalize_base_url(base_url)
+    if not base:
+        raise LunaError("bad_url")
+    try:
+        data = _fetch_json(base + "/manifest.json", timeout)
+    except Exception as e:  # noqa: BLE001 – síť, DNS, odmítnuté spojení, HTML místo JSON
+        raise LunaError(f"unreachable: {e}") from e
+    if LUNA_MANIFEST_ID not in str(data.get("id") or ""):
+        raise LunaError("not_luna")
+    return {"version": str(data.get("version") or "?"), "name": str(data.get("name") or "Luna")}
+
+
+def diagnose(base_url, token, timeout=20, probe_ids=PROBE_IDS, deep=True):
+    """Projde celý řetěz od adresy po streamy a řekne, na kterém článku to stojí.
+
+    Vrací ``{"level": ok|warn|fail, "code": …, "base": …, "version": …, "detail": …}``.
+    Kódy: ``no_url``, ``bad_url``, ``unreachable``, ``not_luna``, ``no_token``,
+    ``bad_token_format``, ``bad_token``, ``main_empty``, ``no_streams``, ``ok``.
+
+    Token se nedá ověřit z manifestu — ten Luna vrátí i pro naprostý nesmysl,
+    jen s výchozím nastavením (ověřeno proti 1.7.0). Jediné, co je od sebe
+    odliší, je dotaz na streamy: platný token vrátí JSON, neplatný utne spojení.
+    """
+    out = {"level": FAIL, "code": "no_url", "base": "", "token": "", "version": "", "detail": ""}
+    if not (base_url or "").strip() and not (token or "").strip():
+        return out
+
+    # token bývá vložený jako celá instalační adresa — pak je v něm i adresa serveru
+    clean_token = parse_token(token) or parse_token(base_url)
+    base = normalize_base_url(parse_base_url(token, "") or base_url)
+    out["base"], out["token"] = base, clean_token
+    if not base:
+        out["code"] = "bad_url"
+        return out
+
+    try:
+        info = server_info(base, timeout=min(timeout, 8))
+    except LunaError as e:
+        out["code"] = "not_luna" if str(e) == "not_luna" else "unreachable"
+        out["detail"] = str(e)
+        return out
+    out["version"] = info["version"]
+
+    if not clean_token:
+        # rozlišení pro hlášku: prázdné pole × „něco tam je, ale token to není"
+        out["code"] = "bad_token_format" if (token or "").strip() else "no_token"
+        return out
+    if not deep:
+        out.update(level=OK, code="ok")
+        return out
+
+    api = LunaApi(base, clean_token)
+    errors = []
+    for item_id in probe_ids:
+        try:
+            streams = api._get(_stream_url(base, clean_token, "movie", item_id)).get("streams") or []
+        except LunaError as e:
+            errors.append(str(e))
+            continue
+        if streams:
+            out.update(level=OK, code="ok")
+            return out
+    if errors and len(errors) == len(probe_ids):
+        # ani jeden dotaz neprošel, ale manifest šel — token Luna nepřijala
+        out.update(code="bad_token", detail=errors[0])
+        return out
+
+    # hlavní zdroj mlčí; ještě fulltext WebShare, ať poznáme „token je v pořádku,
+    # jen Luna nic nemá" od „Luna nemá vyplněný účet a nenajde vůbec nic"
+    try:
+        found = api._get(_stream_url(base, clean_token, "movie", probe_ids[0], prefix="search")).get("streams") or []
+    except LunaError as e:
+        found, out["detail"] = [], str(e)
+    out.update(level=WARN, code="main_empty" if found else "no_streams")
+    return out
+
+
+def _stream_url(base, token, ctype, item_id, prefix=""):
+    parts = [base] + ([prefix] if prefix else []) + [token, "stream", ctype, item_id + ".json"]
+    return "/".join(parts)
+
+
+def local_subnet(probe_host="8.8.8.8"):
+    """První tři oktety adresy, na které je zařízení v síti — bez odeslání paketu
+    (UDP ``connect`` jen vybere rozhraní). Vrátí '' tam, kde IPv4 adresa není."""
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect((probe_host, 80))
+        ip = s.getsockname()[0]
+    except Exception:  # noqa: BLE001 – bez sítě nebo jen IPv6
+        return ""
+    finally:
+        s.close()
+    parts = ip.split(".")
+    return ".".join(parts[:3]) if len(parts) == 4 else ""
+
+
+def discover(port=LUNA_PORT, subnet=None, on_progress=None, should_stop=None,
+             connect_timeout=DISCOVER_CONNECT_TIMEOUT, workers=DISCOVER_WORKERS):
+    """Projde vlastní podsíť a vrátí adresy, kde skutečně běží Luna.
+
+    Nejdřív TCP klepnutí na port (levné, 254 adres proběhne za vteřiny), teprve
+    u toho, co otevře, se ptáme na manifest — jinak by se za Lunu prohlásil
+    kterýkoli web, co na tom portu náhodou poslouchá.
+    """
+    import socket
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    subnet = subnet or local_subnet()
+    if not subnet:
+        return []
+    hosts = [f"{subnet}.{i}" for i in range(1, 255)]
+    found = []
+
+    def probe(host):
+        if should_stop and should_stop():
+            return
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(connect_timeout)
+        try:
+            if sock.connect_ex((host, port)) != 0:
+                return
+        except OSError:
+            return
+        finally:
+            sock.close()
+        try:
+            info = server_info(f"http://{host}:{port}", timeout=DISCOVER_HTTP_TIMEOUT)
+        except LunaError:
+            return   # na portu poslouchá něco jiného
+        found.append({"host": host, "url": f"http://{host}:{port}",
+                      "version": info["version"], "name": info["name"]})
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = [pool.submit(probe, h) for h in hosts]
+        for hotovo, _ in enumerate(as_completed(futures), 1):
+            if on_progress:
+                on_progress(hotovo, len(hosts))
+    return sorted(found, key=lambda f: int(f["host"].rsplit(".", 1)[-1]))
+
+
 if __name__ == "__main__":
     import sys
 

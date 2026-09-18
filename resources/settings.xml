@@ -216,6 +216,17 @@
           <default>true</default>
           <control type="toggle"/>
         </setting>
+        <setting id="luna_find_action" type="action" label="30538" help="30540">
+          <level>0</level>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="luna_enabled">true</dependency>
+          </dependencies>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=luna_find)</data>
+          <control format="action" type="button"/>
+        </setting>
         <setting id="luna_url" type="string" label="30002" help="30309">
           <level>0</level>
           <default>http://192.168.1.10:7126</default>
@@ -239,6 +250,17 @@
           </dependencies>
           <control type="edit" format="string">
           </control>
+        </setting>
+        <setting id="luna_check_action" type="action" label="30539" help="30541">
+          <level>0</level>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="luna_enabled">true</dependency>
+          </dependencies>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=luna_check)</data>
+          <control format="action" type="button"/>
         </setting>
         <setting id="search_streams" type="boolean" label="30009" help="30311">
           <level>0</level>

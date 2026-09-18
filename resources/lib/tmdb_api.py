@@ -111,6 +111,16 @@ class TmdbApi:
         data = details if details is not None else self._details(self._kind(ctype), tmdb_id)
         return ((data.get("external_ids") or {}).get("imdb_id")) or ""
 
+    def imdb_id(self, ctype, tmdb_id):
+        """`id z TMDB → tt…`, prázdno když TMDB titul nezná nebo IMDb id nemá.
+
+        Celý doplněk stojí na IMDb id (podle něj se hledá ve zdrojích), ale klienti
+        Stremia posílají u titulů z TMDB katalogů `tmdb:<id>` — viz
+        `nokturno-stremio/nokturno/routes.py`. Detail je cachovaný (`_details`),
+        takže je to jeden dotaz na titul, ne na požadavek.
+        """
+        return self._imdb_id(ctype, tmdb_id)
+
     def _art(self, kind, tmdb_id, background_path="", images=None):
         """Náhled (`landscapePoster`) a logo z obrázků TMDB.
 

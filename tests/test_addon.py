@@ -2302,6 +2302,15 @@ class FakeDash:
         return [e for e in self._menu if (placement is None or e["placement"] == placement)
                 and (ctype is None or e["kind"] == ctype)]
 
+    def group(self, slug):
+        level = list(self._menu)
+        for _ in range(3):
+            match = next((e for e in level if e["slug"] == slug), None)
+            if match is not None:
+                return list(match.get("children") or [])
+            level = [c for e in level for c in (e.get("children") or [])]
+        return []
+
     def similar(self, ctype, imdb_id):
         return list(self._similar)
 
@@ -2330,6 +2339,25 @@ class TestObsahZDashboardu(unittest.TestCase):
         xbmcplugin.reset()
         default.browse_menu({"dash": FakeDash(self.MENU)}, "movie")
         self.assertNotIn("sagy", {params_of(u).get("catalog") for u in xbmcplugin.urls()})
+
+    def test_slozka_s_podkategoriemi_vede_na_dalsi_vypis(self):
+        menu = [{"slug": "vanoce", "title": "Vánoce", "kind": "movie", "placement": "root", "icon": "christmas",
+                 "children": [{"slug": "komedie", "title": "Komedie", "kind": "movie", "placement": "root",
+                               "icon": "", "children": []}]}]
+        default.main_menu({"dash": FakeDash(menu), "cinemeta": object()})
+        rows = [params_of(u) for u in xbmcplugin.urls()]
+        self.assertIn({"action": "dash_group", "catalog": "vanoce", "type": "movie"}, rows)
+        self.assertNotIn("catalog", [r.get("action") for r in rows])
+        xbmcplugin.reset()
+        default.list_dash_group({"dash": FakeDash(menu)}, "vanoce", "movie")
+        self.assertEqual([params_of(u) for u in xbmcplugin.urls()],
+                         [{"action": "catalog", "type": "movie", "catalog": "komedie", "src": "dash"}])
+
+    def test_zmizela_slozka_skonci_jako_obycejny_katalog(self):
+        """Server u složky vrátí slité položky potomků — lepší než prázdný výpis."""
+        with mock.patch.object(default, "list_catalog") as vypis:
+            default.list_dash_group({"dash": FakeDash(self.MENU)}, "vanoce", "movie")
+        vypis.assert_called_once_with({"dash": mock.ANY}, "movie", "vanoce", "dash")
 
     def test_katalog_z_dashboardu_nema_dalsi_stranku(self):
         class Api:
@@ -2732,3 +2760,186 @@ class TestPreruseniPriKonciKodi(unittest.TestCase):
         with mock.patch.object(service, "warm_caches", side_effect=AssertionError("nemá zahřívat")):
             service.prefetch_next_later()
             time.sleep(0.2)
+
+
+class TestLunaDiagnostika(unittest.TestCase):
+    """Tlačítka „Najít Lunu v síti“ a „Ověřit nastavení Luny“.
+
+    Luna se instaluje mimo doplněk a lidé o ní hlásí jen „nefunguje mi to“ —
+    smysl obou tlačítek je, aby tu větu doplněk nahradil konkrétní příčinou.
+    """
+
+    def setUp(self):
+        reset_kodi()
+        xbmcaddon.settings.clear()
+
+    def diag(self, **kw):
+        out = {"level": "fail", "code": "unreachable", "base": "http://192.168.1.10:7126",
+               "token": "", "version": "", "detail": ""}
+        out.update(kw)
+        return out
+
+    def test_vse_v_poradku_jen_oznami_verzi(self):
+        xbmcaddon.settings.update({"luna_url": "http://192.168.1.10:7126", "token": "e1.abc"})
+        with mock.patch.object(default, "luna_diagnose",
+                               return_value=self.diag(level="ok", code="ok", version="1.7.0", token="e1.abc")):
+            default.luna_check()
+        self.assertIn("1.7.0", xbmcgui.oks[-1][1])
+
+    def test_nedostupna_luna_pojmenuje_adresu(self):
+        xbmcaddon.settings.update({"luna_url": "192.168.1.99", "token": "e1.abc"})
+        with mock.patch.object(default, "luna_diagnose",
+                               return_value=self.diag(base="http://192.168.1.99:7126")), \
+                mock.patch.object(xbmcgui.Dialog, "yesno", return_value=False) as yesno:
+            default.luna_check()
+        self.assertIn("192.168.1.99:7126", yesno.call_args[0][1])
+
+    def test_chyba_nabidne_poslani_logu(self):
+        xbmcaddon.settings["token"] = "e1.abc"
+        with mock.patch.object(default, "luna_diagnose", return_value=self.diag(code="bad_token", version="1.7.0")), \
+                mock.patch.object(xbmcgui.Dialog, "yesno", return_value=True), \
+                mock.patch.object(default, "log_send") as log_send:
+            default.luna_check()
+        log_send.assert_called_once_with(ask=False)   # ptát se podruhé „opravdu?“ nemá smysl
+
+    def test_uspech_o_log_nezada(self):
+        with mock.patch.object(default, "luna_diagnose", return_value=self.diag(level="ok", code="ok", version="1.7")), \
+                mock.patch.object(default, "log_send", side_effect=AssertionError("nemá se posílat")):
+            default.luna_check()
+
+    def test_cela_instalacni_adresa_v_tokenu_se_rozdeli(self):
+        """Nejčastější vložení ze /setup Luny — adresa i token v jednom poli."""
+        xbmcaddon.settings["token"] = "http://192.168.1.10:7126/metadata/e1.abc/manifest.json"
+        with mock.patch.object(default, "luna_diagnose",
+                               return_value=self.diag(level="ok", code="ok", version="1.7.0",
+                                                      base="http://192.168.1.10:7126", token="e1.abc")):
+            default.luna_check()
+        self.assertEqual(xbmcaddon.settings["luna_url"], "http://192.168.1.10:7126")
+        self.assertEqual(xbmcaddon.settings["token"], "e1.abc")
+
+    def test_diagnostika_nikdy_nespadne(self):
+        with mock.patch.object(default, "luna_diagnose", side_effect=OSError("síť spadla")), \
+                mock.patch.object(xbmcgui.Dialog, "yesno", return_value=False):
+            default.luna_check()   # nesmí vyhodit ven
+
+    def test_nalezeny_server_se_ulozi_a_zapne(self):
+        found = [{"url": "http://192.168.1.10:7126", "version": "1.7.0", "name": "Luna: Absolute Cinema"}]
+        with mock.patch.object(default, "luna_discover", return_value=found), \
+                mock.patch.object(default, "luna_check") as check:
+            default.luna_find()
+        self.assertEqual(xbmcaddon.settings["luna_url"], "http://192.168.1.10:7126")
+        self.assertEqual(xbmcaddon.settings["luna_enabled"], "true")
+        check.assert_called_once()   # samotná adresa bez tokenu ještě nic nepřehraje
+
+    def test_vic_serveru_necha_vybrat(self):
+        found = [{"url": "http://192.168.1.10:7126", "version": "1.7.0", "name": "Luna"},
+                 {"url": "http://192.168.1.20:7126", "version": "1.6.0", "name": "Luna"}]
+        with mock.patch.object(default, "luna_discover", return_value=found), \
+                mock.patch.object(xbmcgui.Dialog, "select", return_value=1), \
+                mock.patch.object(default, "luna_check"):
+            default.luna_find()
+        self.assertEqual(xbmcaddon.settings["luna_url"], "http://192.168.1.20:7126")
+
+    def test_zruseny_vyber_nic_nemeni(self):
+        found = [{"url": "http://a:7126", "version": "1", "name": "Luna"},
+                 {"url": "http://b:7126", "version": "1", "name": "Luna"}]
+        with mock.patch.object(default, "luna_discover", return_value=found), \
+                mock.patch.object(xbmcgui.Dialog, "select", return_value=-1), \
+                mock.patch.object(default, "luna_check", side_effect=AssertionError("nemá ověřovat")):
+            default.luna_find()
+        self.assertNotIn("luna_url", xbmcaddon.settings)
+
+    def test_nic_nenalezeno_poradi_co_dal(self):
+        with mock.patch.object(default, "luna_discover", return_value=[]), \
+                mock.patch.object(default, "luna_check", side_effect=AssertionError("nemá ověřovat")):
+            default.luna_find()
+        self.assertIn("7126", xbmcgui.oks[-1][1])
+        self.assertNotIn("luna_url", xbmcaddon.settings)
+
+    def test_hledani_nespadne_bez_site(self):
+        with mock.patch.object(default, "luna_discover", side_effect=OSError("bez sítě")):
+            default.luna_find()
+        self.assertTrue(xbmcgui.oks)
+
+    def test_obe_akce_zna_router(self):
+        for action in ("luna_check", "luna_find"):
+            with mock.patch.object(default, action) as fn:
+                default.router(f"?action={action}")
+            fn.assert_called_once()
+
+
+class TestPruvodceLuna(unittest.TestCase):
+    """Krok Luny v průvodci prvním spuštěním — adresu uživatel zpravidla nezná."""
+
+    def setUp(self):
+        reset_kodi()
+        xbmcaddon.settings.clear()
+
+    def wizard(self, found, vlozeno=""):
+        """Průvodcem projde jen krok Luny: na ostatní otázky odpoví Ne."""
+        headings = []
+
+        def yesno(self, heading, *a, **kw):
+            return "Luna" in heading
+
+        def zeptej(self, heading, *a, **kw):
+            headings.append(heading)
+            return vlozeno
+
+        with mock.patch.object(xbmcgui.Dialog, "yesnocustom", lambda *a, **kw: 1), \
+                mock.patch.object(xbmcgui.Dialog, "yesno", yesno), \
+                mock.patch.object(xbmcgui.Dialog, "input", zeptej), \
+                mock.patch.object(default, "luna_discover", return_value=found):
+            default.setup_wizard(force=True)
+        return headings[0] if headings else ""
+
+    def test_nalezena_luna_se_ulozi_a_rekne_kam_pro_token(self):
+        heading = self.wizard([{"url": "http://192.168.1.10:7126", "version": "1.7.0", "name": "Luna"}])
+        self.assertEqual(xbmcaddon.settings["luna_url"], "http://192.168.1.10:7126")
+        self.assertEqual(xbmcaddon.settings["luna_enabled"], "true")
+        self.assertIn("192.168.1.10:7126", heading)   # adresa /setup rovnou v otázce na token
+
+    def test_bez_nalezu_se_ptá_jako_dřív(self):
+        heading = self.wizard([], vlozeno="e1.abc")
+        self.assertNotIn("7126", heading)
+        self.assertEqual(xbmcaddon.settings.get("token"), "e1.abc")
+
+    def test_sken_bez_site_pruvodce_neshodí(self):
+        with mock.patch.object(xbmcgui.Dialog, "yesnocustom", lambda *a, **kw: 1), \
+                mock.patch.object(xbmcgui.Dialog, "yesno", lambda self, heading, *a, **kw: "Luna" in heading), \
+                mock.patch.object(default, "luna_discover", side_effect=OSError("bez sítě")):
+            default.setup_wizard(force=True)
+
+
+class TestOveritZdrojeLuna(unittest.TestCase):
+    """Luna v „Ověřit zdroje": manifest o platnosti tokenu nic neříká."""
+
+    def setUp(self):
+        reset_kodi()
+        xbmcaddon.settings.clear()
+        xbmcaddon.settings.update({"luna_enabled": "true", "luna_url": "http://192.168.1.10:7126",
+                                   "token": "e1.abc"})
+
+    def radek_luny(self):
+        return next(r for r in xbmcgui.oks[-1][1].split("\n") if r.startswith("Luna"))
+
+    def test_platny_token_ukaze_verzi(self):
+        diag = {"level": "ok", "code": "ok", "base": "", "token": "e1.abc", "version": "1.7.0", "detail": ""}
+        with mock.patch.object(default, "luna_diagnose", return_value=diag):
+            default.test_sources()
+        self.assertIn("1.7.0", self.radek_luny())
+
+    def test_neplatny_token_uz_neni_zeleny(self):
+        """Dřív se počítaly katalogy z manifestu — a ten Luna vydá i pro nesmyslný token."""
+        diag = {"level": "fail", "code": "bad_token", "base": "", "token": "e1.x", "version": "1.7.0", "detail": ""}
+        with mock.patch.object(default, "luna_diagnose", return_value=diag):
+            default.test_sources()
+        radek = self.radek_luny()
+        self.assertIn("token", radek.lower())
+        self.assertNotIn("OK", radek)
+
+    def test_bez_uctu_v_lune_poradi_kam_se_podivat(self):
+        diag = {"level": "warn", "code": "no_streams", "base": "", "token": "e1.x", "version": "1.7.0", "detail": ""}
+        with mock.patch.object(default, "luna_diagnose", return_value=diag):
+            default.test_sources()
+        self.assertIn("WebShare", self.radek_luny())
