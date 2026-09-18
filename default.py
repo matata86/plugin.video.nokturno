@@ -53,6 +53,7 @@ from remote_setup import SetupServer, parse_order  # noqa: E402
 from tracks import FILE_CODES, SUBTITLE_FALLBACK, decode_subtitle, subtitle_format, subtitle_lang  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
 from webshare_api import SORTS, WebshareApi, WebshareError, human_size  # noqa: E402
+import kodi_marks  # noqa: E402 – vedle default.py, ne kopie jádra (čte videodatabázi Kodi)
 from engine import AUDIO_PROBE_MAX, DEFAULT_RUNTIME_S, Engine, NokturnoError, runtime_minutes  # noqa: E402
 from abort import Aborted  # noqa: E402
 from crash import CrashReporter  # noqa: E402
@@ -738,14 +739,20 @@ def apply_watched(li, key, context=None):
     """
     tag = li.getVideoInfoTag()
     count = STORE.playcount(key)
-    if count:
-        tag.setPlaycount(count)
+    # i nula výslovně: přehratelné položce (widget, Pokračovat s uloženým streamem) by
+    # jinak Kodi dosadilo počet z vlastní videodatabáze, který Nokturno nevede
+    tag.setPlaycount(count)
     resume, total = STORE.resume(key)
-    if resume and not count:
-        try:
+    try:
+        if resume and not count:
             tag.setResumePoint(resume, total)
-        except Exception:  # noqa: BLE001 – Kodi < 20
-            pass
+        else:
+            # pozice 0 s nenulovou délkou: Kodi bere bod za nastavený (`CBookmark::IsSet`
+            # = délka > 0), takže nedosadí starou záložku ze své databáze, a ukazatel
+            # rozkoukání nekreslí (`IsPartWay` chce i pozici > 0)
+            tag.setResumePoint(0, total or 1)
+    except Exception:  # noqa: BLE001 – Kodi < 20
+        pass
     li.addContextMenuItems(list(context or []) +
                            [(L(30044) if count else L(30043), runplugin(action="toggle_watched", id=key))])
 
@@ -3626,8 +3633,8 @@ def history_clear(kind):
 
 # --- zhlédnuto, Můj seznam, Pokračovat ----------------------------------------------
 
-def toggle_watched(key):
-    watched = not STORE.playcount(key)
+def set_watched(key, watched):
+    """Zhlédnuto/nezhlédnuto do evidence, do HA (synchronizace) i do Traktu."""
     STORE.set_watched(key, watched)
     request_sync()
     trakt = get_trakt()
@@ -3637,7 +3644,28 @@ def toggle_watched(key):
             (trakt.mark_watched if watched else trakt.unmark_watched)(base, season, episode)
         except TraktError as e:
             log_error(f"trakt: {e}")
+
+
+def toggle_watched(key):
+    set_watched(key, not STORE.playcount(key))
     xbmc.executebuiltin("Container.Refresh")
+
+
+def adopt_kodi_marks():
+    """„Označit jako zhlédnuté“ ze skinu Kodi → evidence Nokturna (viz `kodi_marks`).
+
+    Kodi po označení výpis hned obnoví, takže tohle běží dřív, než se položky
+    nakreslí — a nakreslí se už se správnou fajfkou. Chyba nesmí shodit výpis."""
+    def apply(changes):
+        for key, watched in changes.items():
+            if bool(STORE.playcount(key)) != watched:
+                xbmc.log(f"[{ADDON_ID}] zhlédnuto z Kodi: {key} → {'ano' if watched else 'ne'}", xbmc.LOGINFO)
+                set_watched(key, watched)
+    try:
+        kodi_marks.collect(STORE, xbmcvfs.translatePath("special://database/"), apply=apply,
+                           write=kodi_marks.rpc_writer(xbmc.executeJSONRPC))
+    except Exception as e:  # noqa: BLE001 – cizí databáze, cokoli neočekávaného jen do logu
+        log_error(f"zhlédnuto z Kodi: {e}")
 
 
 def remove_progress(key, series=None):
@@ -4589,6 +4617,7 @@ def _close(action):
 
 def main(query):
     try:
+        adopt_kodi_marks()
         router(query)
     finally:
         # sdílený executor popisů (`enrich`) nechává po sobě nečinná vlákna, na která Kodi

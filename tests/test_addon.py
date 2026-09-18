@@ -13,6 +13,7 @@ import pathlib
 import re
 import json
 import shutil
+import sqlite3
 import sys
 import tempfile
 import threading
@@ -37,6 +38,7 @@ sys.argv = ["plugin://plugin.video.nokturno/", "1", ""]
 
 import default                                # noqa: E402
 import service                                # noqa: E402
+import kodi_marks                             # noqa: E402
 from luna_api import LunaError                # noqa: E402
 from webshare_api import WebshareError        # noqa: E402
 
@@ -3012,3 +3014,171 @@ class TestOveritZdrojeLuna(unittest.TestCase):
         with mock.patch.object(default, "luna_diagnose", return_value=diag):
             default.test_sources()
         self.assertIn("WebShare", self.radek_luny())
+
+
+class TestZhlednutoZKodi(unittest.TestCase):
+    """„Označit jako zhlédnuté“ ze skinu píše jen do videodatabáze Kodi — u titulů Nokturna
+    (bez IsPlayable) se fajfka neukázala a každé další stisknutí jen přičítalo (Office
+    2026-09-18). Doplněk i služba změnu v databázi zachytí a převezmou do evidence."""
+
+    TITLE = "plugin://plugin.video.nokturno/?action=title&type=movie&id=tt_kodi_mark"
+
+    def setUp(self):
+        reset_kodi()
+        self.dir = tempfile.mkdtemp(prefix="nokturno-db-")
+        self.addCleanup(shutil.rmtree, self.dir, True)
+        # starší databáze po aktualizaci Kodi zůstává ležet — musí se vzít ta nejnovější
+        open(os.path.join(self.dir, "MyVideos121.db"), "w").close()
+        self.db = os.path.join(self.dir, "MyVideos131.db")
+        conn = sqlite3.connect(self.db)
+        conn.executescript("CREATE TABLE path (idPath INTEGER PRIMARY KEY, strPath TEXT);"
+                           "CREATE TABLE files (idFile INTEGER PRIMARY KEY, idPath INTEGER, strFilename TEXT,"
+                           " playCount INTEGER, lastPlayed TEXT);"
+                           "INSERT INTO path VALUES (1, 'plugin://plugin.video.nokturno/'), (2, 'plugin://jiny/');")
+        conn.commit()
+        conn.close()
+        default.STORE.save(kodi_marks.STATE, {})
+        default.STORE.set_watched("tt_kodi_mark", False)
+
+    def row(self, url, count, last, path=1):
+        conn = sqlite3.connect(self.db)
+        conn.execute("DELETE FROM files WHERE strFilename = ?", (url,))
+        conn.execute("INSERT INTO files (idPath, strFilename, playCount, lastPlayed) VALUES (?, ?, ?, ?)",
+                     (path, url, count, last))
+        conn.commit()
+        conn.close()
+
+    def collect(self):
+        return kodi_marks.collect(default.STORE, self.dir)
+
+    def test_bere_nejnovejsi_databazi(self):
+        self.assertEqual(kodi_marks.find_db(self.dir), self.db)
+        self.assertIsNone(kodi_marks.find_db(os.path.join(self.dir, "neni")))
+
+    def test_prvni_beh_jen_zapamatuje(self):
+        """Staré řádky z přehrávání by jinak přepsaly pozdější volby v Nokturnu."""
+        self.row(self.TITLE, 1, "2026-09-01 10:00:00")
+        self.assertEqual(self.collect(), {})
+        self.assertEqual(self.collect(), {})
+
+    def test_oznaceni_a_zruseni_skinem(self):
+        self.collect()
+        self.row(self.TITLE, 1, "2026-09-18 17:15:28")             # nový řádek od skinu
+        self.assertEqual(self.collect(), {"tt_kodi_mark": True})
+        self.assertEqual(self.collect(), {}, "stejná změna se nehlásí dvakrát")
+        self.row(self.TITLE, None, None)                              # zrušení: NULL/NULL
+        self.assertEqual(self.collect(), {"tt_kodi_mark": False})
+        self.row(self.TITLE, 2, "2026-09-18 18:00:00")               # znovu označeno, Kodi přičte
+        self.assertEqual(self.collect(), {"tt_kodi_mark": True})
+
+    def test_prerusene_prehravani_a_cizi_polozky_se_ignoruji(self):
+        self.collect()
+        self.row(self.TITLE, None, "2026-09-18 17:00:00")            # jen lastPlayed
+        self.row("plugin://plugin.video.nokturno/?action=seasons&id=tt_x", 1, "2026-09-18 17:00:00")
+        self.row("plugin://jiny/?action=title&id=tt_y", 1, "2026-09-18 17:00:00", path=2)
+        self.assertEqual(self.collect(), {})
+
+    def test_klic_z_adresy_prehrani_i_dilu(self):
+        self.assertEqual(kodi_marks.key_of("plugin://plugin.video.nokturno/?action=play&type=series"
+                                           "&id=tt1%3A2%3A3&series=tt1&url=ws%3Aabc"), "tt1:2:3")
+        self.assertIsNone(kodi_marks.key_of("plugin://plugin.video.nokturno/?action=play_ws&ident=x"))
+
+    def test_protichudne_radky_se_zahodi(self):
+        self.collect()
+        self.row(self.TITLE, 1, "2026-09-18 17:00:00")
+        self.row("plugin://plugin.video.nokturno/?action=play&type=movie&id=tt_kodi_mark&ask=1", None, None)
+        self.assertEqual(self.collect(), {})
+
+    def test_necitelna_databaze_neprepise_stav(self):
+        """Prázdný stav by příště udělal ze všech řádků nové — a označil je jako zhlédnuté."""
+        self.row(self.TITLE, 1, "2026-09-01 10:00:00")
+        self.collect()
+        os.rename(self.db, self.db + ".x")
+        self.assertEqual(self.collect(), {})
+        os.rename(self.db + ".x", self.db)
+        self.assertEqual(self.collect(), {})
+
+    def test_plugin_prevezme_zmenu_pred_vykreslenim(self):
+        self.collect()
+        self.row(self.TITLE, 1, "2026-09-18 17:15:28")
+        xbmcgui.Window(10000).clearProperty(default.SYNC_PROP)
+        with mock.patch.object(default.xbmcvfs, "translatePath", return_value=self.dir), \
+                mock.patch.object(default, "get_trakt", return_value=None):
+            default.adopt_kodi_marks()
+        self.assertEqual(default.STORE.playcount("tt_kodi_mark"), 1)
+        self.assertTrue(xbmcgui.Window(10000).getProperty(default.SYNC_PROP), "změna jde i do HA")
+
+    def test_sluzba_prevezme_zmenu_a_posle_do_traktu(self):
+        self.collect()
+        self.row(self.TITLE, 1, "2026-09-18 17:15:28")
+        trakt = mock.Mock()
+        marks = service.KodiMarks(default.STORE)
+        marks.next = 0
+        with mock.patch.object(service.xbmcvfs, "translatePath", return_value=self.dir), \
+                mock.patch.object(service, "get_trakt", return_value=trakt):
+            marks.tick()
+        self.assertEqual(default.STORE.playcount("tt_kodi_mark"), 1)
+        trakt.mark_watched.assert_called_once_with("tt_kodi_mark", None, None)
+
+    def kodi_write(self, url, watched):
+        """Jako `Files.SetFileDetails`: jednička dá čas, nula NULL/NULL."""
+        conn = sqlite3.connect(self.db)
+        conn.execute("UPDATE files SET playCount = ?, lastPlayed = ? WHERE strFilename = ?",
+                     (1 if watched else None, "2026-09-18 19:00:00" if watched else None, url))
+        conn.commit()
+        conn.close()
+        self.writes.append((url, watched))
+
+    def test_zruseni_nad_prazdnym_radkem_po_oznaceni_v_nokturnu(self):
+        """Řádek po dřívějším zrušení je NULL/NULL; zhlédnuto z menu Nokturna ho musí přepsat,
+        jinak by další zrušení skinem zapsalo totéž a nešlo by poznat."""
+        self.writes = []
+        self.row(self.TITLE, None, None)
+        kodi_marks.collect(default.STORE, self.dir, write=self.kodi_write)
+        default.STORE.set_watched("tt_kodi_mark", True)               # menu Nokturna / HA
+        self.assertEqual(kodi_marks.collect(default.STORE, self.dir, write=self.kodi_write), {})
+        self.assertEqual(self.writes, [(self.TITLE, True)])
+        self.row(self.TITLE, None, None)                              # zrušení skinem
+        self.assertEqual(kodi_marks.collect(default.STORE, self.dir, write=self.kodi_write),
+                         {"tt_kodi_mark": False})
+
+    def test_zrcadli_jen_existujici_radky(self):
+        self.writes = []
+        default.STORE.set_watched("tt_kodi_mark", True)
+        kodi_marks.collect(default.STORE, self.dir, write=self.kodi_write)
+        self.assertEqual(self.writes, [])
+
+    def test_prevzata_zmena_se_nezrcadli_zpet(self):
+        self.writes = []
+        kodi_marks.collect(default.STORE, self.dir, write=self.kodi_write)
+        self.row(self.TITLE, 1, "2026-09-18 17:15:28")
+
+        def apply(changes):
+            for key, watched in changes.items():
+                default.STORE.set_watched(key, watched)
+        self.assertEqual(kodi_marks.collect(default.STORE, self.dir, apply=apply, write=self.kodi_write),
+                         {"tt_kodi_mark": True})
+        self.assertEqual(self.writes, [])
+
+    def test_zapis_pres_json_rpc(self):
+        sent = []
+        kodi_marks.rpc_writer(sent.append)(self.TITLE, False)
+        self.assertEqual(json.loads(sent[0])["params"], {"file": self.TITLE, "media": "video", "playcount": 0})
+
+    def test_nezhlednuto_se_posila_vyslovne(self):
+        """Přehratelné položce by Kodi jinak dosadilo počet ze své databáze."""
+        li = xbmcgui.ListItem("Film")
+        default.apply_watched(li, "tt_kodi_mark")
+        self.assertIn(("setPlaycount", (0,), {}), li.tag.calls)
+
+    def test_zhlednuty_nedostane_starou_zalozku_z_kodi(self):
+        """Pozice 0 s nenulovou délkou = bod nastavený, ale bez ukazatele rozkoukání."""
+        default.STORE.set_watched("tt_kodi_mark", True)
+        li = xbmcgui.ListItem("Film")
+        default.apply_watched(li, "tt_kodi_mark")
+        self.assertIn(("setResumePoint", (0, 1), {}), li.tag.calls)
+        default.STORE.set_watched("tt_kodi_mark", False)
+        default.STORE.set_resume("tt_kodi_mark", 600, 6000)
+        li = xbmcgui.ListItem("Film")
+        default.apply_watched(li, "tt_kodi_mark")
+        self.assertIn(("setResumePoint", (600.0, 6000.0), {}), li.tag.calls)
