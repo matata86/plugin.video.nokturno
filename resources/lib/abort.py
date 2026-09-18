@@ -16,6 +16,7 @@ jádro má na desítkách míst „výpadek jednoho zdroje nesmí shodit ostatn�
 který ví, jak skončit (Kodi: zavřít handle bez hlášky). Výsledek přerušené práce
 se nikdy necachuje — výjimka projde i `Store.cached_if()` dřív, než zapíše.
 """
+import time
 from concurrent.futures import FIRST_COMPLETED, wait
 
 STOP_POLL = 1.0   # s – jak často se při čekání na vlákna ptát should_stop()
@@ -39,7 +40,7 @@ def check(should_stop):
         raise Aborted()
 
 
-def gather(pool, futures, should_stop, on_done=None, poll=STOP_POLL):
+def gather(pool, futures, should_stop, on_done=None, poll=STOP_POLL, deadline=None):
     """Počká na všechny `futures` z `pool` a mezi tím se každou `poll` sekundu
     ptá `should_stop()`. Nahrazuje `with ThreadPoolExecutor(...)` + `as_completed()`,
     které čekaly na úplně všechno bez možnosti přestat.
@@ -51,11 +52,21 @@ def gather(pool, futures, should_stop, on_done=None, poll=STOP_POLL):
     všechny hotové. `on_done(future)` se volá za každou dokončenou, v pořadí
     dokončení — pro ukazatele průběhu. `pool.shutdown(cancel_futures=)` je až
     od Pythonu 3.9, Kodi 20 má 3.8, proto se ruší ručně.
+
+    `deadline` (s), je-li dán: po jeho uplynutí se dál nečeká a vrátí se `futures`,
+    z nichž některé nemusí být hotové (volající se ptá `Future.done()`). Nic se neruší —
+    executor se zavře bez čekání a rozběhnuté i čekající úlohy doběhnou na pozadí
+    (čtení hlaviček si výsledek uloží do cache pro příště). `on_done` se pro ně už nevolá.
     """
     pending = set(futures)
+    end = None if deadline is None else time.monotonic() + deadline
     try:
         while pending:
-            done, pending = wait(pending, timeout=poll, return_when=FIRST_COMPLETED)
+            left = poll if end is None else min(poll, end - time.monotonic())
+            if left <= 0:
+                pool.shutdown(wait=False)
+                return list(futures)
+            done, pending = wait(pending, timeout=left, return_when=FIRST_COMPLETED)
             for future in done:
                 if on_done:
                     on_done(future)
