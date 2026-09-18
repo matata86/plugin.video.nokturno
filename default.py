@@ -2185,6 +2185,7 @@ def test_sources():
     luna, sosac, ws, hs, st = get_luna(), get_sosac(), get_webshare(), get_hellspy(), get_sledujteto()
     fs = get_fastshare()
     storages = get_storages()
+    tmdb = get_tmdb()
 
     def check_sledujteto():
         # přihlášení samo nestačí — bez Premium Sledujteto odkaz na přehrání nevydá
@@ -2216,6 +2217,8 @@ def test_sources():
         "HellSpy": (lambda: len(HellspyApi().search("matrix", limit=5)[0])) if hs else None,
         "Sledujteto": check_sledujteto if st else None,
         "FastShare": check_fastshare if fs else None,
+        # jen ověření klíče, mimo cache — 401 se překládá na "neplatný TMDB API klíč" v tmdb_api._get
+        "TMDB": (lambda: tmdb._get("/configuration") and None) if tmdb else None,
         # jen kořen složky — ověří adresu i heslo, celý strom se prochází až při hledání
         **{api.name: (lambda api=api: api.check()) for api in storages},
     }

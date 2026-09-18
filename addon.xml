@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.34" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="5.2.37" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,7 +23,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>5.2.34 – Titulky stažené z WebShare u seriálů patřily občas k úplně jinému dílu: vyhledávání WebShare bere číslo dílu jen jako nápovědu, takže se k prvnímu dílu druhé série mohly připnout titulky ze čtvrtého dílu první. Teď musí číslo dílu sedět i v názvu souboru
+    <news>5.2.37 – Ověřit zdroje" teď ověří i TMDB API klíč, pokud je vyplněný (dřív se chyba klíče poznala jen z chybějících popisů a obrázků)
+5.2.34 – Titulky stažené z WebShare u seriálů patřily občas k úplně jinému dílu: vyhledávání WebShare bere číslo dílu jen jako nápovědu, takže se k prvnímu dílu druhé série mohly připnout titulky ze čtvrtého dílu první. Teď musí číslo dílu sedět i v názvu souboru
 5.2.34 – Pořadí nabídnutých titulků se řídí jazykem nastaveným v Přehrávání (čeština, pak slovenština, nebo obráceně), ne vždycky češtinou
 5.2.32 – Nové tlačítko „Najít Lunu v síti“ v nastavení: doplněk projde domácí síť a adresu serveru Luny vyplní sám (trvá pár vteřin)
 5.2.32 – Nové tlačítko „Ověřit nastavení Luny“ řekne konkrétně, na čem to stojí — server neodpovídá, chybí token, Luna token nepřijala, nebo v ní není vyplněný účet WebShare. Když to nevyjde, nabídne rovnou odeslání logu
