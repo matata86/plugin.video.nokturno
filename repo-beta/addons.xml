@@ -11598,12 +11598,12 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>5.2.30 – Nové tlačítko „Najít Lunu v síti“ v nastavení: doplněk projde domácí síť a adresu serveru Luny vyplní sám (trvá pár vteřin)
-5.2.30 – Nové tlačítko „Ověřit nastavení Luny“ řekne konkrétně, na čem to stojí — server neodpovídá, chybí token, Luna token nepřijala, nebo v ní není vyplněný účet WebShare. Když to nevyjde, nabídne rovnou odeslání logu
-5.2.30 – „Ověřit zdroje“ u Luny už nehlásí zeleně nastavení, ze kterého nemůže přijít jediný stream: Luna vydá manifest i pro neplatný token, takže se doplněk nově ptá rovnou na streamy
-5.2.30 – Celá adresa doplňku vložená do pole Token se sama rozdělí na adresu a token, projde i holá IP bez portu
-5.2.30 – Průvodce prvním nastavením Lunu nejdřív najde v síti a rovnou ukáže, na jaké adrese si vyzvednout token
-5.2.30 – Katalogy z dashboardu můžou mít podsložky (třeba Vánoce → Komedie, Rodinné)
+    <news>5.2.30~beta1 – Nové tlačítko „Najít Lunu v síti“ v nastavení: doplněk projde domácí síť a adresu serveru Luny vyplní sám (trvá pár vteřin)
+5.2.30~beta1 – Nové tlačítko „Ověřit nastavení Luny“ řekne konkrétně, na čem to stojí — server neodpovídá, chybí token, Luna token nepřijala, nebo v ní není vyplněný účet WebShare. Když to nevyjde, nabídne rovnou odeslání logu
+5.2.30~beta1 – „Ověřit zdroje“ u Luny už nehlásí zeleně nastavení, ze kterého nemůže přijít jediný stream: Luna vydá manifest i pro neplatný token, takže se doplněk nově ptá rovnou na streamy
+5.2.30~beta1 – Celá adresa doplňku vložená do pole Token se sama rozdělí na adresu a token, projde i holá IP bez portu
+5.2.30~beta1 – Průvodce prvním nastavením Lunu nejdřív najde v síti a rovnou ukáže, na jaké adrese si vyzvednout token
+5.2.30~beta1 – Katalogy z dashboardu můžou mít podsložky (třeba Vánoce → Komedie, Rodinné)
 5.2.22 – Beta kanál („Nokturno repozitář (beta)“) jde konečně nainstalovat přímo z „Nokturno repozitáře“ — instalace od 15. 9. končila chybou 404, protože zip repozitáře ležel na serveru pod jiným jménem, než pod jakým si pro něj Kodi sahá
 5.2.22 – Kodi log je čitelný i bez Luny a Sosáče: katalog „Nově přidané s CZ dabingem/titulky“ do něj u každého z desítek titulů psal, že zdroj není nastavený — zabralo to skoro půlku logu odeslaného na podporu
 5.2.22 – Zahřívání na pozadí přeskočí katalogy Luny, dokud k ní není vyplněný přístup (zapnutá bez tokenu předtím při každém zahřátí jen zapsala čtyři chyby do logu)
