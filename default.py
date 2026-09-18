@@ -2554,8 +2554,13 @@ def install_tmdbhelper_player(set_default=True):
     if not xbmcvfs.copy(TMDBH_PLAYER_SRC, dest):
         return False
     if set_default:
-        # hodnota ve tvaru, jaký ukládá TMDb Helper sám (`<soubor> <režim>`, config/default.py)
-        tmdbh = xbmcaddon.Addon(TMDBH_ID)
+        # hodnota ve tvaru, jaký ukládá TMDb Helper sám (`<soubor> <režim>`, config/default.py).
+        # `System.HasAddon` výš hlásí i vypnutý doplněk, ale `xbmcaddon.Addon()` na vypnutý
+        # doplněk spadne — RuntimeError bereme stejně jako "TMDb Helper tu není".
+        try:
+            tmdbh = xbmcaddon.Addon(TMDBH_ID)
+        except RuntimeError:
+            return False
         tmdbh.setSetting("default_player_movies", "nokturno.json play_movie")
         tmdbh.setSetting("default_player_episodes", "nokturno.json play_episode")
     return True
