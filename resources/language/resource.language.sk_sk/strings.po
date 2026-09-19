@@ -1596,3 +1596,7 @@ msgstr "Názov na hľadanie"
 msgctxt "#30580"
 msgid "Connection to the TV was lost - start Set up from mobile on the TV again."
 msgstr "Spojenie s televízorom sa prerušilo — na TV spusti Nastaviť z mobilu znova."
+
+msgctxt "#30581"
+msgid "Open Luna settings (/setup)"
+msgstr "Otvoriť nastavenia Luny (/setup)"
