@@ -248,7 +248,9 @@ Stejné zdroje (WebShare, Sosáč, Sledujteto, FastShare, HellSpy) jsou i jako [
 
 ## Licence
 
-MIT
+Zdrojový kód je veřejně čitelný pro transparentnost a instalaci přes oficiální
+kanály (GitHub Releases, repozitář zipů). Kopírování, úpravy a šíření bez
+svolení autora nejsou dovolené — viz [LICENSE](LICENSE).
 
 ---
 
