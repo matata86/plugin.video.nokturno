@@ -2135,7 +2135,7 @@ class TestNastavitZMobilu(unittest.TestCase):
         self.assertEqual(ids[0], "ws")
         self.assertNotIn("advanced", ids)
         self.assertNotIn("info", ids)
-        fields = {f["id"]: f for s in schema for f in s["fields"] if f.get("type") != "heading"}
+        fields = {f["id"]: f for s in schema for f in s["fields"] if f.get("type") not in ("heading", "info", "action")}
         self.assertEqual(fields["ws_password"]["type"], "password")
         self.assertEqual(fields["ws_username"]["type"], "text")
         self.assertEqual(fields["ws_username"]["enable"], ("ws_enabled", "true"))

@@ -1568,3 +1568,27 @@ msgstr "Předplatné CZtor není aktivní."
 msgctxt "#30573"
 msgid "Do you have a CZtor subscription (cztor.com)?[CR]The device is paired with a PIN, no password needed."
 msgstr "Máš předplatné CZtor (cztor.com)?[CR]Zařízení se spáruje PINem, heslo není potřeba."
+
+msgctxt "#30574"
+msgid "How to set up Luna"
+msgstr "Jak nastavit Lunu"
+
+msgctxt "#30575"
+msgid "1. Luna runs on a computer or server at home (the Home Assistant add-on, port 7126).[CR]2. Tap Find Luna on the network - the address fills in by itself.[CR]3. Open the Luna address plus /setup in a browser, copy the add-on address and paste all of it into the Token field - the add-on takes the address and the token from it.[CR]4. Tap Check Luna setup. When it says all is well, tap Save to Kodi at the bottom."
+msgstr "1. Luna běží na počítači nebo serveru doma (doplněk pro Home Assistant, port 7126).[CR]2. Klepni na Najít Lunu v síti — adresa se vyplní sama.[CR]3. V prohlížeči otevři adresu Luny s /setup na konci, zkopíruj adresu doplňku a vlož ji celou do pole Token — adresu i token z ní doplněk vytáhne sám.[CR]4. Klepni na Ověřit nastavení Luny. Když napíše, že je vše v pořádku, dole klepni na Uložit do Kodi."
+
+msgctxt "#30576"
+msgid "Luna found: %s[CR]Tap Save to Kodi at the bottom to keep the address."
+msgstr "Luna nalezena: %s[CR]Adresu si necháš klepnutím na Uložit do Kodi dole."
+
+msgctxt "#30577"
+msgid "No stream found"
+msgstr "Žádný stream nenalezen"
+
+msgctxt "#30578"
+msgid "Try searching under a different name?[CR]The name you type is searched as full text in the sources (for an episode the season and episode number is added)."
+msgstr "Zkusit hledat pod jiným názvem?[CR]Zadaný název se hledá fulltextem ve zdrojích (u dílu seriálu se přidá číslo série a dílu)."
+
+msgctxt "#30579"
+msgid "Name to search for"
+msgstr "Název pro hledání"

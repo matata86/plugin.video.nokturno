@@ -1565,3 +1565,27 @@ msgstr "A CZtor előfizetés nem aktív."
 msgctxt "#30573"
 msgid "Do you have a CZtor subscription (cztor.com)?[CR]The device is paired with a PIN, no password needed."
 msgstr "Van CZtor előfizetésed (cztor.com)?[CR]Az eszköz PIN-kóddal párosítható, jelszó nem kell."
+
+msgctxt "#30574"
+msgid "How to set up Luna"
+msgstr "Így állítsd be a Lunát"
+
+msgctxt "#30575"
+msgid "1. Luna runs on a computer or server at home (the Home Assistant add-on, port 7126).[CR]2. Tap Find Luna on the network - the address fills in by itself.[CR]3. Open the Luna address plus /setup in a browser, copy the add-on address and paste all of it into the Token field - the add-on takes the address and the token from it.[CR]4. Tap Check Luna setup. When it says all is well, tap Save to Kodi at the bottom."
+msgstr "1. A Luna otthon fut egy számítógépen vagy szerveren (a Home Assistant kiegészítője, 7126-os port).[CR]2. Koppints a Luna keresése a hálózaton gombra — a cím magától kitöltődik.[CR]3. Nyisd meg böngészőben a Luna címét /setup-pal a végén, másold ki a kiegészítő címét, és egészben told be a Token mezőbe — a címet és a tokent belőle kiolvassa.[CR]4. Koppints a Luna beállításainak ellenőrzése gombra. Ha minden rendben, alul koppints a Mentés a Kodiba gombra."
+
+msgctxt "#30576"
+msgid "Luna found: %s[CR]Tap Save to Kodi at the bottom to keep the address."
+msgstr "Luna megtalálva: %s[CR]A cím megtartásához alul koppints a Mentés a Kodiba gombra."
+
+msgctxt "#30577"
+msgid "No stream found"
+msgstr "Nincs találat"
+
+msgctxt "#30578"
+msgid "Try searching under a different name?[CR]The name you type is searched as full text in the sources (for an episode the season and episode number is added)."
+msgstr "Megpróbálod más néven?[CR]A megadott nevet szövegesen keresi a források között (epizódnál hozzáadja az évad és rész számát)."
+
+msgctxt "#30579"
+msgid "Name to search for"
+msgstr "Keresett név"
