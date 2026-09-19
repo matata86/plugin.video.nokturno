@@ -209,6 +209,48 @@
         </setting>
       </group>
     </category>
+    <category id="cz" label="30560" help="30562">
+      <group id="1">
+        <setting id="cz_enabled" type="boolean" label="30561" help="30562">
+          <level>0</level>
+          <default>false</default>
+          <control type="toggle"/>
+        </setting>
+        <setting id="cz_pair_action" type="action" label="30563" help="30564">
+          <level>0</level>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="cz_enabled">true</dependency>
+          </dependencies>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=cztor_pair)</data>
+          <control format="action" type="button"/>
+        </setting>
+        <setting id="cz_status_action" type="action" label="30566">
+          <level>0</level>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="cz_enabled">true</dependency>
+          </dependencies>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=cztor_status)</data>
+          <control format="action" type="button"/>
+        </setting>
+        <setting id="cz_logout_action" type="action" label="30565">
+          <level>0</level>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="cz_enabled">true</dependency>
+          </dependencies>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=cztor_logout)</data>
+          <control format="action" type="button"/>
+        </setting>
+      </group>
+    </category>
     <category id="luna" label="30001">
       <group id="1">
         <setting id="luna_enabled" type="boolean" label="30014" help="30308">

@@ -1511,3 +1511,59 @@ msgstr ""
 msgctxt "#30559"
 msgid "Hungarian"
 msgstr ""
+
+msgctxt "#30560"
+msgid "CZtor"
+msgstr ""
+
+msgctxt "#30561"
+msgid "Enable CZtor"
+msgstr ""
+
+msgctxt "#30562"
+msgid "CZtor catalogue with a subscription (cztor.com, storage at giganthost.com). The device is paired with a PIN — the account password is never entered into the add-on."
+msgstr ""
+
+msgctxt "#30563"
+msgid "Pair with PIN"
+msgstr ""
+
+msgctxt "#30564"
+msgid "Open cztor.com/activate on your phone or computer, log in and enter the PIN shown here."
+msgstr ""
+
+msgctxt "#30565"
+msgid "Unpair this device"
+msgstr ""
+
+msgctxt "#30566"
+msgid "Account status"
+msgstr ""
+
+msgctxt "#30567"
+msgid "On your phone or computer open[CR][B]%s[/B][CR]log in and enter PIN [B]%s[/B]"
+msgstr ""
+
+msgctxt "#30568"
+msgid "CZtor: %s, plan %s until %s"
+msgstr ""
+
+msgctxt "#30569"
+msgid "Pairing with CZtor failed."
+msgstr ""
+
+msgctxt "#30570"
+msgid "CZtor unpaired."
+msgstr ""
+
+msgctxt "#30571"
+msgid "CZtor is not paired — use Pair with PIN."
+msgstr ""
+
+msgctxt "#30572"
+msgid "CZtor subscription is not active."
+msgstr ""
+
+msgctxt "#30573"
+msgid "Do you have a CZtor subscription (cztor.com)?[CR]The device is paired with a PIN, no password needed."
+msgstr ""
