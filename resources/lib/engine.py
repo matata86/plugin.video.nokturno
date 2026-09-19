@@ -31,7 +31,7 @@ from sosac_direct import SosacDirect, is_direct_id
 from store import Store
 from streams import arrange, estimate_rank, expand_groups, fold, group_streams, langs_from_name, parse_stream, stream_hdr
 from tracks import SUBTITLE_FALLBACK
-from hellspy_api import HellspyApi, HellspyError
+from hellspy_api import HellspyApi, HellspyError, HellspyRateLimited
 from sledujteto_api import SledujtetoApi, SledujtetoError
 from fastshare_api import FastshareApi, FastshareError, make_ref as fastshare_ref
 from cztor_api import CztorApi, CztorError
@@ -1492,6 +1492,8 @@ class Engine:
                 _LOGGER.warning("HellSpy hledání „%s“: %s", query, err)
                 if failures is not None:
                     failures.append(("HellSpy", err))
+                if isinstance(err, HellspyRateLimited):
+                    break  # IP je omezená — další dotazy by jen prodloužily blokaci
                 continue
             for f in files:
                 name = f.get("name") or ""

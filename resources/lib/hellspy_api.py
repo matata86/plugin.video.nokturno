@@ -30,6 +30,10 @@ class HellspyError(Exception):
     pass
 
 
+class HellspyRateLimited(HellspyError):
+    """HTTP 429 — HellSpy omezuje tuhle IP. Další dotazy v témže hledání jsou zbytečné."""
+
+
 from streams import human_size  # noqa: F401
 
 
@@ -54,6 +58,8 @@ class HellspyApi:
             with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
+            if e.code == 429:
+                raise HellspyRateLimited("HTTP 429") from e
             raise HellspyError(f"HTTP {e.code}") from e
         except Exception as e:  # noqa: BLE001 – síť, DNS, rozsypaný JSON
             raise HellspyError(str(e)[:120]) from e
