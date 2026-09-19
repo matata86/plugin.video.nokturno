@@ -1589,3 +1589,7 @@ msgstr "Megpróbálod más néven?[CR]A megadott nevet szövegesen keresi a forr
 msgctxt "#30579"
 msgid "Name to search for"
 msgstr "Keresett név"
+
+msgctxt "#30580"
+msgid "Connection to the TV was lost - start Set up from mobile on the TV again."
+msgstr "A kapcsolat a TV-vel megszakadt — indítsd újra a Beállítás mobilról funkciót a TV-n."
