@@ -3,6 +3,7 @@
 
     python3 tools/make_icon.py            # ikony a fanart
     python3 tools/make_icon.py podpora    # obrázek podpory do README (.github/podpora.png)
+    python3 tools/make_icon.py 6.0.0      # obrázek k vydání 6.0.0 s CZtorem (.github/nokturno-6.0.0-cztor.png)
 
 Značka je prstenec, v něm „N" s perforacemi filmového pásu a nad ním úplněk
 s vyříznutým play. Kreslí se vektorově (cairosvg) a skládá po vrstvách,
@@ -205,7 +206,7 @@ def make_fanart(path):
     dr.text((170, 398), "Nokturno", font=font("InterDisplay-Bold.otf", 152), fill=(243, 196, 118))
     # Podtitulek se musí vejít vedle značky, proto se písmo zmenšuje, dokud
     # se řádek nevejde — s přibývajícími zdroji by jinak zajel pod logo.
-    sub = "WebShare  ·  Sosáč  ·  Sledujteto  ·  FastShare  ·  HellSpy  ·  Luna  ·  Home Assistant"
+    sub = "WebShare  ·  Sosáč  ·  Sledujteto  ·  FastShare  ·  HellSpy  ·  CZtor  ·  Luna  ·  Home Assistant"
     size = 44
     while size > 26:
         f = font("InterDisplay-Medium.otf", size)
@@ -214,6 +215,37 @@ def make_fanart(path):
         size -= 2
     dr.text((177, 592), sub, font=font("InterDisplay-Medium.otf", size), fill=(163, 176, 218))
     sky.save(path, quality=92, subsampling=0)
+
+
+RELEASE = (1200, 630)   # poměr, který Facebook i fóra ukazují bez ořezu
+
+
+def make_release_600(path):
+    """Obrázek k vydání 6.0.0: značka, číslo verze a nový zdroj CZtor. Tatáž noční obloha
+    a zlato jako fanart, ať je na první pohled jasné, že patří k doplňku."""
+    W, H = RELEASE
+    sky = render(f'<rect width="{W}" height="{H}" fill="url(#sky)"/>', W, H, scale=1).convert("RGB")
+    q = 4
+    glow = Image.new("RGB", (W // q, H // q), (0, 0, 0))
+    ImageDraw.Draw(glow).ellipse([c / q for c in (560, -60, 1300, 700)], fill=(32, 42, 96))
+    sky = ImageChops.add(sky, glow.filter(ImageFilter.GaussianBlur(24)).resize((W, H), Image.BICUBIC))
+    dr = ImageDraw.Draw(sky, "RGBA")
+    for x, y, r, o in [(90, 80, 3, 90), (330, 50, 2, 60), (1090, 520, 3, 70), (70, 430, 2, 55),
+                       (760, 70, 2, 50), (600, 580, 2, 45), (1140, 160, 3, 65), (240, 590, 2, 40)]:
+        dr.ellipse((x - r, y - r, x + r, y + r), fill=(255, 255, 255, o))
+    logo = mark("", "url(#gold)", scale=1).resize((430, 430), Image.LANCZOS)
+    sky.paste(logo, (740, 100), logo)
+    gold, dim = (243, 196, 118), (163, 176, 218)
+    dr.text((70, 80), "Nokturno 6.0", font=font("InterDisplay-Bold.otf", 108), fill=gold)
+    dr.text((74, 215), "Nový zdroj", font=font("InterDisplay-Medium.otf", 42), fill=dim)
+    # štítek CZtor — zlatá pilulka s tmavým písmem
+    f = font("InterDisplay-Bold.otf", 96)
+    tw = dr.textlength("CZtor", font=f)
+    dr.rounded_rectangle((70, 275, 70 + tw + 80, 415), radius=70, fill=gold)
+    dr.text((110, 285), "CZtor", font=f, fill=(20, 28, 66))
+    dr.text((74, 450), "Kodi  ·  Home Assistant", font=font("InterDisplay-Medium.otf", 40), fill=(255, 255, 255))
+    dr.text((74, 510), "Spárování PINem, heslo se nezadává", font=font("InterDisplay-Medium.otf", 32), fill=dim)
+    sky.save(path, quality=92, subsampling=0) if path.endswith(".jpg") else sky.save(path)
 
 
 SUPPORT = (1600, 700)
@@ -298,7 +330,10 @@ def main():
 
 if __name__ == "__main__":
     import sys
-    if sys.argv[1:] == ["podpora"]:
+    if sys.argv[1:] == ["6.0.0"]:
+        make_release_600(os.path.join(ROOT, ".github", "nokturno-6.0.0-cztor.png"))
+        print(".github/nokturno-6.0.0-cztor.png hotovo")
+    elif sys.argv[1:] == ["podpora"]:
         make_support(os.path.join(ROOT, ".github", "podpora.png"))
         print(".github/podpora.png hotovo")
     else:
