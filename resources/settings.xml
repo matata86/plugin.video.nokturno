@@ -532,6 +532,11 @@
             <popup>false</popup>
           </control>
         </setting>
+        <setting id="tv_show_ended" type="boolean" label="30582" help="30583">
+          <level>0</level>
+          <default>false</default>
+          <control type="toggle"/>
+        </setting>
       </group>
     </category>
     <category id="streamlist" label="30201" help="30207">
