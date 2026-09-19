@@ -4469,6 +4469,16 @@ def safe_filename(name):
 VIDEO_EXTS = (".mkv", ".mp4", ".avi", ".ts", ".mov", ".m4v", ".webm", ".wmv")
 
 
+def strip_inner_ext(name):
+    """Popisek „Díl [soubor.mkv]“ (CZtor a spol. mají název souboru v hranaté závorce) —
+    přípona uvnitř závorky pryč, jinak cílový soubor dostal `….mkv].mkv`."""
+    low = name.lower()
+    for ext in VIDEO_EXTS:
+        if low.endswith(ext + "]"):
+            return name[:-len(ext) - 1] + "]"
+    return name
+
+
 def guess_ext(url, name):
     for ext in VIDEO_EXTS:
         if name.lower().endswith(ext):
@@ -4479,14 +4489,14 @@ def guess_ext(url, name):
 
 
 def enqueue_download(url, name, key, dest_name=None, link=None):
-    """Do fronty jde VNITŘNÍ odkaz (`ws:`, `hs:`, `st:`, `streamuj:`, `dav:`) — služba ho
+    """Do fronty jde VNITŘNÍ odkaz (`ws:`, `hs:`, `st:`, `fs:`, `cz:`, `streamuj:`, `dav:`) — služba ho
     rozklíčuje až ve chvíli stahování (`service.resolve_internal`). Hotový odkaz WebShare
     vyprší za pár hodin: třetí soubor ve frontě nebo cokoli po restartu Kodi dřív končilo
     chybou. `link` je volitelný už rozklíčovaný odkaz jen kvůli odhadu přípony."""
     d = download_dir()
     if not d:
         return
-    base = safe_filename(dest_name or name)
+    base = safe_filename(strip_inner_ext(dest_name or name))
     dest = os.path.join(d, base + guess_ext(link or url, base))
     entry = {"id": key, "url": url, "name": name, "dest": dest}
     if STORE.add_download(entry):
