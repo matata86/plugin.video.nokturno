@@ -1592,3 +1592,7 @@ msgstr "Zkusit hledat pod jiným názvem?[CR]Zadaný název se hledá fulltextem
 msgctxt "#30579"
 msgid "Name to search for"
 msgstr "Název pro hledání"
+
+msgctxt "#30580"
+msgid "Connection to the TV was lost - start Set up from mobile on the TV again."
+msgstr "Spojení s televizí se přerušilo — na TV spusť Nastavit z mobilu znovu."

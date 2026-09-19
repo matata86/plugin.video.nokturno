@@ -2071,6 +2071,7 @@ def remote_setup(section=None):
         "order_hidden": L(30500, "Nezobrazovat"),
         "order_up": L(30510, "Nahoru"),
         "order_down": L(30511, "Dolů"),
+        "action_failed": L(30580, "Spojení s televizí se přerušilo — na TV spusť Nastavit z mobilu znovu."),
     }
     server = SetupServer(schema, values, texts, actions={"luna_find": luna_find_remote,
                                                         "luna_check": luna_check_remote})

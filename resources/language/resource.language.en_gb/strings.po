@@ -1591,3 +1591,7 @@ msgstr ""
 msgctxt "#30579"
 msgid "Name to search for"
 msgstr ""
+
+msgctxt "#30580"
+msgid "Connection to the TV was lost - start Set up from mobile on the TV again."
+msgstr ""

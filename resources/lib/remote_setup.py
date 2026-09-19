@@ -60,7 +60,7 @@ TEXTS = {
     "order_hidden": "Nezobrazovat",
     "order_up": "Nahoru",
     "order_down": "Dolů",
-    "action_failed": "Nepovedlo se — zkus to znovu.",
+    "action_failed": "Spojení s televizí se přerušilo — na TV spusť Nastavit z mobilu znovu.",
     "action_running": "Pracuju…",
 }
 
