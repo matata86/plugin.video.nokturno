@@ -1489,7 +1489,9 @@ class Engine:
             try:
                 files, _next = self.hs.search(query, limit=HS_LIMIT)
             except HellspyError as err:
-                _LOGGER.warning("HellSpy hledání „%s“: %s", query, err)
+                # pauza po dřívější 429 nic nového neříká — jen první odmítnutí se loguje nahlas
+                _LOGGER.log(logging.DEBUG if getattr(err, "paused", False) else logging.WARNING,
+                            "HellSpy hledání „%s“: %s", query, err)
                 if failures is not None:
                     failures.append(("HellSpy", err))
                 if isinstance(err, HellspyRateLimited):
