@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="6.0.3" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="6.0.4" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,7 +23,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>6.0.3 – Stahování: streamy z CZtoru se znovu stahují (dřív skončily chybou „unknown url type: cz“) a stažený soubor už nemá zdvojenou příponu (….mkv].mkv)
+    <news>6.0.4 – HellSpy: po první chybě HTTP 429 se HellSpy na 10 minut přeskočí úplně, ne jen u jednoho titulu (katalog „Nově přidané s CZ dabingem/titulky“ ho volal pro každý titul zvlášť a blokaci prodlužoval)
+6.0.3 – Stahování: streamy z CZtoru se znovu stahují (dřív skončily chybou „unknown url type: cz“) a stažený soubor už nemá zdvojenou příponu (….mkv].mkv)
 6.0.2 – HellSpy: po chybě HTTP 429 (server omezil tvoji adresu) se hledání na HellSpy hned ukončí, další dotazy omezení jen prodlužovaly
 6.0.1 – Synchronizace mezi Kodi přes Home Assistant: změna poslaná se zpožděním (mazání historie hledání, zhlédnuto, Můj seznam) dorazí i na Kodi, které se mezitím synchronizovalo
 6.0.0 – Nový zdroj CZtor (předplatné na cztor.com): Nastavení → CZtor → Spárovat PINem, heslo se do doplňku nezadává. Streamy mají zvuk, titulky a rozlišení rovnou z API

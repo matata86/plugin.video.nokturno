@@ -14,6 +14,7 @@ Odkaz je podepsaný a časově omezený, dohledává se proto až při přehrán
 (`hs:<id>:<hash>`), stejně jako u WebShare.
 """
 import json
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -31,7 +32,27 @@ class HellspyError(Exception):
 
 
 class HellspyRateLimited(HellspyError):
-    """HTTP 429 — HellSpy omezuje tuhle IP. Další dotazy v témže hledání jsou zbytečné."""
+    """HTTP 429 — HellSpy omezuje tuhle IP. Další dotazy v témže hledání jsou zbytečné.
+    `paused` = bez dotazu na síť, jen pauza po dřívější 429 (viz `RATE_LIMIT_COOLDOWN`)."""
+
+    paused = False
+
+
+# Po první 429 se HellSpy celému procesu přeskočí na tuhle dobu. Stavba katalogu s jazykem
+# (desítky kandidátů) jinak volala HellSpy znovu pro každý titul — 48 dotazů za pár sekund
+# s odpovědí 429 blokaci jen prodlužovalo. Stav je v paměti procesu, restart ho vynuluje.
+RATE_LIMIT_COOLDOWN = 10 * 60
+_blocked_until = 0.0
+
+
+def blocked_for():
+    """Kolik sekund ještě HellSpy nevolat (0 = lze)."""
+    return max(0.0, _blocked_until - time.time())
+
+
+def _block():
+    global _blocked_until
+    _blocked_until = time.time() + RATE_LIMIT_COOLDOWN
 
 
 from streams import human_size  # noqa: F401
@@ -52,6 +73,10 @@ class HellspyApi:
         self._opener = urllib.request.build_opener(_KeepRedirect)
 
     def _get(self, path, **params):
+        if blocked_for() > 0:
+            err = HellspyRateLimited("HTTP 429 (pauza)")
+            err.paused = True
+            raise err
         url = API + path + (("?" + urllib.parse.urlencode(params)) if params else "")
         req = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": UA})
         try:
@@ -59,6 +84,7 @@ class HellspyApi:
                 return json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             if e.code == 429:
+                _block()
                 raise HellspyRateLimited("HTTP 429") from e
             raise HellspyError(f"HTTP {e.code}") from e
         except Exception as e:  # noqa: BLE001 – síť, DNS, rozsypaný JSON
