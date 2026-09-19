@@ -1597,3 +1597,11 @@ msgstr "A kapcsolat a TV-vel megszakadt — indítsd újra a Beállítás mobilr
 msgctxt "#30581"
 msgid "Open Luna settings (/setup)"
 msgstr "Luna beállításainak megnyitása (/setup)"
+
+msgctxt "#30582"
+msgid "TV program: show programmes that already ended today"
+msgstr "TV-műsor: a ma már véget ért műsorok is látszanak"
+
+msgctxt "#30583"
+msgid "Today's TV programme normally hides programmes that have already ended. Turn on to see the whole day."
+msgstr "A mai TV-műsor alapból elrejti a már véget ért műsorokat. Kapcsold be, hogy az egész nap látszódjon."

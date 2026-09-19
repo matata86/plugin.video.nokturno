@@ -4128,7 +4128,7 @@ def list_tv(apis, day="", kind="", channel=""):
     now = time.time()
     shown = 0
     for it in data["items"]:
-        if day == data.get("today") and it["stop"] < now:
+        if day == data.get("today") and it["stop"] < now and not on("tv_show_ended", "false"):
             continue   # dnes už skončené pořady jen zabírají místo
         start = time.strftime("%H:%M", time.localtime(it["start"]))
         live = it["start"] <= now < it["stop"]

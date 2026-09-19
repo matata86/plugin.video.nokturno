@@ -1600,3 +1600,11 @@ msgstr "Spojení s televizí se přerušilo — na TV spusť Nastavit z mobilu z
 msgctxt "#30581"
 msgid "Open Luna settings (/setup)"
 msgstr "Otevřít nastavení Luny (/setup)"
+
+msgctxt "#30582"
+msgid "TV program: show programmes that already ended today"
+msgstr "TV program: ukázat i dnes už skončené pořady"
+
+msgctxt "#30583"
+msgid "Today's TV programme normally hides programmes that have already ended. Turn on to see the whole day."
+msgstr "Dnešní TV program normálně skrývá pořady, které už skončily. Zapni, ať je vidět celý den."

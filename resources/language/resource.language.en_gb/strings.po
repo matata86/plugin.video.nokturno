@@ -1599,3 +1599,11 @@ msgstr ""
 msgctxt "#30581"
 msgid "Open Luna settings (/setup)"
 msgstr ""
+
+msgctxt "#30582"
+msgid "TV program: show programmes that already ended today"
+msgstr ""
+
+msgctxt "#30583"
+msgid "Today's TV programme normally hides programmes that have already ended. Turn on to see the whole day."
+msgstr ""
