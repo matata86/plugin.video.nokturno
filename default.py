@@ -4284,7 +4284,7 @@ def pick_title(apis, ctype, item_id, series_id=None, alt=None, fulltext=False, d
             notify(L(30102))
         # nic nenašel ani uvolněný filtr: nabídnout hledání pod jiným názvem (fulltext zdrojů hledá
         # v názvech souborů, ty mívají jiný název než TMDB — u seriálu doplní SxxEyy engine sám)
-        if not fulltext and has_fulltext_source and xbmcgui.Dialog().yesno(
+        if has_fulltext_source and xbmcgui.Dialog().yesno(
                 L(30577, "Žádný stream nenalezen"),
                 L(30578, "Zkusit hledat pod jiným názvem?[CR]Zadaný název se hledá fulltextem ve zdrojích "
                          "(u dílu seriálu se přidá číslo série a dílu).")):
@@ -4357,6 +4357,10 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
             if not errors:
                 notify(L(30102))
             xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
+            # modál tu nesmí (přehrávací kontext), tak ho otevře samostatný skript až po neúspěšném
+            # přehrání: dialog „hledat pod jiným názvem“ / uvolněné hledání (`pick_title`)
+            xbmc.executebuiltin("RunPlugin(%s)" % build_url(action="title", type=ctype, id=item_id, series=series_id,
+                                                            alt=alt, fulltext="1"))
             return
         remembered = preferred_stream(streams, STORE.stream_pref(pref_key)) if pref_key else None
         chosen = remembered or streams[0]
@@ -4745,7 +4749,8 @@ def router(query):
         if action in ("title", "streams") and HANDLE < 0:
             # klik na titul ve výpisu Nokturna: Kodi ne-přehratelnou položku spustí jako skript
             # bez handle → streamy v dialogu na dva řádky (viz add_playable, pick_title)
-            pick_title(get_apis(), p.get("type", "movie"), p["id"], p.get("series"), alt=p.get("alt"))
+            pick_title(get_apis(), p.get("type", "movie"), p["id"], p.get("series"), alt=p.get("alt"),
+                       fulltext=bool(p.get("fulltext")))
             return
         if action in ("streams", "streams_filter"):
             # výpis streamů jako složka zrušen v `5.2.14~beta4` — starý odkaz (oblíbené, widget) nic
