@@ -1429,6 +1429,24 @@ class Engine:
                 stream["size_gb"] = info["size"] / 2 ** 30
         return streams
 
+    WRONG_LENGTH_MIN_S = 80 * 60   # kratší soubor za film pod cizím názvem nepovažujeme
+    WRONG_LENGTH_RATIO = 2.0
+
+    def _drop_wrong_length(self, streams, video):
+        """Vyřadí soubory, které se za epizodu jen vydávají: název říká `S04E01`,
+        ale zdroj u nich hlásí délku filmu (HellSpy: 124 min / 19,7 GB pod názvem
+        epizody Reachera, uvnitř Iron Man). Délku posílá zdroj už při hledání
+        (`duration` / `_duration`), hlavičku číst netřeba. Bez známé stopáže epizody
+        se nezahazuje nic."""
+        minutes = runtime_minutes((video or {}).get("runtime"))
+        if not minutes:
+            return streams
+        limit = max(self.WRONG_LENGTH_MIN_S, minutes * 60 * self.WRONG_LENGTH_RATIO)
+        kept = [s for s in streams if (s.get("duration") or s.get("_duration") or 0) <= limit]
+        if len(kept) != len(streams):
+            self.last_timings["špatná délka"] = len(streams) - len(kept)
+        return kept
+
     def _ensure_bitrate(self, streams, meta_or_video):
         """Datový tok a délka má mít úplně každý stream, ne jen ten, co je zdroj sám řekl.
 
@@ -1490,6 +1508,7 @@ class Engine:
                     "label": name,
                     "detail": f.get("size_h") or "",
                     "source": "hs",
+                    "_duration": f.get("duration") or 0,
                     "_direct": True,
                 })
         return out
@@ -2311,6 +2330,8 @@ class Engine:
         # na začátek seznamu, tedy na to, co má uživatel před očima. Po doplnění
         # kanálů se řadí znovu, protože 5.1 může pořadím pohnout.
         self._check_stop()
+        if video:
+            found = self._drop_wrong_length(found, video)
         ranked = sort(found)
         if self._opt("merge_streams", False):
             # verze, mezi kterými by uživatel nevybíral, jsou jeden řádek — a hlavičky

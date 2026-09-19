@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="6.0.0~beta1" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="6.0.0~beta2" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,8 +23,10 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>6.0.0~beta1 – Nový zdroj CZtor (předplatné na cztor.com): Nastavení → CZtor → Spárovat PINem, heslo se do doplňku nezadává
+    <news>6.0.0~beta2 – Epizody: soubory s délkou filmu pod názvem epizody (HellSpy: Iron Man jako Reacher S04E01) se ze seznamu streamů vyřadí (oprava z 5.5.4)
+6.0.0~beta1 – Nový zdroj CZtor (předplatné na cztor.com): Nastavení → CZtor → Spárovat PINem, heslo se do doplňku nezadává
 6.0.0~beta1 – Streamy z CZtoru mají zvuk, titulky a rozlišení rovnou z jeho API, nic se nemusí dočítat
+5.5.4 – Epizody: soubory s délkou filmu pod názvem epizody (HellSpy: Iron Man jako Reacher S04E01) se ze seznamu streamů vyřadí
 5.5.0 – Maďarština: rozhraní doplňku, preferovaný jazyk zvuku, rozpoznání titulků a filtr streamů podle jazyka
 5.4.2 – Oprava pádu v průvodci prvním nastavením: vypnutý (ne odinstalovaný) TMDb Helper shazoval nastavení přehrávače
 5.4.0 – Stejné verze souboru (stejná kvalita, zvuk, titulky a velikost do 10 %) se ve výběru streamu slučují do jednoho řádku, u něj je počet kopií (×3). Když jedna nejde přehrát, zkusí se další
