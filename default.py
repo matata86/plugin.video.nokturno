@@ -4119,6 +4119,9 @@ def list_tv(apis, day="", kind="", channel=""):
         ("channel", f"{L(30485, 'Stanice')}: {channel_name}", "DefaultAddonPVRClient.png"),
         ("kind", f"{L(30486, 'Typ')}: {kind_name}", "DefaultGenre.png"),
     )
+    if day == data.get("today"):   # dnes: přepínač skončených pořadů úplně první
+        state = L(30585, "ukázané") if on("tv_show_ended", "false") else L(30586, "skryté")
+        picks = (("ended", f"{L(30584, 'Skončené pořady')}: {state}", "DefaultInProgressShows.png"),) + picks
     for field, label, icon in picks:
         li = xbmcgui.ListItem(label=f"[B]{label}[/B]")
         li.setArt({"icon": icon, "thumb": icon})
@@ -4150,7 +4153,9 @@ def list_tv(apis, day="", kind="", channel=""):
 def tv_pick(apis, field, day="", kind="", channel=""):
     """Klik na volbu nad TV programem (handle −1, jen z výpisu Nokturna) → dialog → přepnout výpis."""
     data = apis["dash"].tv_program(day or None, kind or None, channel or None) or {}
-    if field == "day":
+    if field == "ended":
+        ADDON.setSetting("tv_show_ended", "false" if on("tv_show_ended", "false") else "true")
+    elif field == "day":
         dates = data.get("dates") or []
         if not dates:
             return

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="6.0.0~beta6" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="6.0.0~beta7" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,7 +23,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>6.0.0~beta6 – TV program: nastavení „ukázat i dnes už skončené pořady“ (Přehrávání)
+    <news>6.0.0~beta7 – TV program: přepínač Skončené pořady přímo jako první položka u dneška
+6.0.0~beta6 – TV program: nastavení „ukázat i dnes už skončené pořady“ (Přehrávání)
 6.0.0~beta5 – Nastavit z mobilu: po nalezení Luny (nebo když chybí token) odkaz Otevřít nastavení Luny (/setup)
 6.0.0~beta4 – Nastavit z mobilu: když spojení s TV vypadne, stránka řekne, co dělat
 6.0.0~beta3 – Nastavit z mobilu: v sekci Luna tlačítka Najít Lunu v síti a Ověřit nastavení Luny s výsledkem přímo na stránce a návodem krok za krokem
