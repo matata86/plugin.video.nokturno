@@ -2575,6 +2575,20 @@ class TestFrontaAZahrivani(unittest.TestCase):
         with self.assertRaises(Exception):
             service.resolve_internal("dav:9:x", default.STORE)
 
+    def test_pripona_v_hranate_zavorce_se_nezdvoji(self):
+        self.assertEqual(default.strip_inner_ext("The Son [Metoda.S01E04.1080p.mkv]"), "The Son [Metoda.S01E04.1080p]")
+        self.assertEqual(default.strip_inner_ext("Matrix (1999)"), "Matrix (1999)")
+        self.assertEqual(default.strip_inner_ext("a.mkv"), "a.mkv")
+        base = default.strip_inner_ext("Křížová cesta [Rapl.S01E02.mkv]")
+        self.assertEqual(base + default.guess_ext("https://cdn/x.mkv", base), "Křížová cesta [Rapl.S01E02].mkv")
+
+    def test_sluzba_rozklicuje_cztor(self):
+        # stahování z CZtor padalo na „unknown url type: cz“ — služba `cz:` neznala
+        with mock.patch.object(service.CztorApi, "resolve", return_value="https://cdn.giganthost/a.mkv") as res:
+            self.assertEqual(service.resolve_internal("cz:movie:1:2", default.STORE),
+                             ("https://cdn.giganthost/a.mkv", {}))
+        res.assert_called_once_with("cz:movie:1:2")
+
     def test_zahrivani_nastavi_priznak_a_api_cache_jen_zapisuji(self):
         videno = []
         with mock.patch.object(service, "rpc_directory",
