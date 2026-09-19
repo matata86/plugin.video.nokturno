@@ -1857,6 +1857,9 @@ def accounts_set():
 REMOTE_SETUP_CATEGORIES = ("ws", "sosac", "hs", "st", "fs", "luna", "storage", "database", "playback",
                            "streamlist", "trakt", "sync", "stats")
 REMOTE_SETUP_TIMEOUT = 1800
+# tlačítka z settings.xml, která mají na stránce z mobilu vlastní akci: id → (akce, pole, která čte)
+REMOTE_SETUP_ACTIONS = {"luna_find_action": ("luna_find", ["luna_url"]),
+                        "luna_check_action": ("luna_check", ["luna_url", "token"])}
 STREAM_PART_LABELS = (("langs", 30501), ("size", 30502), ("video", 30503), ("audio", 30504), ("bitrate", 30505),
                       ("length", 30506), ("subs", 30507), ("source", 30508), ("file", 30509))
 KODI_TAG_RE = re.compile(r"\[/?(?:B|I|CR|COLOR|UPPERCASE|LOWERCASE|CAPITALIZE|LIGHT)[^\]]*\]")
@@ -1882,10 +1885,16 @@ def remote_setup_schema(section=None):
             if group.get("label") and len(groups) > 1:
                 fallback = f"Úložiště {group.get('id')}"
                 fields.append({"type": "heading", "label": _plain(L(int(group.get("label")), fallback))})
+            if category.get("id") == "luna" and group is groups[0]:
+                fields.append({"type": "info", "label": L(30574, "Jak nastavit Lunu"),
+                               "help": L(30575, "").replace("[CR]", "\n")})
             for node in group.findall("setting"):
                 kind, control = node.get("type"), node.find("control")
                 field = {"id": node.get("id")}
-                if node.get("id") == "stream_layout":
+                if node.get("id") in REMOTE_SETUP_ACTIONS:
+                    field["type"] = "action"
+                    field["action"], field["inputs"] = REMOTE_SETUP_ACTIONS[node.get("id")]
+                elif node.get("id") == "stream_layout":
                     field["type"] = "order"
                     field["items"] = [(key, L(label, key)) for key, label in STREAM_PART_LABELS]
                 elif kind == "boolean":
@@ -2049,7 +2058,7 @@ def remote_setup(section=None):
     # neuložená položka: výchozí hodnota ze settings.xml — jinak by prohlížeč u výběru poslal
     # první volbu a u přepínače „vypnuto“ a uložilo by se, co uživatel neměnil
     values = {f["id"]: ADDON.getSetting(f["id"]) or f["default"] for section in schema for f in section["fields"]
-              if f.get("type") != "heading"}
+              if f.get("type") not in ("heading", "info", "action")}
     texts = {
         "title": "Nokturno — " + L(30447, "Nastavit z mobilu"),
         "intro": L(30458, "Vyplň, co chceš změnit, a ulož. Nastavení se hned propíše do Kodi."),
@@ -2063,7 +2072,8 @@ def remote_setup(section=None):
         "order_up": L(30510, "Nahoru"),
         "order_down": L(30511, "Dolů"),
     }
-    server = SetupServer(schema, values, texts)
+    server = SetupServer(schema, values, texts, actions={"luna_find": luna_find_remote,
+                                                        "luna_check": luna_check_remote})
     try:
         server.start()
     except OSError as e:
@@ -2403,6 +2413,47 @@ LUNA_DIAG_ARGS = {
 }
 
 
+def luna_diag_text(result, base=""):
+    """Věta a rada k výsledku `luna_diagnose` (Kodi značky `[CR]` zůstávají)."""
+    sid, fallback = LUNA_DIAG_TEXTS.get(result["code"], LUNA_DIAG_TEXTS["unreachable"])
+    hodnoty = {"version": result.get("version") or "?", "base": result.get("base") or base}
+    try:
+        return L(sid, fallback) % tuple(hodnoty[k] for k in LUNA_DIAG_ARGS.get(result["code"], ()))
+    except TypeError:   # překlad se zástupnými symboly nesouhlasí — radši holý text než pád
+        return L(sid, fallback)
+
+
+def luna_find_remote(values):
+    """Najít Lunu ze stránky „Nastavit z mobilu“: běží ve vlákně serveru, jen vrátí adresu
+    stránce — do nastavení se uloží až tlačítkem Uložit."""
+    found = luna_discover()
+    if not found:
+        return {"level": "fail", "text": _stranka(L(30531, "V téhle síti jsem Lunu nenašel."))}
+    return {"level": "ok", "text": _stranka(L(30576, "Luna nalezena: %s") % ", ".join(f["url"] for f in found)),
+            "set": {"luna_url": found[0]["url"]}}
+
+
+def luna_check_remote(values):
+    """Ověřit Lunu ze stránky „Nastavit z mobilu“ s tím, co je právě ve formuláři."""
+    base, token = values.get("luna_url", ""), values.get("token", "")
+    try:
+        result = luna_diagnose(base, token)
+    except Exception as e:  # noqa: BLE001 – ať akce nikdy nespadne bez vysvětlení
+        result = {"level": "fail", "code": "unreachable", "base": base, "token": "", "version": "",
+                  "detail": str(e)}
+    out = {"level": result["level"], "text": _stranka(luna_diag_text(result, base)), "set": {}}
+    if result.get("base") and result["base"] != base:
+        out["set"]["luna_url"] = result["base"]
+    if result.get("token") and result["token"] != token:   # celá adresa ze /setup se rozdělí
+        out["set"]["token"] = result["token"]
+    return out
+
+
+def _stranka(text):
+    """Text z `strings.po` pro webovou stránku: `[CR]` na nový řádek, ostatní Kodi značky pryč."""
+    return _plain(text.replace("[CR]", "\n"))
+
+
 def luna_find():
     """Tlačítko v nastavení: projde vlastní podsíť a najde server Luny.
 
@@ -2482,11 +2533,7 @@ def luna_check(base=None, token=None, kolo=0, ask=False):
         ADDON.setSetting("token", result["token"])
 
     sid, fallback = LUNA_DIAG_TEXTS.get(result["code"], LUNA_DIAG_TEXTS["unreachable"])
-    hodnoty = {"version": result.get("version") or "?", "base": result.get("base") or setting("luna_url")}
-    try:
-        text = L(sid, fallback) % tuple(hodnoty[k] for k in LUNA_DIAG_ARGS.get(result["code"], ()))
-    except TypeError:   # překlad se zástupnými symboly nesouhlasí — radši holý text než pád
-        text = L(sid, fallback)
+    text = luna_diag_text(result, setting("luna_url"))
     # stav slovem, ne symbolem: fonty skinů Kodi znaky jako ✔/✘ většinou nemají a
     # nakreslí místo nich prázdný proužek (totéž řeší EMOJI_MAP v jádru u popisků Luny).
     # Barvy hexem jako ostatní štítky — pojmenované („green“) závisí na skinu.
@@ -4198,7 +4245,7 @@ def pick_title(apis, ctype, item_id, series_id=None, alt=None, fulltext=False, d
     meta, video = load_meta(apis, ctype, item_id, series_id)
     has_fulltext_source = bool(apis.get("ws") or apis.get("hs") or apis.get("st") or apis.get("fs"))
 
-    def collect(strict):
+    def collect(strict, meta=meta):
         bar = xbmcgui.DialogProgressBG()   # načítání jen ukazatelem v rohu, modální je až výběr streamu
         bar.create(L(30000, "Nokturno"), L(30238, "Načítám streamy…"))
         errors = []
@@ -4222,7 +4269,18 @@ def pick_title(apis, ctype, item_id, series_id=None, alt=None, fulltext=False, d
     if not streams:
         if not errors:
             notify(L(30102))
-        return
+        # nic nenašel ani uvolněný filtr: nabídnout hledání pod jiným názvem (fulltext zdrojů hledá
+        # v názvech souborů, ty mívají jiný název než TMDB — u seriálu doplní SxxEyy engine sám)
+        if not fulltext and has_fulltext_source and xbmcgui.Dialog().yesno(
+                L(30577, "Žádný stream nenalezen"),
+                L(30578, "Zkusit hledat pod jiným názvem?[CR]Zadaný název se hledá fulltextem ve zdrojích "
+                         "(u dílu seriálu se přidá číslo série a dílu).")):
+            typed = xbmcgui.Dialog().input(L(30579, "Název pro hledání"), defaultt=str(
+                meta.get("_title") or meta.get("name") or "")).strip()
+            if typed:
+                streams, errors = collect(False, dict(meta, _title=typed, name=typed))
+        if not streams:
+            return
     pref_key = (series_id or split_episode_id(item_id)[0]) if video else None
     remembered = preferred_stream(streams, STORE.stream_pref(pref_key)) if pref_key else None
     picked = choose_stream(streams, remembered, relax=strict and has_fulltext_source,

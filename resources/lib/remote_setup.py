@@ -19,6 +19,13 @@ Schéma: `[{"id", "label", "fields": [{"id", "label", "help", "type", "options",
 podnadpis uvnitř sekce (např. rozlišení více úložišť) — nemá `id`, do formuláře
 se nic neodesílá a validace ho přeskočí.
 
+`info` je odstavec s návodem (`label` = nadpis, `help` = text, řádky oddělené `\n`),
+`action` tlačítko, které na hostiteli spustí funkci `actions[field["action"]]` a ukáže její
+odpověď přímo na stránce (bez ukládání). Funkce dostane `{id: hodnota}` polí z `field["inputs"]`
+tak, jak jsou právě ve formuláři (i nepotvrzené), a vrátí `{"level": ok|warn|fail, "text": …,
+"set": {id: hodnota}}` — `set` stránka dopíše do polí formuláře, uloží se až tlačítkem Uložit.
+Funkce běží ve vlákně serveru, nesmí sahat na UI hostitele.
+
 `order` je pořadí položek ve více řádcích (např. co ukazovat u streamu): `items` je seznam
 `(klíč, popisek)`, `rows` počet řádků (výchozí 2). Hodnota `a,b|c,d` — řádky oddělené `|`,
 co v hodnotě chybí, se nezobrazuje. Na stránce tři skupiny (řádky a Nezobrazovat) se šipkami
@@ -27,6 +34,7 @@ jen známé klíče, každý nejvýš jednou.
 """
 import hmac
 import html
+import json
 import secrets
 import threading
 import time
@@ -38,6 +46,7 @@ DEFAULT_PORTS = range(52100, 52110)
 MAX_BODY = 64 * 1024
 MAX_BAD_REQUESTS = 30
 MAX_TEXT = 1000
+NO_VALUE = ("heading", "info", "action")   # prvky bez hodnoty, do formuláře se nic neodesílá
 
 TEXTS = {
     "title": "Nokturno — nastavení",
@@ -51,6 +60,8 @@ TEXTS = {
     "order_hidden": "Nezobrazovat",
     "order_up": "Nahoru",
     "order_down": "Dolů",
+    "action_failed": "Nepovedlo se — zkus to znovu.",
+    "action_running": "Pracuju…",
 }
 
 
@@ -76,12 +87,13 @@ class _Server(ThreadingMixIn, HTTPServer):
 
 
 class SetupServer:
-    def __init__(self, schema, values, texts=None, token=None):
+    def __init__(self, schema, values, texts=None, token=None, actions=None):
         self.schema = schema
+        self.actions = dict(actions or {})
         self.values = dict(values)
         self.texts = dict(TEXTS, **(texts or {}))
         self.token = token or secrets.token_urlsafe(12)
-        self.fields = {f["id"]: f for section in schema for f in section["fields"] if f.get("type") != "heading"}
+        self.fields = {f["id"]: f for section in schema for f in section["fields"] if f.get("type") not in NO_VALUE}
         self.port = None
         self._httpd = None
         self._thread = None
@@ -164,6 +176,28 @@ class SetupServer:
                 changes[fid] = value
         return changes, errors
 
+    def run_action(self, name, body):
+        """Spustí akci `name` s hodnotami polí z odeslaného formuláře; chyba akce = odpověď fail."""
+        func = self.actions.get(name)
+        if func is None:
+            return {"level": "fail", "text": self.texts["action_failed"], "set": {}}
+        form = urllib.parse.parse_qs(body, keep_blank_values=True, max_num_fields=500)
+        wanted = {fid for f in self._fields_of(name) for fid in (f.get("inputs") or [])}
+        values = {fid: (form.get(fid) or [""])[-1].strip()[:MAX_TEXT] for fid in wanted if fid in self.fields}
+        try:
+            out = func(values) or {}
+        except Exception:  # noqa: BLE001 – akce nesmí shodit server ani ukázat výjimku na stránce
+            return {"level": "fail", "text": self.texts["action_failed"], "set": {}}
+        # dopsat lze jen pole, která existují a nejsou heslo — token není heslo, ale ať se nikdy
+        # nevrací obsah, který stránka nedostala
+        setv = {k: str(v)[:MAX_TEXT] for k, v in (out.get("set") or {}).items()
+                if k in self.fields and self.fields[k].get("type") in ("text", "choice")}
+        return {"level": out.get("level") or "fail", "text": str(out.get("text") or ""), "set": setv}
+
+    def _fields_of(self, name):
+        return [f for section in self.schema for f in section["fields"]
+                if f.get("type") == "action" and f.get("action") == name]
+
     def render(self, message="", error=False):
         t = self.texts
         esc = html.escape
@@ -178,6 +212,20 @@ class SetupServer:
                     continue
                 row_class = "row grouped" if after_heading else "row"
                 after_heading = False
+                if f.get("type") == "info":
+                    body = "".join(f"<p>{esc(line)}</p>" for line in (f.get("help") or "").split("\n") if line)
+                    title = f'<strong>{esc(f["label"])}</strong>' if f.get("label") else ""
+                    rows.append(f'<div class="guide">{title}{body}</div>')
+                    continue
+                if f.get("type") == "action":
+                    enable = f.get("enable")
+                    attrs = f' data-dep="{esc(enable[0])}" data-val="{esc(str(enable[1]))}"' if enable else ""
+                    help_text = f'<small>{esc(f["help"])}</small>' if f.get("help") else ""
+                    rows.append(f'<div class="{row_class} act"{attrs}><span>{help_text}</span>'
+                                f'<button type="button" class="ghost" data-act="{esc(f["action"])}" '
+                                f'data-in="{esc(",".join(f.get("inputs") or []))}">{esc(f.get("label") or "")}'
+                                f'</button><div class="result" hidden></div></div>')
+                    continue
                 fid, kind, label = f["id"], f.get("type"), esc(f.get("label") or f["id"])
                 current = str(self.values.get(fid, ""))
                 enable = f.get("enable")
@@ -207,7 +255,8 @@ class SetupServer:
                          f'</summary>{"".join(rows)}</details>')
         note = f'<p class="note{" err" if error else ""}">{esc(message)}</p>' if message else ""
         return PAGE.format(title=esc(t["title"]), intro=esc(t["intro"]), note=note, sections="".join(parts),
-                           save=esc(t["save"]), action=f"/s/{esc(self.token)}")
+                           save=esc(t["save"]), action=f"/s/{esc(self.token)}",
+                           failed=json.dumps(t["action_failed"]), running=json.dumps(t["action_running"]))
 
     def _render_order(self, f, current, row_class, attrs, label, help_text):
         esc, t = html.escape, self.texts
@@ -249,12 +298,14 @@ class SetupServer:
                 self.send_header("X-Frame-Options", "DENY")
                 self.send_header("Content-Security-Policy",
                                  "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; "
-                                 "form-action 'self'")
+                                 "form-action 'self'; connect-src 'self'")
                 self.end_headers()
                 self.wfile.write(data)
 
             def _authorized(self):
                 path = urllib.parse.urlsplit(self.path).path
+                if path.startswith("/s/"):   # /s/<klíč>/act/<akce> patří stejnému klíči
+                    path = path.split("/act/", 1)[0]
                 ok = path.startswith("/s/") and hmac.compare_digest(path[3:].rstrip("/"), owner.token)
                 if not ok:
                     with owner._lock:
@@ -287,6 +338,11 @@ class SetupServer:
                     self._send(413, "Too large", "text/plain; charset=utf-8")
                     return
                 body = self.rfile.read(length).decode("utf-8", "replace")
+                path = urllib.parse.urlsplit(self.path).path
+                if "/act/" in path:
+                    self._send(200, json.dumps(owner.run_action(path.split("/act/", 1)[1], body)),
+                               "application/json; charset=utf-8")
+                    return
                 changes, errors = owner.parse(body)
                 if errors:
                     self._send(400, owner.render(owner.texts["invalid"].format(", ".join(errors)), error=True))
@@ -331,6 +387,11 @@ border:1px solid var(--line);border-radius:10px;padding:11px 12px}}
 input:focus,select:focus{{outline:2px solid var(--accent);border-color:transparent}}
 input[type=checkbox]{{width:26px;height:26px;accent-color:var(--accent);flex:none}}
 .off{{opacity:.45}}
+.guide{{padding:14px 16px;background:#241f36;border-top:1px solid var(--line);font-size:.9rem}}
+.guide p{{margin:.45em 0 0}}.guide strong{{display:block;font-size:.95rem}}
+button.ghost{{background:var(--line);font-size:.95rem;padding:11px}}button.ghost[disabled]{{opacity:.6}}
+.result{{padding:10px 12px;border-radius:10px;font-size:.9rem;white-space:pre-line;background:#1f3326;color:#bff0cc}}
+.result.warn{{background:#3a3220;color:#f5dfa0}}.result.fail{{background:#3a1f24;color:#ffc9d0}}
 .zone h5{{margin:10px 0 6px;font-size:.78rem;color:var(--dim);text-transform:uppercase;letter-spacing:.02em}}
 .zone ul{{list-style:none;margin:0;padding:6px;min-height:46px;border:1px dashed var(--line);border-radius:10px}}
 .zone li{{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--line);
@@ -353,6 +414,14 @@ var dep=document.getElementById(row.dataset.dep);if(!dep)return;
 var val=dep.type==="checkbox"?(dep.checked?"true":"false"):dep.value;
 row.classList.toggle("off",val!==row.dataset.val);}});}}
 document.addEventListener("change",sync);sync();
+document.addEventListener("click",function(e){{var b=e.target.closest("button[data-act]");if(!b)return;
+var box=b.parentNode.querySelector(".result"),data=new URLSearchParams();
+(b.dataset.in||"").split(",").forEach(function(id){{var el=document.getElementById(id);if(el)data.append(id,el.value);}});
+b.disabled=true;box.hidden=false;box.className="result";box.textContent={running};
+fetch("{action}/act/"+b.dataset.act,{{method:"POST",body:data}}).then(function(r){{return r.json();}}).then(function(r){{
+box.className="result "+(r.level||"fail");box.textContent=r.text;
+Object.keys(r.set||{{}}).forEach(function(id){{var el=document.getElementById(id);if(el)el.value=r.set[id];}});sync();
+}}).catch(function(){{box.className="result fail";box.textContent={failed};}}).then(function(){{b.disabled=false;}});}});
 document.addEventListener("click",function(e){{var b=e.target.closest("button[data-mv]");if(!b)return;
 var li=b.closest("li"),box=b.closest("[data-order]"),uls=[].slice.call(box.querySelectorAll("ul")),
 ul=li.parentNode,up=b.dataset.mv==="-1",i=uls.indexOf(ul);
