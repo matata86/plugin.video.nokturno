@@ -6,6 +6,7 @@ ale bez Kodi: volání jsou synchronní a HA je pouští v executoru.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
@@ -67,6 +68,17 @@ PROBE_WORKERS = 8
 # 30 dní), takže při dalším otevření titulu už mají ověřený zvuk i rozlišení.
 PROBE_DEADLINE = 3.0
 SUBS_TASK = "Titulky"   # úloha v souběžném hledání streamů, ne zdroj (nehlásí se do průběhu ani výpadků)
+# Audit 2026-09-19: `kolo()` čekalo na všechny zdroje bez stropu, takže dialog stál na nejpomalejším
+# (WebShare/Luna/Sosáč mají timeout 40 s na každý dotaz), i když ostatní dávno odpověděly. Po
+# deadlinu se vezme, co je; opozdilec se počítá jako výpadek (výsledek se necachuje) a doběhne
+# na pozadí — sám si výsledek do své cache uloží pro příště.
+SOURCE_DEADLINE = 15.0
+# kolik dalších názvů (originál, anglický, český/slovenský z Wikidat) jde do fulltextových dotazů;
+# každý je u každého zdroje další HTTP dotaz (až 10 variant × 5 zdrojů = 45 dotazů na titul)
+MAX_TITLE_VARIANTS = 3
+# tvar částí odkazu `hs:<id>:<hash>` — id i hash jdou do cesty URL na api.hellspy.to
+_HS_ID_RE = re.compile(r"^\d{1,20}$")
+_HS_HASH_RE = re.compile(r"^[0-9A-Za-z]{1,64}$")
 
 SOURCE_NAMES = {"main": "Luna", "search": "WebShare", "ws": "WebShare", "sosac": "Sosáč",
                 "hs": "HellSpy", "st": "Sledujteto", "fs": "FastShare", "cz": "CZtor", "torrent": "Torrent", "dav": "Úložiště"}
@@ -557,6 +569,18 @@ class Engine:
                 "cztor": self._cz_paired,
                 "storage": bool(self.storages),
                 "torrent": self.prowlarr is not None}
+
+    def _streams_cache_key(self, ctype, item_id, alt=None):
+        """Klíč 72h cache streamů — nese i otisk zapnutých zdrojů a účtů. Bez něj měl titul po
+        zapnutí nového zdroje (nebo změně účtu) 72 h stejný seznam bez něj a Kodi to obcházelo
+        ručním `clear_cache()` jen u CZtoru (audit 2026-09-19). `streams5` = oprava filtru
+        (krátké slovo na začátku názvu), `streams6` = otisk zdrojů."""
+        podpis = {**self.sources(), "ws": self._opt("ws_username").strip(), "st": str(self._opt("st_email") or "").strip(),
+                  "fs": str(self._opt("fs_username") or "").strip(),
+                  "dav": [str(self._opt(f"dav{n}_url") or "").strip() for n in range(1, 4)],
+                  "search": bool(self._opt("search_streams", True)), "cross": bool(self._opt("cross_search", True))}
+        otisk = hashlib.sha1(json.dumps(podpis, sort_keys=True, default=str).encode("utf-8")).hexdigest()[:10]
+        return f"streams6:{ctype}:{item_id}:{alt or ''}:{otisk}"
 
     def api_for(self, item_id):
         api = self.sosac if is_sosac_id(item_id) else self.luna
@@ -1208,13 +1232,15 @@ class Engine:
         """
         title = meta.get("_title") or meta.get("name") or ""
         origs = self.original_titles(meta, ctype, alt)
+        # dotazy jen z prvních variant (originál, anglický, český…) — filtr níž bere všechny
+        dotazy_z = origs[:MAX_TITLE_VARIANTS]
         if video:
             episode = f"S{int(video.get('season') or 0):02d}E{int(video.get('episode') or 0):02d}"
-            queries = [f"{title} {episode}"] + [f"{o} {episode}" for o in origs]
+            queries = [f"{title} {episode}"] + [f"{o} {episode}" for o in dotazy_z]
         else:
             year = self._year(meta)
             queries = [f"{title} {year}" if year else title, title]
-            queries += [f"{o} {year}" if year else o for o in origs]
+            queries += [f"{o} {year}" if year else o for o in dotazy_z]
         # fulltext WebShare vrací i soubory, které mají společné jen část slov („Krev mé krve" u
         # Hry o trůny i Cizinky) — bereme jen ty, co mají všechna slova názvu (nebo originálu)
         # a u epizody i její číslo (S02E01 / 2x01 / 02x01)
@@ -1265,6 +1291,10 @@ class Engine:
         jeden dotaz vrátí jen část souborů a nespárované streamy pak zůstanou bez odkazu.
         """
         if not self.ws:
+            # účet je, ale přihlášení selhalo (síť, 5xx): je to výpadek zdroje, ne „bez WebShare" —
+            # jinak by se seznam bez hlavního zdroje uložil na 72 h (audit 2026-09-19)
+            if failures is not None and self._opt("ws_username").strip():
+                failures.append(("WebShare", self.ws_error or WebshareError("přihlášení selhalo")))
             return []
         queries, relevant = self._title_queries(meta, video, ctype, alt, strict)
         out, seen = [], set()
@@ -2184,16 +2214,20 @@ class Engine:
             cross = self._cross_streams if self._opt("cross_search", True) else (lambda *a, **k: [])
 
             def ostatni(m):
-                """Zdroje, které hledají podle názvu z `m`, a nakonec titulky z WebShare."""
-                return (
+                """Zdroje, které hledají podle názvu z `m`, a nakonec titulky z WebShare —
+                ty jen s `probe_audio` (hromadná klasifikace katalogu je nikdy nepoužije,
+                a byly to necachované dotazy za každou variantu názvu)."""
+                ulohy = [
                     ("Luna" if is_sosac_id(base_id) else "Sosáč", lambda: cross(ctype, item_id, m, alt, failures)),
                     ("WebShare", lambda: self._webshare_streams(m, video, ctype, alt, strict, failures)),
                     ("HellSpy", lambda: self._hellspy_streams(m, video, ctype, alt, strict, failures)),
                     ("Sledujteto", lambda: self._sledujteto_streams(m, video, ctype, alt, strict, failures)),
                     ("FastShare", lambda: self._fastshare_streams(m, video, ctype, alt, strict, failures)),
                     ("CZtor", lambda: self._cztor_streams(m, video, ctype, alt, failures)),
-                    (SUBS_TASK, lambda: self._webshare_subtitles(m, video, ctype, alt)),
-                )
+                ]
+                if probe_audio:
+                    ulohy.append((SUBS_TASK, lambda: self._webshare_subtitles(m, video, ctype, alt)))
+                return ulohy
 
             def bezpecne(label, fetch):
                 try:
@@ -2205,9 +2239,11 @@ class Engine:
                     return []
 
             def kolo(ulohy):
-                """Jedna souběžná dávka: vrátí výsledky v pořadí úloh. Zdroje jsou nezávislé
+                """Jedna souběžná dávka: vrátí `{label: výsledek}`. Zdroje jsou nezávislé
                 a každý má vlastní timeouty (15–40 s) — za sebou byl studený výpis 8–15
-                sériových dotazů. `gather` čeká po vteřinách a ptá se `should_stop()`."""
+                sériových dotazů. `gather` čeká po vteřinách a ptá se `should_stop()`;
+                po `SOURCE_DEADLINE` se dál nečeká — opozdilec se počítá jako výpadek
+                (výsledek se necachuje) a doběhne si na pozadí."""
                 pool = ThreadPoolExecutor(max_workers=len(ulohy))
                 futures = [pool.submit(bezpecne, label, fetch) for label, fetch in ulohy]
                 label_by_future = dict(zip(futures, (label for label, _fetch in ulohy)))
@@ -2218,13 +2254,34 @@ class Engine:
                     tick()
                     if on_source_done and label != SUBS_TASK:
                         on_source_done(label, len(future.result()))
-                return [future.result() for future in gather(pool, futures, self.should_stop, on_done=hotovo)]
+                out = {}
+                for future in gather(pool, futures, self.should_stop, on_done=hotovo, deadline=SOURCE_DEADLINE):
+                    label = label_by_future[future]
+                    if future.done():
+                        out[label] = future.result()
+                        continue
+                    out[label] = []
+                    timings["zdroje"][label] = f">{SOURCE_DEADLINE:g}s"
+                    if label != SUBS_TASK:
+                        _LOGGER.info("streamy %s: %s neodpověděl do %g s, bere se bez něj", item_id, label,
+                                     SOURCE_DEADLINE)
+                        failures.append((label, TimeoutError(f"neodpověděl do {SOURCE_DEADLINE:g} s")))
+                return out
+
+            def slozit(vysledky, ulohy):
+                """Streamy v pořadí úloh (Luna/Sosáč napřed — na tom stojí párování v _merge_direct)."""
+                found = []
+                for label, _fetch in ulohy:
+                    if label != SUBS_TASK:
+                        found += vysledky.get(label) or []
+                return found
 
             # Hlavní zdroj (Luna/Sosáč podle id) běží souběžně s ostatními — dřív se na něj
             # čekalo předem (studená Luna ~6 s, Office 2026-09-18), jen kvůli výjimce níž.
             mark = time.monotonic()
-            vysledky = kolo([(primary_label, primary)] + list(ostatni(meta)))
-            found, vysledky = vysledky[0], vysledky[1:]
+            ulohy = ostatni(meta)
+            vysledky = kolo([(primary_label, primary)] + ulohy)
+            found = vysledky.get(primary_label) or []
             timings["hlavni"] = timings["zdroje"].get(primary_label, 0)
             # titul otevřený jen podle IMDb id (z databáze filmů) má v metadatech mezinárodní
             # přepis („Sunday League…“), pod kterým Sosáč nic nenajde. Když hlavní zdroj nic
@@ -2236,12 +2293,11 @@ class Engine:
                     meta = local
                     timings["znovu česky"] = True
                     self._check_stop()
-                    vysledky = kolo(list(ostatni(meta)))
+                    ulohy = ostatni(meta)
+                    vysledky = kolo(ulohy)
             timings["souběžně"] = since(mark)
-            subs = vysledky[-1]
-            # pořadí zdrojů drží (Luna/Sosáč napřed) — na něm stojí párování v _merge_direct
-            for part in vysledky[:-1]:
-                found = found + part
+            subs = vysledky.get(SUBS_TASK) or []
+            found = found + slozit(vysledky, ulohy)
             for stream in found:
                 parse_stream(stream)
                 # bez kvality v názvu („Matrix (1999).mkv") by soubor spadl na konec seznamu,
@@ -2271,7 +2327,7 @@ class Engine:
 
         # „streams2“: seznamy uložené před doplněním českých názvů z Wikidat byly u titulů
         # bez Luny/TMDB ořezané přísným filtrem — nový klíč je jednorázově obnoví
-        cache_key = f"streams5:{ctype}:{item_id}:{alt or ''}"   # 5 = oprava filtru (krátké slovo na začátku názvu)
+        cache_key = self._streams_cache_key(ctype, item_id, alt)
         # vlastní úložiště mimo 72h cache streamů — nový soubor se má ukázat hned,
         # jak ho uvidí seznam úložiště (ten si drží vlastní hodinovou paměť). S
         # `probe_audio=False` (hromadná klasifikace) se přeskakuje úplně — cizí
@@ -2435,6 +2491,10 @@ class Engine:
         if url.startswith("hs:"):
             api = self.hs or HellspyApi(cache=self.store)
             file_id, _sep, file_hash = url[3:].partition(":")
+            # odkaz posílá i klient (Stremio `/play/`): bez kontroly by `../` nebo `?` v id
+            # měnily cílový endpoint na api.hellspy.to (audit 2026-09-19)
+            if not (_HS_ID_RE.match(file_id) and _HS_HASH_RE.match(file_hash)):
+                raise NokturnoError("HellSpy: neplatný odkaz.")
             try:
                 return api.file_link(file_id, file_hash)
             except HellspyError as err:

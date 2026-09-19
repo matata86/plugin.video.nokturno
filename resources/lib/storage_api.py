@@ -35,6 +35,7 @@ from concurrent.futures import ThreadPoolExecutor
 from html.parser import HTMLParser
 
 from abort import check as check_stop, gather
+from safe_redirect import OPENER as SAFE_OPENER
 
 SLOTS = 3                   # kolik vlastních úložišť jde nastavit
 TIMEOUT = 20
@@ -169,7 +170,8 @@ class StorageApi:
         req = urllib.request.Request(url, data=data, method=method,
                                      headers={"User-Agent": UA, **self.headers(), **(headers or {})})
         try:
-            return (self.opener.open if self.opener else urllib.request.urlopen)(req, timeout=TIMEOUT)
+            # výchozí opener při 30x na cizí host nepošle Authorization (lib/safe_redirect.py)
+            return (self.opener or SAFE_OPENER).open(req, timeout=TIMEOUT)
         except urllib.error.HTTPError as e:
             e.close()
             if e.code in (401, 403):

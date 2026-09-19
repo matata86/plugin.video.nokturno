@@ -13,9 +13,12 @@ Bez závislostí na Kodi — jde testovat samostatně:
     python3 tmdb_api.py <api_key> movie "matrix"
 """
 import json
+import re
 import urllib.error
 import urllib.parse
 import urllib.request
+
+_IMDB_RE = re.compile(r"^tt\d{1,12}$")
 from concurrent.futures import ThreadPoolExecutor
 
 BASE = "https://api.themoviedb.org/3"
@@ -235,6 +238,9 @@ class TmdbApi:
     def meta(self, ctype, imdb_id):
         """Detail podle `tt…` id (přes TMDB `/find`) — titul, popis, žánry, obsazení,
         u seriálu i epizody (`videos`, stejný tvar jako Luna/Cinemeta)."""
+        if not _IMDB_RE.match(str(imdb_id or "")):
+            # id posílá i klient (Stremio) — jde do cesty URL, `../` by měnilo endpoint
+            raise TmdbError(f"neplatné IMDb id: {str(imdb_id)[:20]!r}")
         kind = self._kind(ctype)
         # u filmu je certifikace v `release_dates` (podle země a uvedení), u seriálu
         # v `content_ratings` (jedna hodnota na zemi) — jiný název i tvar odpovědi

@@ -58,6 +58,12 @@ _SECRET_RE = re.compile(
     r"(\s*[=:]\s*['\"]?|['\"]\s*:\s*['\"]?)([^\s'\"&,;)\]}]+)")
 _EMAIL_RE = re.compile(r"[\w.+\-]+@[\w\-]+(?:\.[\w\-]+)+")
 _IP_RE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
+# IPv6: aspoň dva dvojtečkové oddělovače a buď `::`, nebo hex písmeno, nebo 4+ skupin —
+# jinak by to bralo i čas „20:03:59" (audit 2026-09-19)
+_IP6_RE = re.compile(r"(?<![\w:])(?:[0-9a-f]{0,4}:){2,7}[0-9a-f]{0,4}(?![\w:])", re.I)
+# `Authorization: Basic Zm9v…` / `Bearer eyJ…` — hodnota bez číslice `_LONG_TOKEN_RE` nechytí
+# a `_SECRET_RE` maskuje jen první slovo za dvojtečkou (tedy „Basic")
+_AUTH_RE = re.compile(r"(?i)\b(basic|bearer)\s+([A-Za-z0-9+/=_\-.]{6,})")
 _HOME_RE = re.compile(r"(?i)(/home/|/Users/|[A-Z]:\\Users\\|/var/mobile/Containers/Data/Application/)[^/\\\s'\"]+")
 _LONG_TOKEN_RE = re.compile(r"\b(?=[A-Za-z0-9_\-]*\d)(?=[A-Za-z0-9_\-]*[A-Za-z])[A-Za-z0-9_\-]{24,}\b")
 _STREMIO_CFG_RE = re.compile(r"/c/[^/\s'\"]+")
@@ -79,11 +85,19 @@ def scrub(text):
             host = "<ip>"
         return f"{scheme}://{host}/…" if rest.strip("/") else f"{scheme}://{host}"
 
+    def ip6(m):
+        s = m.group(0)
+        if "::" in s or re.search(r"[a-f]", s, re.I) or s.count(":") >= 4:
+            return "<ip>"
+        return s
+
     text = _URL_RE.sub(url, text)
     text = _STREMIO_CFG_RE.sub("/c/<nastavení>", text)
     text = _EMAIL_RE.sub("<e-mail>", text)
+    text = _AUTH_RE.sub(lambda m: f"{m.group(1)} ***", text)
     text = _SECRET_RE.sub(lambda m: f"{m.group(1)}{m.group(2)}***", text)
     text = _IP_RE.sub("<ip>", text)
+    text = _IP6_RE.sub(ip6, text)
     text = _HOME_RE.sub(lambda m: m.group(1) + "~", text)
     text = _LONG_TOKEN_RE.sub("***", text)
     return text

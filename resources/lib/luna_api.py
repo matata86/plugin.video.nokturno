@@ -63,6 +63,15 @@ def clean_label(text):
     return text.strip()
 
 
+_ITEM_RE = re.compile(r"^[A-Za-z0-9_:.\-]{1,64}$")
+
+
+def _check_item_id(item_id):
+    """Id jde do cesty URL — `../` nebo `?` by měnily endpoint (id posílá i klient Stremia)."""
+    if not _ITEM_RE.match(str(item_id or "")):
+        raise LunaError(f"neplatné id: {str(item_id)[:20]!r}")
+
+
 class LunaError(Exception):
     pass
 
@@ -140,9 +149,11 @@ class LunaApi:
         return loader()
 
     def meta(self, ctype, item_id):
+        _check_item_id(item_id)
         return self._get_cached(self._meta_url("meta", ctype, item_id + ".json")).get("meta") or {}
 
     def _stream_source(self, prefix, ctype, item_id):
+        _check_item_id(item_id)
         parts = [self.base] + ([prefix] if prefix else []) + [self.token, "stream", ctype, item_id + ".json"]
         url = "/".join(parts)
         loader = lambda: self._get(url).get("streams") or []  # noqa: E731

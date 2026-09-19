@@ -11,8 +11,11 @@ Bez závislostí na Kodi — jde testovat samostatně:
     python3 cinemeta_api.py movie "jursky svet"
 """
 import json
+import re
 import urllib.parse
 import urllib.request
+
+_ID_RE = re.compile(r"^[A-Za-z0-9_.\-]{1,40}$")
 
 BASE = "https://v3-cinemeta.strem.io"
 TIMEOUT = 15
@@ -87,6 +90,8 @@ class CinemetaApi:
         return loader()
 
     def meta(self, ctype, imdb_id):
+        if not _ID_RE.match(str(imdb_id or "")) or ctype not in ("movie", "series"):
+            raise CinemetaError(f"neplatné id: {str(imdb_id)[:20]!r}")   # id jde do cesty URL
         return self._get_cached(f"{BASE}/meta/{ctype}/{imdb_id}.json", ttl=SEARCH_TTL).get("meta") or {}
 
 

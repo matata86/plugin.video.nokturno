@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="6.0.4" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="6.1.4~beta1" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -23,7 +23,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>6.0.4 – HellSpy: po první chybě HTTP 429 se HellSpy na 10 minut přeskočí úplně, ne jen u jednoho titulu (katalog „Nově přidané s CZ dabingem/titulky“ ho volal pro každý titul zvlášť a blokaci prodlužoval)
+    <news>6.1.4~beta1 – Rychlost a bezpečnost (audit): zdroj, který neodpoví do 15 s, už nezdržuje seznam streamů (bere se, co je, opozdilec doběhne na pozadí); selhané přihlášení k WebShare se počítá jako výpadek, ne jako „bez WebShare“ na 72 h; cache streamů se rozliší podle zapnutých zdrojů a účtů (po zapnutí nového zdroje se titul najde znovu); přesměrování na cizí server nepošle heslo úložiště ani cookie FastShare; hlášení o pádech maskuje i Basic/Bearer a IPv6
+6.0.4 – HellSpy: po první chybě HTTP 429 se HellSpy na 10 minut přeskočí úplně, ne jen u jednoho titulu (katalog „Nově přidané s CZ dabingem/titulky“ ho volal pro každý titul zvlášť a blokaci prodlužoval)
 6.0.3 – Stahování: streamy z CZtoru se znovu stahují (dřív skončily chybou „unknown url type: cz“) a stažený soubor už nemá zdvojenou příponu (….mkv].mkv)
 6.0.2 – HellSpy: po chybě HTTP 429 (server omezil tvoji adresu) se hledání na HellSpy hned ukončí, další dotazy omezení jen prodlužovaly
 6.0.1 – Synchronizace mezi Kodi přes Home Assistant: změna poslaná se zpožděním (mazání historie hledání, zhlédnuto, Můj seznam) dorazí i na Kodi, které se mezitím synchronizovalo

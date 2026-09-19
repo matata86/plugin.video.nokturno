@@ -20,6 +20,8 @@ import struct
 import urllib.parse
 import urllib.request
 
+from safe_redirect import OPENER as _SAFE_OPENER
+
 HEAD = 128 * 1024      # začátek souboru: na Matrosku i AVI bohatě stačí
 # `moov` u MP4 se dotahuje po oknech; skoro vždy stačí to první
 MOOV_WINDOWS = (512 * 1024, 2 * 1024 * 1024, 6 * 1024 * 1024)
@@ -71,7 +73,9 @@ def fetch_sized(url, start=None, end=None, length=HEAD, opener=None):
         rng, want = f"bytes={start}-{last}", last - start + 1
     url, extra = split_headers(url)
     req = urllib.request.Request(url, headers={"Range": rng, "User-Agent": UA, **extra})
-    opened = (opener or urllib.request).urlopen(req, timeout=TIMEOUT)
+    # bez vlastního openeru přes ten, který při přesměrování na cizí host nepošle
+    # Authorization/Cookie z odkazu za svislítkem (lib/safe_redirect.py)
+    opened = opener.urlopen(req, timeout=TIMEOUT) if opener else _SAFE_OPENER.open(req, timeout=TIMEOUT)
     with opened as resp:
         status = getattr(resp, "status", None) or resp.getcode()
         # číst jen výřez: server, který Range neumí, pošle celý soubor se stavem 200
