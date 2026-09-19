@@ -43,6 +43,7 @@ from enrich import enrich, enrich_one, shutdown_pool as release_enrich  # noqa: 
 from hellspy_api import HellspyApi, HellspyError  # noqa: E402
 from sledujteto_api import SledujtetoApi, SledujtetoError  # noqa: E402
 from fastshare_api import FastshareApi, FastshareError  # noqa: E402
+from cztor_api import CztorApi, CztorError  # noqa: E402
 from storage_api import SLOTS as STORAGE_SLOTS, StorageApi, StorageError, parse_ref  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
 from source_errors import describe_failure, summarize as summarize_failures  # noqa: E402
@@ -140,12 +141,13 @@ SOSAC_TAG = "[COLOR FFE0A040]Sosáč[/COLOR]"
 HS_TAG = "[COLOR FFFF8A6B]HellSpy[/COLOR]"
 ST_TAG = "[COLOR FF4DD0C0]Sledujteto[/COLOR]"
 FS_TAG = "[COLOR FFF2C14E]FastShare[/COLOR]"
+CZ_TAG = "[COLOR FFFF6FB5]CZtor[/COLOR]"
 WS_TAG = "[COLOR FF60B0FF]WebShare[/COLOR]"
 DAV_COLOR = "FFB0E57C"
 DAV_TAG = f"[COLOR {DAV_COLOR}]Úložiště[/COLOR]"
 LUNA_TAG = "[COLOR FFB39DFF]Luna[/COLOR]"
 SOURCE_TAGS = {"main": LUNA_TAG, "search": WS_TAG, "sosac": SOSAC_TAG, "ws": WS_TAG, "hs": HS_TAG, "st": ST_TAG,
-               "fs": FS_TAG, "dav": DAV_TAG}
+               "fs": FS_TAG, "cz": CZ_TAG, "dav": DAV_TAG}
 QUALITY_COLORS = {4: "FFE06A60", 3: "FF6FD18A", 2: "FF6FB6F0", 1: "FFA0A0A0"}
 # krátce, ať zbyde místo na zbytek řádku: „Full HD" se v úzkém sloupci nevyplatí
 QUALITY_NAMES = {4: "4K", 3: "FHD", 2: "HD", 1: "SD"}
@@ -182,7 +184,7 @@ if _old_settings:
     except Exception as _e:  # noqa: BLE001
         xbmc.log(f"[{ADDON_ID}] migrace nastavení: {_e}", xbmc.LOGWARNING)
 STORE = Store(PROFILE)
-Errors = (LunaError, CinemetaError, TmdbError, SosacError, WebshareError, HellspyError, SledujtetoError, FastshareError,
+Errors = (LunaError, CinemetaError, TmdbError, SosacError, WebshareError, HellspyError, SledujtetoError, FastshareError, CztorError,
           TraktError, StorageError, NokturnoError)
 
 # po aktualizaci doplňku (i downgradu) smazat cache API — jinak by staré verze
@@ -356,6 +358,21 @@ def get_fastshare():
     return FastshareApi(user, pw, cache=STORE)
 
 
+def cztor_client():
+    """Klient CZtor i bez spárování — pro párování a stav účtu. Tokeny drží úložiště
+    doplňku, takže je vidí plugin i služba (obnovovací token se použitím mění)."""
+    name = xbmc.getInfoLabel("System.FriendlyName") or "Kodi"
+    return CztorApi(STORE, device_name=f"Nokturno ({name})")
+
+
+def get_cztor():
+    """CZtor — jen zapnutý a spárovaný. Heslo účtu doplněk nikdy nevidí (párování PINem)."""
+    if not on("cz_enabled", "false"):
+        return None
+    api = cztor_client()
+    return api if api.paired() else None
+
+
 def get_storages():
     """Vlastní úložiště z nastavení (až tři). Síť se tu nevolá — seznam souborů
     se načte až při prvním hledání a hodinu se pamatuje (`storage_api.INDEX_TTL`)."""
@@ -457,7 +474,7 @@ class KodiEngine(Engine):
     """
 
     FACTORIES = {"luna": get_luna, "sosac": get_sosac, "sosac_db": get_sosac_db, "ws": get_webshare,
-                 "hs": get_hellspy, "st": get_sledujteto, "fs": get_fastshare, "storages": get_storages, "tmdb": get_tmdb,
+                 "hs": get_hellspy, "st": get_sledujteto, "fs": get_fastshare, "cz": get_cztor, "storages": get_storages, "tmdb": get_tmdb,
                  "cinemeta": get_cinemeta, "trend": get_trend, "dash": get_dash}
 
     def __init__(self):
@@ -476,6 +493,10 @@ class KodiEngine(Engine):
     hs = property(lambda self: self._client("hs"))
     st = property(lambda self: self._client("st"))
     fs = property(lambda self: self._client("fs"))
+    cz = property(lambda self: self._client("cz"))
+
+    def cztor_client(self):
+        return cztor_client()
     storages = property(lambda self: self._client("storages"))
     tmdb = property(lambda self: self._client("tmdb"))
     cinemeta = property(lambda self: self._client("cinemeta"))
@@ -487,7 +508,7 @@ def get_apis():
     """Klienty zdrojů pod jmény, na která je zvyklý zbytek doplňku, plus jádro pod `engine`."""
     engine = KodiEngine()
     return {"engine": engine, "luna": engine.luna, "sosac": engine.sosac, "ws": engine.ws, "hs": engine.hs,
-            "st": engine.st, "fs": engine.fs, "dav": engine.storages, "cinemeta": engine.cinemeta, "sosac_db": engine.sosac_db,
+            "st": engine.st, "fs": engine.fs, "cz": engine.cz, "dav": engine.storages, "cinemeta": engine.cinemeta, "sosac_db": engine.sosac_db,
             "tmdb": engine.tmdb, "trend": engine.trend, "dash": engine.dash}
 
 
@@ -521,7 +542,7 @@ def log_error(err):
 SOURCE_LABELS = {
     LunaError: "Luna", CinemetaError: "Cinemeta", TmdbError: "TMDB",
     SosacError: "Sosáč", WebshareError: "WebShare", HellspyError: "HellSpy", SledujtetoError: "Sledujteto",
-    FastshareError: "FastShare", StorageError: L(30405, "Úložiště"),
+    FastshareError: "FastShare", CztorError: "CZtor", StorageError: L(30405, "Úložiště"),
     TraktError: "Trakt.tv",
 }
 
@@ -1241,7 +1262,8 @@ def pref_from_param(value):
 
 
 SOURCE_GROUP = {"main": "Luna", "search": "WebShare", "ws": "WebShare",
-                "sosac": "Sosáč", "hs": "HellSpy", "st": "Sledujteto", "fs": "FastShare", "dav": L(30405, "Úložiště")}
+                "sosac": "Sosáč", "hs": "HellSpy", "st": "Sledujteto", "fs": "FastShare", "cz": "CZtor",
+                "dav": L(30405, "Úložiště")}
 
 
 def stream_tracks(s):
@@ -2174,6 +2196,11 @@ def _wizard_accounts(dialog):
                 ADDON.setSetting("fs_password", pwd)
                 ADDON.setSetting("fs_enabled", "true")
 
+    if dialog.yesno(L(30560, "CZtor"), L(30573, "Máš předplatné CZtor (cztor.com)?[CR]"
+                                                "Zařízení se spáruje PINem, heslo není potřeba.")):
+        ADDON.setSetting("cz_enabled", "true")
+        cztor_pair()
+
     if dialog.yesno(L(30353, "Vlastní databáze filmů a seriálů"),
                      L(30354, "Chceš zadat zdarma klíč TMDB, aby popisy a obsazení filmů byly česky? (nepovinné)")):
         dialog.ok(L(30353, "Vlastní databáze filmů a seriálů"),
@@ -2252,6 +2279,7 @@ def test_sources():
     """
     luna, sosac, ws, hs, st = get_luna(), get_sosac(), get_webshare(), get_hellspy(), get_sledujteto()
     fs = get_fastshare()
+    cz = get_cztor()
     storages = get_storages()
     tmdb = get_tmdb()
 
@@ -2266,6 +2294,13 @@ def test_sources():
         if account.get("unlimited"):
             return L(30425, "neomezené stahování")
         return f"{L(30426, 'kredit')} {account.get('credit_mb', 0) / 1024:.1f} GB"
+
+    def check_cztor():
+        # párování se ověří dotazem na účet; bez aktivního předplatného se katalog neotevře
+        account = cz.profile()
+        if not account.get("active"):
+            raise CztorError(L(30572, "Předplatné CZtor není aktivní."))
+        return f"{account.get('plan')} → {account.get('valid_until')}"
 
     def check_luna():
         # manifest Luna vydá i pro neplatný token (jen s výchozím nastavením), takže
@@ -2285,6 +2320,7 @@ def test_sources():
         "HellSpy": (lambda: len(HellspyApi().search("matrix", limit=5)[0])) if hs else None,
         "Sledujteto": check_sledujteto if st else None,
         "FastShare": check_fastshare if fs else None,
+        "CZtor": check_cztor if cz else None,
         # jen ověření klíče, mimo cache — 401 se překládá na "neplatný TMDB API klíč" v tmdb_api._get
         "TMDB": (lambda: tmdb._get("/configuration") and None) if tmdb else None,
         # jen kořen složky — ověří adresu i heslo, celý strom se prochází až při hledání
@@ -2625,6 +2661,7 @@ def stats_sources():
         ("hellspy", on("hs_enabled", "false")),
         ("sledujteto", on("st_enabled", "false") and bool(setting("st_email").strip())),
         ("fastshare", on("fs_enabled", "false") and bool(setting("fs_username").strip())),
+        ("cztor", on("cz_enabled", "false")),
         ("tmdb", bool(setting("tmdb_api_key").strip())),
         ("trakt", on("trakt_enabled", "false")),
     ) if active]
@@ -4513,6 +4550,66 @@ def trakt_auth():
     notify(L(30097) if tokens else L(30096), xbmcgui.NOTIFICATION_INFO if tokens else xbmcgui.NOTIFICATION_ERROR)
 
 
+def cztor_pair():
+    """Spáruje zařízení s účtem CZtor: PIN se potvrdí na webu, doplněk se jen ptá."""
+    api = cztor_client()
+    try:
+        pin = api.start_pin()
+    except CztorError as e:
+        log_error(e)
+        xbmcgui.Dialog().ok(L(30560, "CZtor"), f"{L(30569, 'Spárování s CZtor se nepovedlo.')}[CR]{e}")
+        return
+    dialog = xbmcgui.DialogProgress()
+    text = L(30567, "Na telefonu nebo počítači otevři[CR][B]%s[/B][CR]přihlas se a zadej PIN [B]%s[/B]")
+    dialog.create(L(30560, "CZtor"), text % (pin["url"], pin["pin"]))
+    total = max(30, pin["expires"] - time.time())
+    paired, error = False, None
+    while time.time() < pin["expires"] and not dialog.iscanceled() and not MONITOR.abortRequested():
+        dialog.update(int(100 - (pin["expires"] - time.time()) / total * 100))
+        if MONITOR.waitForAbort(pin["interval"]) or dialog.iscanceled():
+            break
+        try:
+            paired = api.poll_pin(pin["poll_token"])
+        except CztorError as e:
+            log_error(e)
+            error = e
+            break
+        if paired:
+            break
+    canceled = dialog.iscanceled()
+    dialog.close()
+    if not paired:
+        if error or not canceled:
+            notify(L(30569, "Spárování s CZtor se nepovedlo."), xbmcgui.NOTIFICATION_ERROR)
+        return
+    ADDON.setSetting("cz_enabled", "true")
+    STORE.clear_cache()   # seznamy streamů bez CZtor jinak drží 72 h
+    cztor_status()
+
+
+def cztor_status():
+    api = cztor_client()
+    if not api.paired():
+        xbmcgui.Dialog().ok(L(30560, "CZtor"), L(30571, "CZtor není spárovaný — použij Spárovat PINem."))
+        return
+    try:
+        account = api.profile()
+    except CztorError as e:
+        log_error(e)
+        xbmcgui.Dialog().ok(L(30560, "CZtor"), str(e))
+        return
+    text = L(30568, "CZtor: %s, předplatné %s do %s") % (
+        account.get("name") or "?", account.get("plan") or "?", account.get("valid_until") or "?")
+    if not account.get("active"):
+        text += "[CR]" + L(30572, "Předplatné CZtor není aktivní.")
+    xbmcgui.Dialog().ok(L(30560, "CZtor"), text)
+
+
+def cztor_logout():
+    cztor_client().logout()
+    notify(L(30570, "CZtor odhlášen."))
+
+
 def trakt_logout():
     STORE.set_trakt({})
     notify(L(30098))
@@ -4537,6 +4634,10 @@ def router(query):
         "download_retry": lambda: download_retry(p["id"]),
         "trakt_auth": trakt_auth,
         "trakt_logout": trakt_logout,
+        # akce z nastavení, žádný výpis — succeeded=False jako u "clear_cache"
+        "cztor_pair": lambda: (cztor_pair(), xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
+        "cztor_status": lambda: (cztor_status(), xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
+        "cztor_logout": lambda: (cztor_logout(), xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
         # succeeded=False jako u "settings" — jinak by Kodi navigoval do prázdné složky
         # a musel by se dát Zpět, i když jde jen o akci, ne o výpis
         "clear_cache": lambda: (STORE.clear_cache(), notify(L(30099)),

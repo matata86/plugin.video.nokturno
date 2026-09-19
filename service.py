@@ -824,6 +824,7 @@ def stats_context(addon):
         ("hellspy", zapnuto("hs_enabled", "false")),
         ("sledujteto", zapnuto("st_enabled", "false") and vyplneno("st_email")),
         ("fastshare", zapnuto("fs_enabled", "false") and vyplneno("fs_username")),
+        ("cztor", zapnuto("cz_enabled", "false")),
         ("tmdb", vyplneno("tmdb_api_key")),
         ("trakt", zapnuto("trakt_enabled", "false")),
     ) if active]

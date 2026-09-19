@@ -1512,3 +1512,59 @@ msgstr "Zobrazit všechny streamy"
 msgctxt "#30559"
 msgid "Hungarian"
 msgstr "Maďarština"
+
+msgctxt "#30560"
+msgid "CZtor"
+msgstr "CZtor"
+
+msgctxt "#30561"
+msgid "Enable CZtor"
+msgstr "Zapnout CZtor"
+
+msgctxt "#30562"
+msgid "CZtor catalogue with a subscription (cztor.com, storage at giganthost.com). The device is paired with a PIN — the account password is never entered into the add-on."
+msgstr "Katalog CZtor na předplatné (cztor.com, úložiště giganthost.com). Zařízení se spáruje PINem — heslo účtu se do doplňku nezadává."
+
+msgctxt "#30563"
+msgid "Pair with PIN"
+msgstr "Spárovat PINem"
+
+msgctxt "#30564"
+msgid "Open cztor.com/activate on your phone or computer, log in and enter the PIN shown here."
+msgstr "Na telefonu nebo počítači otevři cztor.com/activate, přihlas se a zadej PIN, který se tu ukáže."
+
+msgctxt "#30565"
+msgid "Unpair this device"
+msgstr "Odhlásit toto zařízení"
+
+msgctxt "#30566"
+msgid "Account status"
+msgstr "Stav účtu"
+
+msgctxt "#30567"
+msgid "On your phone or computer open[CR][B]%s[/B][CR]log in and enter PIN [B]%s[/B]"
+msgstr "Na telefonu nebo počítači otevři[CR][B]%s[/B][CR]přihlas se a zadej PIN [B]%s[/B]"
+
+msgctxt "#30568"
+msgid "CZtor: %s, plan %s until %s"
+msgstr "CZtor: %s, předplatné %s do %s"
+
+msgctxt "#30569"
+msgid "Pairing with CZtor failed."
+msgstr "Spárování s CZtor se nepovedlo."
+
+msgctxt "#30570"
+msgid "CZtor unpaired."
+msgstr "CZtor odhlášen."
+
+msgctxt "#30571"
+msgid "CZtor is not paired — use Pair with PIN."
+msgstr "CZtor není spárovaný — použij Spárovat PINem."
+
+msgctxt "#30572"
+msgid "CZtor subscription is not active."
+msgstr "Předplatné CZtor není aktivní."
+
+msgctxt "#30573"
+msgid "Do you have a CZtor subscription (cztor.com)?[CR]The device is paired with a PIN, no password needed."
+msgstr "Máš předplatné CZtor (cztor.com)?[CR]Zařízení se spáruje PINem, heslo není potřeba."

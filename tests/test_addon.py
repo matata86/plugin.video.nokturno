@@ -2446,6 +2446,76 @@ class TestObsahZDashboardu(unittest.TestCase):
         self.assertEqual(xbmc.builtins, [])
 
 
+class FakeCztor:
+    """Stačí na párování a stav účtu — síť ani tokeny nejsou potřeba."""
+
+    def __init__(self, polls=(False, True), active=True):
+        self.polls = list(polls)
+        self.active = active
+        self.logged_out = False
+        self._paired = False
+
+    def paired(self):
+        return self._paired
+
+    def start_pin(self):
+        return {"pin": "434252", "poll_token": "P", "expires": time.time() + 600, "interval": 1,
+                "url": "https://cztor.com/activate"}
+
+    def poll_pin(self, token):
+        self._paired = self.polls.pop(0)
+        return self._paired
+
+    def profile(self):
+        return {"name": "Tester", "plan": "Basic", "active": self.active, "valid_until": "2026-10-13"}
+
+    def logout(self):
+        self.logged_out = True
+
+
+class TestCztor(unittest.TestCase):
+    def setUp(self):
+        reset_kodi()
+        default.STORE.save("cztor_session", {})
+
+    def test_bez_prepinace_ani_parovani_neni_zdroj(self):
+        self.assertIsNone(default.get_cztor())
+        xbmcaddon.settings["cz_enabled"] = "true"
+        self.assertIsNone(default.get_cztor(), "zapnutý, ale nespárovaný")
+        default.STORE.save("cztor_session", {"device_id": "d", "access_token": "A", "refresh_token": "R",
+                                             "expires": time.time() + 3600})
+        self.assertIsNotNone(default.get_cztor())
+        self.assertIsNotNone(default.KodiEngine().cz)
+        self.assertIn("cztor", default.stats_sources())
+
+    def test_parovani_pinem(self):
+        fake = FakeCztor()
+        with mock.patch.object(default, "cztor_client", return_value=fake), \
+                mock.patch.object(default.MONITOR, "waitForAbort", return_value=False):
+            default.router("action=cztor_pair")
+        self.assertEqual(xbmcaddon.settings.get("cz_enabled"), "true")
+        self.assertFalse(fake.polls, "čekalo se, dokud PIN nepotvrdil")
+        self.assertIn("Basic", xbmcgui.oks[-1][1])
+
+    def test_neaktivni_predplatne_se_ukaze(self):
+        fake = FakeCztor(active=False)
+        fake._paired = True
+        with mock.patch.object(default, "cztor_client", return_value=fake):
+            default.router("action=cztor_status")
+        self.assertIn(default.L(30572, "Předplatné CZtor není aktivní."), xbmcgui.oks[-1][1])
+
+    def test_odhlaseni(self):
+        fake = FakeCztor()
+        with mock.patch.object(default, "cztor_client", return_value=fake):
+            default.router("action=cztor_logout")
+        self.assertTrue(fake.logged_out)
+        self.assertEqual(len(xbmcgui.notifications), 1)
+
+    def test_stream_cztor_ma_barevny_stitek(self):
+        self.assertIn("CZtor", default.SOURCE_TAGS["cz"])
+        self.assertEqual(default.SOURCE_GROUP["cz"], "CZtor")
+
+
 if __name__ == "__main__":
     unittest.main()
 

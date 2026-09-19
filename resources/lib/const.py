@@ -22,6 +22,7 @@ CONF_ST_EMAIL = "st_email"       # Sledujteto — hledání chce účet, přehr�
 CONF_ST_PASS = "st_password"
 CONF_FS_USER = "fs_username"     # FastShare — hledání bez účtu, přehrávání z kreditu nebo tarifu
 CONF_FS_PASS = "fs_password"
+CONF_CZ_ENABLED = "cz_enabled"   # CZtor — přepínač; účet se páruje PINem, tokeny drží úložiště jádra
 
 # --- torrenty ------------------------------------------------------------
 CONF_PROWLARR_URL = "prowlarr_url"
