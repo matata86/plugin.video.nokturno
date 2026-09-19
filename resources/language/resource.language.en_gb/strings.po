@@ -1607,3 +1607,15 @@ msgstr ""
 msgctxt "#30583"
 msgid "Today's TV programme normally hides programmes that have already ended. Turn on to see the whole day."
 msgstr ""
+
+msgctxt "#30584"
+msgid "Finished programmes"
+msgstr ""
+
+msgctxt "#30585"
+msgid "shown"
+msgstr ""
+
+msgctxt "#30586"
+msgid "hidden"
+msgstr ""

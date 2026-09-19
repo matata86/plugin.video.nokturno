@@ -1608,3 +1608,15 @@ msgstr "TV program: ukázať aj dnes už skončené relácie"
 msgctxt "#30583"
 msgid "Today's TV programme normally hides programmes that have already ended. Turn on to see the whole day."
 msgstr "Dnešný TV program bežne skrýva relácie, ktoré už skončili. Zapni, aby bol vidieť celý deň."
+
+msgctxt "#30584"
+msgid "Finished programmes"
+msgstr "Skončené relácie"
+
+msgctxt "#30585"
+msgid "shown"
+msgstr "ukázané"
+
+msgctxt "#30586"
+msgid "hidden"
+msgstr "skryté"
