@@ -23,7 +23,8 @@ se nic neodesílá a validace ho přeskočí.
 `action` tlačítko, které na hostiteli spustí funkci `actions[field["action"]]` a ukáže její
 odpověď přímo na stránce (bez ukládání). Funkce dostane `{id: hodnota}` polí z `field["inputs"]`
 tak, jak jsou právě ve formuláři (i nepotvrzené), a vrátí `{"level": ok|warn|fail, "text": …,
-"set": {id: hodnota}}` — `set` stránka dopíše do polí formuláře, uloží se až tlačítkem Uložit.
+"set": {id: hodnota}, "link": {"url", "label"}}` — `set` stránka dopíše do polí formuláře, uloží se
+až tlačítkem Uložit; `link` (jen http/https) přidá pod odpověď odkaz otevíraný v nové záložce.
 Funkce běží ve vlákně serveru, nesmí sahat na UI hostitele.
 
 `order` je pořadí položek ve více řádcích (např. co ukazovat u streamu): `items` je seznam
@@ -192,7 +193,10 @@ class SetupServer:
         # nevrací obsah, který stránka nedostala
         setv = {k: str(v)[:MAX_TEXT] for k, v in (out.get("set") or {}).items()
                 if k in self.fields and self.fields[k].get("type") in ("text", "choice")}
-        return {"level": out.get("level") or "fail", "text": str(out.get("text") or ""), "set": setv}
+        link = out.get("link") or {}
+        url = str(link.get("url") or "")
+        link = {"url": url, "label": str(link.get("label") or url)[:200]} if url.startswith(("http://", "https://")) else {}
+        return {"level": out.get("level") or "fail", "text": str(out.get("text") or ""), "set": setv, "link": link}
 
     def _fields_of(self, name):
         return [f for section in self.schema for f in section["fields"]
@@ -391,6 +395,7 @@ input[type=checkbox]{{width:26px;height:26px;accent-color:var(--accent);flex:non
 .guide p{{margin:.45em 0 0}}.guide strong{{display:block;font-size:.95rem}}
 button.ghost{{background:var(--line);font-size:.95rem;padding:11px}}button.ghost[disabled]{{opacity:.6}}
 .result{{padding:10px 12px;border-radius:10px;font-size:.9rem;white-space:pre-line;background:#1f3326;color:#bff0cc}}
+.result a.lnk{{display:inline-block;margin-top:8px;color:inherit;font-weight:600}}
 .result.warn{{background:#3a3220;color:#f5dfa0}}.result.fail{{background:#3a1f24;color:#ffc9d0}}
 .zone h5{{margin:10px 0 6px;font-size:.78rem;color:var(--dim);text-transform:uppercase;letter-spacing:.02em}}
 .zone ul{{list-style:none;margin:0;padding:6px;min-height:46px;border:1px dashed var(--line);border-radius:10px}}
@@ -420,6 +425,8 @@ var box=b.parentNode.querySelector(".result"),data=new URLSearchParams();
 b.disabled=true;box.hidden=false;box.className="result";box.textContent={running};
 fetch("{action}/act/"+b.dataset.act,{{method:"POST",body:data}}).then(function(r){{return r.json();}}).then(function(r){{
 box.className="result "+(r.level||"fail");box.textContent=r.text;
+if(r.link&&r.link.url){{var a=document.createElement("a");a.href=r.link.url;a.target="_blank";a.rel="noopener";
+a.textContent=r.link.label;a.className="lnk";box.appendChild(document.createElement("br"));box.appendChild(a);}}
 Object.keys(r.set||{{}}).forEach(function(id){{var el=document.getElementById(id);if(el)el.value=r.set[id];}});sync();
 }}).catch(function(){{box.className="result fail";box.textContent={failed};}}).then(function(){{b.disabled=false;}});}});
 document.addEventListener("click",function(e){{var b=e.target.closest("button[data-mv]");if(!b)return;

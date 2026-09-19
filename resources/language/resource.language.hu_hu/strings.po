@@ -1593,3 +1593,7 @@ msgstr "Keresett név"
 msgctxt "#30580"
 msgid "Connection to the TV was lost - start Set up from mobile on the TV again."
 msgstr "A kapcsolat a TV-vel megszakadt — indítsd újra a Beállítás mobilról funkciót a TV-n."
+
+msgctxt "#30581"
+msgid "Open Luna settings (/setup)"
+msgstr "Luna beállításainak megnyitása (/setup)"

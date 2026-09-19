@@ -2431,7 +2431,7 @@ def luna_find_remote(values):
     if not found:
         return {"level": "fail", "text": _stranka(L(30531, "V téhle síti jsem Lunu nenašel."))}
     return {"level": "ok", "text": _stranka(L(30576, "Luna nalezena: %s") % ", ".join(f["url"] for f in found)),
-            "set": {"luna_url": found[0]["url"]}}
+            "set": {"luna_url": found[0]["url"]}, "link": _luna_setup_link(found[0]["url"])}
 
 
 def luna_check_remote(values):
@@ -2447,7 +2447,14 @@ def luna_check_remote(values):
         out["set"]["luna_url"] = result["base"]
     if result.get("token") and result["token"] != token:   # celá adresa ze /setup se rozdělí
         out["set"]["token"] = result["token"]
+    if result["code"] in ("no_token", "bad_token", "bad_token_format", "main_empty", "no_streams"):
+        out["link"] = _luna_setup_link(result.get("base") or base)   # token se bere právě tam
     return out
+
+
+def _luna_setup_link(base):
+    """Odkaz na stránku /setup Luny — tam se vezme adresa doplňku s tokenem."""
+    return {"url": base.rstrip("/") + "/setup", "label": L(30581, "Otevřít nastavení Luny (/setup)")}
 
 
 def _stranka(text):
