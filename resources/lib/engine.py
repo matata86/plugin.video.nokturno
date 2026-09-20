@@ -1504,9 +1504,7 @@ class Engine:
 
     @staticmethod
     def _probe_url(stream):
-        """Odkaz, ze kterého se čte hlavička: vlastní, u Luny přibalený přímý z WebShare."""
-        url = str(stream.get("url") or "")
-        return url if url.startswith(("hs:", "ws:", "streamuj:", "dav:", "fs:")) else stream.get("_ws_url") or url
+        return str(stream.get("url") or "")
 
     def _media_from_file(self, url):
         """Co se o souboru dá přečíst z jeho hlavičky. Prázdné, když to nejde."""
@@ -1567,10 +1565,12 @@ class Engine:
             schemes += ("fs:",)
         candidates = [s for s in streams if not s.get("_tracks")
                       and str(s.get("url") or "").startswith(schemes)]
-        # Lunin řádek spárovaný s přímým nálezem z WebShare (`_merge_direct`) má vlastní `http:` url
-        # a zvuk od Luny, ale rozlišení, kodek a titulky zná jen soubor — čte se přes `_ws_url`
+        # Lunin řádek spárovaný s WebShare (`_merge_direct`) má zvuk od Luny, ale rozlišení, kodek
+        # a titulky zná jen soubor — čte se přes Lunin vlastní odkaz. Párování s `_ws_url` je jen odhad
+        # podle velikosti (dva soubory po 5 GB), z přibaleného souboru by mohla přijít cizí hlavička.
         candidates += [s for s in streams if not s.get("_media") and s not in candidates
-                       and str(s.get("_ws_url") or "").startswith("ws:")]
+                       and s.get("source") in ("main", "search") and str(s.get("_ws_url") or "").startswith("ws:")
+                       and str(s.get("url") or "").startswith("http")]
         ordered = sorted(candidates, key=lambda s: bool(s.get("channels")))
         todo = ordered[:limit]
         # `probe_background`: co se nečte teď (nad limit, sloučené verze v `background`),
@@ -1611,7 +1611,7 @@ class Engine:
             if not info:
                 continue
             text = describe_media(info)
-            if text:
+            if text and text not in (stream.get("detail") or ""):
                 stream["detail"] = f"{stream['detail']} | {text}" if stream.get("detail") else text
             stream["_tracks"] = info.get("audio") or []
             stream["_media"] = info
