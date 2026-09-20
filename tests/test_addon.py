@@ -4041,3 +4041,25 @@ class TestReuseInvoker(unittest.TestCase):
         self.assertIs(default._qr(), sys.modules["qr"])
         self.assertIs(default._remote_setup(), sys.modules["remote_setup"])
         self.assertIs(default._transfer_core(), sys.modules["transfer"])
+
+
+class TestPopisCasuFazi(unittest.TestCase):
+    """`describe_timings()` skládá řádek do kodi.log s časy fází hledání streamů.
+
+    Pád nahlášený z 6.2.7 (`TypeError: '<' not supported between instances of 'str'
+    and 'float'`): zdroj, který nestihl rozpočet, má místo času značku „>20s“, a
+    `sorted()` ji porovnával s časy ostatních zdrojů."""
+
+    def test_opozdily_zdroj_neshodi_vypis(self):
+        popis = default.describe_timings({
+            "zdroje": {"Sosáč": 1.2, "HellSpy": ">20s", "WebShare": 0.4},
+            "celkem": 20.5,
+        })
+        self.assertIn("HellSpy >20s", popis)
+        self.assertLess(popis.index("WebShare"), popis.index("Sosáč"), "rychlejší zdroj napřed")
+        self.assertLess(popis.index("Sosáč"), popis.index("HellSpy"), "opozdilec až nakonec")
+
+    def test_vsechny_zdroje_opozdene(self):
+        popis = default.describe_timings({"zdroje": {"A": ">20s", "B": ">20s"}})
+        self.assertIn("A >20s", popis)
+        self.assertIn("B >20s", popis)

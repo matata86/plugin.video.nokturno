@@ -1280,7 +1280,13 @@ def describe_timings(t):
     if t.get("cache"):
         return (f"z cache, celkem {t.get('celkem', 0)} s · hlavičky {t.get('hlavičky', 0)}"
                 f" ({t.get('hlaviček', 0)}, nedočteno {t.get('hlaviček nedočteno', 0)}) · {t.get('streamů', 0)} streamů")
-    zdroje = ", ".join(f"{k} {v}" for k, v in sorted((t.get("zdroje") or {}).items(), key=lambda kv: kv[1]))
+    def poradi(kv):
+        """Zdroj, který nestihl rozpočet, má místo času značku „>20s“ (`str`) — řadí se
+        nakonec. Bez tohohle rozlišení `sorted()` porovná `str` s `float` a spadne:
+        `TypeError: '<' not supported between instances of 'str' and 'float'` (pád
+        nahlášený z 6.2.7). Stačilo, aby se jeden zdroj opozdil a jiný odpověděl."""
+        return (1, 0.0) if isinstance(kv[1], str) else (0, kv[1])
+    zdroje = ", ".join(f"{k} {v}" for k, v in sorted((t.get("zdroje") or {}).items(), key=poradi))
     return (f"celkem {t.get('celkem', 0)} s · hlavní {t.get('hlavni', 0)} · souběžně {t.get('souběžně', 0)}"
             f" ({zdroje}){' · znovu česky' if t.get('znovu česky') else ''} · úložiště navíc {t.get('úložiště navíc', 0)}"
             f" · hlavičky {t.get('hlavičky', 0)} ({t.get('hlaviček', 0)}, nedočteno {t.get('hlaviček nedočteno', 0)},"
