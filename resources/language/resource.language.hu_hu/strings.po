@@ -1987,8 +1987,8 @@ msgid "Joining is open for 30 minutes."
 msgstr "A csatlakozás 30 percig nyitva van."
 
 msgctxt "#30681"
-msgid "The dashboard only stores sealed data it cannot read. The code is the key and never leaves your devices."
-msgstr "A vezérlőpult csak lezárt adatot tárol, amelyet maga nem tud elolvasni. A kód a kulcs, és sosem hagyja el az eszközeidet."
+msgid "The dashboard only stores sealed data it cannot read. The code is the key and never leaves your devices. \"Home Assistant and the dashboard\" runs both at once — the HA card stays current and settings with accounts are shared through the dashboard."
+msgstr "A dashboard csak lezárt adatokat tárol, amelyeket maga nem tud elolvasni. A kód a kulcs, és soha nem hagyja el az eszközeidet. A „Home Assistant és a dashboard” beállítás egyszerre mindkettőt használja — a HA kártya naprakész marad, a beállítások és a fiókok pedig a dashboardon keresztül jönnek."
 
 msgctxt "#30682"
 msgid "What gets synced"
@@ -2009,3 +2009,7 @@ msgstr "Olyan beállítások, mint a kívánt nyelv, a streamek sorrendje vagy a
 msgctxt "#30686"
 msgid "Logins for the sources (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, own storage) and the TMDB key. Passwords travel encrypted, the server cannot read them. CZtor and Trakt must be paired on each device separately."
 msgstr "Bejelentkezések a forrásokhoz (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, saját tároló) és a TMDB kulcs. A jelszavak titkosítva mennek, a kiszolgáló nem olvassa el őket. A CZtor és a Trakt párosítása minden eszközön külön szükséges."
+
+msgctxt "#30687"
+msgid "Home Assistant and the dashboard"
+msgstr "Home Assistant és a dashboard"

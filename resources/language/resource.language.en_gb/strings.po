@@ -1986,7 +1986,7 @@ msgid "Joining is open for 30 minutes."
 msgstr ""
 
 msgctxt "#30681"
-msgid "The dashboard only stores sealed data it cannot read. The code is the key and never leaves your devices."
+msgid "The dashboard only stores sealed data it cannot read. The code is the key and never leaves your devices. \"Home Assistant and the dashboard\" runs both at once — the HA card stays current and settings with accounts are shared through the dashboard."
 msgstr ""
 
 msgctxt "#30682"
@@ -2007,4 +2007,8 @@ msgstr ""
 
 msgctxt "#30686"
 msgid "Logins for the sources (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, own storage) and the TMDB key. Passwords travel encrypted, the server cannot read them. CZtor and Trakt must be paired on each device separately."
+msgstr ""
+
+msgctxt "#30687"
+msgid "Home Assistant and the dashboard"
 msgstr ""

@@ -621,16 +621,17 @@ class Syncer:
         addon = fresh_addon()
         if addon is None or addon.getSetting("sync_enabled") != "true":
             return
-        relay = addon.getSetting("sync_mode") == "1"
-        circles = self._circles(addon, relay)   # zhlédnuto a spol. platí pro obě střediska
-        if relay:
-            code = addon.getSetting("sync_code").strip()
-            if not code:
-                return
-        else:
+        # 0 = Home Assistant, 1 = dashboard, 2 = obojí (viz `default.sync_targets`)
+        rezim = addon.getSetting("sync_mode")
+        code = addon.getSetting("sync_code").strip() if rezim in ("1", "2") else ""
+        url, key = "", ""
+        if rezim in ("0", "2"):
             url, key = addon.getSetting("sync_url").strip(), addon.getSetting("sync_key").strip()
-            if not url or not key:
-                return
+        ha = bool(url and key)
+        relay = bool(code)
+        if not ha and not relay:
+            return
+        circles = self._circles(addon, relay)   # zhlédnuto a spol. platí pro obě střediska
         asked = xbmcgui.Window(10000).getProperty(SYNC_PROP)
         if not force and not asked and time.time() < self.next:
             return
@@ -642,16 +643,24 @@ class Syncer:
         def run():
             try:
                 jmeno = xbmc.getInfoLabel("System.FriendlyName")
+                # Home Assistant první: co z něj přijde, odejde v témže kole i do
+                # relaye, protože ten bere stav ze `Store` až při svém kole.
+                # Výpadek jednoho střediska to druhé nezastaví.
+                if ha:
+                    ok, pushed, pulled, why = sync_once(
+                        self.store, url, key, jmeno,
+                        circles=tuple(o for o in circles if o not in self.RELAY_ONLY))
+                    log(f"sync (HA): odesláno {pushed}, přijato {pulled}" if ok
+                        else f"sync (HA) neproběhl: {why}",
+                        xbmc.LOGINFO if ok else xbmc.LOGWARNING)
                 if relay:
                     ok, pushed, pulled, why = syncbox.sync_once(
                         self.store, code, circles=circles, name=jmeno,
                         settings=self._settings_values(addon, circles),
                         on_settings=lambda zmeny: self._write_settings(addon, zmeny))
-                else:
-                    ok, pushed, pulled, why = sync_once(self.store, url, key, jmeno,
-                                                        circles=circles)
-                log(f"sync: odesláno {pushed}, přijato {pulled}" if ok else f"sync neproběhl: {why}",
-                    xbmc.LOGINFO if ok else xbmc.LOGWARNING)
+                    log(f"sync: odesláno {pushed}, přijato {pulled}" if ok
+                        else f"sync neproběhl: {why}",
+                        xbmc.LOGINFO if ok else xbmc.LOGWARNING)
             finally:
                 self.lock.release()
         threading.Thread(target=run, daemon=True).start()

@@ -1951,20 +1951,43 @@ def mark_used():
     xbmcgui.Window(10000).setProperty(USED_PROP, str(int(time.time())))
 
 
+# Kde se Kodi potkávají (`sync_mode`): 0 = Home Assistant, 1 = dashboard (slepý
+# relay), 2 = obojí naráz. Dvě střediska vedle sebe si nepřekáží — slévání je
+# last-write-wins podle `ts`, tedy komutativní, a každé středisko má vlastní stav
+# (`sync.json` × `syncbox.json`). Kdo má HA, nepřijde jeho přepnutím na relay
+# o kartu v HA; kdo relay nemá, nepozná rozdíl.
+SYNC_MODE_HA, SYNC_MODE_RELAY, SYNC_MODE_BOTH = "0", "1", "2"
+
+
 def sync_via_relay():
-    """Jede synchronizace přes dashboard (slepý relay), ne přes Home Assistant?"""
-    return on("sync_enabled", "false") and setting("sync_mode") == "1"
+    """Jede synchronizace (taky) přes dashboard, ne jen přes Home Assistant?"""
+    return on("sync_enabled", "false") and setting("sync_mode") in (SYNC_MODE_RELAY, SYNC_MODE_BOTH)
+
+
+def sync_via_ha():
+    """Jede synchronizace (taky) přes Home Assistant?"""
+    return on("sync_enabled", "false") and setting("sync_mode") in (SYNC_MODE_HA, SYNC_MODE_BOTH)
 
 
 def sync_settings():
-    """(adresa HA, klíč) nebo None — jen pro režim Home Assistant. Zbytek doplňku
-    se tímhle ptá „je kam synchronizovat", proto na relay odpovídá taky."""
-    if not on("sync_enabled", "false"):
+    """(adresa HA, klíč) nebo None. Používá to i „Staženo v HA" a `list_ha_files()` —
+    soubory stahuje a podepsané odkazy vydává HA, slepý relay žádné nemá."""
+    if not sync_via_ha():
         return None
-    if setting("sync_mode") == "1":
-        return ("relay", setting("sync_code").strip()) if setting("sync_code").strip() else None
     url, key = setting("sync_url").strip(), setting("sync_key").strip()
     return (url, key) if url and key else None
+
+
+def sync_targets():
+    """Kam se tohle Kodi synchronizuje: `[("ha", (adresa, klíč)), ("relay", kód)]`.
+    Prázdný seznam = není kam. Home Assistant jde první: co z něj přijde, odejde
+    v témže kole i do relaye, protože ten bere stav ze `Store` až při svém kole."""
+    cile = []
+    if sync_settings():
+        cile.append(("ha", sync_settings()))
+    if sync_via_relay() and setting("sync_code").strip():
+        cile.append(("relay", setting("sync_code").strip()))
+    return cile
 
 
 # Okruhy nastavení a účtů umí jen relay — Home Assistant je střed pro `Store`,
@@ -1979,7 +2002,7 @@ SYNC_RELAY_ONLY = ("settings", "accounts")
 def sync_circles(relay=None):
     """Okruhy zapnuté v nastavení. Prázdný výběr = neposílá se ani nepřijímá nic."""
     if relay is None:
-        relay = setting("sync_mode") == "1"
+        relay = setting("sync_mode") in (SYNC_MODE_RELAY, SYNC_MODE_BOTH)
     return tuple(okruh for okruh, klic in SYNC_CIRCLE_SETTINGS.items()
                  if on(klic, "false" if okruh in SYNC_RELAY_ONLY else "true")
                  and (relay or okruh not in SYNC_RELAY_ONLY))
@@ -2048,20 +2071,29 @@ def list_ha_files():
 
 
 def sync_now():
-    """Ruční synchronizace — z hlavního menu i z nastavení."""
-    cfg = sync_settings()
+    """Ruční synchronizace — z hlavního menu i z nastavení.
+
+    V režimu „obojí" se projdou obě střediska; výpadek jednoho nezastaví druhé
+    a hlásí se, co se povedlo dohromady."""
+    cile = sync_targets()
     jmeno = xbmc.getInfoLabel("System.FriendlyName")
-    if not cfg:
+    if not cile:
         notify(L(30186, "Synchronizace není zapnutá nebo chybí adresa a klíč"), xbmcgui.NOTIFICATION_WARNING, 5000)
     else:
-        if sync_via_relay():
-            ok, pushed, pulled, why = sync_relay_once(jmeno)
-        else:
-            ok, pushed, pulled, why = sync_once(STORE, cfg[0], cfg[1], jmeno,
-                                                circles=sync_circles())
-        notify((L(30187, "Synchronizováno: odesláno %d, přijato %d") % (pushed, pulled)) if ok
-               else f"{L(30188, 'Synchronizace selhala')}: {why}",
-               xbmcgui.NOTIFICATION_INFO if ok else xbmcgui.NOTIFICATION_ERROR, 5000)
+        odeslano = prijato = 0
+        chyby = []
+        for kam, cfg in cile:
+            if kam == "relay":
+                ok, pushed, pulled, why = sync_relay_once(jmeno)
+            else:
+                ok, pushed, pulled, why = sync_once(STORE, cfg[0], cfg[1], jmeno,
+                                                    circles=sync_circles(False))
+            odeslano, prijato = odeslano + pushed, prijato + pulled
+            if not ok:
+                chyby.append(why)
+        notify(f"{L(30188, 'Synchronizace selhala')}: {'; '.join(chyby)}" if chyby
+               else (L(30187, "Synchronizováno: odesláno %d, přijato %d") % (odeslano, prijato)),
+               xbmcgui.NOTIFICATION_ERROR if chyby else xbmcgui.NOTIFICATION_INFO, 5000)
     xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
 
 
@@ -3697,7 +3729,7 @@ def main_menu(apis):
     folder_item(L(30060), build_url(action="favourites"), icon="DefaultFavourites.png")
     if apis.get("dav"):
         folder_item(L(30387, "Moje úložiště"), build_url(action="dav_browse"), icon="DefaultHardDisk.png")
-    if setting("download_dir") or sync_settings():
+    if setting("download_dir") or sync_targets():
         folder_item(L(30391, "Stažené"), build_url(action="downloads"), icon="DefaultHardDisk.png")
     folder_item(L(30392, "Nastavení"), build_url(action="settings"), icon="DefaultAddonProgram.png")
     # bez cache na disk — položky se mění podle stavu (Novinky, Pokračovat), zpět do
@@ -4643,7 +4675,7 @@ def list_favourites():
             add_snapshot_item(key, snap)
     # z hlavního menu sem — patří k „mým“ titulům a synchronizuje se s nimi
     folder_item(L(30064), build_url(action="recent"), icon="DefaultRecentlyAddedMovies.png")
-    if sync_settings():
+    if sync_targets():
         folder_item(L(30184, "Synchronizovat teď"), build_url(action="sync_now"), icon="DefaultAddonsUpdates.png")
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 

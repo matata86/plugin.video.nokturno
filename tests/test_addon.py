@@ -4781,6 +4781,56 @@ class TestSynchronizaceRelay(unittest.TestCase):
             default.sync_now()
         self.assertEqual(ha.call_args[1]["circles"], ("watched", "history"))
 
+    # --- obě střediska naráz ---
+
+    def test_rezim_oboji_ma_dva_cile(self):
+        xbmcaddon.settings.update({"sync_mode": "2", "sync_url": "http://ha", "sync_key": "k"})
+        self.assertEqual([kam for kam, _ in default.sync_targets()], ["ha", "relay"],
+                         "Home Assistant první — jeho změny odejdou v témže kole i do relaye")
+        self.assertTrue(default.sync_via_ha() and default.sync_via_relay())
+
+    def test_rezim_oboji_bez_adresy_ha_jede_jen_relay(self):
+        xbmcaddon.settings.update({"sync_mode": "2", "sync_url": "", "sync_key": ""})
+        self.assertEqual([kam for kam, _ in default.sync_targets()], ["relay"])
+
+    def test_stazene_v_ha_jen_kdyz_ha_opravdu_jede(self):
+        xbmcaddon.settings.update({"sync_mode": "2", "sync_url": "http://ha", "sync_key": "k"})
+        self.assertIsNotNone(default.sync_settings(), "v režimu obojí HA pořád funguje")
+        xbmcaddon.settings["sync_mode"] = "1"
+        self.assertIsNone(default.sync_settings(), "samotný relay soubory z HA nemá")
+
+    def test_rucni_synchronizace_projde_obe_strediska(self):
+        xbmcaddon.settings.update({"sync_mode": "2", "sync_url": "http://ha", "sync_key": "k"})
+        with mock.patch.object(default, "sync_once", return_value=(True, 1, 2, "")) as ha, \
+                mock.patch.object(default, "sync_relay_once", return_value=(True, 3, 4, "")) as relay:
+            default.sync_now()
+        self.assertEqual((ha.call_count, relay.call_count), (1, 1))
+        self.assertIn("odesláno 4, přijato 6",
+                      " ".join(z for _, z, _ in xbmcgui.notifications))
+
+    def test_vypadek_jednoho_strediska_nezastavi_druhe(self):
+        xbmcaddon.settings.update({"sync_mode": "2", "sync_url": "http://ha", "sync_key": "k"})
+        with mock.patch.object(default, "sync_once", return_value=(False, 0, 0, "HA neodpovídá")), \
+                mock.patch.object(default, "sync_relay_once", return_value=(True, 1, 0, "")) as relay:
+            default.sync_now()
+        self.assertEqual(relay.call_count, 1)
+
+    def test_sluzba_v_rezimu_oboji_udela_dve_kola(self):
+        xbmcaddon.settings.update({"sync_mode": "2", "sync_url": "http://ha", "sync_key": "k",
+                                   "sync_settings": "true"})
+        syncer = service.Syncer(object())
+        with mock.patch.object(service, "sync_once", return_value=(True, 0, 0, "")) as ha, \
+                mock.patch.object(service.syncbox, "sync_once", return_value=(True, 0, 0, "")) as relay:
+            syncer.tick(force=True)
+            for _ in range(50):
+                if relay.call_count:
+                    break
+                time.sleep(0.02)
+        self.assertEqual((ha.call_count, relay.call_count), (1, 1))
+        self.assertNotIn("settings", ha.call_args[1]["circles"],
+                         "nastavení a účty přes Home Assistant nechodí")
+        self.assertIn("settings", relay.call_args[1]["circles"])
+
     # --- okruhy nastavení a účtů ---
 
     def test_nastaveni_a_ucty_jsou_vychozim_stavem_vypnute(self):

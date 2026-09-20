@@ -737,6 +737,7 @@
             <options>
               <option label="30662">0</option>
               <option label="30663">1</option>
+              <option label="30687">2</option>
             </options>
           </constraints>
           <dependencies>
@@ -753,7 +754,12 @@
             <allowempty>true</allowempty>
           </constraints>
           <dependencies>
-            <dependency type="visible" setting="sync_mode" operator="is">0</dependency>
+            <dependency type="visible">
+              <or>
+                <condition setting="sync_mode" operator="is">0</condition>
+                <condition setting="sync_mode" operator="is">2</condition>
+              </or>
+            </dependency>
             <dependency type="enable" setting="sync_enabled">true</dependency>
           </dependencies>
           <control type="edit" format="string">
@@ -766,7 +772,12 @@
             <allowempty>true</allowempty>
           </constraints>
           <dependencies>
-            <dependency type="visible" setting="sync_mode" operator="is">0</dependency>
+            <dependency type="visible">
+              <or>
+                <condition setting="sync_mode" operator="is">0</condition>
+                <condition setting="sync_mode" operator="is">2</condition>
+              </or>
+            </dependency>
             <dependency type="enable" setting="sync_enabled">true</dependency>
           </dependencies>
           <control type="edit" format="string">
@@ -780,7 +791,12 @@
             <allowempty>true</allowempty>
           </constraints>
           <dependencies>
-            <dependency type="visible" setting="sync_mode" operator="is">1</dependency>
+            <dependency type="visible">
+              <or>
+                <condition setting="sync_mode" operator="is">1</condition>
+                <condition setting="sync_mode" operator="is">2</condition>
+              </or>
+            </dependency>
             <dependency type="enable" setting="sync_enabled">true</dependency>
           </dependencies>
           <data>RunPlugin(plugin://plugin.video.nokturno/?action=sync_create)</data>
@@ -792,7 +808,12 @@
             <allowempty>true</allowempty>
           </constraints>
           <dependencies>
-            <dependency type="visible" setting="sync_mode" operator="is">1</dependency>
+            <dependency type="visible">
+              <or>
+                <condition setting="sync_mode" operator="is">1</condition>
+                <condition setting="sync_mode" operator="is">2</condition>
+              </or>
+            </dependency>
             <dependency type="enable" setting="sync_enabled">true</dependency>
           </dependencies>
           <data>RunPlugin(plugin://plugin.video.nokturno/?action=sync_join)</data>
@@ -805,7 +826,12 @@
             <allowempty>true</allowempty>
           </constraints>
           <dependencies>
-            <dependency type="visible" setting="sync_mode" operator="is">1</dependency>
+            <dependency type="visible">
+              <or>
+                <condition setting="sync_mode" operator="is">1</condition>
+                <condition setting="sync_mode" operator="is">2</condition>
+              </or>
+            </dependency>
             <dependency type="enable" setting="sync_enabled">true</dependency>
           </dependencies>
           <control type="edit" format="string">
@@ -817,7 +843,12 @@
             <allowempty>true</allowempty>
           </constraints>
           <dependencies>
-            <dependency type="visible" setting="sync_mode" operator="is">1</dependency>
+            <dependency type="visible">
+              <or>
+                <condition setting="sync_mode" operator="is">1</condition>
+                <condition setting="sync_mode" operator="is">2</condition>
+              </or>
+            </dependency>
             <dependency type="enable" setting="sync_enabled">true</dependency>
           </dependencies>
           <data>RunPlugin(plugin://plugin.video.nokturno/?action=sync_leave)</data>
@@ -853,7 +884,12 @@
           <level>0</level>
           <default>false</default>
           <dependencies>
-            <dependency type="visible" setting="sync_mode" operator="is">1</dependency>
+            <dependency type="visible">
+              <or>
+                <condition setting="sync_mode" operator="is">1</condition>
+                <condition setting="sync_mode" operator="is">2</condition>
+              </or>
+            </dependency>
             <dependency type="enable" setting="sync_enabled">true</dependency>
           </dependencies>
           <control type="toggle"/>
@@ -862,7 +898,12 @@
           <level>0</level>
           <default>false</default>
           <dependencies>
-            <dependency type="visible" setting="sync_mode" operator="is">1</dependency>
+            <dependency type="visible">
+              <or>
+                <condition setting="sync_mode" operator="is">1</condition>
+                <condition setting="sync_mode" operator="is">2</condition>
+              </or>
+            </dependency>
             <dependency type="enable" setting="sync_enabled">true</dependency>
           </dependencies>
           <control type="toggle"/>
