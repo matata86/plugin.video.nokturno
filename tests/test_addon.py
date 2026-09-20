@@ -12,6 +12,7 @@ import os
 import pathlib
 import re
 import json
+import logging
 import shutil
 import sqlite3
 import sys
@@ -36,7 +37,9 @@ xbmcaddon.info.update(path=str(ROOT), profile=_PROFILE,
 # Kodi předává handle a adresu pluginu v argv — default.py je čte hned při importu
 sys.argv = ["plugin://plugin.video.nokturno/", "1", ""]
 
-import default                                # noqa: E402
+import default
+import remote_setup
+import transfer                                # noqa: E402
 import service                                # noqa: E402
 import kodi_marks                             # noqa: E402
 from luna_api import LunaError                # noqa: E402
@@ -2178,13 +2181,13 @@ class TestNastavitZMobilu(unittest.TestCase):
         """Spustí remote_setup, `submit(url)` hraje roli mobilu."""
         started = []
 
-        class Fake(default.SetupServer):
+        class Fake(remote_setup.SetupServer):
             def start(self, host="0.0.0.0", ports=None):
                 port = super().start(host="127.0.0.1", ports=[0])
                 started.append(self)
                 threading.Thread(target=submit, args=(self.url("127.0.0.1"),), daemon=True).start()
                 return port
-        with mock.patch.object(default, "SetupServer", Fake), \
+        with mock.patch.object(remote_setup, "SetupServer", Fake), \
              mock.patch.object(default.xbmc, "getIPAddress", create=True, return_value="192.168.1.22"), \
              mock.patch.object(default, "REMOTE_SETUP_TIMEOUT", 5):
             result = default.remote_setup()
@@ -3853,15 +3856,15 @@ class TestPrenosNastaveni(unittest.TestCase):
 
     # --- cesta přes server -------------------------------------------------
     def test_odeslani_ukaze_kod(self):
-        with mock.patch.object(default.transfer_core, "send_payload",
+        with mock.patch.object(transfer, "send_payload",
                                return_value=("NKT-ABCD-EFGH", 900)) as send:
             default.transfer_send()
         self.assertIn("NKT-ABCD-EFGH", xbmcgui.oks[0][1])
         self.assertIn("martin", json.dumps(send.call_args[0][0]))
 
     def test_chyba_serveru_se_ukaze_a_nic_nezmeni(self):
-        with mock.patch.object(default.transfer_core, "send_payload",
-                               side_effect=default.transfer_core.TransferError("server mlčí")):
+        with mock.patch.object(transfer, "send_payload",
+                               side_effect=transfer.TransferError("server mlčí")):
             default.transfer_send()
         self.assertIn("server mlčí", xbmcgui.oks[0][1])
 
@@ -3870,14 +3873,14 @@ class TestPrenosNastaveni(unittest.TestCase):
         with mock.patch.object(xbmcgui.Dialog, "input", return_value="NKT-ABCD-EFGH"), \
              mock.patch.object(xbmcgui.Dialog, "yesno", return_value=True), \
              mock.patch.object(default.STORE, "clear_cache"), \
-             mock.patch.object(default.transfer_core, "receive", return_value=payload) as recv:
+             mock.patch.object(transfer, "receive", return_value=payload) as recv:
             default.transfer_receive()
         recv.assert_called_once_with("NKT-ABCD-EFGH")
         self.assertEqual(xbmcaddon.settings["ws_username"], "novy")
 
     def test_prazdny_kod_nic_nedela(self):
         with mock.patch.object(xbmcgui.Dialog, "input", return_value=""), \
-             mock.patch.object(default.transfer_core, "receive") as recv:
+             mock.patch.object(transfer, "receive") as recv:
             default.transfer_receive()
         recv.assert_not_called()
 
@@ -3945,3 +3948,78 @@ class TestPrenosNastaveni(unittest.TestCase):
         self.assertNotIn("transfer", default.REMOTE_SETUP_CATEGORIES)
         ids = [f["id"] for s in default.remote_setup_schema() for f in s["fields"] if f.get("id")]
         self.assertNotIn("transfer_send_action", ids)
+
+
+class TestReuseInvoker(unittest.TestCase):
+    """`<reuselanguageinvoker>` v addon.xml (nález 18 z auditu 2026-09-19).
+
+    Kodi s ním nechá interpret běžet a při dalším kliknutí spustí `default.py` znovu
+    v něm. Tělo souboru se tedy vykoná vícekrát, zatímco `sys.modules`, `sys.path`
+    a kořenový logger zůstávají z minula. Testy simulují druhé spuštění tím, že
+    tělo souboru pustí do nových globálů.
+    """
+
+    def _spust_telo_znovu(self):
+        """Druhé spuštění `default.py` v témž interpretu, jako to dělá Kodi."""
+        kod = compile((ROOT / "default.py").read_text(encoding="utf-8"), "default.py", "exec")
+        globaly = {"__name__": "nokturno_reuse_test", "__file__": str(ROOT / "default.py")}
+        exec(kod, globaly)   # noqa: S102 – přesně o tohle tady jde
+        return globaly
+
+    def test_addon_xml_ma_prepinac(self):
+        korene = ET.parse(ROOT / "addon.xml").getroot()
+        plugin = korene.find("./extension[@point='xbmc.python.pluginsource']")
+        self.assertIsNotNone(plugin)
+        self.assertEqual((plugin.findtext("reuselanguageinvoker") or "").strip(), "true")
+
+    def test_sys_path_neroste(self):
+        pred = list(sys.path)
+        self._spust_telo_znovu()
+        self.assertEqual(sys.path, pred, "cesta k resources/lib se nesmí přidávat znovu")
+
+    def test_log_handler_se_neprida_podruhe(self):
+        koren = logging.getLogger()
+        pred = [h for h in koren.handlers if getattr(h, "nokturno", False)]
+        self.assertEqual(len(pred), 1, "po importu má být právě jeden")
+        self._spust_telo_znovu()
+        po = [h for h in koren.handlers if getattr(h, "nokturno", False)]
+        self.assertEqual(len(po), 1, "druhé spuštění nesmí handler zdvojit")
+
+    def test_znacka_handleru_neni_isinstance(self):
+        """Každé spuštění vyrobí novou třídu `_KodiLogHandler`, takže handler z minula
+        je instancí jiné třídy téhož jména — proto se poznává atributem."""
+        globaly = self._spust_telo_znovu()
+        nova_trida = globaly["_KodiLogHandler"]
+        self.assertIsNot(nova_trida, default._KodiLogHandler)
+        stary = next(h for h in logging.getLogger().handlers if getattr(h, "nokturno", False))
+        self.assertFalse(isinstance(stary, nova_trida))
+        self.assertTrue(getattr(stary, "nokturno", False))
+
+    def test_handle_a_base_url_se_ctou_znovu(self):
+        """Pod reuse přijde nový handle v argv — tělo si ho musí přečíst znovu."""
+        puvodni = list(sys.argv)
+        sys.argv = ["plugin://plugin.video.nokturno/", "42", ""]
+        try:
+            globaly = self._spust_telo_znovu()
+        finally:
+            sys.argv = puvodni
+        self.assertEqual(globaly["HANDLE"], 42)
+        self.assertEqual(globaly["BASE_URL"], "plugin://plugin.video.nokturno/")
+
+    def test_cancel_je_pro_kazde_spusteni_nove(self):
+        """Zrušení minulého běhu nesmí umlčet ten další."""
+        globaly = self._spust_telo_znovu()
+        self.assertIsNot(globaly["CANCEL"], default.CANCEL)
+        self.assertFalse(globaly["CANCEL"].is_set())
+
+    def test_tezke_moduly_se_importuji_az_kdyz_je_potreba(self):
+        """`remote_setup` táhne `http.server`, `qr` skládá PNG, `transfer` kryptografii.
+        Menu, výpisy ani přehrání je nepotřebují."""
+        zdroj = (ROOT / "default.py").read_text(encoding="utf-8")
+        hlavicka = zdroj.split("ADDON = xbmcaddon.Addon()")[0]
+        for modul in ("qr", "remote_setup", "transfer"):
+            self.assertNotRegex(hlavicka, rf"(?m)^(from {modul} import|import {modul}\b)",
+                                f"{modul} se má importovat až v funkci")
+        self.assertIs(default._qr(), sys.modules["qr"])
+        self.assertIs(default._remote_setup(), sys.modules["remote_setup"])
+        self.assertIs(default._transfer_core(), sys.modules["transfer"])

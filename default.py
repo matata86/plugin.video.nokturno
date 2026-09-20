@@ -30,7 +30,12 @@ import xbmcgui
 import xbmcplugin
 import xbmcvfs
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "lib"))
+# Pozor na `reuselanguageinvoker` v addon.xml: tělo tohohle souboru se spouští při
+# každém kliknutí znovu, ale `sys.path` patří interpretu a ten zůstává. Bez téhle
+# podmínky by cesta přibývala při každém kliknutí donekonečna.
+_LIB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "lib")
+if _LIB not in sys.path:
+    sys.path.insert(0, _LIB)
 from luna_api import (LunaApi, LunaError, diagnose as luna_diagnose,  # noqa: E402
                       discover as luna_discover, parse_base_url, parse_token)
 from cinemeta_api import CinemetaApi, CinemetaError  # noqa: E402
@@ -49,9 +54,6 @@ from store import Store, migrate_profile  # noqa: E402
 from source_errors import describe_failure, summarize as summarize_failures  # noqa: E402
 from sync import sync_once  # noqa: E402
 from streams import estimate_rank, langs_from_name, parse_stream, subs_from_name  # noqa: E402
-from qr import encode as qr_encode, to_png as qr_png  # noqa: E402
-from remote_setup import SetupServer, parse_order  # noqa: E402
-import transfer as transfer_core  # noqa: E402 – `transfer_*` funkce níž by se jménem potkaly
 from tracks import FILE_CODES, SUBTITLE_FALLBACK, decode_subtitle, subtitle_format, subtitle_lang  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
 from webshare_api import SORTS, WebshareApi, WebshareError, human_size  # noqa: E402
@@ -64,16 +66,52 @@ ADDON = xbmcaddon.Addon()
 ADDON_ID = ADDON.getAddonInfo("id")
 
 
+# Líné importy. `remote_setup` táhne `http.server`, `qr` skládá PNG a `transfer`
+# s `sealbox` kryptografii — dohromady jde o nejtěžší část importů a potřebují je jen
+# tři obrazovky nastavení, ne menu, výpisy ani přehrání. `import` uvnitř funkce je po
+# prvním volání jen vyhledání v `sys.modules`, takže se to nevyplatí obcházet cachí.
+def _qr():
+    import qr
+    return qr
+
+
+def _remote_setup():
+    import remote_setup
+    return remote_setup
+
+
+def _transfer_core():
+    # jmenuje se takhle, aby se `transfer_*` funkce níž nepotkaly jménem s modulem
+    import transfer
+    return transfer
+
+
 class _KodiLogHandler(logging.Handler):
     """Varování z knihovny (např. `store.py`: selhaný zápis souboru) do kodi.log —
     bez toho by je Python jen tiše pustil na stderr, kam se v Kodi nikdo nedívá."""
+    nokturno = True   # značka pro `_install_log_handler()`, `isinstance` tu nefunguje
+
     def emit(self, record):
         level = xbmc.LOGERROR if record.levelno >= logging.ERROR else xbmc.LOGWARNING
         xbmc.log(f"[{ADDON_ID}/{record.name}] {self.format(record)}", level)
 
 
-logging.getLogger().addHandler(_KodiLogHandler())
-logging.getLogger().setLevel(logging.WARNING)
+def _install_log_handler():
+    """Přidá handler jen jednou za život interpretu. S `reuselanguageinvoker` se tenhle
+    soubor spouští znovu při každém kliknutí, ale kořenový logger je v modulu `logging`,
+    který zůstává — bez téhle kontroly by se po deseti kliknutích každé varování
+    zapsalo do kodi.log desetkrát.
+
+    Poznávat handler přes `isinstance` tu NEJDE: každé spuštění vyrobí novou třídu
+    `_KodiLogHandler`, takže handler z minula je instancí jiné třídy téhož jména.
+    Proto značka atributem."""
+    koren = logging.getLogger()
+    if not any(getattr(h, "nokturno", False) for h in koren.handlers):
+        koren.addHandler(_KodiLogHandler())
+    koren.setLevel(logging.WARNING)
+
+
+_install_log_handler()
 
 # Kodi při `Application.Quit` (nebo když uživatel opustí načítající se složku) čeká,
 # až skript doběhne — a dlouhé smyčky jádra dřív běžely dál, dokud neskončily samy
@@ -1652,9 +1690,9 @@ def stream_layout():
     """(horní řádek, dolní řádek) jako seznamy klíčů. Neplatná hodnota → výchozí pořadí.
     Výchozí hodnota u instalace, která dřív vypnula některý přepínač `show_*`, ho vynechá."""
     raw = setting("stream_layout", STREAM_LAYOUT_DEFAULT).strip()
-    rows = parse_order(raw, set(STREAM_PARTS)) if raw else None
+    rows = _remote_setup().parse_order(raw, set(STREAM_PARTS)) if raw else None
     if rows is None:
-        rows = parse_order(STREAM_LAYOUT_DEFAULT, set(STREAM_PARTS))
+        rows = _remote_setup().parse_order(STREAM_LAYOUT_DEFAULT, set(STREAM_PARTS))
     if raw in ("", STREAM_LAYOUT_DEFAULT):
         off = {key for key, old in _OLD_SHOW.items() if setting(old, "true") == "false"}
         rows = [[k for k in row if k not in off] for row in rows]
@@ -2110,7 +2148,7 @@ def remote_setup(section=None):
         "order_down": L(30511, "Dolů"),
         "action_failed": L(30580, "Spojení s televizí se přerušilo — na TV spusť Nastavit z mobilu znovu."),
     }
-    server = SetupServer(schema, values, texts, actions={"luna_find": luna_find_remote,
+    server = _remote_setup().SetupServer(schema, values, texts, actions={"luna_find": luna_find_remote,
                                                         "luna_check": luna_check_remote})
     try:
         server.start()
@@ -2126,9 +2164,9 @@ def remote_setup(section=None):
     try:
         xbmcvfs.mkdirs(PROFILE)
         with open(qr_path, "wb") as f:
-            f.write(qr_png(qr_encode(url), scale=12, border=2))
+            f.write(_qr().to_png(_qr().encode(url), scale=12, border=2))
         with open(backdrop, "wb") as f:
-            f.write(qr_png([[False]], scale=1, border=0))
+            f.write(_qr().to_png([[False]], scale=1, border=0))
         with open(link_bg, "wb") as f:
             f.write(_solid_rgba_png((92, 68, 150), 230))
         with open(link_bg_focus, "wb") as f:
@@ -2209,7 +2247,7 @@ def transfer_payload():
     pole), takže se jejich stav přidá zvlášť — a jen jako příznak, nikdy token."""
     schema = remote_setup_schema()
     extras = {"cztor": ADDON.getSetting("cz_enabled") == "true", "trakt": bool(STORE.trakt())}
-    return transfer_core.pack(schema, transfer_values(schema),
+    return _transfer_core().pack(schema, transfer_values(schema),
                               source="Kodi %s" % ADDON.getAddonInfo("version"), extras=extras)
 
 
@@ -2220,8 +2258,8 @@ def transfer_send():
     k druhé televizi a kód opsat. Na server jde jen neprůhledná binárka."""
     _close_settings()
     try:
-        code, ttl = transfer_core.send_payload(transfer_payload())
-    except transfer_core.TransferError as e:
+        code, ttl = _transfer_core().send_payload(transfer_payload())
+    except _transfer_core().TransferError as e:
         xbmcgui.Dialog().ok(L(30587, "Přenos nastavení"), Lf(30595, e))
         return
     xbmc.log(f"[{ADDON_ID}] přenos nastavení odeslán, platí {ttl} s", xbmc.LOGINFO)
@@ -2237,8 +2275,8 @@ def transfer_receive(code=None):
         if not code:
             return
     try:
-        payload = transfer_core.receive(code)
-    except transfer_core.TransferError as e:
+        payload = _transfer_core().receive(code)
+    except _transfer_core().TransferError as e:
         dialog.ok(L(30587, "Přenos nastavení"), Lf(30595, e))
         return
     transfer_apply(payload)
@@ -2252,18 +2290,18 @@ def transfer_file_save():
     folder = dialog.browseSingle(3, L(30591, "Uložit do souboru"), "files")
     if not folder:
         return
-    code = transfer_core.new_code()
+    code = _transfer_core().new_code()
     name = "nokturno-%s%s" % (time.strftime("%Y-%m-%d"), TRANSFER_EXT)
     path = os.path.join(folder, name) if "://" not in folder else folder.rstrip("/") + "/" + name
     try:
-        blob = transfer_core.export_bytes(code, transfer_payload())
+        blob = _transfer_core().export_bytes(code, transfer_payload())
         handle = xbmcvfs.File(path, "w")
         try:
             if not handle.write(bytearray(blob)):
                 raise OSError("zápis se nepovedl")
         finally:
             handle.close()
-    except (transfer_core.TransferError, OSError) as e:
+    except (_transfer_core().TransferError, OSError) as e:
         dialog.ok(L(30587, "Přenos nastavení"), Lf(30603, e))
         return
     dialog.ok(L(30587, "Přenos nastavení"), Lf(30599, path, code))
@@ -2288,8 +2326,8 @@ def transfer_file_load():
         dialog.ok(L(30587, "Přenos nastavení"), Lf(30604, e))
         return
     try:
-        payload = transfer_core.import_bytes(code, blob)
-    except transfer_core.TransferError as e:
+        payload = _transfer_core().import_bytes(code, blob)
+    except _transfer_core().TransferError as e:
         dialog.ok(L(30587, "Přenos nastavení"), Lf(30595, e))
         return
     transfer_apply(payload)
@@ -2309,7 +2347,7 @@ def transfer_backup_settings():
 def transfer_apply(payload):
     """Náhled, potvrzení, zápis. Uživatel vidí, co se změní, ještě než se to stane."""
     schema = remote_setup_schema()
-    plan = transfer_core.plan(payload, transfer_values(schema), transfer_core.exportable(schema))
+    plan = _transfer_core().plan(payload, transfer_values(schema), _transfer_core().exportable(schema))
     dialog = xbmcgui.Dialog()
     if plan.empty():
         dialog.ok(L(30587, "Přenos nastavení"), L(30598, "Z přenosu nepřišla žádná změna."))

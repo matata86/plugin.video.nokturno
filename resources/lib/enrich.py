@@ -238,6 +238,12 @@ def shutdown_pool(cancel=False):
         for fut in pending:
             fut.cancel()
     pool.shutdown(wait=False)
+    # Rozepsané dotazy patřily zavřenému executoru. Hotová i zrušená future se z
+    # `_INFLIGHT` odebere sama v done-callbacku, ale na tom nejde stavět: v Kodi se
+    # `reuselanguageinvoker` drží interpret mezi kliknutími, takže by si další
+    # spuštění mohlo sáhnout na future, kterou už nikdo nedokončí, a čekat na ni.
+    with _INFLIGHT_LOCK:
+        _INFLIGHT.clear()
 
 
 def enrich_one(meta, luna=None, store=None, ctype="movie"):
