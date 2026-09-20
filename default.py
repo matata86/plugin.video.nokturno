@@ -5656,12 +5656,15 @@ def router(query):
         "setup_wizard": lambda: (setup_wizard(force=True),
                                  xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
         "sub_status": sub_status,
-        "luna_check": lambda: luna_check(ask=True),
-        "os_check": os_check,
-        "luna_find": luna_find,
-        "speedtest": speedtest,
-        "update_repos": update_repos,
-        "tmdbhelper_player": tmdbhelper_player,
+        # tlačítka s dialogem, žádný výpis: z nastavení (RunPlugin, handle −1) je to jedno, ale z
+        # výpisu (Stav zdrojů → Luna) má Kodi handle ≥ 0 a bez endOfDirectory nahlásí GetDirectory
+        # failed a čeká na timeout
+        "luna_check": lambda: _tlacitko(lambda: luna_check(ask=True)),
+        "os_check": lambda: _tlacitko(os_check),
+        "luna_find": lambda: _tlacitko(luna_find),
+        "speedtest": lambda: _tlacitko(speedtest),
+        "update_repos": lambda: _tlacitko(update_repos),
+        "tmdbhelper_player": lambda: _tlacitko(tmdbhelper_player),
         "sync_now": sync_now,
         "whats_new": whats_new,
         "ha_files": list_ha_files,
@@ -5823,6 +5826,15 @@ MARKS_SKIP = frozenset((
     "whats_new", "ha_files", "settings", "transfer_send", "transfer_receive",
     "transfer_file_save", "transfer_file_load",
 ))
+
+
+def _tlacitko(fn):
+    """Spustí akci s dialogem a výpis zavře jako neúspěšný (nic se nekreslí, Kodi nikam nenavigne)."""
+    try:
+        fn()
+    finally:
+        if HANDLE >= 0:
+            xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
 
 
 def main(query):

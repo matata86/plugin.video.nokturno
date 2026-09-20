@@ -2768,6 +2768,30 @@ class TestCztor(unittest.TestCase):
         self.assertEqual(default.SOURCE_GROUP["cz"], "CZtor")
 
 
+
+class TestTlacitkaZVypisu(unittest.TestCase):
+    """Tlačítka s dialogem (Ověřit Lunu…) otevřená z výpisu mají handle ≥ 0 a musí zavřít adresář."""
+
+    def test_luna_check_z_vypisu_zavre_adresar(self):
+        xbmcplugin.ended.clear()
+        with mock.patch.object(default, "HANDLE", 7), mock.patch.object(default, "luna_check"):
+            default.router("action=luna_check")
+        self.assertEqual(xbmcplugin.ended, [{"handle": 7, "succeeded": False, "cacheToDisc": False, "updateListing": False}])
+
+    def test_luna_check_z_nastaveni_bez_handle_nic_nezavira(self):
+        xbmcplugin.ended.clear()
+        with mock.patch.object(default, "HANDLE", -1), mock.patch.object(default, "luna_check"):
+            default.router("action=luna_check")
+        self.assertEqual(xbmcplugin.ended, [])
+
+    def test_vyjimka_adresar_stejne_zavre(self):
+        xbmcplugin.ended.clear()
+        with mock.patch.object(default, "HANDLE", 7):
+            with self.assertRaises(RuntimeError):
+                default._tlacitko(mock.Mock(side_effect=RuntimeError("x")))
+        self.assertEqual(len(xbmcplugin.ended), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
 
