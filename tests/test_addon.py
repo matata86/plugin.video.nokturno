@@ -3966,11 +3966,18 @@ class TestReuseInvoker(unittest.TestCase):
         exec(kod, globaly)   # noqa: S102 – přesně o tohle tady jde
         return globaly
 
-    def test_addon_xml_ma_prepinac(self):
+    def test_prepinac_je_v_metadatech_ne_v_pluginsource(self):
+        """Kodi čte `reuselanguageinvoker` z `xbmc.addon.metadata`. Uvnitř
+        `xbmc.python.pluginsource` si ho nevšimne — ověřeno na Office 2026-09-20,
+        kde takhle umístěný přepínač nic nedělal (nový CPythonInvoker při každém
+        kliknutí). Stejné místo mají youtube i themoviedb.helper."""
         korene = ET.parse(ROOT / "addon.xml").getroot()
+        meta = korene.find("./extension[@point='xbmc.addon.metadata']")
+        self.assertIsNotNone(meta)
+        self.assertEqual((meta.findtext("reuselanguageinvoker") or "").strip(), "true")
         plugin = korene.find("./extension[@point='xbmc.python.pluginsource']")
-        self.assertIsNotNone(plugin)
-        self.assertEqual((plugin.findtext("reuselanguageinvoker") or "").strip(), "true")
+        self.assertIsNone(plugin.find("reuselanguageinvoker"),
+                          "v pluginsource je přepínač k ničemu")
 
     def test_sys_path_neroste(self):
         pred = list(sys.path)

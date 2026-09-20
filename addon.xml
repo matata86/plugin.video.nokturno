@@ -1,18 +1,20 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="6.2.6~beta1" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="6.2.6~beta2" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
   <extension point="xbmc.python.pluginsource" library="default.py">
     <provides>video</provides>
-    <!-- Kodi nechá interpret běžet a při dalším kliknutí spustí default.py znovu v něm.
-         Ušetří se start interpretu a import ~30 modulů (0,5–1 s na Android boxu).
-         Podmínka: importované moduly si drží stav mezi spuštěními, tělo default.py
-         se spouští znovu — obojí je ošetřené, viz dokumentace.md § Reuse invoker. -->
-    <reuselanguageinvoker>true</reuselanguageinvoker>
   </extension>
   <extension point="xbmc.service" library="service.py"/>
   <extension point="xbmc.addon.metadata">
+    <!-- Kodi nechá interpret běžet a při dalším kliknutí spustí default.py znovu v něm.
+         Ušetří se start interpretu a import ~30 modulů. Patří sem, do metadat — uvnitř
+         `xbmc.python.pluginsource` si toho Kodi nevšimne (ověřeno na Office 2026-09-20,
+         stejné místo mají youtube i themoviedb.helper). Podmínka: importované moduly si
+         drží stav mezi spuštěními, tělo default.py se spouští znovu — viz
+         dokumentace.md § Reuse invoker. -->
+    <reuselanguageinvoker>true</reuselanguageinvoker>
     <summary lang="en_GB">Movies and series from WebShare, Sosáč, Sledujteto, FastShare, CZtor, Luna: Absolute Cinema and HellSpy — one add-on, search across sources</summary>
     <summary lang="cs_CZ">Filmy a seriály z WebShare, Sosáče, Sledujteto, FastShare, CZtoru, Luny a HellSpy v jednom doplňku, hledání napříč</summary>
     <summary lang="sk_SK">Filmy a seriály z WebShare, Sosáča, Sledujteto, FastShare, CZtoru, Luny a HellSpy v jednom doplnku, hľadanie naprieč zdrojmi</summary>
@@ -28,7 +30,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>6.2.6~beta1 – Menu a výpisy naskočí rychleji: Kodi si po prvním spuštění nechá běžet interpret a nestartuje ho znovu při každém kliknutí (na Android boxu to bylo půl vteřiny až vteřina). Těžké části doplňku se načtou, až když na ně dojde
+    <news>6.2.6~beta2 – Oprava bety 1: přepínač zrychleného spouštění byl v addon.xml na místě, kde si ho Kodi nevšimne, takže beta 1 běžela stejně pomalu jako dřív. Měřeno na Android boxu: otevření menu 1,60 s před, 0,87 s po
+6.2.6~beta1 – Menu a výpisy naskočí rychleji: Kodi si po prvním spuštění nechá běžet interpret a nestartuje ho znovu při každém kliknutí (na Android boxu to bylo půl vteřiny až vteřina). Těžké části doplňku se načtou, až když na ně dojde
 6.2.3 – Stahování navazuje tam, kde skončilo: po restartu Kodi, výpadku sítě nebo vypnutí boxu se film nestahuje znovu od nuly (u dvacetigigového filmu to dřív znamenalo začít celé znovu); rozdělaný soubor zůstane ležet a „Zkusit znovu“ na něj naváže, zrušené stahování po sobě uklidí
 6.2.2 – Méně práce na pozadí: seznamy „Nově přidané s CZ dabingem/titulky“ se předpočítávají jen tehdy, když jste je za poslední dva týdny otevřeli (dřív to doplněk dělal u všech instalací každých 6 hodin, i když se na ně nikdo nepodíval — a právě tím si říkal o dočasnou blokaci u HellSpy); když se seznam používá, obnoví se teď včas a nehlásí „Data nejsou připravená“; při výpadku serveru se „Nejsledovanější tento týden“ neptá znovu při každém otevření menu a ukáže poslední známý žebříček
 6.2.1 – Spolehlivější ukládání (audit): zhlédnuto, rozkoukáno a fronta stahování se už nepřepisují mezi doplňkem a službou na pozadí (obojí zapisovalo do týchž souborů naráz a prohrávající zápis se tiše zahodil); soubory s přihlášením (Trakt, CZtor) mají práva jen pro vlastníka; značka změny vlastního úložiště se pamatuje mezi spuštěními, takže NAS v režimu spánku nezdržuje každý výpis streamů
