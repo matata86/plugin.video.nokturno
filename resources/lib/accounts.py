@@ -23,6 +23,9 @@ než jakákoli obnova na pozadí.
 """
 import time
 
+from hellspy_api import blocked_for
+from luna_api import diagnose as luna_diagnose
+
 OK, WARN, FAIL, OFF = "ok", "warn", "fail", "off"
 
 #: Pořadí, v jakém se stav skládá do hlášky — nejdřív to, co uživatel platí.
@@ -113,7 +116,6 @@ def sledujteto(api):
 
 def hellspy(cache=None):
     """Pauza po HTTP 429 — **bez jediného dotazu**, jen přečtení stavu."""
-    from .hellspy_api import blocked_for
     zbyva = int(blocked_for(cache))
     if zbyva > 0:
         return _zaznam(WARN, "paused", minutes=max(1, (zbyva + 59) // 60))
@@ -122,8 +124,7 @@ def hellspy(cache=None):
 
 def luna(base_url, token, deep=True, timeout=20):
     """Přeloží `luna_api.diagnose()` na stejný tvar jako ostatní zdroje."""
-    from .luna_api import diagnose
-    result = diagnose(base_url, token, timeout=timeout, deep=deep)
+    result = luna_diagnose(base_url, token, timeout=timeout, deep=deep)
     return _zaznam(result["level"], result["code"],
                    version=result.get("version", ""), base=result.get("base", ""))
 

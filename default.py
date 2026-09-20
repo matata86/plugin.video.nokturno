@@ -563,6 +563,12 @@ def engine_options():
         "probe_background": True,   # hlavičky nad limit a sloučených verzí dočíst na pozadí do cache
         "fresh": warming(),
         "luna_url": setting("luna_url", "http://192.168.1.10:7126"),
+        # Kodi drží token Luny pod klíčem `token`, jádro ho zná jako `luna_token`.
+        # Klienty si KodiEngine staví z `get_*()`, takže do 6.3.1 tenhle klíč jádro
+        # vůbec nepotřebovalo — stav zdrojů podle něj ale pozná „Luna bez tokenu"
+        # a bez něj hlásil chybějící token i u správně nastavené Luny.
+        "luna_token": setting("token") if on("luna_enabled") else "",
+        "cz_enabled": on("cz_enabled", "false"),
         "ws_username": setting("ws_username") if on("ws_enabled", "false") else "",
         "st_email": setting("st_email") if on("st_enabled", "false") else "",
         "fs_username": setting("fs_username") if on("fs_enabled", "false") else "",

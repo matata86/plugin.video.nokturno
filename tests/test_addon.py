@@ -42,6 +42,7 @@ import remote_setup
 import transfer                                # noqa: E402
 import service                                # noqa: E402
 import kodi_marks                             # noqa: E402
+import accounts as accounts_module         # noqa: E402
 from luna_api import LunaError                # noqa: E402
 from webshare_api import WebshareError        # noqa: E402
 
@@ -4391,6 +4392,38 @@ class TestStavZdroju(unittest.TestCase):
         with mock.patch.object(default.KodiEngine, "refresh_accounts", vybuch):
             default.router("action=accounts_refresh")
         self.assertIs(xbmcplugin.ended[-1]["succeeded"], True)
+
+    def test_stav_projde_nad_plochou_kopii_jadra(self):
+        """Doplněk načítá `resources/lib` ploše, ne jako balíček. Relativní import
+        uvnitř funkce (líné načtení) zploštění přehlédne a Kodi spadne až za běhu na
+        „attempted relative import with no known parent package" — ostatní testy
+        jádro importují jako balíček, takže by to prošlo. Tenhle jde přes skutečnou
+        cestu: KodiEngine nad vysypanou kopií."""
+        xbmcaddon.settings.update({"hs_enabled": "true", "ws_username": "kdosi"})
+        rows = default.KodiEngine().accounts()
+        self.assertEqual([r["source"] for r in rows], list(accounts_module.SOURCES))
+        self.assertEqual(rows[accounts_module.SOURCES.index("hellspy")]["code"], "ok")
+
+    def test_engine_options_nese_vse_co_stav_cte(self):
+        """Past z 6.3.1: KodiEngine si klienty staví z `get_*()`, takže jádro do té
+        doby `luna_token` ani `cz_enabled` nepotřebovalo a `engine_options()` je
+        neposílalo. Stav zdrojů je čte přímo, a bez nich hlásil chybějící token
+        i u správně nastavené Luny a CZtor vůbec neukázal."""
+        xbmcaddon.settings.update({"luna_enabled": "true", "token": "e1.abc",
+                                   "cz_enabled": "true"})
+        volby = default.engine_options()
+        self.assertEqual(volby["luna_token"], "e1.abc")
+        self.assertIs(volby["cz_enabled"], True)
+
+    def test_luna_s_tokenem_nehlasi_chybejici_token(self):
+        xbmcaddon.settings.update({"luna_enabled": "true", "token": "e1.abc",
+                                   "luna_url": "http://192.168.1.10:7126"})
+        diag = {"level": "ok", "code": "ok", "base": "http://192.168.1.10:7126",
+                "token": "e1.abc", "version": "1.7.0", "detail": ""}
+        engine = default.KodiEngine()
+        with mock.patch("accounts.luna_diagnose", return_value=diag):
+            engine.refresh_accounts(only=["luna"])
+        self.assertEqual(engine.accounts()[accounts_module.SOURCES.index("luna")]["code"], "ok")
 
     def test_sluzba_obnovuje_pod_platnosti_zaznamu(self):
         """Jinak by v menu stál stav označený jako zastaralý."""
