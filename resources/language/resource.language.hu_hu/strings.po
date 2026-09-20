@@ -1687,7 +1687,7 @@ msgid "The file could not be read: %s"
 msgstr "A fájlt nem sikerült beolvasni: %s"
 
 msgctxt "#30605"
-msgid "For you"
+msgid "For You"
 msgstr "Neked"
 
 msgctxt "#30606"

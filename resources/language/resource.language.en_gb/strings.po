@@ -1689,7 +1689,7 @@ msgid "The file could not be read: %s"
 msgstr ""
 
 msgctxt "#30605"
-msgid "For you"
+msgid "For You"
 msgstr ""
 
 msgctxt "#30606"

@@ -1690,7 +1690,7 @@ msgid "The file could not be read: %s"
 msgstr "Soubor se nepodařilo přečíst: %s"
 
 msgctxt "#30605"
-msgid "For you"
+msgid "For You"
 msgstr "Pro Tebe"
 
 msgctxt "#30606"
