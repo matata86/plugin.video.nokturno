@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="6.2.7" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="6.2.8" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>6.2.7 – Doplněk už nezapisuje chybu do logu Kodi při zahřívání dalšího dílu na pozadí. Na funkci to nemělo vliv, ale v odeslaném logu to vypadalo jako porucha
+    <news>6.2.8 – Oprava pádu: když se některý zdroj neozval včas a jiný stream našel, výpis streamů skončil chybou místo seznamu. Nahlášeno z verze 6.2.7 přes hlášení o chybách
+6.2.7 – Doplněk už nezapisuje chybu do logu Kodi při zahřívání dalšího dílu na pozadí. Na funkci to nemělo vliv, ale v odeslaném logu to vypadalo jako porucha
 6.2.6 – Menu a výpisy naskočí rychleji: Kodi si po prvním spuštění nechá běžet interpret a nestartuje ho znovu při každém kliknutí. Na Android boxu se otevření menu zkrátilo z 1,60 s na 0,91 s. Těžké části doplňku se načtou, až když na ně dojde
 6.2.6~beta2 – Oprava bety 1: přepínač zrychleného spouštění byl v addon.xml na místě, kde si ho Kodi nevšimne, takže beta 1 běžela stejně pomalu jako dřív. Měřeno na Android boxu: otevření menu 1,60 s před, 0,87 s po
 6.2.6~beta1 – Menu a výpisy naskočí rychleji: Kodi si po prvním spuštění nechá běžet interpret a nestartuje ho znovu při každém kliknutí (na Android boxu to bylo půl vteřiny až vteřina). Těžké části doplňku se načtou, až když na ně dojde
