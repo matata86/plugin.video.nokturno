@@ -126,6 +126,16 @@ SEARCH_TTL = 12 * 3600  # sjednocené s luna_api.SEARCH_TTL / webshare_api.SEARC
 LANG_CATALOG_TARGET = 30   # kolik položek chceme v každém seznamu (dabing/titulky)
 LANG_CATALOG_CAP = 60      # kolik kandidátů nejvýš prozkoumat, i kdyby se cíl nenaplnil
 LANG_CATALOG_TTL = 8 * 3600  # rychlost ověřena (30/30 do minuty) — teď už se to smí cachovat
+# Kdy se seznam „Nově přidané s CZ dabingem/titulky" naposledy otevřel. Zahřívání na
+# pozadí je nejdražší práce, kterou doplněk dělá sám od sebe (až 60 kandidátů × všechny
+# zapnuté zdroje, každých 6 h) — u instalace, která ten seznam nikdy neotevřela, je to
+# čirý odpad a právě tahle cesta vyvolala blokaci HellSpy (audit 2026-09-19, nález 12).
+LANG_SEEN_KEY = "lang_catalog_seen"
+LANG_SEEN_DAYS = 14        # jak dlouho po otevření se seznam ještě zahřívá na pozadí
+# O kolik dřív než vyprší cache ji zahřívání přepočítá. Musí být aspoň tak velké jako
+# rozdíl mezi `LANG_CATALOG_TTL` a intervalem zahřívání (`service.LANG_WARM_EVERY`, 6 h),
+# jinak kolo zahřívání jen přečte platnou cache a nechá ji vypršet mezi dvěma koly.
+LANG_REFRESH_AFTER = LANG_CATALOG_TTL - 6 * 3600
 LANG_LOCK_PROP = "nokturno.lang_busy"  # zámek přes okno (sdílené mezi procesy) proti souběžnému přepočtu
 LANG_PROGRESS_PROP = "nokturno.lang_progress"  # živý postup přepočtu (viz _build_lang_catalog), sdílený
                                                 # stejně jako zámek — kdo na zámek čeká, si z něj přečte,
@@ -212,6 +222,19 @@ def migrate_on_start():
 
 
 migrate_on_start()
+
+
+def note_lang_catalog_open(ctype):
+    """Zapamatuje, že uživatel seznam s jazykem otevřel — podle toho se rozhoduje,
+    jestli ho má služba zahřívat na pozadí (viz `service.lang_warm_urls`)."""
+    with STORE.updating(LANG_SEEN_KEY, {}) as seen:
+        seen[str(ctype)] = int(time.time())
+
+
+def lang_catalog_wanted(ctype, days=LANG_SEEN_DAYS):
+    """Otevřel uživatel tenhle seznam za posledních `days` dní?"""
+    kdy = (STORE.load(LANG_SEEN_KEY, {}) or {}).get(str(ctype)) or 0
+    return bool(kdy) and time.time() - kdy < days * 86400
 
 
 def is_sosac_id(item_id):
@@ -3309,6 +3332,7 @@ def lang_catalog_menu(apis, ctype, want):
     hotovo, tady se na nic nečeká."""
     key = f"lang_catalog:{ctype}"
     win = xbmcgui.Window(10000)
+    note_lang_catalog_open(ctype)
     age = _lang_lock_age(win, f"{LANG_LOCK_PROP}:{key}")
     if STORE.peek_cached(key, LANG_CATALOG_TTL) is not None:
         list_lang_catalog(apis, ctype, want)
@@ -3341,6 +3365,7 @@ def lang_catalog_trigger(apis, ctype, want):
     `lang_catalog_menu()` (viz tam, `LANG_LOCK_WAIT` vs. reálná doba běhu)."""
     key = f"lang_catalog:{ctype}"
     win = xbmcgui.Window(10000)
+    note_lang_catalog_open(ctype)
     age = _lang_lock_age(win, f"{LANG_LOCK_PROP}:{key}")
     if STORE.peek_cached(key, LANG_CATALOG_TTL) is not None:
         list_lang_catalog(apis, ctype, want)
@@ -3462,12 +3487,18 @@ def _lang_catalog_locked(apis, ctype, key):
     _diag(f"{key}: zamčeno mnou, warming={warming()}")
     t0 = time.time()
     try:
-        # NE `fresh=warming()`: u ostatních katalogů (levný dotaz) dává smysl při
-        # zahřívání vždy přepsat, tady je přepočet o řády dražší (desítky sekund
-        # až minuty) — `fresh=True` by nutilo počítat znovu, i když cache má
-        # sotva pár minut, přesně opak toho, proč tu 8h cache vůbec máme
-        # (2026-09-15: nahlásil uživatel — druhé otevření nešlo z cache).
-        return STORE.cached_if(key, LANG_CATALOG_TTL, lambda: _build_lang_catalog(apis, ctype))
+        # NE `fresh=warming()` bez podmínky: u ostatních katalogů (levný dotaz) dává
+        # smysl při zahřívání vždy přepsat, tady je přepočet o řády dražší (desítky
+        # sekund až minuty) — bezpodmínečné `fresh=True` by nutilo počítat znovu,
+        # i když cache má sotva pár minut (2026-09-15: nahlásil uživatel — druhé
+        # otevření nešlo z cache).
+        # Zahřívání ale musí přepočítat, když cache do příštího kola nevydrží: běží
+        # po `LANG_WARM_EVERY` (6 h) a cache platí `LANG_CATALOG_TTL` (8 h), takže
+        # bez tohohle kolo v 6. hodině jen přečetlo platnou cache a nic nepřepsalo —
+        # mezi 8. a 12. hodinou pak menu hlásilo „Data nejsou připravená" (nález 29).
+        stara = STORE.peek_cached(key, LANG_REFRESH_AFTER) is None
+        return STORE.cached_if(key, LANG_CATALOG_TTL, lambda: _build_lang_catalog(apis, ctype),
+                               fresh=warming() and stara)
     finally:
         win.clearProperty(prop)
         _diag(f"{key}: _lang_catalog_locked() hotovo za {time.time() - t0:.1f} s")

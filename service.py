@@ -76,6 +76,8 @@ WARM_PROP = "nokturno.warm"    # plugin při zahřívání cache API jen zapisuj
 WARM_RETRY = 10 * 60      # když se zrovna přehrává, zahřívání počká
 LANG_WARM_DELAY = 300     # živé ověřování zdrojů je dražší než ostatní zahřívání, ať nestartuje současně s ním
 LANG_WARM_EVERY = 6 * 3600     # pod `LANG_CATALOG_TTL` (8 h) v default.py, ať uživatel nenarazí na živý přepočet
+LANG_SEEN_KEY = "lang_catalog_seen"   # stejný literál jako v default.py (note_lang_catalog_open)
+LANG_SEEN_DAYS = 14                  # a stejná lhůta — kdo seznam neotevřel, tomu se nezahřívá
 LANG_TRIGGER_PROP = "nokturno.lang_trigger"  # stejný literál jako v default.py (lang_catalog_trigger) —
                                               # žádost o okamžitý přepočet, viz lang_trigger_watcher
 LANG_TRIGGER_POLL = 2     # s – jak často se čeká na žádost z lang_catalog_trigger (klik uživatele)
@@ -622,9 +624,21 @@ def lang_warm_urls():
     Jen `want=dub` na typ (2026-09-15, druhé kolo): dabing i titulky se v jádru
     počítají v jednom průchodu se společnou cache (`lang_catalog:{ctype}`), takže
     zahřátí dabingu zadarmo zahřeje i titulky — druhá adresa by jen zbytečně
-    čekala na zámek a přečetla to samé z cache."""
+    čekala na zámek a přečetla to samé z cache.
+
+    **Jen pro typ, který uživatel za posledních `LANG_SEEN_DAYS` dní otevřel**
+    (`default.note_lang_catalog_open`). Tohle je nejdražší práce, kterou doplněk
+    dělá sám od sebe — až 60 kandidátů krát všechny zapnuté zdroje, každých 6 h —
+    a u instalace, která ten seznam nikdy neotevřela, je celá k ničemu. Právě tudy
+    se doplněk dostal k blokaci HellSpy (audit 2026-09-19, nález 12). Kdo seznam
+    otevře, dostane ho napoprvé přes „Klepni pro spuštění" a od té chvíle se
+    zahřívá na pozadí jako dřív."""
+    store = Store(PROFILE)
+    seen = store.load(LANG_SEEN_KEY, {}) or {}
+    ted = time.time()
     base = "plugin://plugin.video.nokturno/?action=lang_catalog&type={t}&want=dub"
-    return [base.format(t=t) for t in ("movie", "series")]
+    return [base.format(t=t) for t in ("movie", "series")
+            if ted - (seen.get(t) or 0) < LANG_SEEN_DAYS * 86400]
 
 
 def rpc(method, **params):

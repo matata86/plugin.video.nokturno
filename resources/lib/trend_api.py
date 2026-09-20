@@ -14,12 +14,19 @@ Bez závislostí na Kodi — jde testovat samostatně:
     python3 trend_api.py movie
 """
 import json
+import time
 import urllib.error
 import urllib.request
 
 BASE = "https://nokturno.tailf0014.ts.net"
 TIMEOUT = 10
 CACHE_TTL = 8 * 3600   # stejná platnost jako cache na serveru — kratší nemá smysl
+# Když dashboard neodpovídá, čekalo se `TIMEOUT` při každém otevření menu Filmy/Seriály.
+# Značka v cache (sdílená i mezi spuštěními pluginu) to na `DOWN_TTL` přeskočí — stejný
+# vzor jako v `dash_api.py`, odkud je převzatý.
+DOWN_TTL = 300
+DOWN_KEY = "nokturno:trend:down"
+STALE_TTL = 14 * 86400   # jak staré záložní data ještě ukázat při výpadku
 CATALOG_ID = "nejsledovanejsi"
 CATALOG_NAME = "Nejsledovanější tento týden"
 
@@ -52,15 +59,30 @@ class TrendApi:
             return []
         kind = "series" if ctype == "series" else "movie"
 
-        def load():
-            try:
-                data = self._get(kind)
-            except TrendApiError:
-                return []
-            return [i for i in (data.get("items") or []) if i.get("id")]
+        def fetch():
+            data = self._get(kind)
+            return [i for i in (data.get("items") or []) if i.get("id")] or None
 
-        items = self.cache.cached(f"nokturno:trending:{kind}", CACHE_TTL, load) if self.cache else load()
+        items = self._cached(f"nokturno:trending:{kind}", fetch) or []
         return [{**it, "type": ctype, "_title": it.get("name") or ""} for it in items]
+
+    def _cached(self, key, fetch):
+        """Čerstvá cache → rovnou. Jinak dotaz, ale jen když dashboard neselhal
+        v posledních `DOWN_TTL` sekundách; při výpadku se vrátí i starší data."""
+        if self.cache is None:
+            try:
+                return fetch()
+            except TrendApiError:
+                return None
+        fresh = self.cache.peek_cached(key, CACHE_TTL)
+        if fresh is not None:
+            return fresh
+        if self.cache.peek_cached(DOWN_KEY, DOWN_TTL) is None:
+            try:
+                return self.cache.cached_if(key, CACHE_TTL, fetch, ok=lambda d: d is not None, fresh=True)
+            except TrendApiError:
+                self.cache.cached_if(DOWN_KEY, DOWN_TTL, lambda: {"t": int(time.time())}, fresh=True)
+        return self.cache.peek_cached(key, STALE_TTL)
 
 
 if __name__ == "__main__":

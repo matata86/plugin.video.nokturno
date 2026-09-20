@@ -3048,6 +3048,80 @@ class TestAudit614Beta2(unittest.TestCase):
         self.assertEqual(len(xbmcplugin.ended), 1)
 
 
+class TestZahrivaniJazykovehoKatalogu(unittest.TestCase):
+    """Nálezy 12 a 29 z auditu 2026-09-19: „Nově přidané s CZ dabingem/titulky".
+
+    Živé ověřování jazyka napříč zdroji je nejdražší práce, kterou doplněk dělá sám
+    od sebe — až 60 kandidátů krát všechny zapnuté zdroje, každých 6 h. Právě tudy
+    se doplněk dostal k blokaci HellSpy (6.0.4)."""
+
+    def setUp(self):
+        reset_kodi()
+        default.STORE.save(default.LANG_SEEN_KEY, {})
+
+    def tearDown(self):
+        default.STORE.save(default.LANG_SEEN_KEY, {})
+
+    def test_bez_otevreni_se_nezahriva(self):
+        self.assertEqual(service.lang_warm_urls(), [], "kdo seznam nikdy neotevřel, nemá co zahřívat")
+
+    def test_po_otevreni_se_zahriva_jen_otevreny_typ(self):
+        default.note_lang_catalog_open("series")
+        urls = service.lang_warm_urls()
+        self.assertEqual(len(urls), 1)
+        self.assertIn("type=series", urls[0])
+        self.assertIn("want=dub", urls[0], "dabing i titulky se počítají jedním průchodem")
+
+    def test_po_lhute_se_prestane_zahrivat(self):
+        default.STORE.save(default.LANG_SEEN_KEY,
+                           {"movie": int(time.time()) - (default.LANG_SEEN_DAYS + 1) * 86400})
+        self.assertEqual(service.lang_warm_urls(), [])
+
+    def test_obe_vstupni_cesty_si_otevreni_zapamatuji(self):
+        for akce, typ in (("lang_catalog_menu", "movie"), ("lang_catalog_trigger", "series")):
+            with mock.patch.object(default, "get_apis", return_value={}), \
+                    mock.patch.object(default, "list_lang_catalog"):
+                default.router(f"?action={akce}&type={typ}&want=dub")
+        self.assertEqual(set(default.STORE.load(default.LANG_SEEN_KEY, {})), {"movie", "series"})
+
+    def test_zahrivani_prepocita_az_kdyz_cache_nevydrzi_do_dalsiho_kola(self):
+        """Nález 29: zahřívání běží po 6 h, cache platí 8 h. Bez přepočtu kolo v 6. hodině
+        jen přečetlo platnou cache — a mezi 8. a 12. hodinou menu hlásilo „Data nejsou
+        připravená"."""
+        self.assertEqual(default.LANG_REFRESH_AFTER, default.LANG_CATALOG_TTL - 6 * 3600)
+        key = "lang_catalog:movie"
+        volani = []
+
+        def cached_if(k, ttl, loader, ok=bool, fresh=False):
+            volani.append(fresh)
+            return {"dub": [], "subs": []}
+
+        xbmcgui.Window(10000).setProperty(default.WARM_PROP, "1")   # běží zahřívání
+        try:
+            with mock.patch.object(default.STORE, "cached_if", cached_if), \
+                    mock.patch.object(default.STORE, "peek_cached", return_value={"dub": []}):
+                default._lang_catalog_locked({}, "movie", key)      # cache je čerstvá
+            with mock.patch.object(default.STORE, "cached_if", cached_if), \
+                    mock.patch.object(default.STORE, "peek_cached", return_value=None):
+                default._lang_catalog_locked({}, "movie", key)      # cache stárne
+        finally:
+            xbmcgui.Window(10000).clearProperty(default.WARM_PROP)
+        self.assertEqual(volani, [False, True])
+
+    def test_mimo_zahrivani_se_nikdy_neprepocitava_nasilim(self):
+        """Uživatelovo otevření nesmí platit přepočet, když cache existuje."""
+        volani = []
+
+        def cached_if(k, ttl, loader, ok=bool, fresh=False):
+            volani.append(fresh)
+            return {"dub": [], "subs": []}
+
+        with mock.patch.object(default.STORE, "cached_if", cached_if), \
+                mock.patch.object(default.STORE, "peek_cached", return_value=None):
+            default._lang_catalog_locked({}, "movie", "lang_catalog:movie")
+        self.assertEqual(volani, [False])
+
+
 class TestLunaDiagnostika(unittest.TestCase):
     """Tlačítka „Najít Lunu v síti“ a „Ověřit nastavení Luny“.
 
