@@ -43,6 +43,13 @@ DEFAULT_CIRCLES = ("watched", "favourites", "history")
 # Snímky titulů jdou vždy k tomu, co se posílá — bez nich by druhá strana
 # neuměla položku vykreslit. `collect_changes` je omezuje na dotčené klíče.
 SNAPSHOTS = "items"
+# ...ale jen na ty, kde snímek opravdu chybět nesmí: Můj seznam a rozkoukané.
+# Dokoukaný titul si druhá strana dohledá sama (`recover_snapshot`, hubený snímek),
+# kdežto snímek váží asi 1,3 kB a `items` jich drží až `ITEMS_MAX`. Měřeno na
+# skutečném profilu: 500 titulů se snímky = 177 kB blob, tedy **přes** `MAX_BLOB`
+# (128 kB) — synchronizace by od pár set zhlédnutých titulů přestala fungovat úplně,
+# ne zpomalit. Se stropem drží plný profil (5000 zhlédnutých) pod 40 kB.
+SNAPSHOT_MAX = 300
 ENDPOINT = "/api/nokturno/sync"
 TIMEOUT = 20
 
@@ -68,6 +75,21 @@ def _stamped(rec, now):
     if now:
         out["rts"] = now
     return out
+
+
+def _keep_playcount(rec, mine):
+    """Počet zhlédnutí je nejvyšší z obou stran, zbytek rozhodne novější záznam.
+
+    Rozkoukanost je jediný údaj, který si dvě televize u téhož titulu přepisují,
+    a tam last-write-wins dává smysl — poslední pozice je ta, kde se opravdu
+    skončilo. Příznak „tohle už jsem viděl" se ale takhle ztratit nesmí: kdo
+    film dokoukal na jedné TV a na druhé ho pak pustil znovu, přijde o jeho
+    označení ve výpisech i v Traktu. Proto se `playcount` slévá maximem.
+    """
+    muj = int((mine or {}).get("playcount") or 0)
+    if muj <= int((rec or {}).get("playcount") or 0):
+        return rec
+    return dict(rec, playcount=muj)
 
 
 def _backfill_favlog(store):
@@ -100,9 +122,32 @@ def collect_changes(store, since):
     next_hidden = {k: v for k, v in store.reload("next_hidden", {}).items()
                    if isinstance(v, dict) and _seen(v) >= since}
     items = store.reload("items", {})
-    keys = set(watched) | set(favlog)
     return {"watched": watched, "favlog": favlog, "histlog": histlog, "next_hidden": next_hidden,
-            "items": {k: items[k] for k in keys if k in items}}
+            "items": _snapshots(items, watched, favlog)}
+
+
+def _snapshots(items, watched, favlog):
+    """Snímky jen k tomu, co se bez nich nevykreslí — Můj seznam a rozkoukané.
+
+    Seřazeno od nejčerstvějšího a useknuto na `SNAPSHOT_MAX`; u dvou zařízení
+    se stejnou skupinou se tím přenese to, co má uživatel rozkoukané teď, ne
+    archiv z loňska. Zbytek dohledá příjemce sám.
+    """
+    def rozkoukany(rec):
+        try:
+            return float((rec or {}).get("resume") or 0) > 0
+        except (TypeError, ValueError):
+            return False
+
+    keys = {k for k, v in watched.items() if rozkoukany(v)}
+    keys |= {k for k, v in favlog.items() if isinstance(v, dict) and v.get("on")}
+    keys = [k for k in keys if k in items]
+    if len(keys) > SNAPSHOT_MAX:
+        cas = dict(watched)
+        cas.update(favlog)
+        keys.sort(key=lambda k: _seen(cas.get(k)), reverse=True)
+        keys = keys[:SNAPSHOT_MAX]
+    return {k: items[k] for k in keys}
 
 
 def reset_since(store):
@@ -132,7 +177,7 @@ def apply_changes(store, changes, stamp=False):
         dirty = False
         for key, rec in (changes.get("watched") or {}).items():
             if isinstance(rec, dict) and _ts(rec) > _ts(watched.get(key)):
-                watched[key] = _stamped(rec, now)
+                watched[key] = _keep_playcount(_stamped(rec, now), watched.get(key))
                 dirty = True
                 applied += 1
         if dirty:

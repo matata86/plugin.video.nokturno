@@ -201,6 +201,14 @@ def sync_once(store, code, circles=DEFAULT_CIRCLES, base_url=SYNC_URL, name="", 
         payload["extra"] = extra
     payload["device"] = name or ""
     blob = seal(keys, payload)
+    # Snímky titulů jsou jediná část stavu, která může narůst bez omezení
+    # (`sync.SNAPSHOT_MAX` ji drží, ale starší klient ve skupině strop nemá).
+    # Radši dojede zhlédnuto a Můj seznam s méně obrázky, než aby celé kolo
+    # skončilo na „Stav je příliš velký" — chybějící snímek si příjemce dohledá sám.
+    while len(blob) > MAX_BLOB and payload.get(SNAPSHOTS):
+        snimky = payload[SNAPSHOTS]
+        payload = dict(payload, **{SNAPSHOTS: dict(list(snimky.items())[:len(snimky) // 2])})
+        blob = seal(keys, payload)
 
     # Otisk stavu, ne blobu: nonce je pokaždé jiná, takže by se nahrávalo
     # každé kolo, i když se nic nezměnilo.

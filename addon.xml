@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="9.99.0~sync6" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="9.99.0~sync7" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>9.99.0~sync6 – Most mezi středisky: co přijde z dashboardu, jde v režimu „obojí“ i do Home Assistantu.
+    <news>9.99.0~sync7 – Do výměny jdou jen snímky titulů z Mého seznamu a rozkoukaných; bez toho se od pár set zhlédnutých titulů synchronizace zastavila.
+9.99.0~sync6 – Most mezi středisky: co přijde z dashboardu, jde v režimu „obojí“ i do Home Assistantu.
 9.99.0~sync5 – Název třetí volby střediska zkrácen na „HA i dashboard“, ať se vejde na řádek Arctic Fuse.
 9.99.0~sync4 – Nová volba střediska „HA i dashboard“: kdo má HA, může přidat dashboard a nepřijde o kartu v HA. Nastavení a účty jdou pořád jen přes dashboard.
 9.99.0~sync3 – Synchronizace umí i nastavení doplňku a účty ke zdrojům (dva nové přepínače, oba výchozím stavem vypnuté). Hesla jdou zašifrovaná, server je nepřečte; složka pro stahování a nastavení samotné synchronizace se nesdílí nikdy.
