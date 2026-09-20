@@ -1901,3 +1901,7 @@ msgstr "ismeretlen állapot"
 msgctxt "#30659"
 msgid "no preferred language"
 msgstr "nincs a kívánt nyelven"
+
+msgctxt "#30660"
+msgid "Looking for a title in your preferred language…"
+msgstr "Cím keresése a kívánt nyelven…"

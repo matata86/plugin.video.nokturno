@@ -1904,3 +1904,7 @@ msgstr "stav neznámý"
 msgctxt "#30659"
 msgid "no preferred language"
 msgstr "bez preferovaného jazyka"
+
+msgctxt "#30660"
+msgid "Looking for a title in your preferred language…"
+msgstr "Hledám titul s preferovaným jazykem…"

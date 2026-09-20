@@ -207,7 +207,7 @@ FORYOU_DOWN_TTL = 300
 FORYOU_STALE_TTL = 14 * 86400   # jak staré doporučení se ještě ukáže, když TMDB neodpoví
 FORYOU_PAGES = 5   # z kolika stránek katalogu se losuje „Náhodný film" (víc = pestřejší)
 RANDOM_CANDIDATES = 8   # kolik titulů se u „Náhodného filmu" ověřuje na preferovaný jazyk
-RANDOM_BUDGET_S = 8.0   # na celé ověřování; pak se vezme cokoli (lepší titul bez CZ než čekání)
+RANDOM_BUDGET_S = 15.0  # na celé ověřování; pak se vezme cokoli (lepší titul bez CZ než čekání)
 RANDOM_WORKERS = 4
 CZECH_LANGS = {"CZ", "SK"}
 SOSAC_TAG = "[COLOR FFE0A040]Sosáč[/COLOR]"
@@ -4867,10 +4867,15 @@ def random_by_language(apis, ctype, candidates, pref):
     engine = engine_of(apis)
     cands = random.sample(candidates, min(RANDOM_CANDIDATES, len(candidates)))
 
+    t0 = time.time()
+
     def check(cand):
         try:
-            return has_pref_lang(engine.raw_streams(cand.get("type") or ctype, cand["id"],
-                                                    strict=True, probe_audio=False), pref)
+            streams = engine.raw_streams(cand.get("type") or ctype, cand["id"], strict=True, probe_audio=False)
+            ok = has_pref_lang(streams, pref)
+            xbmc.log(f"[{ADDON_ID}] náhodný titul: {cand['id']} {'má' if ok else 'nemá'} {pref} "
+                     f"({len(streams)} streamů, {time.time() - t0:.1f} s)", xbmc.LOGINFO)
+            return ok
         except Exception as e:  # noqa: BLE001 – výpadek u jednoho kandidáta nesmí shodit losování
             log_error(f"náhodný titul, {cand.get('id')}: {e}")
             return False
@@ -4880,6 +4885,9 @@ def random_by_language(apis, ctype, candidates, pref):
     futures = {pool.submit(check, c): c for c in cands}
     pending = set(futures)
     deadline = time.time() + RANDOM_BUDGET_S
+    # neblokující ukazatel, ne modál — sem se dá dostat i z widgetu a z JSON-RPC
+    bar = xbmcgui.DialogProgressBG()
+    bar.create(L(30000, "Nokturno"), L(30660, "Looking for a title in your preferred language…"))
     try:
         while pending:
             if should_stop():
@@ -4891,7 +4899,9 @@ def random_by_language(apis, ctype, candidates, pref):
             for f in done:
                 if f.result():
                     return futures[f], True
+        xbmc.log(f"[{ADDON_ID}] náhodný titul: žádný z {len(cands)} kandidátů nevyhověl", xbmc.LOGINFO)
     finally:
+        bar.close()
         for f in pending:
             f.cancel()
         pool.shutdown(wait=False)
