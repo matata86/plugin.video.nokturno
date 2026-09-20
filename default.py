@@ -4837,6 +4837,11 @@ def download_remove(dl_id):
                 os.remove(d["dest"])
             except OSError:
                 pass
+        else:
+            try:
+                os.remove(d["dest"] + ".part")   # rozdělané už nikdo nedostahuje
+            except OSError:
+                pass
         STORE.remove_download(dl_id)
     xbmc.executebuiltin("Container.Refresh")
 

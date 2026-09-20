@@ -400,12 +400,35 @@ class Downloader(threading.Thread):
         self.monitor = monitor
 
     def run(self):
+        self.requeue_running()
         while not self.monitor.abortRequested():
             job = next((d for d in self.store.downloads() if d.get("status") == "queued"), None)
             if job:
                 self.download(job)
             if self.monitor.waitForAbort(POLL):
                 break
+
+    def requeue_running(self):
+        """Po startu služby: co je v seznamu „stahuje se", stahovat nemůže — ten proces
+        už neběží. Zpátky do fronty, `.part` zůstane ležet a naváže se na něj."""
+        for job in self.store.downloads():
+            if job.get("status") == "running":
+                self.store.update_download(job["id"], status="queued")
+                log(f"stahování {job.get('name', '')} pokračuje po restartu")
+
+    @staticmethod
+    def part_size(tmp, expected):
+        """Kolik už je staženo v `.part`, nebo 0 (nic k navázání).
+
+        Hotový nebo delší soubor než očekávaný je podezřelý (jiná verze souboru pod
+        stejným jménem, přerušený zápis) — raději od začátku než slepit dva různé."""
+        try:
+            mame = os.path.getsize(tmp)
+        except OSError:
+            return 0
+        if mame <= 0 or (expected and mame >= expected):
+            return 0
+        return mame
 
     def download(self, job):
         dl_id, url, dest = job["id"], job["url"], job["dest"]
@@ -417,38 +440,60 @@ class Downloader(threading.Thread):
             link, headers = resolve_internal(url, self.store)
             if not link:
                 raise RuntimeError("zdroj odkaz nevydal")
+            # Navázání na rozdělané stahování: film mívá desítky GB a přerušení
+            # (restart Kodi, výpadek sítě, vypnutý box) znamenalo do 6.2.2 začít
+            # od nuly. `.part` proto po chybě zůstává ležet.
+            od = self.part_size(tmp, int(job.get("size") or 0))
+            if od:
+                headers = {**headers, "Range": f"bytes={od}-"}
             req = urllib.request.Request(link, headers={"User-Agent": "Kodi plugin.video.nokturno", **headers})
-            with urllib.request.urlopen(req, timeout=60) as resp, open(tmp, "wb") as out:
-                size = int(resp.headers.get("Content-Length") or 0)
-                done, last = 0, 0.0
-                self.store.update_download(dl_id, size=size)
-                while True:
-                    if self.monitor.abortRequested():
-                        raise RuntimeError("abort")
-                    chunk = resp.read(CHUNK)
-                    if not chunk:
-                        break
-                    out.write(chunk)
-                    done += len(chunk)
-                    if time.time() - last > 2:
-                        last = time.time()
-                        current = next((d for d in self.store.downloads() if d.get("id") == dl_id), None)
-                        if not current or current.get("status") == "cancel":
-                            raise RuntimeError("cancel")
-                        self.store.update_download(dl_id, done=done)
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                # 206 = server navázání přijal; cokoli jiného (200, nebo zdroj Range
+                # neumí) znamená, že posílá soubor od začátku — pak se přepisuje
+                navazuje = od > 0 and resp.getcode() == 206
+                size = int(resp.headers.get("Content-Length") or 0) + (od if navazuje else 0)
+                done, last = (od if navazuje else 0), 0.0
+                if od and not navazuje:
+                    log(f"zdroj navázání neumí, stahuji {job.get('name', '')} znovu", xbmc.LOGWARNING)
+                out = open(tmp, "ab" if navazuje else "wb")
+                try:
+                    # `finally` místo `with`: při chybě se soubor musí zavřít (a tím
+                    # dopsat), ale NE smazat — na to, co je stažené, se příště naváže
+                    self.store.update_download(dl_id, size=size, done=done)
+                    while True:
+                        if self.monitor.abortRequested():
+                            raise RuntimeError("abort")
+                        chunk = resp.read(CHUNK)
+                        if not chunk:
+                            break
+                        out.write(chunk)
+                        done += len(chunk)
+                        if time.time() - last > 2:
+                            last = time.time()
+                            current = next((d for d in self.store.downloads() if d.get("id") == dl_id), None)
+                            if not current or current.get("status") == "cancel":
+                                raise RuntimeError("cancel")
+                            self.store.update_download(dl_id, done=done)
+                finally:
+                    out.close()
             os.replace(tmp, dest)
             self.store.update_download(dl_id, status="done", done=done, size=size or done)
             xbmcgui.Dialog().notification(L(30000), Lf(30074, job.get("name", "")), ADDON.getAddonInfo("icon"), 4000)
             log(f"staženo {dest}")
         except Exception as e:  # noqa: BLE001
-            try:
-                os.remove(tmp)
-            except OSError:
-                pass
             if str(e) == "cancel":
+                try:
+                    os.remove(tmp)      # zrušeno uživatelem — rozdělané smazat
+                except OSError:
+                    pass
                 self.store.remove_download(dl_id)
                 log(f"stahování zrušeno {dest}")
+            elif str(e) == "abort":
+                # Kodi končí: `.part` zůstane, po startu se naváže (`requeue_running`)
+                self.store.update_download(dl_id, status="running")
+                log(f"stahování {job.get('name', '')} přerušeno vypnutím Kodi")
             else:
+                # chyba sítě nebo zdroje — `.part` zůstane ležet, „Zkusit znovu" naváže
                 self.store.update_download(dl_id, status="error", error=str(e)[:200])
                 log(f"stahování selhalo {dest}: {e}", xbmc.LOGERROR)
                 xbmcgui.Dialog().notification(L(30000), Lf(30075, job.get("name", "")), xbmcgui.NOTIFICATION_ERROR, 5000)

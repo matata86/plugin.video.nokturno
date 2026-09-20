@@ -3048,6 +3048,145 @@ class TestAudit614Beta2(unittest.TestCase):
         self.assertEqual(len(xbmcplugin.ended), 1)
 
 
+class TestNavazovaniStahovani(unittest.TestCase):
+    """Nález 24 z auditu: `.part` se mazal při každé chybě, takže se 20GB film po
+    restartu Kodi nebo výpadku sítě stahoval znovu od nuly."""
+
+    class FakeMonitor:
+        def __init__(self, stop_after=None):
+            self.stop_after, self.volani = stop_after, 0
+
+        def abortRequested(self):
+            self.volani += 1
+            return self.stop_after is not None and self.volani > self.stop_after
+
+        def waitForAbort(self, _s):
+            return True
+
+    class FakeResp:
+        def __init__(self, data, code=200, length=None):
+            self._data, self._code = data, length if length is not None else len(data)
+            self.headers = {"Content-Length": str(self._code)}
+            self._kod = code
+            self._pos = 0
+
+        def getcode(self):
+            return self._kod
+
+        def read(self, n):
+            kus = self._data[self._pos:self._pos + n]
+            self._pos += len(kus)
+            return kus
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    def setUp(self):
+        reset_kodi()
+        self.dir = tempfile.mkdtemp()
+        self.dest = os.path.join(self.dir, "film.mkv")
+        for d in default.STORE.downloads():
+            default.STORE.remove_download(d["id"])
+
+    def _job(self, **kw):
+        job = {"id": "d1", "url": "https://cdn/film.mkv", "dest": self.dest, "name": "Film", **kw}
+        default.STORE.add_download(dict(job))
+        return job
+
+    def test_part_size_pozna_na_co_navazat(self):
+        tmp = self.dest + ".part"
+        self.assertEqual(service.Downloader.part_size(tmp, 100), 0, "co není, na to se nenaváže")
+        with open(tmp, "wb") as f:
+            f.write(b"x" * 40)
+        self.assertEqual(service.Downloader.part_size(tmp, 100), 40)
+        self.assertEqual(service.Downloader.part_size(tmp, 40), 0, "hotový nebo delší = radši znovu")
+        self.assertEqual(service.Downloader.part_size(tmp, 10), 0)
+
+    def test_navaze_na_rozdelany_soubor(self):
+        with open(self.dest + ".part", "wb") as f:
+            f.write(b"A" * 40)
+        job = self._job(size=100)
+        dl = service.Downloader(default.STORE, self.FakeMonitor())
+        pozadavky = []
+
+        def urlopen(req, timeout=None):
+            pozadavky.append(req.headers)
+            return self.FakeResp(b"B" * 60, code=206)
+
+        with mock.patch.object(service, "resolve_internal", return_value=("https://cdn/film.mkv", {})), \
+                mock.patch.object(service.urllib.request, "urlopen", urlopen):
+            dl.download(job)
+        self.assertEqual(pozadavky[0].get("Range"), "bytes=40-")
+        with open(self.dest, "rb") as f:
+            self.assertEqual(f.read(), b"A" * 40 + b"B" * 60, "navázaný soubor musí být celý")
+        hotovo = next(d for d in default.STORE.downloads() if d["id"] == "d1")
+        self.assertEqual((hotovo["status"], hotovo["size"]), ("done", 100))
+
+    def test_zdroj_bez_navazani_stahuje_od_zacatku(self):
+        with open(self.dest + ".part", "wb") as f:
+            f.write(b"A" * 40)
+        job = self._job(size=100)
+        dl = service.Downloader(default.STORE, self.FakeMonitor())
+        with mock.patch.object(service, "resolve_internal", return_value=("https://cdn/film.mkv", {})), \
+                mock.patch.object(service.urllib.request, "urlopen",
+                                  lambda req, timeout=None: self.FakeResp(b"C" * 100, code=200)):
+            dl.download(job)
+        with open(self.dest, "rb") as f:
+            self.assertEqual(f.read(), b"C" * 100, "server Range neumí — přepsat, ne slepit")
+
+    def test_chyba_site_nechá_rozdelany_soubor_lezet(self):
+        job = self._job()
+        dl = service.Downloader(default.STORE, self.FakeMonitor())
+
+        class Padne(self.FakeResp):
+            def read(self, n):
+                if self._pos:
+                    raise OSError("spojení spadlo")
+                return super().read(n)
+
+        with mock.patch.object(service, "resolve_internal", return_value=("https://cdn/film.mkv", {})), \
+                mock.patch.object(service.urllib.request, "urlopen",
+                                  lambda req, timeout=None: Padne(b"D" * 200, length=200)):
+            dl.download(job)
+        self.assertEqual(os.path.getsize(self.dest + ".part"), 200, "stažené zůstává pro navázání")
+        self.assertEqual(next(d for d in default.STORE.downloads() if d["id"] == "d1")["status"], "error")
+
+    def test_zruseni_rozdelany_soubor_smaze(self):
+        """`download()` si stav přepíše na „running", takže zrušení musí přijít až za běhu —
+        přesně jako když uživatel klikne na Zrušit v seznamu stahování."""
+        job = self._job()
+        dl = service.Downloader(default.STORE, self.FakeMonitor())
+
+        class Zrusi(self.FakeResp):
+            def read(self, n):
+                default.STORE.update_download("d1", status="cancel")
+                return super().read(n)
+
+        with mock.patch.object(service, "resolve_internal", return_value=("https://cdn/film.mkv", {})), \
+                mock.patch.object(service.urllib.request, "urlopen",
+                                  lambda req, timeout=None: Zrusi(b"E" * 200, length=200)):
+            dl.download(job)
+        self.assertFalse(os.path.exists(self.dest + ".part"), "zrušené stahování po sobě uklidí")
+        self.assertEqual([d["id"] for d in default.STORE.downloads()], [])
+
+    def test_po_restartu_se_bezici_vrati_do_fronty(self):
+        self._job(status="running")
+        default.STORE.update_download("d1", status="running")
+        service.Downloader(default.STORE, self.FakeMonitor()).requeue_running()
+        self.assertEqual(next(d for d in default.STORE.downloads() if d["id"] == "d1")["status"], "queued")
+
+    def test_smazani_z_fronty_uklidi_rozdelany_soubor(self):
+        with open(self.dest + ".part", "wb") as f:
+            f.write(b"x" * 10)
+        self._job(status="error")
+        default.STORE.update_download("d1", status="error")
+        default.download_remove("d1")
+        self.assertFalse(os.path.exists(self.dest + ".part"))
+
+
 class TestZahrivaniJazykovehoKatalogu(unittest.TestCase):
     """Nálezy 12 a 29 z auditu 2026-09-19: „Nově přidané s CZ dabingem/titulky".
 
