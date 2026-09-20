@@ -73,6 +73,12 @@ SUBS_TASK = "Titulky"   # úloha v souběžném hledání streamů, ne zdroj (ne
 # deadlinu se vezme, co je; opozdilec se počítá jako výpadek (výsledek se necachuje) a doběhne
 # na pozadí — sám si výsledek do své cache uloží pro příště.
 SOURCE_DEADLINE = 20.0
+# `SOURCE_DEADLINE` je rozpočet pro *celé* hledání zdrojů, ne pro jedno kolo: `raw_streams()`
+# volá `kolo()` podruhé, když hlavní zdroj nic nenašel a český název z TMDB se liší. Bez
+# sdíleného rozpočtu se stropy sečtou (2× 20 s) a nikde to neusekne — naměřený nejdelší
+# `/stream/` na produkci byl 31,4 s. Druhé kolo tedy dostane, co ze zbytku zbylo, nejméně
+# ale `MIN_ROUND_DEADLINE`, ať se rychlému zdroji nezavřou dveře těsně před cílem.
+MIN_ROUND_DEADLINE = 2.0
 # kolik dalších názvů (originál, anglický, český/slovenský z Wikidat) jde do fulltextových dotazů;
 # každý je u každého zdroje další HTTP dotaz (až 10 variant × 5 zdrojů = 45 dotazů na titul)
 MAX_TITLE_VARIANTS = 3
@@ -2248,8 +2254,16 @@ class Engine:
                 """Jedna souběžná dávka: vrátí `{label: výsledek}`. Zdroje jsou nezávislé
                 a každý má vlastní timeouty (15–40 s) — za sebou byl studený výpis 8–15
                 sériových dotazů. `gather` čeká po vteřinách a ptá se `should_stop()`;
-                po `SOURCE_DEADLINE` se dál nečeká — opozdilec se počítá jako výpadek
-                (výsledek se necachuje) a doběhne si na pozadí."""
+                po vypršení rozpočtu se dál nečeká — opozdilec se počítá jako výpadek
+                (výsledek se necachuje) a doběhne si na pozadí.
+
+                Rozpočet `SOURCE_DEADLINE` je společný pro všechna kola a měří se od
+                `mark`, ne od začátku tohohle volání — druhé kolo tedy nezačíná znovu
+                od nuly."""
+                zbytek = SOURCE_DEADLINE - (time.monotonic() - mark)
+                # minimum nesmí přerůst samotný rozpočet — jinak by malý `SOURCE_DEADLINE`
+                # (test, nebo kdyby ho někdo stáhl) čekání naopak prodloužil
+                zbytek = max(min(SOURCE_DEADLINE, MIN_ROUND_DEADLINE), zbytek)
                 pool = ThreadPoolExecutor(max_workers=len(ulohy))
                 futures = [pool.submit(bezpecne, label, fetch) for label, fetch in ulohy]
                 label_by_future = dict(zip(futures, (label for label, _fetch in ulohy)))
@@ -2261,17 +2275,17 @@ class Engine:
                     if on_source_done and label != SUBS_TASK:
                         on_source_done(label, len(future.result()))
                 out = {}
-                for future in gather(pool, futures, self.should_stop, on_done=hotovo, deadline=SOURCE_DEADLINE):
+                for future in gather(pool, futures, self.should_stop, on_done=hotovo, deadline=zbytek):
                     label = label_by_future[future]
                     if future.done():
                         out[label] = future.result()
                         continue
                     out[label] = []
-                    timings["zdroje"][label] = f">{SOURCE_DEADLINE:g}s"
+                    timings["zdroje"][label] = f">{zbytek:.0f}s"
                     if label != SUBS_TASK:
-                        _LOGGER.info("streamy %s: %s neodpověděl do %g s, bere se bez něj", item_id, label,
-                                     SOURCE_DEADLINE)
-                        failures.append((label, TimeoutError(f"neodpověděl do {SOURCE_DEADLINE:g} s")))
+                        _LOGGER.info("streamy %s: %s neodpověděl do %.0f s, bere se bez něj", item_id, label,
+                                     zbytek)
+                        failures.append((label, TimeoutError(f"neodpověděl do {zbytek:.0f} s")))
                 return out
 
             def slozit(vysledky, ulohy):
