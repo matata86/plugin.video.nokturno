@@ -1971,8 +1971,8 @@ msgid "No group yet — create one, or join with a code from another Kodi."
 msgstr "Még nincs csoport — hozz létre egyet, vagy csatlakozz egy másik Kodi kódjával."
 
 msgctxt "#30677"
-msgid "Leave the group? This Kodi stops synchronising. Nothing already saved here is deleted."
-msgstr "Kilépsz a csoportból? Ez a Kodi nem szinkronizál tovább. Az itt tárolt adatok megmaradnak."
+msgid "Leave the group? This Kodi stops synchronising. Nothing already saved here is deleted. The other devices keep the code — to really cut off a removed device, start a new group and join the others with a new code."
+msgstr "Kilépsz a csoportból? Ez a Kodi nem szinkronizál tovább. Semmi mentett adat nem törlődik. A többi eszköznél a kód marad — ha az eltávolított eszközt tényleg le akarod vágni, hozz létre új csoportot és a többit új kóddal csatlakoztasd."
 
 msgctxt "#30678"
 msgid "Left the group."
@@ -2007,8 +2007,8 @@ msgid "Options such as preferred language, stream sorting or enabled sources. Th
 msgstr "Olyan beállítások, mint a kívánt nyelv, a streamek sorrendje vagy a bekapcsolt források. A letöltési mappa és maga a szinkronizálás beállítása nem kerül megosztásra."
 
 msgctxt "#30686"
-msgid "Logins for the sources (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, own storage) and the TMDB key. Passwords travel encrypted, the server cannot read them. CZtor and Trakt must be paired on each device separately."
-msgstr "Bejelentkezések a forrásokhoz (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, saját tároló) és a TMDB kulcs. A jelszavak titkosítva mennek, a kiszolgáló nem olvassa el őket. A CZtor és a Trakt párosítása minden eszközön külön szükséges."
+msgid "Logins for the sources (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, own storage) and the TMDB key. Passwords travel encrypted and the server cannot read them, but anyone holding the group code can — only give it to your own devices. CZtor and Trakt must be paired on each device separately."
+msgstr "Bejelentkezés a forrásokhoz (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, saját tárhely) és a TMDB kulcs. A jelszavak titkosítva mennek, a kiszolgáló nem olvassa őket, de akinél a csoportkód van, elolvassa — csak a saját eszközeidnek add oda. A CZtor és a Trakt minden eszközön külön párosítandó."
 
 msgctxt "#30687"
 msgid "HA and dashboard"

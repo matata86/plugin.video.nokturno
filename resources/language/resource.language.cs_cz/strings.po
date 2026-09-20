@@ -1974,8 +1974,8 @@ msgid "No group yet — create one, or join with a code from another Kodi."
 msgstr "Zatím žádná skupina — založ ji, nebo se připoj kódem z jiného Kodi."
 
 msgctxt "#30677"
-msgid "Leave the group? This Kodi stops synchronising. Nothing already saved here is deleted."
-msgstr "Odejít ze skupiny? Tohle Kodi se přestane synchronizovat. Nic, co tu je uložené, se nesmaže."
+msgid "Leave the group? This Kodi stops synchronising. Nothing already saved here is deleted. The other devices keep the code — to really cut off a removed device, start a new group and join the others with a new code."
+msgstr "Odejít ze skupiny? Tohle Kodi se přestane synchronizovat. Nic, co tu je uložené, se nesmaže. Ostatním zařízením kód zůstává — když chceš odejmuté zařízení opravdu odříznout, založ novou skupinu a ostatní připoj novým kódem."
 
 msgctxt "#30678"
 msgid "Left the group."
@@ -2010,8 +2010,8 @@ msgid "Options such as preferred language, stream sorting or enabled sources. Th
 msgstr "Volby jako preferovaný jazyk, řazení streamů nebo zapnuté zdroje. Nesdílí se složka pro stahování ani samotné nastavení synchronizace."
 
 msgctxt "#30686"
-msgid "Logins for the sources (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, own storage) and the TMDB key. Passwords travel encrypted, the server cannot read them. CZtor and Trakt must be paired on each device separately."
-msgstr "Přihlášení ke zdrojům (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, vlastní úložiště) a klíč k TMDB. Hesla jdou zašifrovaná, server je nepřečte. CZtor a Trakt se musí spárovat na každém zařízení zvlášť."
+msgid "Logins for the sources (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, own storage) and the TMDB key. Passwords travel encrypted and the server cannot read them, but anyone holding the group code can — only give it to your own devices. CZtor and Trakt must be paired on each device separately."
+msgstr "Přihlášení ke zdrojům (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, vlastní úložiště) a klíč k TMDB. Hesla jdou zašifrovaná a server je nepřečte, ale kdo má kód skupiny, přečte je — dávej ho jen svým zařízením. CZtor a Trakt se musí spárovat na každém zařízení zvlášť."
 
 msgctxt "#30687"
 msgid "HA and dashboard"

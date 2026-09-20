@@ -1970,7 +1970,7 @@ msgid "No group yet — create one, or join with a code from another Kodi."
 msgstr ""
 
 msgctxt "#30677"
-msgid "Leave the group? This Kodi stops synchronising. Nothing already saved here is deleted."
+msgid "Leave the group? This Kodi stops synchronising. Nothing already saved here is deleted. The other devices keep the code — to really cut off a removed device, start a new group and join the others with a new code."
 msgstr ""
 
 msgctxt "#30678"
@@ -2006,7 +2006,7 @@ msgid "Options such as preferred language, stream sorting or enabled sources. Th
 msgstr ""
 
 msgctxt "#30686"
-msgid "Logins for the sources (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, own storage) and the TMDB key. Passwords travel encrypted, the server cannot read them. CZtor and Trakt must be paired on each device separately."
+msgid "Logins for the sources (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, own storage) and the TMDB key. Passwords travel encrypted and the server cannot read them, but anyone holding the group code can — only give it to your own devices. CZtor and Trakt must be paired on each device separately."
 msgstr ""
 
 msgctxt "#30687"
