@@ -1502,6 +1502,12 @@ class Engine:
             pool.submit(self._media_from_file, url)
         pool.shutdown(wait=False)
 
+    @staticmethod
+    def _probe_url(stream):
+        """Odkaz, ze kterého se čte hlavička: vlastní, u Luny přibalený přímý z WebShare."""
+        url = str(stream.get("url") or "")
+        return url if url.startswith(("hs:", "ws:", "streamuj:", "dav:", "fs:")) else stream.get("_ws_url") or url
+
     def _media_from_file(self, url):
         """Co se o souboru dá přečíst z jeho hlavičky. Prázdné, když to nejde."""
         def load():
@@ -1561,12 +1567,16 @@ class Engine:
             schemes += ("fs:",)
         candidates = [s for s in streams if not s.get("_tracks")
                       and str(s.get("url") or "").startswith(schemes)]
+        # Lunin řádek spárovaný s přímým nálezem z WebShare (`_merge_direct`) má vlastní `http:` url
+        # a zvuk od Luny, ale rozlišení, kodek a titulky zná jen soubor — čte se přes `_ws_url`
+        candidates += [s for s in streams if not s.get("_media") and s not in candidates
+                       and str(s.get("_ws_url") or "").startswith("ws:")]
         ordered = sorted(candidates, key=lambda s: bool(s.get("channels")))
         todo = ordered[:limit]
         # `probe_background`: co se nečte teď (nad limit, sloučené verze v `background`),
         # se přečte na pozadí do cache — další otevření titulu i „Zobrazit všechny“
         # pak mají ověřené všechno, bez čekání
-        rest = [s["url"] for s in ordered[limit:]] + [
+        rest = [self._probe_url(s) for s in ordered[limit:]] + [
             s["url"] for s in background if not s.get("_tracks") and str(s.get("url") or "").startswith(schemes)]
         # skutečný počet čtených hlaviček bývá výrazně nižší než limit —
         # ukazatel průběhu si podle něj dopočítá reálné 100 %, ne odhad
@@ -1583,7 +1593,7 @@ class Engine:
         # hostitel končí — `gather()` se mezi tím ptá `should_stop()` a při přerušení
         # nezačaté hlavičky zruší (viz `lib/abort.py`)
         pool = ThreadPoolExecutor(max_workers=PROBE_WORKERS)
-        futures = {pool.submit(self._media_from_file, s["url"]): s for s in todo}
+        futures = {pool.submit(self._media_from_file, self._probe_url(s)): s for s in todo}
         results = {}
 
         def hotovo(future):
