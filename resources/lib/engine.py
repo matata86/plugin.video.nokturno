@@ -613,10 +613,24 @@ class Engine:
         """
         saved = dict(self.store.load(accounts_lib.STORE, {}) or {})
         if self._opt(CONF_HS_ENABLED, False):
-            # pauza po 429 je levná a mění se po minutách — brát ji z šestihodinového
+            # pauza po 429 je levná a mění se po minutách — brát ji z dvanáctihodinového
             # záznamu by znamenalo hlásit blokaci dávno po jejím konci
             saved["hellspy"] = {**accounts_lib.hellspy(self.store), "ts": time.time()}
-        return accounts_lib.compose(saved, self.sources(), ttl=ttl)
+        return accounts_lib.compose(saved, self._account_sources(), ttl=ttl)
+
+    def _account_sources(self):
+        """Které zdroje se mají ve stavu vůbec objevit.
+
+        Není to `sources()`: tam je zdroj „nastavený" teprve, když se s ním dá
+        pracovat, kdežto tady jde právě o to pojmenovat rozdělanou práci.
+        CZtor se zapnutým přepínačem a bez spárování je typické „nejde mi to";
+        podle `sources()` by zmizel jako vypnutý a `not_paired` by se nikdy
+        neukázalo. Totéž Luna s adresou a bez tokenu.
+        """
+        base = self.sources()
+        base["cztor"] = bool(self._opt(CONF_CZ_ENABLED, False))
+        base["luna"] = bool(self._opt("luna_token").strip() or self._opt("luna_url").strip())
+        return base
 
     def account_problems(self, ttl=accounts_lib.TTL):
         """Jen zdroje, se kterými uživatel musí něco udělat (prázdné = vše v pořádku)."""
@@ -636,7 +650,7 @@ class Engine:
         Klienti se zakládají tady (bez sítě), samotné dotazy dělá až `refresh_accounts`."""
         chce = (lambda name: True) if only is None else (lambda name: name in set(only))
         checks = {}
-        if chce("luna") and self._opt("luna_token"):
+        if chce("luna") and (self._opt("luna_token").strip() or self._opt("luna_url").strip()):
             url, token = self._opt("luna_url"), self._opt("luna_token")
             checks["luna"] = lambda: accounts_lib.luna(url, token, deep=deep)
         if chce("webshare") and self._opt("ws_username").strip():
