@@ -276,8 +276,7 @@ def make_support(path):
     dr.text((266, 188), "Zdarma a bez reklam. Když ti ušetří večer hledání,", font=font("InterDisplay-Medium.otf", 34), fill=dim)
     dr.text((266, 232), "kafe autorovi udělá radost ☕".replace(" ☕", ""), font=font("InterDisplay-Medium.otf", 34), fill=dim)
 
-    rows = (("Ko-fi", "ko-fi.com/matata86", (255, 94, 91)),
-            ("PayPal", "paypal.me/matata86", (0, 112, 186)),
+    rows = (("PayPal", "paypal.me/matata86", (0, 112, 186)),
             ("Bitcoin", BTC, (247, 147, 26)))
     y = 330
     for label, value, color in rows:
