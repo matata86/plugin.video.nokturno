@@ -2741,7 +2741,7 @@ ACCOUNT_TEXTS = {
     ("sledujteto", "premium"): (30643, "Premium"),
     ("sledujteto", "no_premium"): (30644, "účet bez Premium — přehrávání nepůjde"),
     ("hellspy", "ok"): (30645, "v pořádku"),
-    ("hellspy", "paused"): (30646, "pozastaveno na %s min — odmítá dotazy z téhle sítě"),
+    ("hellspy", "paused"): (30646, "pozastaveno na %s min (HTTP 429)"),
     ("storage", "ok"): (30647, "odpovídá"),
 }
 
@@ -2801,7 +2801,12 @@ def account_action(row):
     return podle_zdroje.get(row["code"]) or podle_zdroje.get("") or "settings"
 
 
-def account_summary(rows, limit=3):
+# Kolik zdrojů se vejde do jednoho řádku menu. Víc ne — skiny řádek ořezávají
+# a uživatel by z hlášky viděl jen začátek; zbytek je ve výpisu pod ní.
+SUMMARY_LIMIT = 2
+
+
+def account_summary(rows, limit=SUMMARY_LIMIT):
     """Souhrn do jedné položky menu: „WebShare: předplatné končí za 3 dny · HellSpy: …"."""
     bad = accounts_problems(rows)
     if not bad:
@@ -3392,12 +3397,14 @@ def main_menu(apis):
     # bez problému jen zabíral místo. Čte se z uloženého záznamu (obnovu dělá
     # služba na pozadí), takže menu nezdrží. Souhrn je dlouhý, proto jde i do
     # popisku položky, kde ho skin ukáže celý.
-    souhrn = account_summary(engine_of(apis).accounts())
+    rows = engine_of(apis).accounts()
+    souhrn = account_summary(rows)
     if souhrn:
         li = xbmcgui.ListItem(label=f"{L(30630, 'Stav zdrojů')}: {souhrn}")
         li.setArt({"icon": "DefaultIconWarning.png", "thumb": "DefaultIconWarning.png"})
         tag = li.getVideoInfoTag()
-        tag.setPlot(souhrn)
+        # v popisu všechno a na vlastních řádcích — do štítku se vejdou jen dva zdroje
+        tag.setPlot("\n".join(account_line(r) for r in accounts_problems(rows)))
         xbmcplugin.addDirectoryItem(HANDLE, build_url(action="accounts"), li, isFolder=True)
     # čistá instalace: průvodce nahoře jako položka. Spouštět ho z kořene sám od sebe
     # nejde — modální dialog v cestě, kterou otevírají widgety a JSON-RPC, blokuje

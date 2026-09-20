@@ -161,6 +161,14 @@ def compose(saved, sources, now=None, ttl=TTL, stale_after=STALE_AFTER):
     return out
 
 
+def worst(rows):
+    """Nejzávažnější úroveň v seznamu — podle ní se barví souhrn."""
+    for level in (FAIL, WARN):
+        if any(r["level"] == level for r in rows):
+            return level
+    return OK
+
+
 def problems(rows):
     """Jen to, co stojí za hlášku — v pořadí `SOURCES`, nejzávažnější napřed."""
     bad = [r for r in rows if r["level"] in BAD]

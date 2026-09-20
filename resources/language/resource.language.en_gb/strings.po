@@ -1775,7 +1775,7 @@ msgid "all good"
 msgstr ""
 
 msgctxt "#30646"
-msgid "paused for %s min — it is refusing requests from this network"
+msgid "paused for %s min (HTTP 429)"
 msgstr ""
 
 msgctxt "#30647"

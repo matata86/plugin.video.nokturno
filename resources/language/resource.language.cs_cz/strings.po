@@ -1777,8 +1777,8 @@ msgid "all good"
 msgstr "v pořádku"
 
 msgctxt "#30646"
-msgid "paused for %s min — it is refusing requests from this network"
-msgstr "pozastaveno na %s min — odmítá dotazy z téhle sítě"
+msgid "paused for %s min (HTTP 429)"
+msgstr "pozastaveno na %s min (HTTP 429)"
 
 msgctxt "#30647"
 msgid "responding"

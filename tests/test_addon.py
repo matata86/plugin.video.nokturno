@@ -4318,10 +4318,20 @@ class TestStavZdroju(unittest.TestCase):
     def test_souhrn_bez_problemu_je_prazdny(self):
         self.assertEqual(default.account_summary([self._row("luna", "ok", "ok")]), "")
 
+    def test_popis_polozky_nese_vsechny_zdroje(self):
+        """Do štítku se vejdou dva, skiny řádek ořezávají — zbytek musí být v popisu."""
+        rows = [self._row(s, "fail", "expired") for s in ("luna", "webshare", "cztor", "fastshare")]
+        with mock.patch.object(default.KodiEngine, "accounts", lambda self, **kw: rows):
+            default.router("")
+        tag = xbmcplugin.items[0][2].getVideoInfoTag()
+        popis = next(a[0] for name, a, _kw in tag.calls if name == "setPlot")
+        for tag in ("Luna", "WebShare", "CZtor", "FastShare"):
+            self.assertIn(tag, popis)
+
     def test_souhrn_dlouhy_seznam_zkrati(self):
         rows = [self._row(s, "fail", "expired") for s in
                 ("luna", "webshare", "cztor", "fastshare", "sledujteto")]
-        self.assertIn("+2", default.account_summary(rows))
+        self.assertIn(f"+{5 - default.SUMMARY_LIMIT}", default.account_summary(rows))
 
     def test_menu_bez_problemu_polozku_neukaze(self):
         """Kdo problém nemá, tomu by položka jen zabírala místo."""

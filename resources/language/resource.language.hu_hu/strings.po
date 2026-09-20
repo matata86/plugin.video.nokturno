@@ -1774,8 +1774,8 @@ msgid "all good"
 msgstr "rendben"
 
 msgctxt "#30646"
-msgid "paused for %s min — it is refusing requests from this network"
-msgstr "%s percre szüneteltetve — elutasítja a kéréseket erről a hálózatról"
+msgid "paused for %s min (HTTP 429)"
+msgstr "%s percre szüneteltetve (HTTP 429)"
 
 msgctxt "#30647"
 msgid "responding"
