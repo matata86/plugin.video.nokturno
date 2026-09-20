@@ -287,9 +287,13 @@ def split_episode_id(item_id):
 class Engine:
     """Přístup ke třem zdrojům obsahu pod jedním rozhraním."""
 
-    def __init__(self, options, storage_dir, opener=None, store=None, should_stop=None):
+    def __init__(self, options, storage_dir, opener=None, store=None, should_stop=None,
+                 storage_limits=None):
         """`opener`: volitelný `urllib.request.OpenerDirector` pro vlastní úložiště —
         veřejná instance jím hlídá, kam se smí připojit (viz `StorageApi`).
+        `storage_limits`: stropy průchodu cizím úložištěm pro veřejnou instanci —
+        `{"crawl_deadline", "max_dirs", "timeout"}`, viz `storage_api.PUBLIC_*`.
+        Bez nich se prochází, dokud je co (vlastní NAS v Kodi a HA).
         `store`: už otevřené úložiště hostitele (doplněk pro Kodi má jedno pro celý
         plugin) — jinak se otevře nové v `storage_dir`.
         `should_stop`: zavolatelné bez parametrů → True, když má jádro přestat
@@ -304,6 +308,7 @@ class Engine:
         self.options = dict(options)
         self.store = store or Store(storage_dir)
         self.opener = opener
+        self.storage_limits = dict(storage_limits or {})
         self.should_stop = should_stop or never
         self.last_timings = {}   # časy fází posledního `raw_streams()` (s), viz tam
         self._luna = None
@@ -467,7 +472,8 @@ class Engine:
                 try:
                     self._storages.append(StorageApi(self._opt(url), self._opt(user), self._opt(password),
                                                      self._opt(name), slot=slot, cache=self.store,
-                                                     opener=self.opener, should_stop=self.should_stop))
+                                                     opener=self.opener, should_stop=self.should_stop,
+                                                     **self.storage_limits))
                 except StorageError as err:
                     _LOGGER.warning("úložiště %d: %s", slot, err)
         return self._storages

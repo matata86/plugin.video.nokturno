@@ -12,12 +12,22 @@ cache/           odpovědi API s TTL (manifesty, meta)
 Kodi si u položek z pluginu zhlédnutí samo nepamatuje spolehlivě (cesta streamu
 se mění), proto vlastní evidence.
 """
+import contextlib
 import hashlib
 import json
 import logging
 import os
 import threading
 import time
+
+try:                      # POSIX (Linux, CoreELEC, Android, macOS)
+    import fcntl
+except ImportError:       # pragma: no cover – Windows
+    fcntl = None
+try:                      # Windows
+    import msvcrt
+except ImportError:       # pragma: no cover – POSIX
+    msvcrt = None
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -81,6 +91,15 @@ class Store:
         # "dictionary changed size during iteration". RLock, ne Lock: metody
         # se volají navzájem (remember_item → load/save) ze stejného vlákna.
         self._lock = threading.RLock()
+        # Kolikrát je soubor zamčený mezi procesy v tomhle vlákně (`updating`).
+        # Zámek na soubor patří otevřenému popisovači, ne procesu — vnořené volání
+        # (`toggle_favourite` → `remember_item`) by si přes druhý `open()` zamklo
+        # samo sebe, proto se bere jen v nejvyšší úrovni.
+        self._held = {}
+        # rozpracovaná transakce na soubor (`updating`) — vnořené volání nad týmž jménem
+        # dostane tentýž objekt a ukládá se jednou, na konci té vnější. Jinak by vnitřní
+        # načetla data znovu z disku a vnější je svým uložením přepsala zpátky.
+        self._tx = {}
 
     # --- soubory ------------------------------------------------------------
     def _path(self, name):
@@ -101,6 +120,76 @@ class Store:
                     os.remove(path)
         except OSError:
             pass
+
+    @contextlib.contextmanager
+    def _file_lock(self, name):
+        """Výhradní zámek na soubor mezi procesy. Nejde-li zamknout, pokračuje se bez něj.
+
+        Kodi je na ten soubor víc procesů najednou: plugin se spouští znovu při každém
+        kliknutí, služba na pozadí běží pořád (pozici přehrávání zapisuje každých 30 s).
+        `os.replace` je atomický, ale celý cyklus načti–uprav–ulož ne — prohrávající
+        zápis tiše zahodil, co mezitím uložil ten druhý (zhlédnuto, fronta stahování).
+        Zamyká se prázdný soubor `<name>.lock` vedle dat, ne data samotná: zámek tak
+        přežije `os.replace`, kterým se data nahrazují.
+        """
+        if self._held.get(name) or (fcntl is None and msvcrt is None):
+            self._held[name] = self._held.get(name, 0) + 1
+            try:
+                yield
+            finally:
+                self._held[name] -= 1
+            return
+        path = os.path.join(self.dir, name + ".lock")
+        handle = None
+        try:
+            handle = open(path, "a+b")
+            if fcntl is not None:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+            else:                                   # pragma: no cover – jen Windows
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
+        except OSError as err:
+            # síťový disk bez zámků, Android SAF, plný disk… radši bez zámku než spadnout
+            _LOGGER.debug("zámek %s nejde vzít (%s) — pokračuji bez něj", path, err)
+            if handle is not None:
+                handle.close()
+                handle = None
+        self._held[name] = 1
+        try:
+            yield
+        finally:
+            self._held[name] -= 1
+            if handle is not None:
+                try:
+                    if fcntl is not None:
+                        fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+                    else:                           # pragma: no cover – jen Windows
+                        handle.seek(0)
+                        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+                except OSError:
+                    pass
+                handle.close()
+
+    @contextlib.contextmanager
+    def updating(self, name, default):
+        """Načti–uprav–ulož pod zámkem: `with store.updating("watched", {}) as data:`.
+
+        Data se uvnitř mění **na místě** (dict/list), protože uložit se musí týž objekt.
+        Čte se vždy čerstvě z disku — kopie v paměti může být starší než zápis z jiného
+        procesu.
+        """
+        with self._lock:
+            if name in self._tx:
+                yield self._tx[name]
+                return
+            with self._file_lock(name):
+                data = self.reload(name, default)
+                self._tx[name] = data
+                try:
+                    yield data
+                    self.save(name, data)
+                finally:
+                    self._tx.pop(name, None)
 
     def load(self, name, default):
         with self._lock:
@@ -131,6 +220,13 @@ class Store:
             try:
                 with open(tmp, "w", encoding="utf-8") as f:
                     json.dump(data, f, ensure_ascii=False)
+                try:
+                    # `trakt.json`, `cztor_session.json` a spol. nesou přístupové tokeny;
+                    # výchozí práva bývají 0644, tedy čitelné pro kohokoli na stroji.
+                    # Na FAT/SAF (Android) chmod neprojde — soubor tam práva nemá vůbec.
+                    os.chmod(tmp, 0o600)
+                except OSError:
+                    pass
                 os.replace(tmp, path)
                 self._sigs[name] = self._sig(path)
             except OSError as err:  # zápis není kritický, ať kvůli němu nepadne výpis — ale ať je vidět
@@ -174,10 +270,9 @@ class Store:
         return f"{kind}\t{query.strip().lower()}"
 
     def _log_history(self, kind, query, on):
-        log = self.load("histlog", {})
-        log[self._hkey(kind, query)] = {"kind": kind, "q": query.strip(), "on": on, "ts": int(time.time())}
-        self._trim(log, 500)
-        self.save("histlog", log)
+        with self.updating("histlog", {}) as log:
+            log[self._hkey(kind, query)] = {"kind": kind, "q": query.strip(), "on": on, "ts": int(time.time())}
+            self._trim(log, 500)
 
     def rebuild_history(self):
         """Zobrazený seznam `history` podle deníku: aktivní dotazy, novější výš, na kind."""
@@ -195,30 +290,32 @@ class Store:
         if not query:
             return
         with self._lock:
-            data = self._hist_map()
-            items = [q for q in data.get(kind, []) if q.lower() != query.lower()]
-            data[kind] = ([query] + items)[:HISTORY_MAX]
-            self.save("history", data)
+            with self._file_lock("history"):
+                data = self._hist_map()
+                items = [q for q in data.get(kind, []) if q.lower() != query.lower()]
+                data[kind] = ([query] + items)[:HISTORY_MAX]
+                self.save("history", data)
             self._log_history(kind, query, True)
 
     def remove_history(self, kind, query):
         with self._lock:
-            data = self._hist_map()
-            data[kind] = [q for q in data.get(kind, []) if q != query]
-            self.save("history", data)
+            with self._file_lock("history"):
+                data = self._hist_map()
+                data[kind] = [q for q in data.get(kind, []) if q != query]
+                self.save("history", data)
             self._log_history(kind, query, False)
 
     def clear_history(self, kind):
         with self._lock:
-            data = self._hist_map()
-            data[kind] = []
-            self.save("history", data)
+            with self._file_lock("history"):
+                data = self._hist_map()
+                data[kind] = []
+                self.save("history", data)
             now = int(time.time())
-            log = self.load("histlog", {})
-            for key, rec in log.items():
-                if rec.get("kind") == kind and rec.get("on"):
-                    log[key] = {**rec, "on": False, "ts": now}
-            self.save("histlog", log)
+            with self.updating("histlog", {}) as log:
+                for key, rec in list(log.items()):
+                    if rec.get("kind") == kind and rec.get("on"):
+                        log[key] = {**rec, "on": False, "ts": now}
 
     # --- zhlédnuto / rozkoukáno ---------------------------------------------------
     def watched(self, item_id):
@@ -245,22 +342,19 @@ class Store:
         return url, w.get("stream_subs") or ""
 
     def set_watched(self, item_id, watched=True):
-        with self._lock:
-            data = self.load("watched", {})
+        with self.updating("watched", {}) as data:
             entry = data.get(str(item_id)) or {}
             entry["playcount"] = 1 if watched else 0
             entry["resume"] = 0
             entry["ts"] = int(time.time())
             data[str(item_id)] = entry
             self._trim(data, WATCHED_MAX)
-            self.save("watched", data)
 
     def set_resume(self, item_id, position, total, stream_url=None, stream_subs=None):
         """`stream_url`/`stream_subs`: jen když se pozice zapisuje za běhu přehrávání
         (`Player.save_resume`) — cross-device sync a ruční nastavení pozice žádný stream
         nezná, tam se předchozí zapamatovaná reference (pokud existuje) ponechá beze změny."""
-        with self._lock:
-            data = self.load("watched", {})
+        with self.updating("watched", {}) as data:
             entry = data.get(str(item_id)) or {}
             entry["resume"] = round(float(position), 1)
             entry["total"] = round(float(total), 1)
@@ -270,7 +364,6 @@ class Store:
                 entry["stream_subs"] = stream_subs or ""
             data[str(item_id)] = entry
             self._trim(data, WATCHED_MAX)
-            self.save("watched", data)
 
     # --- skrytý „Další díl“ -------------------------------------------------------
     # {id seriálu: {"ep": id dílu, "ts": čas}} — synchronizuje se mezi Kodi a HA
@@ -278,10 +371,8 @@ class Store:
     # které bylo zrovna vypnuté. Starší doplňky ukládaly jen {seriál: díl}.
 
     def hide_next(self, series_id, episode_id):
-        with self._lock:
-            data = self.load("next_hidden", {})
+        with self.updating("next_hidden", {}) as data:
             data[str(series_id)] = {"ep": str(episode_id), "ts": int(time.time())}
-            self.save("next_hidden", data)
 
     def next_hidden(self, series_id):
         """Id dílu, který uživatel u seriálu skryl, nebo prázdný řetězec."""
@@ -317,11 +408,9 @@ class Store:
             return self.load("streampref", {}).get(str(series_id))
 
     def set_stream_pref(self, series_id, pref):
-        with self._lock:
-            data = self.load("streampref", {})
+        with self.updating("streampref", {}) as data:
             data[str(series_id)] = dict(pref, ts=int(time.time()))
             self._trim(data, 300)
-            self.save("streampref", data)
 
     # --- naposledy zvolený filtr streamů ---------------------------------------------
     # jeden společný filtr pro celý doplněk (ne na titul) — soubor je v profilu
@@ -336,13 +425,11 @@ class Store:
 
     # --- snímky titulů (pro seznamy bez dotazu na API) --------------------------------
     def remember_item(self, key, info):
-        with self._lock:
-            data = self.load("items", {})
+        with self.updating("items", {}) as data:
             info = dict(info)
             info["ts"] = int(time.time())
             data[str(key)] = info
             self._trim(data, ITEMS_MAX)
-            self.save("items", data)
 
     def item(self, key):
         with self._lock:
@@ -359,23 +446,21 @@ class Store:
 
     def toggle_favourite(self, key, info=None):
         with self._lock:
-            favs = self.load("favourites", [])
             key = str(key)
-            if key in favs:
-                favs.remove(key)
-                added = False
-            else:
-                favs.insert(0, key)
-                added = True
-                if info:
-                    self.remember_item(key, info)
-            self.save("favourites", favs)
+            with self.updating("favourites", []) as favs:
+                if key in favs:
+                    favs.remove(key)
+                    added = False
+                else:
+                    favs.insert(0, key)
+                    added = True
+                    if info:
+                        self.remember_item(key, info)
             # deník pro synchronizaci (viz sync.py): samotný seznam neumí říct,
             # kdy z něj co ubylo, a bez času by se odebrání nedalo přenést jinam
-            log = self.load("favlog", {})
-            log[key] = {"on": added, "ts": int(time.time())}
-            self._trim(log, 1000)
-            self.save("favlog", log)
+            with self.updating("favlog", {}) as log:
+                log[key] = {"on": added, "ts": int(time.time())}
+                self._trim(log, 1000)
             return added
 
     # --- stahování ------------------------------------------------------------------
@@ -384,27 +469,21 @@ class Store:
             return list(self.reload("downloads", []))
 
     def add_download(self, entry):
-        with self._lock:
-            data = self.reload("downloads", [])
+        with self.updating("downloads", []) as data:
             if any(d.get("id") == entry.get("id") for d in data):
                 return False
-            entry = dict(entry, status="queued", done=0, size=0, error="", ts=int(time.time()))
-            data.append(entry)
-            self.save("downloads", data)
+            data.append(dict(entry, status="queued", done=0, size=0, error="", ts=int(time.time())))
             return True
 
     def update_download(self, dl_id, **fields):
-        with self._lock:
-            data = self.reload("downloads", [])
+        with self.updating("downloads", []) as data:
             for d in data:
                 if d.get("id") == dl_id:
                     d.update(fields)
-            self.save("downloads", data)
 
     def remove_download(self, dl_id):
-        with self._lock:
-            data = self.reload("downloads", [])
-            self.save("downloads", [d for d in data if d.get("id") != dl_id])
+        with self.updating("downloads", []) as data:
+            data[:] = [d for d in data if d.get("id") != dl_id]
 
     # --- Trakt ------------------------------------------------------------------------
     def trakt(self):
@@ -413,7 +492,8 @@ class Store:
 
     def set_trakt(self, data):
         with self._lock:
-            self.save("trakt", data or {})
+            with self._file_lock("trakt"):
+                self.save("trakt", data or {})
 
     # --- cache odpovědí API -------------------------------------------------------------
     def cached(self, key, ttl, loader):

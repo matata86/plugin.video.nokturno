@@ -45,6 +45,14 @@ REV_TTL = 60                # jak často se značka čte znovu — každý výpi
 MAX_DIRS = 3000             # pojistka proti nekonečnému procházení
 MAX_FILES = 50000
 CRAWL_WORKERS = 8           # kolik složek se čte souběžně (PROPFIND po jedné byl na velké knihovně pomalý)
+REV_TIMEOUT = 3             # značku změny nemá smysl čekat celých TIMEOUT — bez ní se jen projde znovu
+# Veřejná instance (doplněk pro Stremio) prochází cizí úložiště zadané v adrese. Bez stropu
+# stačí server, který na každý PROPFIND odpovídá pomalu a stále novými podsložkami, a jediný
+# požadavek na streamy drží osm vláken hodiny. Soukromé instalace (Kodi, HA) strop nemají —
+# tam si uživatel zadává vlastní NAS a velká knihovna se prochází jednou za hodinu.
+PUBLIC_CRAWL_DEADLINE = 15  # sekund na celý průchod
+PUBLIC_MAX_DIRS = 100       # kolik složek se nejvýš otevře
+PUBLIC_TIMEOUT = 8          # sekund na jednu odpověď
 UA = "Mozilla/5.0 (compatible; Nokturno/1.0)"
 VIDEO_EXT = (".mkv", ".mp4", ".avi", ".m4v", ".mov", ".ts", ".m2ts", ".wmv", ".webm",
              ".mpg", ".mpeg", ".flv", ".iso")
@@ -121,11 +129,14 @@ class _Links(HTMLParser):
 
 class StorageApi:
     def __init__(self, url, username="", password="", name="", slot=1, cache=None, index_ttl=INDEX_TTL,
-                 opener=None, should_stop=None):
+                 opener=None, should_stop=None, crawl_deadline=None, max_dirs=MAX_DIRS, timeout=TIMEOUT):
         """`opener` je volitelný `urllib.request.OpenerDirector` — veřejná instance
         (doplněk pro Stremio) jím hlídá, kam se smí připojit; bez něj se používá
         výchozí `urlopen`. `should_stop`: viz `Engine` a `lib/abort.py` — průchod
-        stromu (`_crawl`) se mezi složkami ptá, jestli hostitel nekončí."""
+        stromu (`_crawl`) se mezi složkami ptá, jestli hostitel nekončí.
+
+        `crawl_deadline` (sekundy), `max_dirs` a `timeout` jsou stropy pro veřejnou
+        instanci — viz `PUBLIC_*` výš. Bez nich se prochází, dokud je co (soukromý NAS)."""
         self.base = normalize_url(url)
         if not self.base:
             raise StorageError("neplatná adresa úložiště")
@@ -139,7 +150,10 @@ class StorageApi:
         self.index_ttl = index_ttl
         self.opener = opener
         self.should_stop = should_stop
-        self._rev = (0.0, "")   # (kdy, hodnota) — viz revision()
+        self.crawl_deadline = crawl_deadline
+        self.max_dirs = int(max_dirs or MAX_DIRS)
+        self.timeout = int(timeout or TIMEOUT)
+        self._rev = (0.0, "")   # (kdy, hodnota) v tomhle procesu — viz revision()
 
     @property
     def key(self):
@@ -166,12 +180,12 @@ class StorageApi:
 
     # --- procházení ---------------------------------------------------------
 
-    def _open(self, url, method="GET", headers=None, data=None):
+    def _open(self, url, method="GET", headers=None, data=None, timeout=None):
         req = urllib.request.Request(url, data=data, method=method,
                                      headers={"User-Agent": UA, **self.headers(), **(headers or {})})
         try:
             # výchozí opener při 30x na cizí host nepošle Authorization (lib/safe_redirect.py)
-            return (self.opener or SAFE_OPENER).open(req, timeout=TIMEOUT)
+            return (self.opener or SAFE_OPENER).open(req, timeout=timeout or self.timeout)
         except urllib.error.HTTPError as e:
             e.close()
             if e.code in (401, 403):
@@ -257,9 +271,12 @@ class StorageApi:
         déle, protože každá PROPFIND čekala na tu předchozí."""
         files, dirs = [], 0
         level = [""]
-        while level and dirs < MAX_DIRS and len(files) < MAX_FILES:
+        konec = time.time() + self.crawl_deadline if self.crawl_deadline else None
+        while level and dirs < self.max_dirs and len(files) < MAX_FILES:
             check_stop(self.should_stop)
-            batch = level[:MAX_DIRS - dirs]
+            if konec and time.time() >= konec:
+                break   # veřejná instance: vrátit, co je — zbytek se dopočítá při dalším průchodu
+            batch = level[:self.max_dirs - dirs]
             dirs += len(batch)
             # ne `pool.map()` ve `with`: to čeká na celou vrstvu (klidně stovky složek),
             # i když hostitel končí — `gather()` se ptá `should_stop()` a nezačaté zruší
@@ -283,18 +300,30 @@ class StorageApi:
         files.sort(key=lambda f: f["path"].lower())
         return {"ok": True, "files": files, "truncated": bool(level)}
 
+    def _read_revision(self):
+        try:
+            with self._open(self.base + REV_FILE, headers={"Cache-Control": "no-cache"},
+                            timeout=REV_TIMEOUT) as resp:
+                return {"rev": resp.read(64).decode("ascii", "ignore").strip()}
+        except StorageError:
+            return {"rev": ""}
+
     def revision(self):
         """Obsah značky změny, prázdný řetězec, když ji úložiště nemá nebo nejde přečíst.
-        Čte se nejvýš jednou za `REV_TTL` — dřív při každém `streams()` jeden HTTP dotaz na slot,
-        u NAS v režimu spánku čekání na timeout 20 s."""
+
+        Čte se nejvýš jednou za `REV_TTL`, a to **na disku** (`Store.cached`), ne jen v paměti:
+        Kodi spouští plugin jako nový proces při každém kliknutí, takže memo v instanci
+        platilo vždycky jen pro jeden výpis a NAS v režimu spánku se budil znovu a znovu —
+        dialog streamů čekal na timeout. Čtení má vlastní kratší strop (`REV_TIMEOUT`):
+        bez značky se úložiště jen projde znovu, což je lepší než čekat 20 s.
+        Neúspěch se cachuje taky, ať se spící NAS nebudí každým výpisem."""
         kdy, hodnota = self._rev
         if time.time() - kdy < REV_TTL:
             return hodnota
-        try:
-            with self._open(self.base + REV_FILE, headers={"Cache-Control": "no-cache"}) as resp:
-                hodnota = resp.read(64).decode("ascii", "ignore").strip()
-        except StorageError:
-            hodnota = ""
+        if self.cache is not None:
+            hodnota = (self.cache.cached(f"dav:rev:{self.key}", REV_TTL, self._read_revision) or {}).get("rev") or ""
+        else:
+            hodnota = self._read_revision()["rev"]
         self._rev = (time.time(), hodnota)
         return hodnota
 
