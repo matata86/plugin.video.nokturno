@@ -72,7 +72,7 @@ SUBS_TASK = "Titulky"   # úloha v souběžném hledání streamů, ne zdroj (ne
 # (WebShare/Luna/Sosáč mají timeout 40 s na každý dotaz), i když ostatní dávno odpověděly. Po
 # deadlinu se vezme, co je; opozdilec se počítá jako výpadek (výsledek se necachuje) a doběhne
 # na pozadí — sám si výsledek do své cache uloží pro příště.
-SOURCE_DEADLINE = 15.0
+SOURCE_DEADLINE = 20.0
 # kolik dalších názvů (originál, anglický, český/slovenský z Wikidat) jde do fulltextových dotazů;
 # každý je u každého zdroje další HTTP dotaz (až 10 variant × 5 zdrojů = 45 dotazů na titul)
 MAX_TITLE_VARIANTS = 3

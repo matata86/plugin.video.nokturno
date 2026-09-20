@@ -62,6 +62,13 @@ def params_of(url):
     return dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(url).query))
 
 
+def wait_message_thread():
+    """Zpráva z dashboardu se od 6.1.4~beta2 ukazuje ve vlastním vlákně — test na něj počká."""
+    for t in threading.enumerate():
+        if t.name == "nokturno-message":
+            t.join(5)
+
+
 def po_ids(lang):
     text = (LANG_DIR / f"resource.language.{lang}" / "strings.po").read_text(encoding="utf-8")
     return [int(m) for m in re.findall(r'^msgctxt "#(\d+)"', text, re.M)]
@@ -1878,6 +1885,7 @@ class TestSluzbaStatistiky(unittest.TestCase):
         stats = FakeStats(due=True)
         stats.last_message = {"id": 7, "text": "Nová verze je venku"}
         service.stats_tick(stats)
+        wait_message_thread()
         self.assertEqual(xbmcgui.oks, [])
         self.assertEqual(len(xbmcgui.textviewers), 1)
         self.assertEqual(xbmcgui.textviewers[0][1], "Nová verze je venku")
@@ -1888,6 +1896,7 @@ class TestSluzbaStatistiky(unittest.TestCase):
         stats = FakeStats(due=True)
         stats.last_message = {"id": 3, "text": "ahoj"}
         service.stats_tick(stats)
+        wait_message_thread()
         self.assertEqual(stats.seen, [3])
 
     def test_bez_zpravy_se_nic_nezobrazi(self):
@@ -2859,6 +2868,184 @@ class TestPreruseniPriKonciKodi(unittest.TestCase):
         with mock.patch.object(service, "warm_caches", side_effect=AssertionError("nemá zahřívat")):
             service.prefetch_next_later()
             time.sleep(0.2)
+
+
+class TestAudit614Beta2(unittest.TestCase):
+    """Kodi 6.1.4~beta2 — položky z auditu 2026-09-19 (`AUDIT-2026-09-19.md`, § Kodi)."""
+
+    def setUp(self):
+        reset_kodi()
+
+    def tearDown(self):
+        xbmc.cond_visible.clear()
+        xbmc.info_labels.clear()
+        xbmc.abort = False
+
+    # 1. log z nastavení bez tajemství
+    def test_log_send_cisti_tajemstvi(self):
+        import gzip
+        log = tempfile.NamedTemporaryFile("wb", suffix=".log", delete=False)
+        log.write("2026-09-19 info <general>: token=abcdef123456 https://user:pw@example.com/x?wst=XYZ "
+                  "jan.novak@example.com 192.168.1.21 Authorization: Bearer secret\nbežný řádek\n".encode("utf-8"))
+        log.close()
+        self.addCleanup(os.unlink, log.name)
+        sent = {}
+
+        class Resp:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def read(self, n=-1):
+                return b""
+
+        def urlopen(req, timeout=None):
+            sent["body"] = gzip.decompress(req.data).decode("utf-8")
+            return Resp()
+
+        with mock.patch.object(default.xbmcvfs, "translatePath", return_value=log.name), \
+                mock.patch.object(default.urllib.request, "urlopen", urlopen):
+            default.log_send(ask=False)
+        body = sent["body"]
+        for secret in ("abcdef123456", "user:pw", "wst=XYZ", "jan.novak@", "192.168.1.21", "Bearer secret"):
+            self.assertNotIn(secret, body, body)
+        self.assertIn("bežný řádek", body)
+        self.assertEqual(xbmcgui.notifications[-1][2], xbmcgui.NOTIFICATION_INFO)
+
+    # 2a. hledání: modál jen po kliku ve výpisu Nokturna
+    @staticmethod
+    def _luna_pada(apis, ctype, query, want_year, errors):
+        errors.append(LunaError("HTTP 503"))
+        return [], False
+
+    def test_chyba_zdroje_pri_hledani_bez_modalu_mimo_vypis(self):
+        with mock.patch.object(default, "search_source", side_effect=self._luna_pada):
+            default.search_run({"ws": None, "luna": object()}, "movie", "matrix")
+        self.assertEqual(xbmcgui.oks, [], "widget/JSON-RPC nesmí dostat modál")
+        self.assertEqual(xbmcgui.notifications[-1][2], xbmcgui.NOTIFICATION_WARNING)
+        self.assertTrue(any("Zdroj neodpověděl" in it[2].label for it in xbmcplugin.items),
+                        "chyba má být vidět i jako položka ve výpisu")
+        self.assertTrue(xbmcplugin.ended)
+
+    def test_chyba_zdroje_pri_hledani_modal_ve_vypisu_nokturna(self):
+        xbmc.cond_visible.add("Window.IsMedia")
+        xbmc.info_labels["Container.PluginName"] = "plugin.video.nokturno"
+
+        with mock.patch.object(default, "search_source", side_effect=self._luna_pada):
+            default.search_run({"ws": None, "luna": object()}, "movie", "matrix")
+        self.assertEqual(len(xbmcgui.oks), 1)
+
+    # 2b. přehrání bez streamu: dialog „hledat pod jiným názvem“ jen z výpisu Nokturna
+    def test_prehrani_bez_streamu_mimo_vypis_nespousti_dialog(self):
+        with mock.patch.object(default, "load_meta", return_value=({"name": "Film", "year": 2020}, None)), \
+                mock.patch.object(default, "collect_streams", return_value=[]):
+            default.play({}, "movie", "tt1")
+        self.assertEqual([r[1] for r in xbmcplugin.resolved], [False])
+        self.assertFalse([b for b in xbmc.builtins if "fulltext=1" in b], xbmc.builtins)
+
+    def test_prehrani_bez_streamu_z_vypisu_nabidne_jiny_nazev(self):
+        xbmc.cond_visible.add("Window.IsMedia")
+        xbmc.info_labels["Container.PluginName"] = "plugin.video.nokturno"
+        with mock.patch.object(default, "load_meta", return_value=({"name": "Film", "year": 2020}, None)), \
+                mock.patch.object(default, "collect_streams", return_value=[]):
+            default.play({}, "movie", "tt1")
+        self.assertTrue([b for b in xbmc.builtins if "fulltext=1" in b])
+
+    # 2c. zpráva z dashboardu ve vlákně, ne při přehrávání a ne při vypínání
+    def test_zprava_z_dashboardu_neblokuje_smycku_sluzby(self):
+        stats = FakeStats()
+        stats.last_message = {"id": 9, "text": "ahoj"}
+        started = threading.Event()
+
+        def textviewer(self, heading, text, usemono=False):
+            started.set()
+            time.sleep(0.3)
+            xbmcgui.textviewers.append((heading, text))
+
+        with mock.patch.object(xbmcgui.Dialog, "textviewer", textviewer):
+            t0 = time.monotonic()
+            service._show_pending_message(stats)
+            self.assertLess(time.monotonic() - t0, 0.2, "smyčka služby nesmí čekat na zavření zprávy")
+            self.assertTrue(started.wait(2))
+            self.assertEqual(stats.seen, [], "přečteno až po zavření")
+            wait_message_thread()
+        self.assertEqual(stats.seen, [9])
+
+    def test_zprava_z_dashboardu_pocka_na_konec_prehravani(self):
+        stats = FakeStats()
+        stats.last_message = {"id": 9, "text": "ahoj"}
+        with mock.patch.object(xbmc.Player, "isPlaying", return_value=True):
+            service._show_pending_message(stats)
+            wait_message_thread()
+        self.assertEqual(xbmcgui.textviewers, [])
+        self.assertEqual(stats.seen, [], "neukázaná zpráva se nesmí označit jako přečtená")
+        service.QUITTING.set()
+        try:
+            service._show_pending_message(stats)
+            wait_message_thread()
+        finally:
+            service.QUITTING.clear()
+        self.assertEqual(xbmcgui.textviewers, [])
+
+    # 3. cache jen při změně formátu, ne při každé verzi
+    def test_cache_se_maze_jen_pri_zmene_formatu(self):
+        default.STORE.save("cache_version", default.CACHE_FORMAT)
+        default.STORE.save("seen_version", "0.0.0")
+        with mock.patch.object(default.STORE, "clear_cache") as clear:
+            default.migrate_on_start()
+        clear.assert_not_called()
+        self.assertEqual(xbmcgui.Window(10000).getProperty(default.FORCE_STATS_PROP), "1",
+                         "nová verze má i tak popohnat statistiky (zpráva z dashboardu)")
+        self.assertEqual(default.STORE.load("seen_version", ""), default._ADDON_VERSION)
+        default.STORE.save("cache_version", "stary-tvar")
+        with mock.patch.object(default.STORE, "clear_cache") as clear:
+            default.migrate_on_start()
+        clear.assert_called_once()
+        self.assertEqual(default.STORE.load("cache_version", ""), default.CACHE_FORMAT)
+
+    # 4. čtení MyVideos*.db jen před výpisem titulů
+    def test_znacky_kodi_se_ctou_jen_pred_vypisem_titulu(self):
+        with mock.patch.object(default, "router"), mock.patch.object(default, "adopt_kodi_marks") as adopt:
+            for q in ("?action=play&type=movie&id=tt1", "?action=prefetch&kind=next", "?action=log_send",
+                      "?action=title&type=movie&id=tt1", "?action=settings"):
+                default.main(q)
+            adopt.assert_not_called()
+            for q in ("", "?action=continue", "?action=episodes&id=tt1&season=1", "?action=favourites",
+                      "?action=recent", "?action=catalog&type=movie&cat=x", "?action=search_run&type=any&q=m",
+                      "?action=toggle_watched&id=tt1"):
+                default.main(q)
+            self.assertEqual(adopt.call_count, 8)
+
+    # 5. zahřívání dalšího dílu jen u čerstvě sledovaných seriálů
+    def test_prefetch_jen_cerstve_serialy_a_nejvys_pet(self):
+        now = int(time.time())
+        rows = [(f"tt{i}:1:1", {"playcount": 1, "ts": now - i * 3600}) for i in range(1, 9)]
+        rows.append(("tt99:1:1", {"playcount": 1, "ts": now - 20 * 86400}))
+        snaps = {f"tt{i}:1:1": {"series": f"tt{i}", "season": 1, "episode": 1, "name": "x"} for i in range(1, 9)}
+        snaps["tt99:1:1"] = {"series": "tt99", "season": 1, "episode": 1, "name": "starý"}
+        looked = []
+
+        def next_episode(apis, snap):
+            looked.append(snap["series"])
+            return None
+
+        with mock.patch.object(default.STORE, "recently_watched", return_value=rows), \
+                mock.patch.object(default.STORE, "item", side_effect=lambda k: snaps.get(k)), \
+                mock.patch.object(default, "next_episode", next_episode):
+            default.prefetch({"engine": default.KodiEngine()}, "next")
+        self.assertEqual(looked, ["tt1", "tt2", "tt3", "tt4", "tt5"])
+        self.assertNotIn("tt99", looked)
+
+    def test_prefetch_stary_serial_se_preskoci_i_kdyz_je_prvni(self):
+        now = int(time.time())
+        rows = [("tt99:1:1", {"playcount": 1, "ts": now - 20 * 86400})]
+        with mock.patch.object(default.STORE, "recently_watched", return_value=rows), \
+                mock.patch.object(default.STORE, "item", return_value={"series": "tt99", "season": 1, "episode": 1}), \
+                mock.patch.object(default, "next_episode", side_effect=AssertionError("nemá se hledat")):
+            default.prefetch({"engine": default.KodiEngine()}, "next")
+        self.assertEqual(len(xbmcplugin.ended), 1)
 
 
 class TestLunaDiagnostika(unittest.TestCase):

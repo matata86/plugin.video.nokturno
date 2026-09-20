@@ -187,17 +187,30 @@ STORE = Store(PROFILE)
 Errors = (LunaError, CinemetaError, TmdbError, SosacError, WebshareError, HellspyError, SledujtetoError, FastshareError, CztorError,
           TraktError, StorageError, NokturnoError)
 
-# po aktualizaci doplňku (i downgradu) smazat cache API — jinak by staré verze
-# odpovědí (chybějící pole, jiný tvar dat po změně kódu) přežily klidně týdny,
-# než by je vytlačilo přirozené vypršení TTL
+# Tvar dat v cache API (`Store.cached()`). Zvednout jen když se změní, co se do cache
+# ukládá nebo jak se čte (nové pole v odpovědi, jiný klíč, jiná struktura) — staré záznamy
+# by jinak přežily klidně týdny, než by je vytlačilo přirozené vypršení TTL. Do 6.1.4 se
+# cache mazala při KAŽDÉ nové verzi doplňku: každá oprava textů tak celé instalaci
+# vyhasila katalogy, streamy i metadata a první otevření po aktualizaci bylo studené
+# (a zdroje včetně TMDB dostaly od všech instalací naráz vlnu dotazů).
+CACHE_FORMAT = "6.1.4"
 _ADDON_VERSION = ADDON.getAddonInfo("version")
-if STORE.load("cache_version", "") != _ADDON_VERSION:
-    STORE.clear_cache()
-    STORE.save("cache_version", _ADDON_VERSION)
-    # zároveň službě řekni, ať s dalším statistickým hlášením nečeká až SEND_EVERY (6 h) —
-    # ať se případná zpráva z dashboardu (např. odpověď na nahlášený log) ukáže co nejdřív
-    # po aktualizaci, ne až za pár hodin
-    xbmcgui.Window(10000).setProperty(FORCE_STATS_PROP, "1")
+
+
+def migrate_on_start():
+    """Při startu pluginu: cache smazat jen při změně `CACHE_FORMAT`; při každé nové verzi
+    doplňku (i downgradu) jen říct službě, ať s dalším statistickým hlášením nečeká až
+    SEND_EVERY (6 h) — případná zpráva z dashboardu (odpověď na nahlášený log) se tak
+    ukáže co nejdřív po aktualizaci, ne až za pár hodin."""
+    if STORE.load("cache_version", "") != CACHE_FORMAT:
+        STORE.clear_cache()
+        STORE.save("cache_version", CACHE_FORMAT)
+    if STORE.load("seen_version", "") != _ADDON_VERSION:
+        STORE.save("seen_version", _ADDON_VERSION)
+        xbmcgui.Window(10000).setProperty(FORCE_STATS_PROP, "1")
+
+
+migrate_on_start()
 
 
 def is_sosac_id(item_id):
@@ -2676,6 +2689,16 @@ def tmdbhelper_player():
     notify(L(30412, "Nokturno je v TMDb Helperu"))
 
 
+# Zahřívání streamů dalšího dílu: jen seriály sledované za posledních PREFETCH_DAYS dní,
+# nejvýš PREFETCH_SERIES z nich (každý = hledání napříč všemi zdroji + čtení hlaviček).
+# Do 6.1.4 se braly poslední 15 zhlédnuté položky bez ohledu na stáří — u instalace,
+# která seriály dva měsíce neotevřela, se tak po každém startu Kodi hledaly díly
+# dávno opuštěných seriálů.
+PREFETCH_DAYS = 14
+PREFETCH_SERIES = 5
+PREFETCH_SCAN = 30
+
+
 def prefetch(apis, kind):
     """Zahřátí cache — volá služba na pozadí, nic se nevypisuje ani nepočítá.
 
@@ -2685,9 +2708,12 @@ def prefetch(apis, kind):
     """
     if kind == "next":
         seen = set()
-        for key, _entry in STORE.recently_watched(15):
+        fresh_since = time.time() - PREFETCH_DAYS * 86400
+        for key, entry in STORE.recently_watched(PREFETCH_SCAN):
             if should_stop():
                 break   # Kodi končí — každý titul je vlastní hledání napříč zdroji, tady se nic necachuje napůl
+            if (entry.get("ts") or 0) < fresh_since or len(seen) >= PREFETCH_SERIES:
+                break   # seřazené od nejnovějšího: starší zhlédnutí už nikoho nezajímá
             snap = STORE.item(key)
             if not snap or snap.get("season") is None or snap.get("series") in seen:
                 continue
@@ -2734,8 +2760,19 @@ def stats_send():
 LOG_TAIL_BYTES = 500 * 1024   # celý xbmc.log bývá desítky MB, server bere jen ~500 KB
 
 
+def scrub_log(raw):
+    """Konec `kodi.log` bez tajemství — každý řádek projde `crash.scrub()` (tokeny, hesla,
+    e-maily, IP, jména v cestách, celé adresy). Kodi samo do logu píše i adresy streamů
+    s podpisem účtu a hlášky jiných doplňků s klíči API; hlášení o pádu se čistí stejně,
+    ruční log do 6.1.4 odcházel syrový."""
+    from crash import scrub
+    text = raw.decode("utf-8", errors="replace")
+    return "\n".join(scrub(line) for line in text.split("\n")).encode("utf-8")
+
+
 def log_send(ask=True):
-    """Ruční odeslání Kodi logu z nastavení – poslední ~500 KB `kodi.log`, gzip.
+    """Ruční odeslání Kodi logu z nastavení – poslední ~500 KB `kodi.log`, gzip, bez tajemství
+    (`scrub_log`).
 
     Instance id bere ze stejného `stats.json` jako statistiky, ať jde log
     v dashboardu spárovat s instalací. Vlastní endpoint (`/logs`, ne `/collect`)
@@ -2758,7 +2795,7 @@ def log_send(ask=True):
         notify(f"{L(30430)}: {e}", xbmcgui.NOTIFICATION_ERROR, 5000)
         return
 
-    body = gzip.compress(raw)
+    body = gzip.compress(scrub_log(raw))
     install_id = Stats(PROFILE).data["id"]
     version = ADDON.getAddonInfo("version")
     logs_url = COLLECT_URL.rsplit("/", 1)[0] + "/logs"
@@ -3663,10 +3700,19 @@ def search_run(apis, kind, query, offset=0):
     for e in errors:
         log_error(e)
     if errors:
-        # blokující dialog, ne jen toast — ať si uživatel opravdu všimne, že
-        # nějaký zdroj neodpověděl, a ví přesně který; výsledky ze zbylých
-        # zdrojů se zobrazí hned po OK (endOfDirectory běží až za tímhle)
-        xbmcgui.Dialog().ok(L(30360, "Zdroj neodpověděl"), describe_errors(errors))
+        # blokující dialog, ne jen toast — ať si uživatel opravdu všimne, že nějaký zdroj
+        # neodpověděl, a ví přesně který; výsledky ze zbylých zdrojů se zobrazí hned po OK
+        # (endOfDirectory běží až za tímhle). Jen po kliku ve výpisu Nokturna: výsledky
+        # hledání jdou i do widgetu / přes JSON-RPC (HA) a tam by modál čekal na OK,
+        # které nikdo nedá, a blokoval i vypínání Kodi (pravidlo v CLAUDE.md)
+        if browsing_nokturno():
+            xbmcgui.Dialog().ok(L(30360, "Zdroj neodpověděl"), describe_errors(errors))
+        else:
+            notify(skipped_notice(errors), xbmcgui.NOTIFICATION_WARNING, 7000)
+            li = xbmcgui.ListItem(label=f"[COLOR {WARN_COLOR}]{L(30360, 'Zdroj neodpověděl')}[/COLOR]: "
+                                  + describe_errors(errors).replace("\n", " · "))
+            li.setArt({"icon": "DefaultIconError.png"})
+            xbmcplugin.addDirectoryItem(HANDLE, build_url(action="settings"), li, isFolder=False)
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
@@ -4358,9 +4404,12 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
                 notify(L(30102))
             xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
             # modál tu nesmí (přehrávací kontext), tak ho otevře samostatný skript až po neúspěšném
-            # přehrání: dialog „hledat pod jiným názvem“ / uvolněné hledání (`pick_title`)
-            xbmc.executebuiltin("RunPlugin(%s)" % build_url(action="title", type=ctype, id=item_id, series=series_id,
-                                                            alt=alt, fulltext="1"))
+            # přehrání: dialog „hledat pod jiným názvem“ / uvolněné hledání (`pick_title`).
+            # Jen po kliku ve výpisu Nokturna — přehrání z widgetu Pokračovat, z karty HA nebo
+            # z TMDb Helperu by jinak vyhodilo dialog, na který nikdo neodpoví (a zamklo vypínání)
+            if browsing_nokturno():
+                xbmc.executebuiltin("RunPlugin(%s)" % build_url(action="title", type=ctype, id=item_id,
+                                                                series=series_id, alt=alt, fulltext="1"))
             return
         remembered = preferred_stream(streams, STORE.stream_pref(pref_key)) if pref_key else None
         chosen = remembered or streams[0]
@@ -4874,9 +4923,30 @@ def _close(action):
         xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
 
 
+# Akce, u kterých se před výpisem nevyplatí číst `MyVideos*.db` (`adopt_kodi_marks`): nic
+# se nekreslí, takže zhlédnuto ze skinu nemá kde chybět — plugin ho převezme při příštím
+# výpisu titulů a služba jednou za minutu. Přehrání (widget Pokračovat, HA, Up Next) a
+# zahřívání cache jinak platily čtení celé databáze (stovky řádků u velké knihovny) navíc.
+MARKS_SKIP = frozenset((
+    # přehrání a streamy
+    "play", "play_ws", "play_hs", "play_dav", "title", "title_download", "prefetch",
+    "download", "download_ws", "download_hs", "toggle_fav", "streams", "streams_filter",
+    "dav_browse", "tv_pick", "lang_catalog_trigger",
+    # akce bez výpisu titulů (tlačítka v nastavení, hledání, stahování, Trakt, CZtor…)
+    "history_remove", "history_clear", "remove_progress", "search", "search_new", "downloads",
+    "download_remove", "download_retry", "trakt_auth", "trakt_logout", "cztor_pair",
+    "cztor_status", "cztor_logout", "clear_cache", "stats_send", "log_send", "website_info",
+    "test_sources", "remote_setup", "stream_layout_reset", "setup_wizard", "sub_status",
+    "luna_check", "luna_find", "speedtest", "update_repos", "tmdbhelper_player", "sync_now",
+    "whats_new", "ha_files", "settings",
+))
+
+
 def main(query):
     try:
-        adopt_kodi_marks()
+        action = dict(urllib.parse.parse_qsl(query.lstrip("?"))).get("action") or ""
+        if action not in MARKS_SKIP:
+            adopt_kodi_marks()
         router(query)
     finally:
         # sdílený executor popisů (`enrich`) nechává po sobě nečinná vlákna, na která Kodi

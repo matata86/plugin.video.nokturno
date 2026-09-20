@@ -847,12 +847,29 @@ def _show_pending_message(stats):
     do `last_message`. `textviewer()` (ne `.ok()`, ten zprávu delší než pár řádků
     prostě ořízne bez posouvání — nahlásil uživatel 2026-09-18) je tady bezpečný:
     běží ze služby na pozadí, ne z cesty, kterou může spustit widget nebo JSON-RPC
-    (viz pravidlo v CLAUDE.md)."""
+    (viz pravidlo v CLAUDE.md).
+
+    Ve vlastním vlákně: modál čeká na OK klidně hodiny (televize běží, nikdo u ní
+    nesedí) a do 6.1.4 po tu dobu stála celá smyčka služby — sledování přehrávače,
+    synchronizace s HA, titulky, hlášení o pádech. Během přehrávání se neukazuje
+    (přerušil by film) a při vypínání Kodi taky ne; zpráva přijde znovu s dalším
+    hlášením, dokud ji uživatel nezavře (`msg_seen` se posílá až po zavření)."""
     msg = stats.last_message
-    if not msg:
+    if not msg or QUITTING.is_set() or xbmc.Player().isPlaying():
         return
-    xbmcgui.Dialog().textviewer(L(30000), msg.get("text") or "")
-    stats.mark_message_seen(msg["id"])
+    if _MESSAGE_SHOWING.locked():
+        return   # předchozí zpráva pořád otevřená
+
+    def ukaz():
+        with _MESSAGE_SHOWING:
+            xbmcgui.Dialog().textviewer(L(30000), msg.get("text") or "")
+            if not QUITTING.is_set():
+                stats.mark_message_seen(msg["id"])
+
+    threading.Thread(target=ukaz, name="nokturno-message", daemon=True).start()
+
+
+_MESSAGE_SHOWING = threading.Lock()
 
 
 def stats_tick(stats, force=False):
