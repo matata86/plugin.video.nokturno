@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="6.2.6~beta2" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="6.2.6" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>6.2.6~beta2 – Oprava bety 1: přepínač zrychleného spouštění byl v addon.xml na místě, kde si ho Kodi nevšimne, takže beta 1 běžela stejně pomalu jako dřív. Měřeno na Android boxu: otevření menu 1,60 s před, 0,87 s po
+    <news>6.2.6 – Menu a výpisy naskočí rychleji: Kodi si po prvním spuštění nechá běžet interpret a nestartuje ho znovu při každém kliknutí. Na Android boxu se otevření menu zkrátilo z 1,60 s na 0,91 s. Těžké části doplňku se načtou, až když na ně dojde
+6.2.6~beta2 – Oprava bety 1: přepínač zrychleného spouštění byl v addon.xml na místě, kde si ho Kodi nevšimne, takže beta 1 běžela stejně pomalu jako dřív. Měřeno na Android boxu: otevření menu 1,60 s před, 0,87 s po
 6.2.6~beta1 – Menu a výpisy naskočí rychleji: Kodi si po prvním spuštění nechá běžet interpret a nestartuje ho znovu při každém kliknutí (na Android boxu to bylo půl vteřiny až vteřina). Těžké části doplňku se načtou, až když na ně dojde
 6.2.3 – Stahování navazuje tam, kde skončilo: po restartu Kodi, výpadku sítě nebo vypnutí boxu se film nestahuje znovu od nuly (u dvacetigigového filmu to dřív znamenalo začít celé znovu); rozdělaný soubor zůstane ležet a „Zkusit znovu“ na něj naváže, zrušené stahování po sobě uklidí
 6.2.2 – Méně práce na pozadí: seznamy „Nově přidané s CZ dabingem/titulky“ se předpočítávají jen tehdy, když jste je za poslední dva týdny otevřeli (dřív to doplněk dělal u všech instalací každých 6 hodin, i když se na ně nikdo nepodíval — a právě tím si říkal o dočasnou blokaci u HellSpy); když se seznam používá, obnoví se teď včas a nehlásí „Data nejsou připravená“; při výpadku serveru se „Nejsledovanější tento týden“ neptá znovu při každém otevření menu a ukáže poslední známý žebříček
