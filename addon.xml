@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="6.5.12~beta3" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="6.5.12~beta4" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>6.5.12~beta3 – U řádku streamu z Luny se ukážou i rozlišení, kodek a titulky ze souboru (dřív chyběly); čtou se přímo z Lunina odkazu, ne z odhadem spárovaného souboru.
+    <news>6.5.12~beta4 – Stopa zvuku bez jazyka v souboru si nechá jazyk od Luny (po doplnění titulků a rozlišení ze souboru zmizelo „EN“).
+6.5.12~beta3 – U řádku streamu z Luny se ukážou i rozlišení, kodek a titulky ze souboru (dřív chyběly); čtou se přímo z Lunina odkazu, ne z odhadem spárovaného souboru.
 6.5.12~beta2 – Beta 2 byla neúplná (u dvou podobně velkých souborů mohla ukázat cizí titulky), nahrazuje ji beta 3.
 6.5.12~beta1 – U českých a slovenských titulů se zvuk označený jen „EN“ (špatně vyplněný jazyk v souboru, třeba seriál Hospoda) ukáže jako odhad „~CZ“ místo „EN“.
 6.5.11 – Katalog „Nově přidané s CZ dabingem/titulky“ se počítá po čtveřicích titulů souběžně místo po jednom (dřív až přes 170 s při prvním otevření).

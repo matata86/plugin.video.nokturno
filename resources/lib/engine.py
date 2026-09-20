@@ -1613,7 +1613,12 @@ class Engine:
             text = describe_media(info)
             if text and text not in (stream.get("detail") or ""):
                 stream["detail"] = f"{stream['detail']} | {text}" if stream.get("detail") else text
-            stream["_tracks"] = info.get("audio") or []
+            tracks = [dict(t) for t in info.get("audio") or []]
+            known = [t for t in stream.get("_tracks") or [] if t.get("lang")]
+            if len(known) == len(tracks):   # stopa bez jazyka v souboru dostane jazyk od zdroje (Luna)
+                for mine, theirs in zip(tracks, known):
+                    mine["lang"] = mine.get("lang") or theirs["lang"]
+            stream["_tracks"] = tracks
             stream["_media"] = info
             if info.get("duration"):
                 # z hlavičky je i skutečná délka streamu — přesnější základ pro
