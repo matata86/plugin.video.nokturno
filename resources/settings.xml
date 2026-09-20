@@ -730,6 +730,23 @@
           <default>false</default>
           <control type="toggle"/>
         </setting>
+        <setting id="sync_mode" type="integer" label="30661" help="30681">
+          <level>0</level>
+          <default>0</default>
+          <constraints>
+            <options>
+              <option label="30662">0</option>
+              <option label="30663">1</option>
+              <option label="30687">2</option>
+            </options>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="sync_enabled">true</dependency>
+          </dependencies>
+          <control format="string" type="spinner"/>
+        </setting>
+      </group>
+      <group id="2" label="30662">
         <setting id="sync_url" type="string" label="30182" help="30327">
           <level>0</level>
           <default>http://homeassistant.local:8123</default>
@@ -737,6 +754,12 @@
             <allowempty>true</allowempty>
           </constraints>
           <dependencies>
+            <dependency type="visible">
+              <or>
+                <condition setting="sync_mode" operator="is">0</condition>
+                <condition setting="sync_mode" operator="is">2</condition>
+              </or>
+            </dependency>
             <dependency type="enable" setting="sync_enabled">true</dependency>
           </dependencies>
           <control type="edit" format="string">
@@ -749,10 +772,141 @@
             <allowempty>true</allowempty>
           </constraints>
           <dependencies>
+            <dependency type="visible">
+              <or>
+                <condition setting="sync_mode" operator="is">0</condition>
+                <condition setting="sync_mode" operator="is">2</condition>
+              </or>
+            </dependency>
             <dependency type="enable" setting="sync_enabled">true</dependency>
           </dependencies>
           <control type="edit" format="string">
           </control>
+        </setting>
+      </group>
+      <group id="3" label="30663">
+        <setting id="sync_create_action" type="action" label="30665" help="30672">
+          <level>0</level>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="visible">
+              <or>
+                <condition setting="sync_mode" operator="is">1</condition>
+                <condition setting="sync_mode" operator="is">2</condition>
+              </or>
+            </dependency>
+            <dependency type="enable" setting="sync_enabled">true</dependency>
+          </dependencies>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=sync_create)</data>
+          <control format="action" type="button"/>
+        </setting>
+        <setting id="sync_join_action" type="action" label="30666" help="30673">
+          <level>0</level>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="visible">
+              <or>
+                <condition setting="sync_mode" operator="is">1</condition>
+                <condition setting="sync_mode" operator="is">2</condition>
+              </or>
+            </dependency>
+            <dependency type="enable" setting="sync_enabled">true</dependency>
+          </dependencies>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=sync_join)</data>
+          <control format="action" type="button"/>
+        </setting>
+        <setting id="sync_code" type="string" label="30664" help="30672">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="visible">
+              <or>
+                <condition setting="sync_mode" operator="is">1</condition>
+                <condition setting="sync_mode" operator="is">2</condition>
+              </or>
+            </dependency>
+            <dependency type="enable" setting="sync_enabled">true</dependency>
+          </dependencies>
+          <control type="edit" format="string">
+          </control>
+        </setting>
+        <setting id="sync_leave_action" type="action" label="30667" help="30677">
+          <level>0</level>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="visible">
+              <or>
+                <condition setting="sync_mode" operator="is">1</condition>
+                <condition setting="sync_mode" operator="is">2</condition>
+              </or>
+            </dependency>
+            <dependency type="enable" setting="sync_enabled">true</dependency>
+          </dependencies>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=sync_leave)</data>
+          <control format="action" type="button"/>
+        </setting>
+      </group>
+      <group id="4" label="30682">
+        <setting id="sync_watched" type="boolean" label="30668">
+          <level>0</level>
+          <default>true</default>
+          <dependencies>
+            <dependency type="enable" setting="sync_enabled">true</dependency>
+          </dependencies>
+          <control type="toggle"/>
+        </setting>
+        <setting id="sync_favourites" type="boolean" label="30669">
+          <level>0</level>
+          <default>true</default>
+          <dependencies>
+            <dependency type="enable" setting="sync_enabled">true</dependency>
+          </dependencies>
+          <control type="toggle"/>
+        </setting>
+        <setting id="sync_history" type="boolean" label="30670">
+          <level>0</level>
+          <default>true</default>
+          <dependencies>
+            <dependency type="enable" setting="sync_enabled">true</dependency>
+          </dependencies>
+          <control type="toggle"/>
+        </setting>
+        <setting id="sync_settings" type="boolean" label="30683" help="30685">
+          <level>0</level>
+          <default>false</default>
+          <dependencies>
+            <dependency type="visible">
+              <or>
+                <condition setting="sync_mode" operator="is">1</condition>
+                <condition setting="sync_mode" operator="is">2</condition>
+              </or>
+            </dependency>
+            <dependency type="enable" setting="sync_enabled">true</dependency>
+          </dependencies>
+          <control type="toggle"/>
+        </setting>
+        <setting id="sync_accounts" type="boolean" label="30684" help="30686">
+          <level>0</level>
+          <default>false</default>
+          <dependencies>
+            <dependency type="visible">
+              <or>
+                <condition setting="sync_mode" operator="is">1</condition>
+                <condition setting="sync_mode" operator="is">2</condition>
+              </or>
+            </dependency>
+            <dependency type="enable" setting="sync_enabled">true</dependency>
+          </dependencies>
+          <control type="toggle"/>
         </setting>
         <setting id="sync_now_action" type="action" label="30184">
           <level>0</level>

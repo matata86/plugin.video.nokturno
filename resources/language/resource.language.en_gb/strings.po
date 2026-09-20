@@ -423,8 +423,8 @@ msgid "Sync"
 msgstr "Sync"
 
 msgctxt "#30181"
-msgid "Sync via Home Assistant"
-msgstr "Sync via Home Assistant"
+msgid "Sync across multiple Kodi"
+msgstr "Sync across multiple Kodi"
 
 msgctxt "#30182"
 msgid "Home Assistant address"
@@ -439,8 +439,8 @@ msgid "Sync now"
 msgstr "Sync now"
 
 msgctxt "#30185"
-msgid "Watched, in-progress and My list are shared across every Kodi through the Nokturno HA integration"
-msgstr "Watched, in-progress and My list are shared across every Kodi through the Nokturno HA integration"
+msgid "Watched, in-progress and My list are shared across all your Kodi devices"
+msgstr "Watched, in-progress and My list are shared across all your Kodi devices"
 
 msgctxt "#30186"
 msgid "Sync is off or the address and key are missing"
@@ -1903,4 +1903,112 @@ msgstr ""
 
 msgctxt "#30660"
 msgid "Looking for a title in your preferred language…"
+msgstr ""
+
+msgctxt "#30661"
+msgid "Where your Kodi boxes meet"
+msgstr ""
+
+msgctxt "#30662"
+msgid "Home Assistant"
+msgstr ""
+
+msgctxt "#30663"
+msgid "Nokturno dashboard"
+msgstr ""
+
+msgctxt "#30664"
+msgid "Group code"
+msgstr ""
+
+msgctxt "#30665"
+msgid "Create a group"
+msgstr ""
+
+msgctxt "#30666"
+msgid "Join a group"
+msgstr ""
+
+msgctxt "#30667"
+msgid "Leave the group"
+msgstr ""
+
+msgctxt "#30668"
+msgid "Sync watched and resume points"
+msgstr ""
+
+msgctxt "#30669"
+msgid "Sync My list"
+msgstr ""
+
+msgctxt "#30670"
+msgid "Sync search history"
+msgstr ""
+
+msgctxt "#30671"
+msgid "New group created. Type this code on your other Kodi:"
+msgstr ""
+
+msgctxt "#30672"
+msgid "The code lets a new device join for 30 minutes. Keep it — without it nobody can read your data, and it cannot be recovered."
+msgstr ""
+
+msgctxt "#30673"
+msgid "Type the group code from your first Kodi"
+msgstr ""
+
+msgctxt "#30674"
+msgid "Joined. Synchronisation runs in the background."
+msgstr ""
+
+msgctxt "#30675"
+msgid "That code does not look right."
+msgstr ""
+
+msgctxt "#30676"
+msgid "No group yet — create one, or join with a code from another Kodi."
+msgstr ""
+
+msgctxt "#30677"
+msgid "Leave the group? This Kodi stops synchronising. Nothing already saved here is deleted."
+msgstr ""
+
+msgctxt "#30678"
+msgid "Left the group."
+msgstr ""
+
+msgctxt "#30679"
+msgid "Open joining again"
+msgstr ""
+
+msgctxt "#30680"
+msgid "Joining is open for 30 minutes."
+msgstr ""
+
+msgctxt "#30681"
+msgid "The dashboard only stores sealed data it cannot read. The code is the key and never leaves your devices. \"Home Assistant and the dashboard\" runs both at once — the HA card stays current and settings with accounts are shared through the dashboard."
+msgstr ""
+
+msgctxt "#30682"
+msgid "What gets synced"
+msgstr ""
+
+msgctxt "#30683"
+msgid "Sync add-on settings"
+msgstr ""
+
+msgctxt "#30684"
+msgid "Sync source accounts"
+msgstr ""
+
+msgctxt "#30685"
+msgid "Options such as preferred language, stream sorting or enabled sources. The download folder and the sync settings themselves are never shared."
+msgstr ""
+
+msgctxt "#30686"
+msgid "Logins for the sources (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, own storage) and the TMDB key. Passwords travel encrypted, the server cannot read them. CZtor and Trakt must be paired on each device separately."
+msgstr ""
+
+msgctxt "#30687"
+msgid "HA and dashboard"
 msgstr ""

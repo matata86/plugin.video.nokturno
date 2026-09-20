@@ -423,8 +423,8 @@ msgid "Sync"
 msgstr "Synchronizace"
 
 msgctxt "#30181"
-msgid "Sync via Home Assistant"
-msgstr "Synchronizovat přes Home Assistant"
+msgid "Sync across multiple Kodi"
+msgstr "Synchronizovat mezi více Kodi"
 
 msgctxt "#30182"
 msgid "Home Assistant address"
@@ -439,8 +439,8 @@ msgid "Sync now"
 msgstr "Synchronizovat teď"
 
 msgctxt "#30185"
-msgid "Watched, in-progress and My list are shared across every Kodi through the Nokturno HA integration"
-msgstr "Zhlédnuto, rozkoukané a Můj seznam se sdílí mezi všemi Kodi s integrací Nokturno v HA"
+msgid "Watched, in-progress and My list are shared across all your Kodi devices"
+msgstr "Zhlédnuto, rozkoukané a Můj seznam se sdílí mezi všemi tvými Kodi"
 
 msgctxt "#30186"
 msgid "Sync is off or the address and key are missing"
@@ -1908,3 +1908,111 @@ msgstr "bez preferovaného jazyka"
 msgctxt "#30660"
 msgid "Looking for a title in your preferred language…"
 msgstr "Hledám titul s preferovaným jazykem…"
+
+msgctxt "#30661"
+msgid "Where your Kodi boxes meet"
+msgstr "Kde se tvoje Kodi potkávají"
+
+msgctxt "#30662"
+msgid "Home Assistant"
+msgstr "Home Assistant"
+
+msgctxt "#30663"
+msgid "Nokturno dashboard"
+msgstr "Dashboard Nokturna"
+
+msgctxt "#30664"
+msgid "Group code"
+msgstr "Kód skupiny"
+
+msgctxt "#30665"
+msgid "Create a group"
+msgstr "Založit skupinu"
+
+msgctxt "#30666"
+msgid "Join a group"
+msgstr "Připojit se ke skupině"
+
+msgctxt "#30667"
+msgid "Leave the group"
+msgstr "Odejít ze skupiny"
+
+msgctxt "#30668"
+msgid "Sync watched and resume points"
+msgstr "Synchronizovat zhlédnuto a rozkoukanost"
+
+msgctxt "#30669"
+msgid "Sync My list"
+msgstr "Synchronizovat Můj seznam"
+
+msgctxt "#30670"
+msgid "Sync search history"
+msgstr "Synchronizovat historii hledání"
+
+msgctxt "#30671"
+msgid "New group created. Type this code on your other Kodi:"
+msgstr "Skupina je založená. Na dalším Kodi zadej tenhle kód:"
+
+msgctxt "#30672"
+msgid "The code lets a new device join for 30 minutes. Keep it — without it nobody can read your data, and it cannot be recovered."
+msgstr "Kód pustí nové zařízení dovnitř po 30 minut. Schovej si ho — bez něj tvoje data nikdo nepřečte a nejde je obnovit."
+
+msgctxt "#30673"
+msgid "Type the group code from your first Kodi"
+msgstr "Zadej kód skupiny z prvního Kodi"
+
+msgctxt "#30674"
+msgid "Joined. Synchronisation runs in the background."
+msgstr "Připojeno. Synchronizace běží na pozadí."
+
+msgctxt "#30675"
+msgid "That code does not look right."
+msgstr "Kód nemá správný tvar."
+
+msgctxt "#30676"
+msgid "No group yet — create one, or join with a code from another Kodi."
+msgstr "Zatím žádná skupina — založ ji, nebo se připoj kódem z jiného Kodi."
+
+msgctxt "#30677"
+msgid "Leave the group? This Kodi stops synchronising. Nothing already saved here is deleted."
+msgstr "Odejít ze skupiny? Tohle Kodi se přestane synchronizovat. Nic, co tu je uložené, se nesmaže."
+
+msgctxt "#30678"
+msgid "Left the group."
+msgstr "Odešel jsi ze skupiny."
+
+msgctxt "#30679"
+msgid "Open joining again"
+msgstr "Znovu otevřít připojení"
+
+msgctxt "#30680"
+msgid "Joining is open for 30 minutes."
+msgstr "Připojení je otevřené 30 minut."
+
+msgctxt "#30681"
+msgid "The dashboard only stores sealed data it cannot read. The code is the key and never leaves your devices. \"Home Assistant and the dashboard\" runs both at once — the HA card stays current and settings with accounts are shared through the dashboard."
+msgstr "Dashboard u sebe drží jen zapečetěná data, která sám nepřečte. Kód je klíč a nikdy z tvých zařízení neodejde. Volba „Home Assistant i dashboard“ jede obojí naráz — karta v HA zůstane aktuální a nastavení s účty se sdílí přes dashboard."
+
+msgctxt "#30682"
+msgid "What gets synced"
+msgstr "Co se synchronizuje"
+
+msgctxt "#30683"
+msgid "Sync add-on settings"
+msgstr "Synchronizovat nastavení doplňku"
+
+msgctxt "#30684"
+msgid "Sync source accounts"
+msgstr "Synchronizovat účty ke zdrojům"
+
+msgctxt "#30685"
+msgid "Options such as preferred language, stream sorting or enabled sources. The download folder and the sync settings themselves are never shared."
+msgstr "Volby jako preferovaný jazyk, řazení streamů nebo zapnuté zdroje. Nesdílí se složka pro stahování ani samotné nastavení synchronizace."
+
+msgctxt "#30686"
+msgid "Logins for the sources (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, own storage) and the TMDB key. Passwords travel encrypted, the server cannot read them. CZtor and Trakt must be paired on each device separately."
+msgstr "Přihlášení ke zdrojům (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, vlastní úložiště) a klíč k TMDB. Hesla jdou zašifrovaná, server je nepřečte. CZtor a Trakt se musí spárovat na každém zařízení zvlášť."
+
+msgctxt "#30687"
+msgid "HA and dashboard"
+msgstr "HA i dashboard"

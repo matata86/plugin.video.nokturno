@@ -24,6 +24,32 @@ import urllib.request
 from store import ITEMS_MAX, WATCHED_MAX
 
 STATE = "sync"          # sync.json v profilu: {"since", "last_ok", "last_error", "pushed", "pulled"}
+
+# Okruhy: co se z celkového stavu posílá a přijímá. Uživatel si je zapíná zvlášť
+# a platí pro obě střediska stejně — přes Home Assistant i přes slepý relay
+# (`syncbox.py`, který je odsud importuje).
+CIRCLES = {
+    "watched": ("watched", "next_hidden"),   # zhlédnuto, rozkoukanost, skryté další díly
+    "favourites": ("favlog",),               # Můj seznam jako deník zapnuto/vypnuto
+    "history": ("histlog",),                 # historie hledání
+    # volby doplňku a přihlášení ke zdrojům (`setsync.py`). Nejsou ve `Store`,
+    # takže je `collect_changes` nesbírá — plní je hostitel přes `syncbox`
+    # a přes Home Assistant nechodí vůbec.
+    "settings": ("setlog",),
+    "accounts": ("acclog",),
+}
+# Nastavení ani účty ve výchozím stavu nejdou — sdílení přihlášení má být vědomé.
+DEFAULT_CIRCLES = ("watched", "favourites", "history")
+# Snímky titulů jdou vždy k tomu, co se posílá — bez nich by druhá strana
+# neuměla položku vykreslit. `collect_changes` je omezuje na dotčené klíče.
+SNAPSHOTS = "items"
+# ...ale jen na ty, kde snímek opravdu chybět nesmí: Můj seznam a rozkoukané.
+# Dokoukaný titul si druhá strana dohledá sama (`recover_snapshot`, hubený snímek),
+# kdežto snímek váží asi 1,3 kB a `items` jich drží až `ITEMS_MAX`. Měřeno na
+# skutečném profilu: 500 titulů se snímky = 177 kB blob, tedy **přes** `MAX_BLOB`
+# (128 kB) — synchronizace by od pár set zhlédnutých titulů přestala fungovat úplně,
+# ne zpomalit. Se stropem drží plný profil (5000 zhlédnutých) pod 40 kB.
+SNAPSHOT_MAX = 300
 ENDPOINT = "/api/nokturno/sync"
 TIMEOUT = 20
 
@@ -49,6 +75,21 @@ def _stamped(rec, now):
     if now:
         out["rts"] = now
     return out
+
+
+def _keep_playcount(rec, mine):
+    """Počet zhlédnutí je nejvyšší z obou stran, zbytek rozhodne novější záznam.
+
+    Rozkoukanost je jediný údaj, který si dvě televize u téhož titulu přepisují,
+    a tam last-write-wins dává smysl — poslední pozice je ta, kde se opravdu
+    skončilo. Příznak „tohle už jsem viděl" se ale takhle ztratit nesmí: kdo
+    film dokoukal na jedné TV a na druhé ho pak pustil znovu, přijde o jeho
+    označení ve výpisech i v Traktu. Proto se `playcount` slévá maximem.
+    """
+    muj = int((mine or {}).get("playcount") or 0)
+    if muj <= int((rec or {}).get("playcount") or 0):
+        return rec
+    return dict(rec, playcount=muj)
 
 
 def _backfill_favlog(store):
@@ -81,9 +122,48 @@ def collect_changes(store, since):
     next_hidden = {k: v for k, v in store.reload("next_hidden", {}).items()
                    if isinstance(v, dict) and _seen(v) >= since}
     items = store.reload("items", {})
-    keys = set(watched) | set(favlog)
     return {"watched": watched, "favlog": favlog, "histlog": histlog, "next_hidden": next_hidden,
-            "items": {k: items[k] for k in keys if k in items}}
+            "items": _snapshots(items, watched, favlog)}
+
+
+def _snapshots(items, watched, favlog):
+    """Snímky jen k tomu, co se bez nich nevykreslí — Můj seznam a rozkoukané.
+
+    Seřazeno od nejčerstvějšího a useknuto na `SNAPSHOT_MAX`; u dvou zařízení
+    se stejnou skupinou se tím přenese to, co má uživatel rozkoukané teď, ne
+    archiv z loňska. Zbytek dohledá příjemce sám.
+    """
+    def rozkoukany(rec):
+        try:
+            return float((rec or {}).get("resume") or 0) > 0
+        except (TypeError, ValueError):
+            return False
+
+    keys = {k for k, v in watched.items() if rozkoukany(v)}
+    keys |= {k for k, v in favlog.items() if isinstance(v, dict) and v.get("on")}
+    keys = [k for k in keys if k in items]
+    if len(keys) > SNAPSHOT_MAX:
+        cas = dict(watched)
+        cas.update(favlog)
+        keys.sort(key=lambda k: _seen(cas.get(k)), reverse=True)
+        keys = keys[:SNAPSHOT_MAX]
+    return {k: items[k] for k in keys}
+
+
+def reset_since(store):
+    """Zahodí „kam jsme došli" a příští kolo s HA pošle celý stav.
+
+    Volá se, když do `Store` přiteklo něco odjinud než z HA — typicky ze slepého
+    relaye (`syncbox.py`), když je některé Kodi mostem mezi oběma středisky.
+    Přijatý záznam si nese čas vzniku, a ten bývá starší než poslední výměna
+    s HA, takže by ho filtr `since` už nikdy neposlal. `rts` razí jen střed,
+    takže most jinou možnost nemá; celý stav je malý a pošle se jen po skutečné
+    změně. Most je ale nouzové řešení — jede jen dokud to Kodi běží. Čistší je
+    dát kód skupiny i samotnému HA (`CONF_SYNC_CODE` v integraci).
+    """
+    state = store.reload(STATE, {})
+    if state.get("since"):
+        store.save(STATE, dict(state, since=0))
 
 
 def apply_changes(store, changes, stamp=False):
@@ -97,7 +177,7 @@ def apply_changes(store, changes, stamp=False):
         dirty = False
         for key, rec in (changes.get("watched") or {}).items():
             if isinstance(rec, dict) and _ts(rec) > _ts(watched.get(key)):
-                watched[key] = _stamped(rec, now)
+                watched[key] = _keep_playcount(_stamped(rec, now), watched.get(key))
                 dirty = True
                 applied += 1
         if dirty:
@@ -157,14 +237,39 @@ def apply_changes(store, changes, stamp=False):
     return applied
 
 
-def sync_once(store, base_url, key, device=""):
-    """Jedna výměna s HA. Vrací (ok, odesláno, přijato, důvod) — nikdy nevyhodí výjimku."""
+def filter_circles(changes, circles):
+    """Ze stavu nechá jen zapnuté okruhy; snímky titulů jdou vždy s tím, co zbyde.
+
+    `circles=None` znamená „neomezovat" — tak se modul choval, než okruhy vznikly.
+    """
+    if circles is None:
+        return changes or {}
+    allowed = set()
+    for name in circles:
+        allowed.update(CIRCLES.get(name, ()))
+    out = {k: v for k, v in (changes or {}).items() if k in allowed}
+    # snímky jen k tomu, co je umí potřebovat — blob jen s nastavením je nemá proč vézt
+    if (changes or {}).get(SNAPSHOTS) and ({"watched", "favlog"} & set(out)):
+        out[SNAPSHOTS] = changes[SNAPSHOTS]
+    return out
+
+
+def sync_once(store, base_url, key, device="", circles=None):
+    """Jedna výměna s HA. Vrací (ok, odesláno, přijato, důvod) — nikdy nevyhodí výjimku.
+
+    `circles` je sada zapnutých okruhů (viz `CIRCLES`); `None` posílá a přijímá vše.
+    """
     state = store.reload(STATE, {})
     # stav bez `v` je z doby, kdy filtr šel podle času změny: jednou se vymění všechno,
     # aby se dorovnaly záznamy, které se tím mohly minout
     since = int(state.get("since") or 0) if state.get("v") == 2 else 0
-    outgoing = collect_changes(store, since)
-    pushed = len(outgoing["watched"]) + len(outgoing["favlog"])
+    # Zapnutý okruh musí dostat i to, co přišlo, když byl vypnutý — filtr zahodil
+    # změny, ale `since` se posouvalo dál, takže jinak by se dorovnal až novou změnou.
+    znamka = ",".join(sorted(circles)) if circles is not None else "*"
+    if state.get("circles") != znamka:
+        since = 0
+    outgoing = filter_circles(collect_changes(store, since), circles)
+    pushed = len(outgoing.get("watched") or {}) + len(outgoing.get("favlog") or {})
     body = json.dumps({"device": device, "since": since, "changes": outgoing}).encode("utf-8")
     req = urllib.request.Request((base_url or "").rstrip("/") + ENDPOINT, data=body, headers={
         "Content-Type": "application/json", "X-Nokturno-Key": key or "",
@@ -176,10 +281,10 @@ def sync_once(store, base_url, key, device=""):
         return _fail(store, state, f"HTTP {e.code}" + (" (špatný klíč)" if e.code == 403 else ""))
     except Exception as e:  # noqa: BLE001 – síť, DNS, špatná adresa
         return _fail(store, state, str(e)[:120])
-    pulled = apply_changes(store, answer.get("changes"))
+    pulled = apply_changes(store, filter_circles(answer.get("changes"), circles))
     now = int(time.time())
     store.save(STATE, {"v": 2, "since": int(answer.get("now") or now), "last_ok": now, "last_error": "",
-                       "pushed": pushed, "pulled": pulled})
+                       "circles": znamka, "pushed": pushed, "pulled": pulled})
     return True, pushed, pulled, ""
 
 

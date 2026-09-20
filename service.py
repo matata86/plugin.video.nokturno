@@ -49,12 +49,15 @@ from crash import CRASH_URL, CrashReporter  # noqa: E402
 import accounts as accounts_lib  # noqa: E402
 from storage_api import StorageApi, parse_ref  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
-from sync import sync_once  # noqa: E402
+from sync import reset_since, sync_once  # noqa: E402
+import syncbox  # noqa: E402
 from trend_api import CATALOG_ID as TREND_CATALOG_ID  # noqa: E402
 from tracks import SUBS_WHEN_NEEDED, pick_audio, pick_subtitle, track_lang  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
 from webshare_api import WebshareApi  # noqa: E402
 import kodi_marks  # noqa: E402 – vedle service.py, čte videodatabázi Kodi
+import kodi_settings  # noqa: E402 – vedle service.py, most do settings.xml
+import setsync  # noqa: E402
 
 PROP = "nokturno.playing"
 VIEWED_PROP = "nokturno.viewed"
@@ -63,7 +66,8 @@ SYNC_PROP = "nokturno.sync"
 CRASH_PROP = "nokturno.crash"   # plugin → služba: nové hlášení o pádu ve frontě (default.report_crash)
 CRASH_EVERY = 30 * 60           # fronta hlášení bez nového pádu (neodeslané kvůli síti) — jednou za čas
 FORCE_STATS_PROP = "nokturno.force_stats"   # plugin → služba: aktualizace doplňku, nečekat na SEND_EVERY
-SYNC_EVERY = 5 * 60   # výměna s HA; změny (dokoukáno, Můj seznam) ji vyvolají hned
+SYNC_EVERY = 5 * 60   # výměna se střediskem; změny (dokoukáno, Můj seznam) ji vyvolají hned
+SYNC_FIRST = 20       # první výměna po startu — ať je rozkoukanost z druhé TV hned na začátku
 KODI_MARKS_EVERY = 60   # s – „Označit jako zhlédnuté“ ze skinu, viz KodiMarks
 SUB_CHECK_EVERY = 12 * 3600   # jak často se ptát WebShare na stav předplatného
 ACCOUNTS_DELAY = 240      # po startu Kodi napřed skin a widgety, teprve pak stav účtů
@@ -577,16 +581,57 @@ class Syncer:
 
     def __init__(self, store):
         self.store = store
-        self.next = time.time() + 60          # první výměna minutu po startu
+        self.next = time.time() + SYNC_FIRST   # první výměna krátce po startu
         self.lock = threading.Lock()
+
+    # nastavení a účty umí jen relay (viz `default.sync_circles`) a jsou výchozím
+    # stavem vypnuté — sdílení přihlášení má být vědomé rozhodnutí
+    CIRCLES = {"watched": "sync_watched", "favourites": "sync_favourites",
+               "history": "sync_history", "settings": "sync_settings",
+               "accounts": "sync_accounts"}
+    RELAY_ONLY = ("settings", "accounts")
+
+    @classmethod
+    def _circles(cls, addon, relay=False):
+        out = []
+        for okruh, klic in cls.CIRCLES.items():
+            if okruh in cls.RELAY_ONLY and (not relay or addon.getSetting(klic) != "true"):
+                continue
+            if okruh not in cls.RELAY_ONLY and addon.getSetting(klic) == "false":
+                continue
+            out.append(okruh)
+        return tuple(out)
+
+    @staticmethod
+    def _settings_values(addon, circles):
+        if not any(o in circles for o in Syncer.RELAY_ONLY):
+            return None
+        return kodi_settings.values(addon, xbmcvfs.translatePath(addon.getAddonInfo("path")))
+
+    @staticmethod
+    def _write_settings(addon, changes):
+        zapsano = kodi_settings.apply(addon, changes)
+        if not zapsano:
+            return
+        if any(k.startswith("ws_") for k in zapsano):
+            xbmcgui.Window(10000).clearProperty("nokturno.ws_token")
+        log("synchronizace přepsala nastavení: " + ", ".join(sorted(zapsano)), xbmc.LOGINFO)
 
     def tick(self, force=False):
         addon = fresh_addon()
         if addon is None or addon.getSetting("sync_enabled") != "true":
             return
-        url, key = addon.getSetting("sync_url").strip(), addon.getSetting("sync_key").strip()
-        if not url or not key:
+        # 0 = Home Assistant, 1 = dashboard, 2 = obojí (viz `default.sync_targets`)
+        rezim = addon.getSetting("sync_mode")
+        code = addon.getSetting("sync_code").strip() if rezim in ("1", "2") else ""
+        url, key = "", ""
+        if rezim in ("0", "2"):
+            url, key = addon.getSetting("sync_url").strip(), addon.getSetting("sync_key").strip()
+        ha = bool(url and key)
+        relay = bool(code)
+        if not ha and not relay:
             return
+        circles = self._circles(addon, relay)   # zhlédnuto a spol. platí pro obě střediska
         asked = xbmcgui.Window(10000).getProperty(SYNC_PROP)
         if not force and not asked and time.time() < self.next:
             return
@@ -597,9 +642,30 @@ class Syncer:
 
         def run():
             try:
-                ok, pushed, pulled, why = sync_once(self.store, url, key, xbmc.getInfoLabel("System.FriendlyName"))
-                log(f"sync: odesláno {pushed}, přijato {pulled}" if ok else f"sync neproběhl: {why}",
-                    xbmc.LOGINFO if ok else xbmc.LOGWARNING)
+                jmeno = xbmc.getInfoLabel("System.FriendlyName")
+                # Home Assistant první: co z něj přijde, odejde v témže kole i do
+                # relaye, protože ten bere stav ze `Store` až při svém kole.
+                # Výpadek jednoho střediska to druhé nezastaví.
+                if ha:
+                    ok, pushed, pulled, why = sync_once(
+                        self.store, url, key, jmeno,
+                        circles=tuple(o for o in circles if o not in self.RELAY_ONLY))
+                    log(f"sync (HA): odesláno {pushed}, přijato {pulled}" if ok
+                        else f"sync (HA) neproběhl: {why}",
+                        xbmc.LOGINFO if ok else xbmc.LOGWARNING)
+                if relay:
+                    ok, pushed, pulled, why = syncbox.sync_once(
+                        self.store, code, circles=circles, name=jmeno,
+                        settings=self._settings_values(addon, circles),
+                        on_settings=lambda zmeny: self._write_settings(addon, zmeny))
+                    log(f"sync: odesláno {pushed}, přijato {pulled}" if ok
+                        else f"sync neproběhl: {why}",
+                        xbmc.LOGINFO if ok else xbmc.LOGWARNING)
+                    # most mezi středisky: co přišlo z relaye, má jít i do HA.
+                    # Přijatý záznam nese čas vzniku, takže by ho filtr `since`
+                    # v HA kole přeskočil — příští kolo proto pošle celý stav.
+                    if ok and pulled and ha:
+                        reset_since(self.store)
             finally:
                 self.lock.release()
         threading.Thread(target=run, daemon=True).start()
@@ -861,6 +927,18 @@ class ServiceMonitor(xbmc.Monitor):
     def onNotification(self, sender, method, data):
         if method == "System.OnQuit":
             mark_quitting()
+
+    def onScreensaverDeactivated(self):
+        """Někdo si sedl k téhle TV — stáhnout, co mezitím přišlo z druhé.
+
+        Periodické kolo běží po `SYNC_EVERY`, takže rozkoukanost z druhého Kodi
+        by tu jinak mohla být i pět minut stará. Na CoreELEC navíc Kodi běží
+        pořád (vypíná se jen televize), takže „start" nikdy nenastane a tohle je
+        jediná chvíle, kdy se dá poznat, že se uživatel vrátil."""
+        xbmcgui.Window(10000).setProperty(SYNC_PROP, "1")
+
+    def onDPMSDeactivated(self):
+        xbmcgui.Window(10000).setProperty(SYNC_PROP, "1")
 
     def abortRequested(self):
         return QUITTING.is_set() or super().abortRequested()

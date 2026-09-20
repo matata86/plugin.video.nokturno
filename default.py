@@ -57,7 +57,10 @@ from accounts import (FAIL as ACC_FAIL, OFF as ACC_OFF, OK as ACC_OK,  # noqa: E
                       WARN as ACC_WARN, problems as accounts_problems)
 from store import WATCHED_MAX, Store, migrate_profile  # noqa: E402
 from source_errors import describe_failure, summarize as summarize_failures  # noqa: E402
-from sync import sync_once  # noqa: E402
+from sync import reset_since, sync_once  # noqa: E402
+import kodi_settings  # noqa: E402
+import setsync  # noqa: E402
+import syncbox  # noqa: E402
 from streams import estimate_rank, langs_from_name, parse_stream, subs_from_name  # noqa: E402
 from tracks import FILE_CODES, SUBTITLE_FALLBACK, decode_subtitle, subtitle_format, subtitle_lang  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
@@ -1949,12 +1952,90 @@ def mark_used():
     xbmcgui.Window(10000).setProperty(USED_PROP, str(int(time.time())))
 
 
+# Kde se Kodi potkávají (`sync_mode`): 0 = Home Assistant, 1 = dashboard (slepý
+# relay), 2 = obojí naráz. Dvě střediska vedle sebe si nepřekáží — slévání je
+# last-write-wins podle `ts`, tedy komutativní, a každé středisko má vlastní stav
+# (`sync.json` × `syncbox.json`). Kdo má HA, nepřijde jeho přepnutím na relay
+# o kartu v HA; kdo relay nemá, nepozná rozdíl.
+SYNC_MODE_HA, SYNC_MODE_RELAY, SYNC_MODE_BOTH = "0", "1", "2"
+
+
+def sync_via_relay():
+    """Jede synchronizace (taky) přes dashboard, ne jen přes Home Assistant?"""
+    return on("sync_enabled", "false") and setting("sync_mode") in (SYNC_MODE_RELAY, SYNC_MODE_BOTH)
+
+
+def sync_via_ha():
+    """Jede synchronizace (taky) přes Home Assistant?"""
+    return on("sync_enabled", "false") and setting("sync_mode") in (SYNC_MODE_HA, SYNC_MODE_BOTH)
+
+
 def sync_settings():
-    """(adresa HA, klíč) nebo None, když synchronizace není zapnutá či vyplněná."""
-    if not on("sync_enabled", "false"):
+    """(adresa HA, klíč) nebo None. Používá to i „Staženo v HA" a `list_ha_files()` —
+    soubory stahuje a podepsané odkazy vydává HA, slepý relay žádné nemá."""
+    if not sync_via_ha():
         return None
     url, key = setting("sync_url").strip(), setting("sync_key").strip()
     return (url, key) if url and key else None
+
+
+def sync_targets():
+    """Kam se tohle Kodi synchronizuje: `[("ha", (adresa, klíč)), ("relay", kód)]`.
+    Prázdný seznam = není kam. Home Assistant jde první: co z něj přijde, odejde
+    v témže kole i do relaye, protože ten bere stav ze `Store` až při svém kole."""
+    cile = []
+    if sync_settings():
+        cile.append(("ha", sync_settings()))
+    if sync_via_relay() and setting("sync_code").strip():
+        cile.append(("relay", setting("sync_code").strip()))
+    return cile
+
+
+# Okruhy nastavení a účtů umí jen relay — Home Assistant je střed pro `Store`,
+# volby doplňku a přihlášení do jeho rozhraní nepatří (proto je `settings.xml`
+# u obou přepínačů schovává, když je vybraný Home Assistant).
+SYNC_CIRCLE_SETTINGS = {"watched": "sync_watched", "favourites": "sync_favourites",
+                        "history": "sync_history", "settings": "sync_settings",
+                        "accounts": "sync_accounts"}
+SYNC_RELAY_ONLY = ("settings", "accounts")
+
+
+def sync_circles(relay=None):
+    """Okruhy zapnuté v nastavení. Prázdný výběr = neposílá se ani nepřijímá nic."""
+    if relay is None:
+        relay = setting("sync_mode") in (SYNC_MODE_RELAY, SYNC_MODE_BOTH)
+    return tuple(okruh for okruh, klic in SYNC_CIRCLE_SETTINGS.items()
+                 if on(klic, "false" if okruh in SYNC_RELAY_ONLY else "true")
+                 and (relay or okruh not in SYNC_RELAY_ONLY))
+
+
+def sync_values(relay=None):
+    """Hodnoty nastavení pro okruhy `settings`/`accounts`, nebo None, když ani
+    jeden neběží — pak jádro nastavení vůbec neřeší."""
+    circles = sync_circles(relay)
+    if not any(okruh in circles for okruh in SYNC_RELAY_ONLY):
+        return None
+    return kodi_settings.values(ADDON, ADDON_PATH)
+
+
+def sync_write_settings(changes):
+    """Zápis nastavení, které přišlo z druhého Kodi."""
+    zapsano = kodi_settings.apply(ADDON, changes)
+    if not zapsano:
+        return
+    if any(k.startswith("ws_") for k in zapsano):
+        xbmcgui.Window(10000).clearProperty("nokturno.ws_token")   # jiný účet = nový login
+    if any(setsync.circle_of(k) == setsync.CIRCLE_ACCOUNTS for k in zapsano):
+        STORE.clear_cache()     # cache patří k účtům, které tu byly do teď
+    xbmc.log(f"[{ADDON_ID}] synchronizace přepsala nastavení: {', '.join(sorted(zapsano))}",
+             xbmc.LOGINFO)
+
+
+def sync_relay_once(name=""):
+    """Jedno kolo přes relay. Vrací totéž co `sync.sync_once`."""
+    return syncbox.sync_once(STORE, setting("sync_code").strip(), circles=sync_circles(True),
+                             name=name, settings=sync_values(True),
+                             on_settings=sync_write_settings)
 
 
 def request_sync():
@@ -1991,16 +2072,108 @@ def list_ha_files():
 
 
 def sync_now():
-    """Ruční synchronizace — z hlavního menu i z nastavení."""
-    cfg = sync_settings()
-    if not cfg:
+    """Ruční synchronizace — z hlavního menu i z nastavení.
+
+    V režimu „obojí" se projdou obě střediska; výpadek jednoho nezastaví druhé
+    a hlásí se, co se povedlo dohromady."""
+    cile = sync_targets()
+    jmeno = xbmc.getInfoLabel("System.FriendlyName")
+    if not cile:
         notify(L(30186, "Synchronizace není zapnutá nebo chybí adresa a klíč"), xbmcgui.NOTIFICATION_WARNING, 5000)
     else:
-        ok, pushed, pulled, why = sync_once(STORE, cfg[0], cfg[1], xbmc.getInfoLabel("System.FriendlyName"))
-        notify((L(30187, "Synchronizováno: odesláno %d, přijato %d") % (pushed, pulled)) if ok
-               else f"{L(30188, 'Synchronizace selhala')}: {why}",
-               xbmcgui.NOTIFICATION_INFO if ok else xbmcgui.NOTIFICATION_ERROR, 5000)
+        odeslano = prijato = 0
+        chyby = []
+        for kam, cfg in cile:
+            if kam == "relay":
+                ok, pushed, pulled, why = sync_relay_once(jmeno)
+                # most mezi středisky, viz `sync.reset_since` — přijatý záznam
+                # nese čas vzniku a filtr `since` v HA kole by ho přeskočil
+                if ok and pulled and sync_via_ha():
+                    reset_since(STORE)
+            else:
+                ok, pushed, pulled, why = sync_once(STORE, cfg[0], cfg[1], jmeno,
+                                                    circles=sync_circles(False))
+            odeslano, prijato = odeslano + pushed, prijato + pulled
+            if not ok:
+                chyby.append(why)
+        notify(f"{L(30188, 'Synchronizace selhala')}: {'; '.join(chyby)}" if chyby
+               else (L(30187, "Synchronizováno: odesláno %d, přijato %d") % (odeslano, prijato)),
+               xbmcgui.NOTIFICATION_ERROR if chyby else xbmcgui.NOTIFICATION_INFO, 5000)
     xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
+
+
+def _sync_apply(code):
+    """Uloží kód skupiny a zapne synchronizaci přes relay."""
+    ADDON.setSetting("sync_code", code)
+    ADDON.setSetting("sync_mode", "1")
+    ADDON.setSetting("sync_enabled", "true")
+
+
+def sync_create():
+    """Založí skupinu a ukáže kód, který se opíše na dalším Kodi.
+
+    Kód je zároveň šifrovací klíč — server ho nikdy nevidí a bez něj data nikdo
+    nepřečte ani neobnoví. Proto se ukazuje v `textviewer` (jde odrolovat a nechat
+    na obrazovce), ne v mizející notifikaci."""
+    code = setting("sync_code").strip()
+    znovu = bool(code) and syncbox.valid_code(code)
+    if not znovu:
+        code = syncbox.new_code()
+    try:
+        syncbox.Relay(syncbox.keys_for(code), syncbox.device_id(STORE)).open_group()
+    except syncbox.SyncError as e:
+        xbmcgui.Dialog().ok(L(30180, "Synchronizace"), f"{L(30188, 'Synchronizace selhala')}: {e}")
+        return
+    _sync_apply(code)
+    nadpis = L(30679, "Znovu otevřít připojení") if znovu else L(30671, "Skupina je založená. Na dalším Kodi zadej tenhle kód:")
+    xbmcgui.Dialog().textviewer(L(30180, "Synchronizace"),
+                                f"{nadpis}[CR][CR][B]{code}[/B][CR][CR]"
+                                f"{L(30680, 'Připojení je otevřené 30 minut.')}[CR]"
+                                f"{L(30672, 'Kód pustí nové zařízení dovnitř po 30 minut.')}")
+
+
+def sync_join():
+    """Připojí tohle Kodi ke skupině podle kódu z prvního Kodi."""
+    code = xbmcgui.Dialog().input(L(30673, "Zadej kód skupiny z prvního Kodi"),
+                                  defaultt=setting("sync_code").strip())
+    if not code:
+        return
+    if not syncbox.valid_code(code):
+        xbmcgui.Dialog().ok(L(30180, "Synchronizace"), L(30675, "Kód nemá správný tvar."))
+        return
+    code = syncbox.format_code(code)
+    # `sync_circles(True)`: středisko se uloží až v `_sync_apply()` po úspěchu, ale
+    # připojení je relay z definice — jinak by první kolo vynechalo nastavení a účty
+    # právě u zařízení, které je potřebuje nejvíc
+    ok, pushed, pulled, why = syncbox.sync_once(STORE, code, circles=sync_circles(True),
+                                                name=xbmc.getInfoLabel("System.FriendlyName"),
+                                                settings=sync_values(True),
+                                                on_settings=sync_write_settings)
+    if not ok:
+        xbmcgui.Dialog().ok(L(30180, "Synchronizace"), f"{L(30188, 'Synchronizace selhala')}: {why}")
+        return
+    _sync_apply(code)
+    xbmcgui.Dialog().ok(L(30180, "Synchronizace"),
+                        f"{L(30674, 'Připojeno. Synchronizace běží na pozadí.')}[CR][CR]"
+                        + (L(30187, "Synchronizováno: odesláno %d, přijato %d") % (pushed, pulled)))
+
+
+def sync_leave():
+    """Odhlásí tohle Kodi ze skupiny — na relayi smaže jeho blob. Uložená data
+    zůstávají, jen se přestanou vyměňovat."""
+    code = setting("sync_code").strip()
+    if not code or not syncbox.valid_code(code):
+        notify(L(30676, "Zatím žádná skupina"), xbmcgui.NOTIFICATION_WARNING, 5000)
+        return
+    if not xbmcgui.Dialog().yesno(L(30180, "Synchronizace"), L(30677, "Odejít ze skupiny?")):
+        return
+    try:
+        syncbox.Relay(syncbox.keys_for(code), syncbox.device_id(STORE)).forget()
+    except syncbox.SyncError as e:
+        log_error(e)   # relay nedostupný: blob tam zůstane, retence ho po čase smaže
+    ADDON.setSetting("sync_code", "")
+    ADDON.setSetting("sync_enabled", "false")
+    notify(L(30678, "Odešel jsi ze skupiny."), xbmcgui.NOTIFICATION_INFO, 5000)
 
 
 def sub_status():
@@ -3565,7 +3738,7 @@ def main_menu(apis):
     folder_item(L(30060), build_url(action="favourites"), icon="DefaultFavourites.png")
     if apis.get("dav"):
         folder_item(L(30387, "Moje úložiště"), build_url(action="dav_browse"), icon="DefaultHardDisk.png")
-    if setting("download_dir") or sync_settings():
+    if setting("download_dir") or sync_targets():
         folder_item(L(30391, "Stažené"), build_url(action="downloads"), icon="DefaultHardDisk.png")
     folder_item(L(30392, "Nastavení"), build_url(action="settings"), icon="DefaultAddonProgram.png")
     # bez cache na disk — položky se mění podle stavu (Novinky, Pokračovat), zpět do
@@ -4527,7 +4700,7 @@ def list_favourites():
             add_snapshot_item(key, snap)
     # z hlavního menu sem — patří k „mým“ titulům a synchronizuje se s nimi
     folder_item(L(30064), build_url(action="recent"), icon="DefaultRecentlyAddedMovies.png")
-    if sync_settings():
+    if sync_targets():
         folder_item(L(30184, "Synchronizovat teď"), build_url(action="sync_now"), icon="DefaultAddonsUpdates.png")
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
@@ -5470,7 +5643,9 @@ def download_hs(apis, file_id, file_hash, name):
 
 
 def list_downloads():
-    if sync_settings():
+    # jen režim Home Assistant — soubory stahuje a podepsané odkazy vydává HA,
+    # slepý relay žádné nemá (a „adresa“ v jeho nastavení není server, jen značka)
+    if sync_settings() and not sync_via_relay():
         folder_item(L(30190, "Staženo v HA"), build_url(action="ha_files"), icon="DefaultNetwork.png")
     set_content("videos")
     status_labels = {"queued": L(30078), "running": L(30079), "done": L(30080), "error": L(30081), "cancel": L(30082)}
@@ -5653,6 +5828,9 @@ def router(query):
         "trakt_logout": trakt_logout,
         # akce z nastavení, žádný výpis — succeeded=False jako u "clear_cache"
         "cztor_pair": lambda: (cztor_pair(), xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
+        "sync_create": lambda: _tlacitko(sync_create),
+        "sync_join": lambda: _tlacitko(sync_join),
+        "sync_leave": lambda: _tlacitko(sync_leave),
         "cztor_status": lambda: (cztor_status(), xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
         "cztor_logout": lambda: (cztor_logout(), xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
         # succeeded=False jako u "settings" — jinak by Kodi navigoval do prázdné složky
@@ -5844,6 +6022,7 @@ MARKS_SKIP = frozenset((
     "cztor_status", "cztor_logout", "clear_cache", "stats_send", "log_send", "website_info",
     "test_sources", "remote_setup", "stream_layout_reset", "setup_wizard", "sub_status",
     "luna_check", "luna_find", "os_check", "speedtest", "update_repos", "tmdbhelper_player", "sync_now",
+    "sync_create", "sync_join", "sync_leave",
     "whats_new", "ha_files", "settings", "transfer_send", "transfer_receive",
     "transfer_file_save", "transfer_file_load",
 ))

@@ -1502,10 +1502,6 @@ class Engine:
             pool.submit(self._media_from_file, url)
         pool.shutdown(wait=False)
 
-    @staticmethod
-    def _probe_url(stream):
-        return str(stream.get("url") or "")
-
     def _media_from_file(self, url):
         """Co se o souboru dá přečíst z jeho hlavičky. Prázdné, když to nejde."""
         def load():
@@ -1565,18 +1561,12 @@ class Engine:
             schemes += ("fs:",)
         candidates = [s for s in streams if not s.get("_tracks")
                       and str(s.get("url") or "").startswith(schemes)]
-        # Lunin řádek spárovaný s WebShare (`_merge_direct`) má zvuk od Luny, ale rozlišení, kodek
-        # a titulky zná jen soubor — čte se přes Lunin vlastní odkaz. Párování s `_ws_url` je jen odhad
-        # podle velikosti (dva soubory po 5 GB), z přibaleného souboru by mohla přijít cizí hlavička.
-        candidates += [s for s in streams if not s.get("_media") and s not in candidates
-                       and s.get("source") in ("main", "search") and str(s.get("_ws_url") or "").startswith("ws:")
-                       and str(s.get("url") or "").startswith("http")]
         ordered = sorted(candidates, key=lambda s: bool(s.get("channels")))
         todo = ordered[:limit]
         # `probe_background`: co se nečte teď (nad limit, sloučené verze v `background`),
         # se přečte na pozadí do cache — další otevření titulu i „Zobrazit všechny“
         # pak mají ověřené všechno, bez čekání
-        rest = [self._probe_url(s) for s in ordered[limit:]] + [
+        rest = [s["url"] for s in ordered[limit:]] + [
             s["url"] for s in background if not s.get("_tracks") and str(s.get("url") or "").startswith(schemes)]
         # skutečný počet čtených hlaviček bývá výrazně nižší než limit —
         # ukazatel průběhu si podle něj dopočítá reálné 100 %, ne odhad
@@ -1593,7 +1583,7 @@ class Engine:
         # hostitel končí — `gather()` se mezi tím ptá `should_stop()` a při přerušení
         # nezačaté hlavičky zruší (viz `lib/abort.py`)
         pool = ThreadPoolExecutor(max_workers=PROBE_WORKERS)
-        futures = {pool.submit(self._media_from_file, self._probe_url(s)): s for s in todo}
+        futures = {pool.submit(self._media_from_file, s["url"]): s for s in todo}
         results = {}
 
         def hotovo(future):
@@ -1611,14 +1601,9 @@ class Engine:
             if not info:
                 continue
             text = describe_media(info)
-            if text and text not in (stream.get("detail") or ""):
+            if text:
                 stream["detail"] = f"{stream['detail']} | {text}" if stream.get("detail") else text
-            tracks = [dict(t) for t in info.get("audio") or []]
-            known = [t for t in stream.get("_tracks") or [] if t.get("lang")]
-            if len(known) == len(tracks):   # stopa bez jazyka v souboru dostane jazyk od zdroje (Luna)
-                for mine, theirs in zip(tracks, known):
-                    mine["lang"] = mine.get("lang") or theirs["lang"]
-            stream["_tracks"] = tracks
+            stream["_tracks"] = info.get("audio") or []
             stream["_media"] = info
             if info.get("duration"):
                 # z hlavičky je i skutečná délka streamu — přesnější základ pro
