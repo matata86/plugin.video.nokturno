@@ -132,6 +132,45 @@ def langs_from_name(name):
     return out
 
 
+
+ORIGIN_CZ = ("czech", "česk", "cesk", "czechoslovak", "československ")
+ORIGIN_SK = ("slovak", "slovensk")
+
+
+def origin_languages(country):
+    """Jazyky původní tvorby podle země („Czech Republic“, „CZ, SK“) — jen CZ/SK, jinde prázdné."""
+    text = str(country or "").lower()
+    out = []
+    if any(w in text for w in ORIGIN_CZ) or re.search(r"\bcz\b", text):
+        out.append("CZ")
+    text = re.sub(r"če?s?ko?slovensk\w*|czechoslovak\w*", "", text)   # Československo není Slovensko
+    if any(w in text for w in ORIGIN_SK) or re.search(r"\bsk\b", text):
+        out.append("SK")
+    return out
+
+
+def assume_origin_language(streams, country):
+    """Český/slovenský titul s jedinou zvukovou stopou označenou „EN“ = špatně označený soubor.
+
+    Kontejnery mívají jazyk zvuku vyplněný „eng“ jen ze zvyku muxeru (seriál Hospoda:
+    „EN 1.9 GB“ u původně české tvorby). Hlavička to nerozliší, tak se jazyk odhadne podle
+    země původu a stream se označí jako neověřený odhad (`_langs_from_name`, v popisku „~CZ“).
+    Anglicky pojmenovaný soubor („…eng…“) se nemění, dvojjazyčný zvuk taky.
+    """
+    origin = origin_languages(country)
+    if not origin:
+        return streams
+    for s in streams:
+        if s.get("langs") != ["EN"] or s.get("_langs_from_name"):
+            continue
+        name = s.get("_ws_name") or s.get("label") or ""
+        if "EN" in langs_from_name(name):
+            continue
+        s["langs"] = origin[:1]
+        s["_langs_from_name"] = True
+    return streams
+
+
 def subs_from_name(name):
     """Jazyk titulků podle názvu souboru — „…_CZtit_…“ (jedno slovo) i „…_cz_tit_…“
     (rozdělené podpomlčkou/tečkou) → CZ. Doplňuje langs_from_name, která tahle
