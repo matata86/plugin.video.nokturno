@@ -605,6 +605,50 @@
         </setting>
       </group>
     </category>
+    <category id="osub" label="30611" help="30612">
+      <group id="1">
+        <setting id="os_enabled" type="boolean" label="30613" help="30614">
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle"/>
+        </setting>
+        <setting id="os_username" type="string" label="30615" help="30616">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="os_enabled" operator="is">true</dependency>
+          </dependencies>
+          <control type="edit" format="string">
+            <heading>30615</heading>
+          </control>
+        </setting>
+        <setting id="os_password" type="string" label="30617" help="30618">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="os_enabled" operator="is">true</dependency>
+          </dependencies>
+          <control type="edit" format="string">
+            <hidden>true</hidden>
+            <heading>30617</heading>
+          </control>
+        </setting>
+        <setting id="os_check" type="action" label="30619" help="30620">
+          <level>0</level>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=os_check)</data>
+          <control type="button" format="action"/>
+        </setting>
+      </group>
+    </category>
     <category id="downloads" label="30071">
       <group id="1">
         <setting id="download_dir" type="path" label="30087" help="30323">

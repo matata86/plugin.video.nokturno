@@ -1712,6 +1712,79 @@ msgstr "Náhodný seriál"
 msgctxt "#30610"
 msgid "Nothing to pick from"
 msgstr "Nemám z čoho losovať"
+
+msgctxt "#30611"
+msgid "OpenSubtitles"
+msgstr "OpenSubtitles"
+
+msgctxt "#30612"
+msgid "Subtitles from opensubtitles.com for titles your sources have none for."
+msgstr "Titulky z opensubtitles.com pre tituly, ku ktorým ich zdroje nemajú."
+
+msgctxt "#30613"
+msgid "Look for subtitles on OpenSubtitles"
+msgstr "Hľadať titulky na OpenSubtitles"
+
+msgctxt "#30614"
+msgid "Used only for titles with no subtitles from the source, from WebShare or in the file itself."
+msgstr "Použijú sa len pri tituloch, ktoré nemajú titulky zo zdroja, z WebShare ani priamo v súbore."
+
+msgctxt "#30615"
+msgid "OpenSubtitles account (optional)"
+msgstr "Účet na OpenSubtitles (nepovinný)"
+
+msgctxt "#30616"
+msgid "Without an account you can download 5 subtitles a day, with a free account 20."
+msgstr "Bez účtu sa dá stiahnuť 5 titulkov denne, so zadarmo založeným účtom 20."
+
+msgctxt "#30617"
+msgid "OpenSubtitles password"
+msgstr "Heslo na OpenSubtitles"
+
+msgctxt "#30618"
+msgid "Sent only when signing in; only the issued token is stored."
+msgstr "Posiela sa len pri prihlásení, ukladá sa z neho len vydaný token."
+
+msgctxt "#30619"
+msgid "Test OpenSubtitles"
+msgstr "Vyskúšať OpenSubtitles"
+
+msgctxt "#30620"
+msgid "Checks the connection, the account and the remaining daily quota."
+msgstr "Overí spojenie, účet aj to, koľko titulkov dnes ešte zostáva."
+
+msgctxt "#30621"
+msgid "OpenSubtitles works."
+msgstr "OpenSubtitles funguje."
+
+msgctxt "#30622"
+msgid "OpenSubtitles is switched off in the settings."
+msgstr "OpenSubtitles sú v nastavení vypnuté."
+
+msgctxt "#30623"
+msgid "The key could not be fetched from the server — try again later."
+msgstr "Kľúč sa nepodarilo získať zo servera — skúste to neskôr."
+
+msgctxt "#30624"
+msgid "Sign-in failed — check the username and password."
+msgstr "Prihlásenie sa nepodarilo — skontrolujte meno a heslo."
+
+msgctxt "#30625"
+msgid "Subtitles found for the test title: %s"
+msgstr "Titulkov ku skúšobnému titulu: %s"
+
+msgctxt "#30626"
+msgid "Downloads left today: %s"
+msgstr "Zostáva dnes stiahnutí: %s"
+
+msgctxt "#30627"
+msgid "Signed in as %s"
+msgstr "Prihlásený ako %s"
+
+msgctxt "#30628"
+msgid "Not signed in — 5 downloads a day for this address."
+msgstr "Bez prihlásenia — 5 stiahnutí denne pre túto adresu."
+
 msgctxt "#30630"
 msgid "Source status"
 msgstr "Stav zdrojov"

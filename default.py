@@ -42,7 +42,8 @@ from luna_api import (LunaApi, LunaError, diagnose as luna_diagnose,  # noqa: E4
 from cinemeta_api import CinemetaApi, CinemetaError  # noqa: E402
 from tmdb_api import TmdbApi, TmdbError  # noqa: E402
 from trend_api import CATALOG_ID as TREND_CATALOG_ID, TrendApi  # noqa: E402
-from dash_api import DashApi  # noqa: E402
+from dash_api import DashApi
+from opensubtitles_api import OpenSubtitlesApi  # noqa: E402
 from sosac_api import SosacError, is_sosac_id as _is_stremio_sosac_id  # noqa: E402
 from sosac_direct import EXPORT as SOSAC_EXPORT, SosacDirect, is_direct_id  # noqa: E402
 from enrich import enrich, enrich_one, shutdown_pool as release_enrich  # noqa: E402
@@ -538,6 +539,33 @@ def get_dash():
     return DashApi(cache=STORE)
 
 
+# Vykoupení z věznice Shawshank: titulek k němu na OpenSubtitles je vždycky,
+# takže prázdná odpověď znamená vadný klíč, ne titul bez titulků
+OS_PROBE_ID = "tt0111161"
+
+
+def get_opensubtitles():
+    """Titulky z OpenSubtitles — záchrana pro tituly, které je ve zdrojích nemají.
+
+    Klíč k API si uživatel nezakládá: rozdává ho dashboard (`/os-key`, cache týden),
+    protože do repozitáře nesmí a proxovat dotazy přes server nejde — denní kvóta
+    stahování se u OpenSubtitles počítá na IP toho, kdo stahuje. Bez klíče (dashboard
+    nedostupný, nebo ho nemá nastavený) se zdroj tiše vynechá a titulky se berou jen
+    ze souboru a z WebShare jako dřív.
+
+    Jméno a heslo jsou dobrovolná — bez nich platí pět stažených titulků na IP za den,
+    s účtem dvacet. Heslo jde jen do `/login`, ukládá se z něj jen vydaný token.
+    """
+    if not on("os_enabled"):
+        return None
+    key = get_dash().opensubtitles_key()
+    if not key:
+        return None
+    return OpenSubtitlesApi(key, store=STORE, username=setting("os_username"),
+                            password=setting("os_password"),
+                            user_agent="Nokturno v%s" % _ADDON_VERSION)
+
+
 def get_tmdb():
     """Vlastní klíč uživatele (zdarma, viz nápověda v nastavení) — přednostní
     náhrada za veřejný katalog Sosáče/Cinemetu, když Luna neběží: umí česky
@@ -589,7 +617,8 @@ class KodiEngine(Engine):
 
     FACTORIES = {"luna": get_luna, "sosac": get_sosac, "sosac_db": get_sosac_db, "ws": get_webshare,
                  "hs": get_hellspy, "st": get_sledujteto, "fs": get_fastshare, "cz": get_cztor, "storages": get_storages, "tmdb": get_tmdb,
-                 "cinemeta": get_cinemeta, "trend": get_trend, "dash": get_dash}
+                 "cinemeta": get_cinemeta, "trend": get_trend, "dash": get_dash,
+                 "osub": get_opensubtitles}
 
     def __init__(self):
         self._clients = {}
@@ -604,6 +633,7 @@ class KodiEngine(Engine):
     sosac = property(lambda self: self._client("sosac"))
     sosac_db = property(lambda self: self._client("sosac_db"))
     ws = property(lambda self: self._client("ws"))
+    osub = property(lambda self: self._client("osub"))
     hs = property(lambda self: self._client("hs"))
     st = property(lambda self: self._client("st"))
     fs = property(lambda self: self._client("fs"))
@@ -1800,6 +1830,29 @@ SUBS_KEEP_S = 2 * 86400
 SUBS_BUDGET_S = 4.0
 
 
+def subtitle_refs(apis, chosen, resolved_path, video=None, ctype="movie"):
+    """Odkazy na titulky ke zvolenému streamu, případně zpřesněné otiskem souboru.
+
+    Ve výpisu streamů se titulky z OpenSubtitles hledají podle IMDb id, takže sedí
+    k titulu, ale ne nutně k tomuhle souboru (jiný sestřih, jiné fps). Otisk je páruje
+    přímo se souborem, jenže stojí `Range` dotaz na jeho konec — proto se počítá až tady,
+    u jednoho streamu, a jen když k němu nemáme lepší titulky: soubor s vlastními titulky
+    ani nález z WebShare (ten je vybraný podle názvu releasu) se tím nezdržuje.
+    """
+    refs = list(chosen.get("subtitles") or [])
+    if not refs or any(not r.startswith("os:") for r in refs):
+        return refs
+    try:
+        presne = engine_of(apis).subtitles_by_hash(resolved_path, video, ctype)
+    except Exception as e:  # noqa: BLE001 – titulky nesmí shodit přehrání
+        xbmc.log(f"[{ADDON_ID}] titulky podle otisku: {e}", xbmc.LOGINFO)
+        return refs
+    if not presne:
+        return refs
+    xbmc.log(f"[{ADDON_ID}] titulky: otisk souboru sedí ({len(presne)})", xbmc.LOGINFO)
+    return presne + [r for r in refs if r not in presne]
+
+
 def local_subtitles(apis, refs):
     """Titulky ze zdroje (`ws:<ident>`, odkaz Sosáče) stáhne do profilu a vrátí cesty.
 
@@ -2924,6 +2977,43 @@ def _luna_setup_link(base):
 def _stranka(text):
     """Text z `strings.po` pro webovou stránku: `[CR]` na nový řádek, ostatní Kodi značky pryč."""
     return _plain(text.replace("[CR]", "\n"))
+
+
+def os_check():
+    """Tlačítko „Vyzkoušet OpenSubtitles“ v nastavení.
+
+    Odpovídá na tři různé otázky, které z hlášky „nefunguje mi to“ nejdou rozeznat:
+    jestli je zdroj vůbec zapnutý, jestli doplněk dostal ze serveru klíč, a jestli
+    se (u vyplněného účtu) podařilo přihlásit. Hledá se zkušební titul, ne stahuje —
+    stažení by ukrojilo z denní kvóty právě toho, kdo si jen ověřuje nastavení.
+    """
+    from opensubtitles_api import OpenSubtitlesError   # líný import, viz reuse invoker
+    if not on("os_enabled"):
+        Dialog().ok(L(30611, "OpenSubtitles"), L(30622, "OpenSubtitles jsou v nastavení vypnuté."))
+        return
+    api = get_opensubtitles()
+    if api is None:
+        Dialog().ok(L(30611, "OpenSubtitles"),
+                    L(30623, "Klíč se nepodařilo získat ze serveru — zkuste to později."))
+        return
+    radky = []
+    try:
+        ucet = api.ucet()
+    except OpenSubtitlesError as err:
+        xbmc.log(f"[{ADDON_ID}] OpenSubtitles účet: {err}", xbmc.LOGINFO)
+        Dialog().ok(L(30611, "OpenSubtitles"),
+                    L(30624, "Přihlášení se nepovedlo — zkontrolujte jméno a heslo."))
+        return
+    if ucet:
+        radky.append(L(30627, "Přihlášen jako %s") % ucet["user"])
+        radky.append(L(30626, "Zbývá dnes stažení: %s") % ucet["zbyva"])
+    else:
+        radky.append(L(30628, "Bez přihlášení — 5 stažení denně pro tuhle adresu."))
+    nalez = api.hledej(OS_PROBE_ID, ("CZ", "SK"))
+    radky.insert(0, L(30621, "OpenSubtitles funguje.") if nalez
+                 else L(30623, "Klíč se nepodařilo získat ze serveru — zkuste to později."))
+    radky.append(L(30625, "Titulků ke zkušebnímu titulu: %s") % len(nalez))
+    Dialog().ok(L(30611, "OpenSubtitles"), "\n".join(radky))
 
 
 def luna_find():
@@ -5119,7 +5209,7 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
             tag.setResumePoint(resume, total)
         except Exception:  # noqa: BLE001 – Kodi < 20
             pass
-    subtitles = local_subtitles(apis, chosen.get("subtitles") or [])
+    subtitles = local_subtitles(apis, subtitle_refs(apis, chosen, resolved_path, video, ctype))
     if subtitles:
         li.setSubtitles(subtitles)
     STORE.remember_item(item_id, snapshot(meta, ctype, video, series_id, alt))
@@ -5477,6 +5567,7 @@ def router(query):
                                  xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
         "sub_status": sub_status,
         "luna_check": lambda: luna_check(ask=True),
+        "os_check": os_check,
         "luna_find": luna_find,
         "speedtest": speedtest,
         "update_repos": update_repos,
@@ -5638,7 +5729,7 @@ MARKS_SKIP = frozenset((
     "download_remove", "download_retry", "trakt_auth", "trakt_logout", "cztor_pair",
     "cztor_status", "cztor_logout", "clear_cache", "stats_send", "log_send", "website_info",
     "test_sources", "remote_setup", "stream_layout_reset", "setup_wizard", "sub_status",
-    "luna_check", "luna_find", "speedtest", "update_repos", "tmdbhelper_player", "sync_now",
+    "luna_check", "luna_find", "os_check", "speedtest", "update_repos", "tmdbhelper_player", "sync_now",
     "whats_new", "ha_files", "settings", "transfer_send", "transfer_receive",
     "transfer_file_save", "transfer_file_load",
 ))

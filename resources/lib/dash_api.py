@@ -14,6 +14,10 @@ Tři veřejné endpointy, které server skládá sám z TMDB (klient nic nedohle
 * `GET /similar?kind=&id=` — podobné tituly pro uživatele bez vlastního TMDB klíče.
 * `GET /tv-program?date=&kind=&channel=` — filmy a seriály v české a slovenské TV,
   jen ty, které server spároval s TMDB (mají `tt…` id).
+* `GET /os-key` — klíč k API OpenSubtitles pro titulky (`lib/opensubtitles_api.py`).
+  Klíč je vázaný na aplikaci, ne na uživatele, a denní kvóta se počítá na IP toho,
+  kdo stahuje — proto ho dostane klient a volá OpenSubtitles přímo, ne přes nás.
+  Do repozitáře se nesmí; tudy jde vyměnit bez vydání nové verze doplňku.
 
 Dashboard nesmí zdržet menu doplňku: krátký timeout, výsledky v cache a při výpadku
 se vrací poslední známá data (i prošlá) a na pět minut se síť přestane zkoušet
@@ -38,6 +42,7 @@ MENU_TTL = 3600
 CATALOG_TTL = 6 * 3600
 SIMILAR_TTL = 7 * 86400
 TV_TTL = 30 * 60
+OS_KEY_TTL = 7 * 86400   # klíč se nemění; při výměně se rozejde nejvýš na týden
 STALE_TTL = 14 * 86400   # jak staré záložní data ještě ukázat při výpadku
 DOWN_TTL = 300
 DOWN_KEY = "nokturno:dash:down"
@@ -46,6 +51,7 @@ SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,39}$")
 IMDB_RE = re.compile(r"^tt\d{5,10}$")
 DAY_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 CHANNEL_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,39}$")
+OS_KEY_RE = re.compile(r"^[A-Za-z0-9]{16,64}$")   # tvar klíče OpenSubtitles
 KINDS = ("movie", "series")
 PLACEMENTS = ("root", "browse")
 # ikony, které klient umí přeložit na obrázek — neznámá se zahodí na výchozí
@@ -233,6 +239,22 @@ class DashApi:
         today = data.get("today") if isinstance(data.get("today"), str) and DAY_RE.match(data["today"]) else None
         date = data.get("date") if isinstance(data.get("date"), str) and DAY_RE.match(data["date"]) else None
         return {"today": today, "date": date, "dates": dates, "channels": channels, "items": items}
+
+
+    # --- klíč k OpenSubtitles --------------------------------------------------------
+
+    def opensubtitles_key(self):
+        """Klíč k API OpenSubtitles, nebo prázdno. Prázdno = funkce je prostě vypnutá
+        (server klíč nemá nastavený, nebo je dashboard nedostupný) — doplněk se pak
+        chová jako dřív a titulky bere jen ze zdroje a z WebShare."""
+        def fetch():
+            data = self._get("/os-key")
+            klic = data.get("key") if isinstance(data, dict) else None
+            return {"key": klic} if isinstance(klic, str) and OS_KEY_RE.match(klic) else None
+
+        data = self._load("nokturno:dash:os-key", OS_KEY_TTL, fetch) or {}
+        klic = data.get("key") or ""
+        return klic if OS_KEY_RE.match(str(klic)) else ""
 
 
 if __name__ == "__main__":

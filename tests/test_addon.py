@@ -4496,3 +4496,59 @@ class TestVydaneDily(unittest.TestCase):
             found = default.next_episode(None, {"series": "tt1", "season": 2, "episode": 13})
             self.assertIsNotNone(found)
             self.assertEqual((found[0]["season"], found[0]["episode"]), (3, 1))
+
+
+
+
+class TestOpenSubtitles(unittest.TestCase):
+    """Titulky z OpenSubtitles v doplňku — nastavení, tlačítko v něm a otisk souboru."""
+
+    def test_nastaveni_ma_kategorii(self):
+        strom = ET.parse(ROOT / "resources" / "settings.xml")
+        kategorie = {c.get("id") for c in strom.iter("category")}
+        self.assertIn("osub", kategorie)
+        volby = {s.get("id") for s in strom.iter("setting")}
+        self.assertTrue({"os_enabled", "os_username", "os_password", "os_check"} <= volby)
+
+    def test_heslo_je_skryte(self):
+        """Heslo k účtu se nesmí na televizi vypsat na obrazovku."""
+        strom = ET.parse(ROOT / "resources" / "settings.xml")
+        heslo = next(s for s in strom.iter("setting") if s.get("id") == "os_password")
+        ovladak = heslo.find("control")
+        self.assertIsNotNone(ovladak)
+        self.assertEqual(ovladak.findtext("hidden"), "true")
+
+    def test_tlacitko_zna_router(self):
+        import default
+        self.assertIn("os_check", default.MARKS_SKIP,
+                      "tlačítko v nastavení nic nevypisuje, čtení MyVideos*.db je tam zbytečné")
+        self.assertTrue(hasattr(default, "os_check"))
+
+    def test_otisk_se_pocita_jen_kdyz_neni_nic_lepsiho(self):
+        """Otisk stojí `Range` dotaz navíc — u streamu s jinými titulky se nepočítá."""
+        import default
+        volano = []
+
+        class Jadro:
+            def subtitles_by_hash(self, url, video=None, ctype="movie"):
+                volano.append(url)
+                return ["os:99"]
+
+        apis = {"engine": Jadro()}
+        self.assertEqual(default.subtitle_refs(apis, {"subtitles": []}, "http://x"), [])
+        self.assertEqual(volano, [], "bez titulků není co zpřesňovat")
+        self.assertEqual(default.subtitle_refs(apis, {"subtitles": ["ws:a"]}, "http://x"), ["ws:a"])
+        self.assertEqual(volano, [], "nález z WebShare je vybraný podle názvu releasu, stačí")
+        self.assertEqual(default.subtitle_refs(apis, {"subtitles": ["os:1"]}, "http://x"),
+                         ["os:99", "os:1"], "otisk sedí ke konkrétnímu souboru, jde první")
+        self.assertEqual(volano, ["http://x"])
+
+    def test_chyba_otisku_neshodi_prehrani(self):
+        import default
+
+        class Jadro:
+            def subtitles_by_hash(self, *a, **k):
+                raise RuntimeError("zdroj bez Range")
+
+        self.assertEqual(default.subtitle_refs({"engine": Jadro()}, {"subtitles": ["os:1"]}, "http://x"),
+                         ["os:1"])

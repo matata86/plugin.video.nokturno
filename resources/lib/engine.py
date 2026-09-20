@@ -39,7 +39,8 @@ from fastshare_api import FastshareApi, FastshareError, make_ref as fastshare_re
 from cztor_api import CztorApi, CztorError
 from storage_api import StorageApi, StorageError, match_texts, parse_ref
 from wikidata_api import local_titles
-from mediainfo import describe as describe_media, probe as probe_media, quality_from_size
+from mediainfo import describe as describe_media, fetch_sized, probe as probe_media, quality_from_size
+from opensubtitles_api import BLOK as OSUB_BLOK, OpenSubtitlesApi, OpenSubtitlesError, otisk as osub_otisk
 from webshare_api import WebshareApi, WebshareApiError, WebshareError, human_size
 
 WS_LIMIT = 25    # kolik souborů brát z fulltextu WebShare
@@ -69,6 +70,12 @@ PROBE_WORKERS = 8
 # 30 dní), takže při dalším otevření titulu už mají ověřený zvuk i rozlišení.
 PROBE_DEADLINE = 3.0
 SUBS_TASK = "Titulky"   # úloha v souběžném hledání streamů, ne zdroj (nehlásí se do průběhu ani výpadků)
+OSUB_TASK = "Titulky OpenSubtitles"   # totéž, jen druhý zdroj titulků (`lib/opensubtitles_api.py`)
+# obě úlohy se chovají stejně: nejdou do průběhu ani do výpadků a bez nich se streamy smí cachovat
+SUBS_TASKS = (SUBS_TASK, OSUB_TASK)
+# kolik titulků z OpenSubtitles se přibalí ke streamu — každé stažení jde z denní
+# kvóty uživatele (5 na IP bez účtu, 20 s účtem), takže jen ten nejlepší
+OSUB_MAX_NA_STREAM = 1
 # Audit 2026-09-19: `kolo()` čekalo na všechny zdroje bez stropu, takže dialog stál na nejpomalejším
 # (WebShare/Luna/Sosáč mají timeout 40 s na každý dotaz), i když ostatní dávno odpověděly. Po
 # deadlinu se vezme, co je; opozdilec se počítá jako výpadek (výsledek se necachuje) a doběhne
@@ -340,6 +347,7 @@ class Engine:
         self._fs = None
         self._cz = None
         self._cz_paired = self._cztor_paired()
+        self._osub = None
         self._storages = None
         self._cinemeta = None
         self._sosac_db = None
@@ -363,6 +371,7 @@ class Engine:
         self._fs = None
         self._cz = None
         self._cz_paired = self._cztor_paired()
+        self._osub = None
         self._storages = None
         self._tmdb = None
         self._prowlarr = self._qbit = None
@@ -393,6 +402,26 @@ class Engine:
                                           cache=self.store, index_store=self.store.index(),
                                           should_stop=self.should_stop)
         return self._sosac
+
+    @property
+    def osub(self):
+        """OpenSubtitles, nebo None, když chybí klíč nebo je zdroj vypnutý.
+
+        Klíč nemá uživatel vlastní — rozdává ho dashboard (`DashApi.opensubtitles_key()`),
+        proto ho hostitel jen předá ve `options["os_key"]`. Jméno a heslo jsou
+        dobrovolná: bez nich platí kvóta 5 stažených titulků na IP za den, s účtem 20.
+        """
+        if self._osub is None:
+            if not self._opt("os_enabled", True):
+                return None
+            key = str(self._opt("os_key")).strip()
+            if not key:
+                return None
+            self._osub = OpenSubtitlesApi(
+                key, store=self.store,
+                username=self._opt("os_username").strip(), password=self._opt("os_password"),
+                user_agent=str(self._opt("os_user_agent") or "Nokturno v1.0"), opener=self.opener)
+        return self._osub
 
     @property
     def ws(self):
@@ -1898,6 +1927,74 @@ class Engine:
         found.sort()
         return ["ws:" + ident for _rank, _name, ident in found[:SUBS_MAX]]
 
+    def _subtitle_langs(self):
+        """Jazyky titulků podle předvolby zvuku, nejžádanější první.
+
+        Bez předvolby se ptáme na češtinu a slovenštinu — doplněk je česko-slovenský
+        a cokoli jiného by jen zabralo místo v seznamu (a u stažení kvótu)."""
+        pref = self._opt("pref_lang", "")
+        return list(SUBTITLE_FALLBACK.get(pref) or ("CZ", "SK"))
+
+    def _opensubtitles_subtitles(self, meta, video=None, ctype="movie"):
+        """Titulky z OpenSubtitles k titulu — `os:<file_id>`.
+
+        Hledá se podle **IMDb id**, u seriálu podle rodičovského id a čísla sezóny
+        a dílu zvlášť. To je ten podstatný rozdíl proti WebShare: tam je číslo dílu
+        jen slovo ve fulltextu a titulky k jinému dílu se musí odfiltrovat regulárem
+        (5.2.34), tady je server zná jako údaj a `_epizoda_sedi()` si je navíc ověří
+        z `feature_details`. Titul bez IMDb id (Sosáč, vlastní úložiště) se přeskočí —
+        podle názvu se tu nehledá schválně, právě aby nemohl přijít cizí díl.
+
+        Vrací jen reference; soubor se stahuje až při přehrání, protože **stažení
+        spotřebuje denní kvótu** (5 na IP bez účtu), kdežto hledání je zadarmo.
+        """
+        api = self.osub
+        if api is None:
+            return []
+        imdb = str(meta.get("imdb_id") or meta.get("id") or "")
+        if not imdb.startswith("tt"):
+            return []
+        season = episode = 0
+        if video and ctype != "movie":
+            season, episode = int(video.get("season") or 0), int(video.get("episode") or 0)
+            if not (season and episode):
+                return []   # seriál bez čísla dílu by vrátil titulky k celé sérii
+        nalezeno = api.hledej_cachovane(imdb, self._subtitle_langs(), season, episode)
+        return ["os:%d" % p["file_id"] for p in nalezeno[:SUBS_MAX] if p.get("file_id")]
+
+    def subtitles_by_hash(self, url, video=None, ctype="movie"):
+        """Titulky spárované s **tímhle konkrétním souborem** (otisk OpenSubtitles).
+
+        Otisk je velikost souboru plus součet prvních a posledních 64 kB. Začátek
+        čte kvůli hlavičce i `mediainfo.probe()`, takže navíc stojí jediný `Range`
+        dotaz na konec. Proto se to nepočítá při výpisu streamů (to by byl dotaz na
+        každý řádek), ale až u streamu, který si uživatel vybral — tam se vyplatí:
+        titulky spárované otiskem sedí i časově, kdežto podle názvu titulu ne vždy.
+
+        Nikdy nevyhodí výjimku — přehrání nesmí spadnout kvůli titulkům. U velkých
+        souborů, které nikdo do OpenSubtitles nenahlásil (typicky české re-uploady
+        a 4K remuxy z našich zdrojů), prostě nic nevrátí a zůstanou titulky podle id.
+        """
+        api = self.osub
+        if api is None or not url:
+            return []
+        try:
+            primy = self.resolve(url)
+            zacatek, velikost = fetch_sized(primy, length=OSUB_BLOK, opener=self.opener)
+            konec, velikost2 = fetch_sized(primy, start=-OSUB_BLOK, opener=self.opener)
+            znak = osub_otisk(zacatek, konec, velikost or velikost2)
+        except Exception as err:  # noqa: BLE001 – vypršelý odkaz, zdroj bez Range, síť
+            _LOGGER.debug("otisk pro titulky %s: %s", url, err)
+            return []
+        if not znak:
+            return []
+        season = episode = 0
+        if video and ctype != "movie":
+            season, episode = int(video.get("season") or 0), int(video.get("episode") or 0)
+        nalezeno = api.hledej(jazyky=self._subtitle_langs(), season=season, episode=episode,
+                              moviehash=znak)
+        return ["os:%d" % p["file_id"] for p in nalezeno if p.get("hash_match") and p.get("file_id")]
+
     @staticmethod
     def _merge_direct(streams):
         """Tentýž soubor přes Lunu i přímo z WebShare → jedna položka.
@@ -2362,6 +2459,7 @@ class Engine:
                 ]
                 if probe_audio:
                     ulohy.append((SUBS_TASK, lambda: self._webshare_subtitles(m, video, ctype, alt)))
+                    ulohy.append((OSUB_TASK, lambda: self._opensubtitles_subtitles(m, video, ctype)))
                 return ulohy
 
             def bezpecne(label, fetch):
@@ -2369,7 +2467,7 @@ class Engine:
                     return fetch()
                 except Exception as err:  # noqa: BLE001 – ani nečekaná chyba zdroje nesmí shodit ostatní
                     _LOGGER.warning("streamy %s (%s): %s", item_id, label, err)
-                    if label != SUBS_TASK:   # bez titulků se streamy cachovat smí
+                    if label not in SUBS_TASKS:   # bez titulků se streamy cachovat smí
                         failures.append((label, err))
                     return []
 
@@ -2395,7 +2493,7 @@ class Engine:
                     label = label_by_future[future]
                     timings["zdroje"][label] = since(mark)
                     tick()
-                    if on_source_done and label != SUBS_TASK:
+                    if on_source_done and label not in SUBS_TASKS:
                         on_source_done(label, len(future.result()))
                 out = {}
                 for future in gather(pool, futures, self.should_stop, on_done=hotovo, deadline=zbytek):
@@ -2405,7 +2503,7 @@ class Engine:
                         continue
                     out[label] = []
                     timings["zdroje"][label] = f">{zbytek:.0f}s"
-                    if label != SUBS_TASK:
+                    if label not in SUBS_TASKS:
                         _LOGGER.info("streamy %s: %s neodpověděl do %.0f s, bere se bez něj", item_id, label,
                                      zbytek)
                         failures.append((label, TimeoutError(f"neodpověděl do {zbytek:.0f} s")))
@@ -2415,7 +2513,7 @@ class Engine:
                 """Streamy v pořadí úloh (Luna/Sosáč napřed — na tom stojí párování v _merge_direct)."""
                 found = []
                 for label, _fetch in ulohy:
-                    if label != SUBS_TASK:
+                    if label not in SUBS_TASKS:
                         found += vysledky.get(label) or []
                 return found
 
@@ -2440,6 +2538,7 @@ class Engine:
                     vysledky = kolo(ulohy)
             timings["souběžně"] = since(mark)
             subs = vysledky.get(SUBS_TASK) or []
+            osubs = vysledky.get(OSUB_TASK) or []
             found = found + slozit(vysledky, ulohy)
             for stream in found:
                 parse_stream(stream)
@@ -2459,6 +2558,15 @@ class Engine:
                 for stream in found:
                     if not stream.get("subtitles"):
                         stream["subtitles"] = list(subs)
+            # OpenSubtitles až jako poslední záchrana: stažení spotřebuje denní kvótu
+            # (5 souborů na IP), takže se přibalí jen tam, kde nejsou ani titulky ze
+            # zdroje, ani z WebShare, ani přímo v kontejneru souboru
+            if osubs:
+                chci = set(self._subtitle_langs())
+                for stream in found:
+                    if stream.get("subtitles") or (set(stream.get("subs") or []) & chci):
+                        continue
+                    stream["subtitles"] = list(osubs[:OSUB_MAX_NA_STREAM])
             # `parse_stream()` dává do langs/subs `set` — nejde ho serializovat do JSON
             # cache, tak se tu normalizuje na list (řazení navíc dělá cache stabilní)
             for stream in found:
@@ -2642,6 +2750,18 @@ class Engine:
                 return api.file_link(file_id, file_hash)
             except HellspyError as err:
                 raise NokturnoError(f"HellSpy: {err}") from err
+        if url.startswith("os:"):
+            # titulky z OpenSubtitles; tohle volání jako jediné spotřebuje denní kvótu,
+            # proto se dělá až při přehrávání (`local_subtitles` v Kodi), ne ve výpisu
+            api = self.osub
+            if api is None:
+                raise NokturnoError("OpenSubtitles nejsou nastavené.")
+            if not url[3:].isdigit():
+                raise NokturnoError("OpenSubtitles: neplatný odkaz.")
+            try:
+                return api.odkaz(int(url[3:]))
+            except OpenSubtitlesError as err:
+                raise NokturnoError("OpenSubtitles: %s" % err) from err
         if url.startswith("st:"):
             if self.st is None:
                 raise NokturnoError("Účet Sledujteto není nastavený.")
