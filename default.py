@@ -3474,7 +3474,7 @@ def browse_menu(apis, ctype):
     # „Pro tebe" jen když je z čeho doporučovat — prázdný seznam by jen mátl. Seznam
     # vzorů se čte z profilu (`watched`), žádná síť, takže kreslení menu to nezdrží.
     if foryou_seeds(apis, ctype, limit=1):
-        folder_item(L(30605, "Pro tebe"), build_url(action="foryou", type=ctype),
+        folder_item(L(30605, "Pro Tebe"), build_url(action="foryou", type=ctype),
                     icon="DefaultAddonsRecentlyUpdated.png")
     rows = [
         (L(30398, "Populární na TMDB"), "genres", pick("popular", f"tmdb.top_{kind}", "top"), "DefaultMovies.png"),

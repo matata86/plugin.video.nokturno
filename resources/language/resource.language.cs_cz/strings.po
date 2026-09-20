@@ -1691,7 +1691,7 @@ msgstr "Soubor se nepodařilo přečíst: %s"
 
 msgctxt "#30605"
 msgid "For you"
-msgstr "Pro tebe"
+msgstr "Pro Tebe"
 
 msgctxt "#30606"
 msgid "Because you watched %s"
