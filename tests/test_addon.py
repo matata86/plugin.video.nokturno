@@ -3076,13 +3076,13 @@ class TestPreruseniPriKonciKodi(unittest.TestCase):
 
         def raw_streams(ctype, item_id, **kw):
             calls.append(item_id)
-            xbmc.abort = len(calls) >= 2   # po druhém titulu přijde Application.Quit
+            xbmc.abort = len(calls) >= 2   # během první dávky přijde Application.Quit
             return [{"langs": ["CZ"], "subs": []}]
         engine.raw_streams = raw_streams
         apis = {"engine": engine, "sosac_db": FakeSosacDb(cand), "luna": None}
         with mock.patch.object(default, "get_apis", return_value=apis):
             default.router("action=lang_catalog&type=movie&want=dub")
-        self.assertEqual(len(calls), 2, "třetí kandidát už se neprozkoumal")
+        self.assertEqual(len(calls), default.LANG_CATALOG_WORKERS, "další dávka se už neprozkoumala")
         self.assertEqual(len(xbmcplugin.ended), 1)
         self.assertFalse(xbmcplugin.ended[0]["succeeded"])
         self.assertEqual(xbmcgui.notifications, [], "přerušení není chyba, žádná hláška")

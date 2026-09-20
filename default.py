@@ -168,6 +168,7 @@ WARM_PROP = "nokturno.warm"   # služba ji nastaví během zahřívání: API ca
 SEARCH_TTL = 12 * 3600  # sjednocené s luna_api.SEARCH_TTL / webshare_api.SEARCH_TTL
 LANG_CATALOG_TARGET = 30   # kolik položek chceme v každém seznamu (dabing/titulky)
 LANG_CATALOG_CAP = 60      # kolik kandidátů nejvýš prozkoumat, i kdyby se cíl nenaplnil
+LANG_CATALOG_WORKERS = 4   # souběžně zkoumaných kandidátů (víc riskuje 429 od HellSpy)
 LANG_CATALOG_TTL = 8 * 3600  # rychlost ověřena (30/30 do minuty) — teď už se to smí cachovat
 # Kdy se seznam „Nově přidané s CZ dabingem/titulky" naposledy otevřel. Zahřívání na
 # pozadí je nejdražší práce, kterou doplněk dělá sám od sebe (až 60 kandidátů × všechny
@@ -3993,40 +3994,56 @@ def _build_lang_catalog(apis, ctype):
         bar.update(0)
     matched = {"dub": [], "subs": []}
     try:
-        for i, cand in enumerate(candidates[:LANG_CATALOG_CAP]):
-            if len(matched["dub"]) >= LANG_CATALOG_TARGET and len(matched["subs"]) >= LANG_CATALOG_TARGET:
-                break
-            if should_stop():
-                # Kodi končí (zahřívání ze služby běží v tomhle skriptu a Kodi na něj
-                # čeká) — výjimka, ne `break`: nedokončený seznam se nesmí zapsat do
-                # 8h cache v `STORE.cached_if()`, a zámek uklidí `finally` výš
-                _diag(f"{ctype}: přerušeno po {i} kandidátech, Kodi končí")
-                raise Aborted()
-            item_ctype = cand.get("type") or "movie"
+        # po dávkách LANG_CATALOG_WORKERS kandidátů souběžně: jeden kandidát stojí 2–6 s
+        # (dotazy na všechny zdroje) a 60 kandidátů za sebou dělalo přes 170 s. Výsledky se
+        # čtou v původním pořadí, takže seznam vypadá stejně jako při sériovém průchodu.
+        # Souběžnost je záměrně malá — HellSpy po 429 blokuje celý proces na 10 minut.
+        cands = candidates[:LANG_CATALOG_CAP]
+
+        def _probe(cand):
             t_item = time.time()
             try:
-                streams = engine.raw_streams(item_ctype, cand["id"], strict=True, probe_audio=False)
+                return raw_streams_for(cand), time.time() - t_item, None
             except Exception as err:  # noqa: BLE001 – výpadek u jednoho kandidáta nesmí shodit celý seznam
-                _diag(f"  [{i}] {cand.get('id')}: chyba za {time.time() - t_item:.1f} s ({err})")
-                continue
-            _diag(f"  [{i}] {cand.get('id')}: {len(streams)} streamů za {time.time() - t_item:.1f} s")
-            langs, subs = set(), set()
-            for s in streams:
-                langs.update(s.get("langs") or [])
-                subs.update(s.get("subs") or [])
-            has_dub = bool(langs & CZECH_LANGS)
-            has_subs = bool(subs & CZECH_LANGS)
-            if has_dub and len(matched["dub"]) < LANG_CATALOG_TARGET:
-                matched["dub"].append(cand)
-            if has_subs and not has_dub and len(matched["subs"]) < LANG_CATALOG_TARGET:
-                matched["subs"].append(cand)
-            win.setProperty(progress_prop, f"{len(matched['dub'])}/{LANG_CATALOG_TARGET}|"
-                                            f"{len(matched['subs'])}/{LANG_CATALOG_TARGET}")
-            if bar:
-                done = len(matched["dub"]) + len(matched["subs"])
-                bar.update(int(done / (2 * LANG_CATALOG_TARGET) * 100),
-                          message=f"{dub_label} {len(matched['dub'])}/{LANG_CATALOG_TARGET} · "
-                                  f"{subs_label} {len(matched['subs'])}/{LANG_CATALOG_TARGET}")
+                return None, time.time() - t_item, err
+
+        def raw_streams_for(cand):
+            return engine.raw_streams(cand.get("type") or "movie", cand["id"], strict=True, probe_audio=False)
+
+        with ThreadPoolExecutor(max_workers=LANG_CATALOG_WORKERS) as pool:
+            for start in range(0, len(cands), LANG_CATALOG_WORKERS):
+                if len(matched["dub"]) >= LANG_CATALOG_TARGET and len(matched["subs"]) >= LANG_CATALOG_TARGET:
+                    break
+                if should_stop():
+                    # Kodi končí (zahřívání ze služby běží v tomhle skriptu a Kodi na něj
+                    # čeká) — výjimka, ne `break`: nedokončený seznam se nesmí zapsat do
+                    # 8h cache v `STORE.cached_if()`, a zámek uklidí `finally` výš
+                    _diag(f"{ctype}: přerušeno po {start} kandidátech, Kodi končí")
+                    raise Aborted()
+                batch = cands[start:start + LANG_CATALOG_WORKERS]
+                for j, (cand, (streams, took, err)) in enumerate(zip(batch, pool.map(_probe, batch))):
+                    i = start + j
+                    if err is not None:
+                        _diag(f"  [{i}] {cand.get('id')}: chyba za {took:.1f} s ({err})")
+                        continue
+                    _diag(f"  [{i}] {cand.get('id')}: {len(streams)} streamů za {took:.1f} s")
+                    langs, subs = set(), set()
+                    for s in streams:
+                        langs.update(s.get("langs") or [])
+                        subs.update(s.get("subs") or [])
+                    has_dub = bool(langs & CZECH_LANGS)
+                    has_subs = bool(subs & CZECH_LANGS)
+                    if has_dub and len(matched["dub"]) < LANG_CATALOG_TARGET:
+                        matched["dub"].append(cand)
+                    if has_subs and not has_dub and len(matched["subs"]) < LANG_CATALOG_TARGET:
+                        matched["subs"].append(cand)
+                win.setProperty(progress_prop, f"{len(matched['dub'])}/{LANG_CATALOG_TARGET}|"
+                                                f"{len(matched['subs'])}/{LANG_CATALOG_TARGET}")
+                if bar:
+                    done = len(matched["dub"]) + len(matched["subs"])
+                    bar.update(int(done / (2 * LANG_CATALOG_TARGET) * 100),
+                              message=f"{dub_label} {len(matched['dub'])}/{LANG_CATALOG_TARGET} · "
+                                      f"{subs_label} {len(matched['subs'])}/{LANG_CATALOG_TARGET}")
     finally:
         win.clearProperty(progress_prop)
         if bar:
