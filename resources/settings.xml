@@ -849,6 +849,24 @@
           </dependencies>
           <control type="toggle"/>
         </setting>
+        <setting id="sync_settings" type="boolean" label="30683" help="30685">
+          <level>0</level>
+          <default>false</default>
+          <dependencies>
+            <dependency type="visible" setting="sync_mode" operator="is">1</dependency>
+            <dependency type="enable" setting="sync_enabled">true</dependency>
+          </dependencies>
+          <control type="toggle"/>
+        </setting>
+        <setting id="sync_accounts" type="boolean" label="30684" help="30686">
+          <level>0</level>
+          <default>false</default>
+          <dependencies>
+            <dependency type="visible" setting="sync_mode" operator="is">1</dependency>
+            <dependency type="enable" setting="sync_enabled">true</dependency>
+          </dependencies>
+          <control type="toggle"/>
+        </setting>
         <setting id="sync_now_action" type="action" label="30184">
           <level>0</level>
           <constraints>

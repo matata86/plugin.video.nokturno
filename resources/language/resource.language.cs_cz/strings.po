@@ -1996,3 +1996,19 @@ msgstr "Dashboard u sebe drží jen zapečetěná data, která sám nepřečte. 
 msgctxt "#30682"
 msgid "What gets synced"
 msgstr "Co se synchronizuje"
+
+msgctxt "#30683"
+msgid "Sync add-on settings"
+msgstr "Synchronizovat nastavení doplňku"
+
+msgctxt "#30684"
+msgid "Sync source accounts"
+msgstr "Synchronizovat účty ke zdrojům"
+
+msgctxt "#30685"
+msgid "Options such as preferred language, stream sorting or enabled sources. The download folder and the sync settings themselves are never shared."
+msgstr "Volby jako preferovaný jazyk, řazení streamů nebo zapnuté zdroje. Nesdílí se složka pro stahování ani samotné nastavení synchronizace."
+
+msgctxt "#30686"
+msgid "Logins for the sources (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, own storage) and the TMDB key. Passwords travel encrypted, the server cannot read them. CZtor and Trakt must be paired on each device separately."
+msgstr "Přihlášení ke zdrojům (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, vlastní úložiště) a klíč k TMDB. Hesla jdou zašifrovaná, server je nepřečte. CZtor a Trakt se musí spárovat na každém zařízení zvlášť."

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="9.99.0~sync1" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="9.99.0~sync3" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,9 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>9.99.0~sync1 – VÝVOJOVÝ BUILD větve „sync“ (synchronizace více Kodi bez Home Assistanta). Nevydává se, na box se nosí ručně a repozitář ho nepřebije. Zpátky na běžnou verzi jen ruční přeinstalací.
+    <news>9.99.0~sync3 – Synchronizace umí i nastavení doplňku a účty ke zdrojům (dva nové přepínače, oba výchozím stavem vypnuté). Hesla jdou zašifrovaná, server je nepřečte; složka pro stahování a nastavení samotné synchronizace se nesdílí nikdy.
+9.99.0~sync2 – Nastavení synchronizace: hlavní přepínač už neříká „přes Home Assistant“, středisko určuje jen volba pod ním, a okruhy („Co se synchronizuje“) platí pro obě cesty.
+9.99.0~sync1 – VÝVOJOVÝ BUILD větve „sync“ (synchronizace více Kodi bez Home Assistanta). Nevydává se, na box se nosí ručně a repozitář ho nepřebije. Zpátky na běžnou verzi jen ruční přeinstalací.
 6.5.9 – Tlačítka s dialogem (Ověřit nastavení Luny, Najít Lunu…) otevřená z výpisu Stav zdrojů už nehlásí do logu GetDirectory failed a nečekají na timeout.
 6.4.3 – Oprava pádu tlačítka Vyzkoušet OpenSubtitles v nastavení (NameError: Dialog).
 6.4.2 – Odkaz na Ko-fi je dočasně odebraný z popisu doplňku a z nápovědy.

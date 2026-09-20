@@ -4781,6 +4781,55 @@ class TestSynchronizaceRelay(unittest.TestCase):
             default.sync_now()
         self.assertEqual(ha.call_args[1]["circles"], ("watched", "history"))
 
+    # --- okruhy nastavení a účtů ---
+
+    def test_nastaveni_a_ucty_jsou_vychozim_stavem_vypnute(self):
+        """Sdílení hesel se nesmí zapnout samo tím, že uživatel založí skupinu."""
+        self.assertEqual(default.sync_circles(), ("watched", "favourites", "history"))
+
+    def test_zapnute_okruhy_se_pridaji_jen_u_relaye(self):
+        xbmcaddon.settings.update({"sync_settings": "true", "sync_accounts": "true"})
+        self.assertEqual(default.sync_circles(),
+                         ("watched", "favourites", "history", "settings", "accounts"))
+        xbmcaddon.settings["sync_mode"] = "0"
+        self.assertEqual(default.sync_circles(), ("watched", "favourites", "history"),
+                         "Home Assistant nastavení ani účty nepřenáší")
+
+    def test_hodnoty_nastaveni_jen_kdyz_je_okruh_zapnuty(self):
+        self.assertIsNone(default.sync_values(), "bez okruhu se nastavení vůbec nečte")
+        xbmcaddon.settings["sync_settings"] = "true"
+        hodnoty = default.sync_values()
+        self.assertIn("pref_lang", hodnoty)
+        self.assertIn("ws_password", hodnoty, "čtou se všechny klíče, dělí je až jádro")
+        for zakazane in ("download_dir", "sync_code", "sync_accounts"):
+            self.assertNotIn(zakazane, hodnoty, zakazane)
+
+    def test_zapis_z_druheho_kodi_zahodi_token_webshare(self):
+        okno = xbmcgui.Window(10000)
+        okno.setProperty("nokturno.ws_token", "starý")
+        with mock.patch.object(default.STORE, "clear_cache") as vycisti:
+            default.sync_write_settings({"ws_username": "jan", "pref_lang": "2"})
+        self.assertEqual(xbmcaddon.settings["ws_username"], "jan")
+        self.assertEqual(xbmcaddon.settings["pref_lang"], "2")
+        self.assertEqual(okno.getProperty("nokturno.ws_token"), "")
+        self.assertEqual(vycisti.call_count, 1, "změna účtu znamená cizí cache")
+
+    def test_zakazany_klic_se_nezapise_ani_kdyz_prijde(self):
+        xbmcaddon.settings["sync_code"] = self.KOD
+        default.sync_write_settings({"sync_code": "NKT-XXXX-XXXX-XXXX-XXXX",
+                                     "download_dir": "/jiny/box"})
+        self.assertEqual(xbmcaddon.settings["sync_code"], self.KOD)
+        self.assertNotIn("download_dir", xbmcaddon.settings)
+
+    def test_sluzba_posila_nastaveni_jen_v_rezimu_relay(self):
+        xbmcaddon.settings.update({"sync_settings": "true", "sync_accounts": "true"})
+        syncer = service.Syncer(object())
+        self.assertIn("accounts", syncer._circles(xbmcaddon.Addon(), relay=True))
+        self.assertNotIn("accounts", syncer._circles(xbmcaddon.Addon(), relay=False))
+        self.assertIsNotNone(syncer._settings_values(xbmcaddon.Addon(),
+                                                     ("watched", "settings")))
+        self.assertIsNone(syncer._settings_values(xbmcaddon.Addon(), ("watched",)))
+
     def test_sluzba_bez_kodu_nechodi_na_sit(self):
         xbmcaddon.settings["sync_code"] = ""
         syncer = service.Syncer(object())

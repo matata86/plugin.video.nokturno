@@ -58,6 +58,8 @@ from accounts import (FAIL as ACC_FAIL, OFF as ACC_OFF, OK as ACC_OK,  # noqa: E
 from store import WATCHED_MAX, Store, migrate_profile  # noqa: E402
 from source_errors import describe_failure, summarize as summarize_failures  # noqa: E402
 from sync import sync_once  # noqa: E402
+import kodi_settings  # noqa: E402
+import setsync  # noqa: E402
 import syncbox  # noqa: E402
 from streams import estimate_rank, langs_from_name, parse_stream, subs_from_name  # noqa: E402
 from tracks import FILE_CODES, SUBTITLE_FALLBACK, decode_subtitle, subtitle_format, subtitle_lang  # noqa: E402
@@ -1965,15 +1967,51 @@ def sync_settings():
     return (url, key) if url and key else None
 
 
-def sync_circles():
+# Okruhy nastavení a účtů umí jen relay — Home Assistant je střed pro `Store`,
+# volby doplňku a přihlášení do jeho rozhraní nepatří (proto je `settings.xml`
+# u obou přepínačů schovává, když je vybraný Home Assistant).
+SYNC_CIRCLE_SETTINGS = {"watched": "sync_watched", "favourites": "sync_favourites",
+                        "history": "sync_history", "settings": "sync_settings",
+                        "accounts": "sync_accounts"}
+SYNC_RELAY_ONLY = ("settings", "accounts")
+
+
+def sync_circles(relay=None):
     """Okruhy zapnuté v nastavení. Prázdný výběr = neposílá se ani nepřijímá nic."""
-    vyber = {"watched": "sync_watched", "favourites": "sync_favourites", "history": "sync_history"}
-    return tuple(okruh for okruh, klic in vyber.items() if on(klic, "true"))
+    if relay is None:
+        relay = setting("sync_mode") == "1"
+    return tuple(okruh for okruh, klic in SYNC_CIRCLE_SETTINGS.items()
+                 if on(klic, "false" if okruh in SYNC_RELAY_ONLY else "true")
+                 and (relay or okruh not in SYNC_RELAY_ONLY))
+
+
+def sync_values(relay=None):
+    """Hodnoty nastavení pro okruhy `settings`/`accounts`, nebo None, když ani
+    jeden neběží — pak jádro nastavení vůbec neřeší."""
+    circles = sync_circles(relay)
+    if not any(okruh in circles for okruh in SYNC_RELAY_ONLY):
+        return None
+    return kodi_settings.values(ADDON, ADDON_PATH)
+
+
+def sync_write_settings(changes):
+    """Zápis nastavení, které přišlo z druhého Kodi."""
+    zapsano = kodi_settings.apply(ADDON, changes)
+    if not zapsano:
+        return
+    if any(k.startswith("ws_") for k in zapsano):
+        xbmcgui.Window(10000).clearProperty("nokturno.ws_token")   # jiný účet = nový login
+    if any(setsync.circle_of(k) == setsync.CIRCLE_ACCOUNTS for k in zapsano):
+        STORE.clear_cache()     # cache patří k účtům, které tu byly do teď
+    xbmc.log(f"[{ADDON_ID}] synchronizace přepsala nastavení: {', '.join(sorted(zapsano))}",
+             xbmc.LOGINFO)
 
 
 def sync_relay_once(name=""):
     """Jedno kolo přes relay. Vrací totéž co `sync.sync_once`."""
-    return syncbox.sync_once(STORE, setting("sync_code").strip(), circles=sync_circles(), name=name)
+    return syncbox.sync_once(STORE, setting("sync_code").strip(), circles=sync_circles(True),
+                             name=name, settings=sync_values(True),
+                             on_settings=sync_write_settings)
 
 
 def request_sync():
@@ -2067,8 +2105,13 @@ def sync_join():
         xbmcgui.Dialog().ok(L(30180, "Synchronizace"), L(30675, "Kód nemá správný tvar."))
         return
     code = syncbox.format_code(code)
-    ok, pushed, pulled, why = syncbox.sync_once(STORE, code, circles=sync_circles(),
-                                                name=xbmc.getInfoLabel("System.FriendlyName"))
+    # `sync_circles(True)`: středisko se uloží až v `_sync_apply()` po úspěchu, ale
+    # připojení je relay z definice — jinak by první kolo vynechalo nastavení a účty
+    # právě u zařízení, které je potřebuje nejvíc
+    ok, pushed, pulled, why = syncbox.sync_once(STORE, code, circles=sync_circles(True),
+                                                name=xbmc.getInfoLabel("System.FriendlyName"),
+                                                settings=sync_values(True),
+                                                on_settings=sync_write_settings)
     if not ok:
         xbmcgui.Dialog().ok(L(30180, "Synchronizace"), f"{L(30188, 'Synchronizace selhala')}: {why}")
         return

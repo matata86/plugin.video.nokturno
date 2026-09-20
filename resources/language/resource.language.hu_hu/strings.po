@@ -1993,3 +1993,19 @@ msgstr "A vezérlőpult csak lezárt adatot tárol, amelyet maga nem tud elolvas
 msgctxt "#30682"
 msgid "What gets synced"
 msgstr "Mi legyen szinkronizálva"
+
+msgctxt "#30683"
+msgid "Sync add-on settings"
+msgstr "Kiegészítő beállításainak szinkronizálása"
+
+msgctxt "#30684"
+msgid "Sync source accounts"
+msgstr "Forrásfiókok szinkronizálása"
+
+msgctxt "#30685"
+msgid "Options such as preferred language, stream sorting or enabled sources. The download folder and the sync settings themselves are never shared."
+msgstr "Olyan beállítások, mint a kívánt nyelv, a streamek sorrendje vagy a bekapcsolt források. A letöltési mappa és maga a szinkronizálás beállítása nem kerül megosztásra."
+
+msgctxt "#30686"
+msgid "Logins for the sources (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, own storage) and the TMDB key. Passwords travel encrypted, the server cannot read them. CZtor and Trakt must be paired on each device separately."
+msgstr "Bejelentkezések a forrásokhoz (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, saját tároló) és a TMDB kulcs. A jelszavak titkosítva mennek, a kiszolgáló nem olvassa el őket. A CZtor és a Trakt párosítása minden eszközön külön szükséges."

@@ -1992,3 +1992,19 @@ msgstr ""
 msgctxt "#30682"
 msgid "What gets synced"
 msgstr ""
+
+msgctxt "#30683"
+msgid "Sync add-on settings"
+msgstr ""
+
+msgctxt "#30684"
+msgid "Sync source accounts"
+msgstr ""
+
+msgctxt "#30685"
+msgid "Options such as preferred language, stream sorting or enabled sources. The download folder and the sync settings themselves are never shared."
+msgstr ""
+
+msgctxt "#30686"
+msgid "Logins for the sources (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, own storage) and the TMDB key. Passwords travel encrypted, the server cannot read them. CZtor and Trakt must be paired on each device separately."
+msgstr ""

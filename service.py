@@ -56,6 +56,8 @@ from tracks import SUBS_WHEN_NEEDED, pick_audio, pick_subtitle, track_lang  # no
 from trakt_api import TraktApi, TraktError  # noqa: E402
 from webshare_api import WebshareApi  # noqa: E402
 import kodi_marks  # noqa: E402 – vedle service.py, čte videodatabázi Kodi
+import kodi_settings  # noqa: E402 – vedle service.py, most do settings.xml
+import setsync  # noqa: E402
 
 PROP = "nokturno.playing"
 VIEWED_PROP = "nokturno.viewed"
@@ -582,17 +584,45 @@ class Syncer:
         self.next = time.time() + SYNC_FIRST   # první výměna krátce po startu
         self.lock = threading.Lock()
 
+    # nastavení a účty umí jen relay (viz `default.sync_circles`) a jsou výchozím
+    # stavem vypnuté — sdílení přihlášení má být vědomé rozhodnutí
+    CIRCLES = {"watched": "sync_watched", "favourites": "sync_favourites",
+               "history": "sync_history", "settings": "sync_settings",
+               "accounts": "sync_accounts"}
+    RELAY_ONLY = ("settings", "accounts")
+
+    @classmethod
+    def _circles(cls, addon, relay=False):
+        out = []
+        for okruh, klic in cls.CIRCLES.items():
+            if okruh in cls.RELAY_ONLY and (not relay or addon.getSetting(klic) != "true"):
+                continue
+            if okruh not in cls.RELAY_ONLY and addon.getSetting(klic) == "false":
+                continue
+            out.append(okruh)
+        return tuple(out)
+
     @staticmethod
-    def _circles(addon):
-        vyber = {"watched": "sync_watched", "favourites": "sync_favourites", "history": "sync_history"}
-        return tuple(o for o, klic in vyber.items() if addon.getSetting(klic) != "false")
+    def _settings_values(addon, circles):
+        if not any(o in circles for o in Syncer.RELAY_ONLY):
+            return None
+        return kodi_settings.values(addon, xbmcvfs.translatePath(addon.getAddonInfo("path")))
+
+    @staticmethod
+    def _write_settings(addon, changes):
+        zapsano = kodi_settings.apply(addon, changes)
+        if not zapsano:
+            return
+        if any(k.startswith("ws_") for k in zapsano):
+            xbmcgui.Window(10000).clearProperty("nokturno.ws_token")
+        log("synchronizace přepsala nastavení: " + ", ".join(sorted(zapsano)), xbmc.LOGINFO)
 
     def tick(self, force=False):
         addon = fresh_addon()
         if addon is None or addon.getSetting("sync_enabled") != "true":
             return
         relay = addon.getSetting("sync_mode") == "1"
-        circles = self._circles(addon)      # okruhy platí pro obě střediska stejně
+        circles = self._circles(addon, relay)   # zhlédnuto a spol. platí pro obě střediska
         if relay:
             code = addon.getSetting("sync_code").strip()
             if not code:
@@ -613,7 +643,10 @@ class Syncer:
             try:
                 jmeno = xbmc.getInfoLabel("System.FriendlyName")
                 if relay:
-                    ok, pushed, pulled, why = syncbox.sync_once(self.store, code, circles=circles, name=jmeno)
+                    ok, pushed, pulled, why = syncbox.sync_once(
+                        self.store, code, circles=circles, name=jmeno,
+                        settings=self._settings_values(addon, circles),
+                        on_settings=lambda zmeny: self._write_settings(addon, zmeny))
                 else:
                     ok, pushed, pulled, why = sync_once(self.store, url, key, jmeno,
                                                         circles=circles)

@@ -32,7 +32,13 @@ CIRCLES = {
     "watched": ("watched", "next_hidden"),   # zhlédnuto, rozkoukanost, skryté další díly
     "favourites": ("favlog",),               # Můj seznam jako deník zapnuto/vypnuto
     "history": ("histlog",),                 # historie hledání
+    # volby doplňku a přihlášení ke zdrojům (`setsync.py`). Nejsou ve `Store`,
+    # takže je `collect_changes` nesbírá — plní je hostitel přes `syncbox`
+    # a přes Home Assistant nechodí vůbec.
+    "settings": ("setlog",),
+    "accounts": ("acclog",),
 }
+# Nastavení ani účty ve výchozím stavu nejdou — sdílení přihlášení má být vědomé.
 DEFAULT_CIRCLES = ("watched", "favourites", "history")
 # Snímky titulů jdou vždy k tomu, co se posílá — bez nich by druhá strana
 # neuměla položku vykreslit. `collect_changes` je omezuje na dotčené klíče.
@@ -181,7 +187,8 @@ def filter_circles(changes, circles):
     for name in circles:
         allowed.update(CIRCLES.get(name, ()))
     out = {k: v for k, v in (changes or {}).items() if k in allowed}
-    if out and (changes or {}).get(SNAPSHOTS):
+    # snímky jen k tomu, co je umí potřebovat — blob jen s nastavením je nemá proč vézt
+    if (changes or {}).get(SNAPSHOTS) and ({"watched", "favlog"} & set(out)):
         out[SNAPSHOTS] = changes[SNAPSHOTS]
     return out
 

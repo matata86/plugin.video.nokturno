@@ -31,6 +31,7 @@ import time
 import urllib.error
 import urllib.request
 
+from setsync import collect as collect_settings, merge as merge_settings
 from sealbox import SealError, format_code, keys_for as _keys_for, new_code as _new_code, \
     normalize_code, seal, unseal, valid_code as _valid_code
 from stats import COLLECT_URL
@@ -159,9 +160,16 @@ def device_id(store):
     return state["device"]
 
 
-def sync_once(store, code, circles=DEFAULT_CIRCLES, base_url=SYNC_URL, name="", extra=None):
+def sync_once(store, code, circles=DEFAULT_CIRCLES, base_url=SYNC_URL, name="", extra=None,
+              settings=None, on_settings=None):
     """Jedno kolo s relayem. Vrací (ok, odesláno, přijato, důvod) — nikdy
-    nevyhodí výjimku, stejně jako `sync.sync_once`."""
+    nevyhodí výjimku, stejně jako `sync.sync_once`.
+
+    `settings` je `{id: hodnota}` z nastavení hostitele (okruhy `settings`
+    a `accounts`, viz `setsync.py`); `on_settings(zmeny)` se zavolá, když má
+    hostitel něco zapsat. Bez `settings` se oba okruhy chovají, jako by nebyly —
+    jádro do `settings.xml` nevidí a samo z něj nic nevytáhne.
+    """
     # `device_id()` zakládá id zařízení a ukládá ho do téhož souboru jako stav,
     # takže se musí volat PŘED načtením stavu — jinak by ho závěrečné uložení
     # (`dict(state, …)` nad starým obsahem) zase přepsalo pryč a zařízení by si
@@ -181,6 +189,8 @@ def sync_once(store, code, circles=DEFAULT_CIRCLES, base_url=SYNC_URL, name="", 
     if state.get("circles") != znamka:
         state = dict(state, since=0, sent="")
     payload = filter_circles(collect_changes(store, 0), circles)
+    if settings is not None:
+        payload.update(collect_settings(store, settings, circles))
     if extra:
         payload["extra"] = extra
     payload["device"] = name or ""
@@ -205,7 +215,17 @@ def sync_once(store, code, circles=DEFAULT_CIRCLES, base_url=SYNC_URL, name="", 
         data = unseal(keys, foreign)
         if data is None:
             continue          # cizí skupina nebo poškozený blob — tiše dál
-        pulled += apply_changes(store, sanitize(filter_circles(data, circles)))
+        data = sanitize(filter_circles(data, circles))
+        pulled += apply_changes(store, data)
+        if settings is not None:
+            # deník nastavení slévá `setsync` (novější `ts` vyhrává), zapsat
+            # do `settings.xml` musí hostitel — jádro tam nedosáhne
+            zmeny = merge_settings(store, data, settings, circles)
+            if zmeny:
+                pulled += len(zmeny)
+                settings = dict(settings, **zmeny)
+                if on_settings:
+                    on_settings(zmeny)
     now = int(time.time())
     store.save(STATE, dict(state, since=rev, last_ok=now, last_error="",
                            circles=znamka, pushed=pushed, pulled=pulled))
