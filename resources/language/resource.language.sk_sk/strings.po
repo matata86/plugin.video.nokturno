@@ -1900,3 +1900,7 @@ msgstr "nesedí prihlásenie"
 msgctxt "#30658"
 msgid "status unknown"
 msgstr "stav neznámy"
+
+msgctxt "#30659"
+msgid "no preferred language"
+msgstr "bez preferovaného jazyka"

@@ -1896,3 +1896,7 @@ msgstr ""
 msgctxt "#30658"
 msgid "status unknown"
 msgstr ""
+
+msgctxt "#30659"
+msgid "no preferred language"
+msgstr ""

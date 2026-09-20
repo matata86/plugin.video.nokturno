@@ -206,6 +206,9 @@ FORYOU_DOWN_KEY = "nokturno:foryou:down"   # značka výpadku, vzor `trend_api.D
 FORYOU_DOWN_TTL = 300
 FORYOU_STALE_TTL = 14 * 86400   # jak staré doporučení se ještě ukáže, když TMDB neodpoví
 FORYOU_PAGES = 5   # z kolika stránek katalogu se losuje „Náhodný film" (víc = pestřejší)
+RANDOM_CANDIDATES = 8   # kolik titulů se u „Náhodného filmu" ověřuje na preferovaný jazyk
+RANDOM_BUDGET_S = 8.0   # na celé ověřování; pak se vezme cokoli (lepší titul bez CZ než čekání)
+RANDOM_WORKERS = 4
 CZECH_LANGS = {"CZ", "SK"}
 SOSAC_TAG = "[COLOR FFE0A040]Sosáč[/COLOR]"
 HS_TAG = "[COLOR FFFF8A6B]HellSpy[/COLOR]"
@@ -4817,8 +4820,8 @@ def random_source(apis, ctype):
     return None, None
 
 
-def random_pick(apis, ctype):
-    """Náhodný titul a žánr, ve kterém se losovalo (prázdný = losovalo se ze všeho).
+def random_candidates(apis, ctype):
+    """Kandidáti na náhodný titul a žánr, ve kterém se losovalo (prázdný = losovalo se ze všeho).
 
     Žánr je vážený tím, co uživatel viděl (`foryou.pick_genre`) — kdo kouká hlavně
     komedie, dostane spíš komedii, ale ne pokaždé. Bere se jen ze žánrů, které zdroj
@@ -4829,7 +4832,7 @@ def random_pick(apis, ctype):
     dvaceti nejpopulárnějších."""
     src, cid = random_source(apis, ctype)
     if not src:
-        return None, ""
+        return [], ""
     api = apis[src]
     nabidka = set(next((c.get("genres") or [] for c in api.catalogs(ctype) if c["id"] == cid), []))
     snaps = [STORE.item(key) for key, _entry in STORE.recently_watched()]
@@ -4841,7 +4844,80 @@ def random_pick(apis, ctype):
         genre, metas = "", (api.catalog(ctype, cid) or [])
     videne = foryou.known_ids(STORE.recently_watched(limit=WATCHED_MAX))
     volba = [m for m in metas if m.get("id") not in videne] or metas
-    return (random.choice(volba) if volba else None), (genre or "")
+    return volba, (genre or "")
+
+
+def has_pref_lang(streams, pref):
+    """Má některý stream preferovaný jazyk ve zvuku, nebo titulky v něm (či v náhradním
+    jazyce, CZ ↔ SK — `SUBTITLE_FALLBACK`)? Jazyk odhadnutý z názvu souboru se počítá."""
+    subs_ok = set(SUBTITLE_FALLBACK.get(pref, (pref,)))
+    for s in streams:
+        if pref in (s.get("langs") or []) or subs_ok & set(s.get("subs") or []):
+            return True
+    return False
+
+
+def random_by_language(apis, ctype, candidates, pref):
+    """První z náhodně vybraných kandidátů, který má `pref` ve zvuku nebo titulcích.
+
+    Kandidáti se ověřují souběžně stejným lehkým hledáním jako jazykové katalogy
+    (`raw_streams(probe_audio=False)`, bez čtení hlaviček) a výsledek zůstává v cache
+    streamů, takže dialog vybraného titulu naběhne hned. Celé ověřování má strop
+    `RANDOM_BUDGET_S`; nikdo nevyhověl (nebo nestihl) = `(None, False)`."""
+    engine = engine_of(apis)
+    cands = random.sample(candidates, min(RANDOM_CANDIDATES, len(candidates)))
+
+    def check(cand):
+        try:
+            return has_pref_lang(engine.raw_streams(cand.get("type") or ctype, cand["id"],
+                                                    strict=True, probe_audio=False), pref)
+        except Exception as e:  # noqa: BLE001 – výpadek u jednoho kandidáta nesmí shodit losování
+            log_error(f"náhodný titul, {cand.get('id')}: {e}")
+            return False
+
+    from concurrent.futures import FIRST_COMPLETED, wait as wait_futures
+    pool = ThreadPoolExecutor(max_workers=RANDOM_WORKERS)
+    futures = {pool.submit(check, c): c for c in cands}
+    pending = set(futures)
+    deadline = time.time() + RANDOM_BUDGET_S
+    try:
+        while pending:
+            if should_stop():
+                raise Aborted()
+            remaining = deadline - time.time()
+            if remaining <= 0:
+                break
+            done, pending = wait_futures(pending, timeout=min(remaining, 0.5), return_when=FIRST_COMPLETED)
+            for f in done:
+                if f.result():
+                    return futures[f], True
+    finally:
+        for f in pending:
+            f.cancel()
+        pool.shutdown(wait=False)
+    return None, False
+
+
+def random_pick(apis, ctype):
+    """Náhodný titul (s preferovaným jazykem, když se ho podaří najít) a žánr; viz `random_choose`."""
+    meta, genre, _ok = random_choose(apis, ctype)
+    return meta, genre
+
+
+def random_choose(apis, ctype):
+    """`(titul, žánr, má_jazyk)`. Bez preferovaného jazyka (nastavení „Žádný") se neověřuje
+    a `má_jazyk` je True; jinak se hledá titul s `pref_lang` a když žádný nevyhoví, vezme se
+    prostě první vylosovaný a `má_jazyk` je False."""
+    volba, genre = random_candidates(apis, ctype)
+    if not volba:
+        return None, genre, True
+    pref = PREF_LANGS[int(setting("pref_lang", "0"))]
+    if pref:
+        meta, ok = random_by_language(apis, ctype, volba, pref)
+        if ok:
+            return meta, genre, True
+        return random.choice(volba), genre, False
+    return random.choice(volba), genre, True
 
 
 def random_title(apis, ctype):
@@ -4852,17 +4928,21 @@ def random_title(apis, ctype):
     stejné rozdělení jako u titulu v režimu seznamu (5.2.7~beta20). Výpis se tu nikdy
     nekreslí, takže widget ani JSON-RPC žádný dialog neotevřou."""
     try:
-        meta, genre = random_pick(apis, ctype)
+        meta, genre, has_lang = random_choose(apis, ctype)
     except Errors as e:
         log_error(f"náhodný titul: {e}")
-        meta, genre = None, ""
+        meta, genre, has_lang = None, "", True
     if meta is None:
         notify(L(30610, "Nemám z čeho losovat"), xbmcgui.NOTIFICATION_WARNING, 4000)
         if HANDLE >= 0:
             xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
         return
     jmeno = display_name(meta)
-    notify(f"{jmeno} · {genre}" if genre else jmeno, xbmcgui.NOTIFICATION_INFO, 4000)
+    if genre:
+        jmeno = f"{jmeno} · {genre}"
+    if not has_lang:
+        jmeno += " · " + L(30659, "no preferred language")
+    notify(jmeno, xbmcgui.NOTIFICATION_INFO, 4000)
     if HANDLE < 0:
         pick_title(apis, ctype, meta["id"])
     else:

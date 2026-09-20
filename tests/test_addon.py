@@ -1626,6 +1626,47 @@ class TestNahodnyTitul(unittest.TestCase):
         self.assertEqual(play.call_args[1].get("ask"), "1")
         pick.assert_not_called()
 
+    def _jazyk_engine(self, mapa):
+        """Falešné jádro: `mapa` = id → seznam streamů."""
+        class E:
+            def raw_streams(self, ctype, cid, **kw):
+                return mapa.get(cid, [])
+        return E()
+
+    def test_has_pref_lang(self):
+        self.assertTrue(default.has_pref_lang([{"langs": ["CZ"]}], "CZ"))
+        self.assertTrue(default.has_pref_lang([{"subs": ["SK"]}], "CZ"))   # náhradní jazyk titulků
+        self.assertFalse(default.has_pref_lang([{"langs": ["EN"], "subs": ["EN"]}], "CZ"))
+        self.assertFalse(default.has_pref_lang([], "CZ"))
+
+    def test_nahodny_bere_titul_s_preferovanym_jazykem(self):
+        tmdb = FakeTmdb(katalog=[meta_item("tt0000001"), meta_item("tt0000002"), meta_item("tt0000003")])
+        engine = self._jazyk_engine({"tt0000001": [{"langs": ["EN"]}], "tt0000002": [{"langs": ["EN"]}],
+                                     "tt0000003": [{"langs": ["CZ"]}]})
+        with mock.patch.object(default, "setting", side_effect=lambda k, d="": "1" if k == "pref_lang" else d):
+            for _ in range(5):
+                meta, _genre, ok = default.random_choose({"tmdb": tmdb, "engine": engine}, "movie")
+                self.assertEqual(meta["id"], "tt0000003")
+                self.assertTrue(ok)
+
+    def test_nikdo_nevyhovi_vezme_se_cokoli_a_oznami_se_to(self):
+        tmdb = FakeTmdb(katalog=[meta_item("tt0000001")])
+        engine = self._jazyk_engine({"tt0000001": [{"langs": ["EN"]}]})
+        with mock.patch.object(default, "setting", side_effect=lambda k, d="": "1" if k == "pref_lang" else d):
+            meta, _genre, ok = default.random_choose({"tmdb": tmdb, "engine": engine}, "movie")
+        self.assertEqual(meta["id"], "tt0000001")
+        self.assertFalse(ok)
+
+    def test_bez_preferovaneho_jazyka_se_neoveruje(self):
+        tmdb = FakeTmdb(katalog=[meta_item("tt0000001")])
+
+        class E:
+            def raw_streams(self, *a, **k):
+                raise AssertionError("nemá se volat")
+        meta, _genre, ok = default.random_choose({"tmdb": tmdb, "engine": E()}, "movie")
+        self.assertEqual(meta["id"], "tt0000001")
+        self.assertTrue(ok)
+
     def test_bez_zdroje_jen_oznameni_a_neuspesny_konec(self):
         with mock.patch.object(default, "play") as play:
             default.random_title({"tmdb": None, "luna": None, "cinemeta": None}, "movie")
