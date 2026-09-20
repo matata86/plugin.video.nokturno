@@ -182,13 +182,19 @@ def device_id(store):
 def sync_once(store, code, circles=DEFAULT_CIRCLES, base_url=SYNC_URL, name="", extra=None):
     """Jedno kolo s relayem. Vrací (ok, odesláno, přijato, důvod) — nikdy
     nevyhodí výjimku, stejně jako `sync.sync_once`."""
+    # `device_id()` zakládá id zařízení a ukládá ho do téhož souboru jako stav,
+    # takže se musí volat PŘED načtením stavu — jinak by ho závěrečné uložení
+    # (`dict(state, …)` nad starým obsahem) zase přepsalo pryč a zařízení by si
+    # po každém kole vyrobilo novou identitu: v relayi by přibýval osiřelý blob
+    # a skupina by se během pár kol zaplnila až na `MAX_DEVICES`.
+    device = device_id(store)
     state = store.reload(STATE, {})
     try:
         keys = keys_for(code)
     except SyncError as e:
         return _fail(store, state, str(e))
 
-    relay = Relay(keys, device_id(store), base_url)
+    relay = Relay(keys, device, base_url)
     payload = filter_circles(collect_changes(store, 0), circles)
     if extra:
         payload["extra"] = extra
