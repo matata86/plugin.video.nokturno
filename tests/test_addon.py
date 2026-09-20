@@ -4429,3 +4429,52 @@ class TestStavZdroju(unittest.TestCase):
         """Jinak by v menu stál stav označený jako zastaralý."""
         from accounts import TTL as ACCOUNTS_TTL
         self.assertLess(service.ACCOUNTS_EVERY, ACCOUNTS_TTL)
+
+
+class TestVydaneDily(unittest.TestCase):
+    """Další díl se nabízí a zahřívá jen tehdy, když už vyšel (6.3.4)."""
+
+    def test_dil_s_budoucim_datem_se_preskoci(self):
+        # Zrádci: S03E01 vyšel 16. 9., S03E02 vychází až 23. 9.
+        videos = [{"season": 3, "episode": 1, "released": "2026-09-16"},
+                  {"season": 3, "episode": 2, "released": "2026-09-23"},
+                  {"season": 3, "episode": 3, "released": "2026-09-30"}]
+        aired = default.aired_videos(videos, "2026-09-20")
+        self.assertEqual([(v["season"], v["episode"]) for v in aired], [(3, 1)])
+
+    def test_dil_bez_data_se_u_bezicoho_serialu_preskoci(self):
+        # Cizinka: poslední díly sezóny se teprve natáčejí, TMDB u nich datum nemá
+        videos = [{"season": 2, "episode": 1, "released": "2026-09-18"},
+                  {"season": 2, "episode": 2, "released": "2026-09-25"},
+                  {"season": 2, "episode": 8}, {"season": 2, "episode": 9}]
+        aired = default.aired_videos(videos, "2026-09-20")
+        self.assertEqual([(v["season"], v["episode"]) for v in aired], [(2, 1)])
+
+    def test_serial_bez_jedineho_data_projde_cely(self):
+        videos = [{"season": 1, "episode": 2}, {"season": 1, "episode": 1}, {"season": 2, "episode": 1}]
+        aired = default.aired_videos(videos, "2026-09-20")
+        self.assertEqual([(v["season"], v["episode"]) for v in aired], [(1, 1), (1, 2), (2, 1)])
+
+    def test_specialy_a_prazdny_seznam(self):
+        self.assertEqual(default.aired_videos([{"season": 0, "episode": 1, "released": "2020-01-01"}], "2026-09-20"), [])
+        self.assertEqual(default.aired_videos([], "2026-09-20"), [])
+
+    def test_dil_vydany_dnes_se_bere(self):
+        videos = [{"season": 1, "episode": 1, "released": "2026-09-20"}]
+        self.assertEqual(len(default.aired_videos(videos, "2026-09-20")), 1)
+
+    def test_next_episode_nenabidne_nevydany_dil(self):
+        meta = {"videos": [{"season": 3, "episode": 1, "released": "2026-09-16", "id": "tt1:3:1"},
+                           {"season": 3, "episode": 2, "released": "2099-01-01", "id": "tt1:3:2"}]}
+
+        class Api:
+            def meta(self, _ctype, _id):
+                return meta
+
+        with mock.patch.object(default, "api_for", lambda _apis, _id: Api()):
+            # po S03E01 není co nabídnout — S03E02 ještě nevyšla
+            self.assertIsNone(default.next_episode(None, {"series": "tt1", "season": 3, "episode": 1}))
+            # po S02E13 je naopak S03E01 na řadě
+            found = default.next_episode(None, {"series": "tt1", "season": 2, "episode": 13})
+            self.assertIsNotNone(found)
+            self.assertEqual((found[0]["season"], found[0]["episode"]), (3, 1))

@@ -4406,8 +4406,38 @@ def list_recent():
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
+def aired_videos(videos, today):
+    """Díly, které už vyšly — bez speciálů, setříděné podle sezóny a čísla.
+
+    Datum vydání (`released`, u TMDB `air_date`) se do 6.3.3 nečetlo vůbec: po dílu
+    číslo 1 se prostě vzal první s vyšším číslem, i kdyby vycházel za tři měsíce.
+    Vadily tím obě cesty, kterými se další díl používá:
+
+    - `prefetch(kind="next")` na něj každé kolo zahřívání pustí `collect_streams()`,
+      tedy hledání napříč všemi zdroji. Kolo běží po `WARM_EVERY` (2,5 h) a po každém
+      dokoukání dílu, nejvýš pro `PREFETCH_SERIES` seriálů — u seriálu, který běží
+      týdně, to je až několik desítek marných hledání denně. Ukládá se jen nález
+      (`cached_if`), takže se prázdný výsledek nikdy neodloží a opakuje se pořád dokola.
+      Právě opakovanými dotazy na zdroje si doplněk už dvakrát řekl o blokaci od
+      HellSpy (6.0.2 a 6.0.4).
+    - Řádek „Další díl" v Pokračovat ve sledování (`list_continue`, synchronizuje se
+      i do karty v Home Assistantu) nabízel díl, který ještě nešlo nikde sehnat.
+
+    Seriály, kterým TMDB data nedává vůbec, se řídí dál starým pravidlem: nemá-li
+    datum ani jeden díl, projde celý seznam. Jinak by u nich další díl přestal
+    fungovat úplně.
+
+    Díl bez data je něco jiného než díl, který ve zdrojích chybí — chybějící díl se
+    hledat má, nevydaný ne.
+    """
+    known = [v for v in videos if int(v.get("season") or 0) > 0]
+    if any(v.get("released") for v in known):
+        known = [v for v in known if v.get("released") and str(v["released"])[:10] <= today]
+    return sorted(known, key=lambda v: (int(v.get("season") or 0), int(v.get("episode") or 0)))
+
+
 def next_episode(apis, snap):
-    """Další epizoda po zhlédnuté (podle meta seriálu), nebo None."""
+    """Další už vydaná epizoda po zhlédnuté (podle meta seriálu), nebo None."""
     series_id = snap.get("series")
     if not series_id or snap.get("season") is None:
         return None
@@ -4415,8 +4445,7 @@ def next_episode(apis, snap):
         meta = api_for(apis, series_id).meta("series", series_id)
     except Errors:
         return None
-    videos = sorted((v for v in meta.get("videos") or [] if int(v.get("season") or 0) > 0),
-                    key=lambda v: (int(v.get("season") or 0), int(v.get("episode") or 0)))
+    videos = aired_videos(meta.get("videos") or [], time.strftime("%Y-%m-%d"))
     cur = (int(snap.get("season") or 0), int(snap.get("episode") or 0))
     for v in videos:
         if (int(v.get("season") or 0), int(v.get("episode") or 0)) > cur:
