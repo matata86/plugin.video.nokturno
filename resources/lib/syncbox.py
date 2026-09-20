@@ -11,45 +11,28 @@ Skupina stojí na jediném tajemství — **kódu**, který vygeneruje první za
 
     NKT-8G4M-2QX7-VB9K-TRWP      16 znaků Crockford Base32, 80 bitů
 
-Z kódu se odvodí adresa skupiny a klíče. Na server jde jen `group_id`, které
-z kódu spočítat zpátky nejde:
-
-    root     = PBKDF2-HMAC-SHA256(kód, "nokturno-sync-v1", 200 000)
-    group_id = HMAC(root, "gid")   ← jediné, co vidí server
-    enc_key  = HMAC(root, "enc")
-    mac_key  = HMAC(root, "mac")
-
-`group_id` slouží zároveň jako adresa i jako přístupový token relaye: kdo ho zná,
-smí do skupiny psát a číst z ní, ale bez kódu nic nedešifruje. Proto patří do
-hlavičky, nikdy do URL — Tailscale i nginx logují cesty.
-
-Šifrování je jen ze stdlib (`hashlib`, `hmac`, `os.urandom`), aby doplněk pro Kodi
-nepotřeboval `script.module.pycryptodome`: instalace s vypnutým oficiálním repem
-by si aktualizaci nestáhla. Nevymýšlí se šifra, skládají se standardní primitiva
-— SHA-256 v counter módu jako proudová šifra a encrypt-then-MAC:
-
-    blob  = nonce(16 B) || ciphertext || tag(32 B)
-    proud = SHA-256(enc_key || nonce || counter_be64)    counter = 0, 1, 2, …
-    ct    = gzip(json) XOR proud
-    tag   = HMAC-SHA256(mac_key, nonce || ct)
-
-Gzip před šifrováním není optimalizace, ale součást návrhu: plný stav 5000 titulů
-je 511 kB JSON → 13 kB a zabalení trvá 8 ms místo 102 ms.
+Z kódu se odvodí adresa skupiny a klíče — dělá to sdílený `sealbox` (tentýž
+modul zapečeťuje přenos nastavení mezi zařízeními) s vlastní solí
+`nokturno-sync-v1`, takže týž opsaný kód vyjde v každém účelu na jiné klíče.
+Na server jde jen `ident`, které z kódu spočítat zpátky nejde; slouží zároveň
+jako adresa skupiny i jako přístupový token relaye: kdo ho zná, smí do skupiny
+psát a číst z ní, ale bez kódu nic nedešifruje. Proto patří do hlavičky, nikdy
+do URL — Tailscale i nginx logují cesty.
 
 Nahrává se **celý stav zařízení**, ne přírůstky — je tak malý, že fronta delt by
 byla práce navíc: relay drží jeden přepisovaný řádek na zařízení, nový člen
 skupiny dostane rovnou všechno a ztracený blob nic nerozbije.
 """
 import base64
-import gzip
 import hashlib
-import hmac
 import json
 import os
 import time
 import urllib.error
 import urllib.request
 
+from sealbox import SealError, format_code, keys_for as _keys_for, new_code as _new_code, \
+    normalize_code, seal, unseal, valid_code as _valid_code
 from stats import COLLECT_URL
 from sync import apply_changes, collect_changes
 
@@ -58,12 +41,12 @@ STATE = "syncbox"          # syncbox.json v profilu
 TIMEOUT = 20
 MAX_BLOB = 128 * 1024      # shoda s limitem relaye
 
-# Crockford Base32 bez I, L, O a U — znaky, které se z obrazovky televize opisují
-# špatně (jedničku od I a nulu od O nerozezná ani dobrý skin, U svádí na V).
-ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
-CODE_LEN = 16
-PREFIX = "NKT"
-_CONFUSED = {"I": "1", "L": "1", "O": "0", "U": "V"}
+# Kryptografii a kód skupiny dělá sdílený `sealbox` — stejnou konstrukci používá
+# i přenos nastavení mezi zařízeními (`transfer.py`). Vlastní sůl a délka kódu
+# dávají synchronizaci vlastní klíčový prostor: týž opsaný kód vyjde v každém
+# účelu na jiné `ident` i jiné klíče, takže se jedno místo nedá zaměnit za druhé.
+SALT = b"nokturno-sync-v1"
+CODE_LEN = 16              # 80 bitů — kód se opisuje z obrazovky televize
 
 # Okruhy: co z blobu se posílá a přijímá. Klíče odpovídají `collect_changes`.
 CIRCLES = {
@@ -84,95 +67,21 @@ class SyncError(Exception):
 
 
 def new_code():
-    """Nový kód skupiny. Náhoda jde z `os.urandom`, ne z `random`."""
-    raw = "".join(ALPHABET[b % len(ALPHABET)] for b in os.urandom(CODE_LEN))
-    return format_code(raw)
-
-
-def format_code(raw):
-    """`8G4M2QX7VB9KTRWP` → `NKT-8G4M-2QX7-VB9K-TRWP` (jen pro zobrazení)."""
-    raw = normalize_code(raw)
-    groups = [raw[i:i + 4] for i in range(0, len(raw), 4)]
-    return "-".join([PREFIX] + groups)
-
-
-def normalize_code(text):
-    """Kód tak, jak se z něj počítají klíče: bez pomlček, mezer a prefixu, velkými
-    písmeny a se záměnami, které dělá člověk opisující z televize (O→0, I/L→1)."""
-    raw = "".join((text or "").split()).replace("-", "").upper()
-    if raw.startswith(PREFIX):
-        raw = raw[len(PREFIX):]
-    return "".join(_CONFUSED.get(ch, ch) for ch in raw)
+    """Nový kód skupiny, `NKT-XXXX-XXXX-XXXX-XXXX`."""
+    return _new_code(CODE_LEN)
 
 
 def valid_code(text):
-    raw = normalize_code(text)
-    return len(raw) == CODE_LEN and all(ch in ALPHABET for ch in raw)
-
-
-class Keys(object):
-    """Klíče odvozené z kódu. Drž je v paměti — PBKDF2 stojí na slabém Android
-    boxu i půl sekundy a při každém kole synchronizace by to bylo znát."""
-
-    __slots__ = ("group_id", "enc", "mac")
-
-    def __init__(self, code):
-        if not valid_code(code):
-            raise SyncError("Kód skupiny nemá správný tvar")
-        root = hashlib.pbkdf2_hmac("sha256", normalize_code(code).encode("ascii"),
-                                   b"nokturno-sync-v1", 200000)
-        self.group_id = hmac.new(root, b"gid", hashlib.sha256).hexdigest()[:32]
-        self.enc = hmac.new(root, b"enc", hashlib.sha256).digest()
-        self.mac = hmac.new(root, b"mac", hashlib.sha256).digest()
-
-
-_KEYS = {}
+    return _valid_code(text, CODE_LEN)
 
 
 def keys_for(code):
-    """Klíče s cache v paměti procesu. Bez ní by PBKDF2 (200 000 iterací, na
-    slabém Android boxu i půl sekundy) běžel při každém kole synchronizace."""
-    raw = normalize_code(code)
-    if raw not in _KEYS:
-        _KEYS[raw] = Keys(code)
-    return _KEYS[raw]
-
-
-def _keystream(key, nonce, length):
-    out = bytearray()
-    counter = 0
-    while len(out) < length:
-        out += hashlib.sha256(key + nonce + counter.to_bytes(8, "big")).digest()
-        counter += 1
-    return bytes(out[:length])
-
-
-def _xor(data, pad):
-    return bytes(a ^ b for a, b in zip(data, pad))
-
-
-def seal(keys, payload):
-    """Slovník → blob. Nonce je náhodná pro každé zabalení, takže dvě zabalení
-    téhož stavu vypadají na serveru jinak."""
-    raw = gzip.compress(json.dumps(payload, separators=(",", ":")).encode("utf-8"), 6)
-    nonce = os.urandom(16)
-    ct = _xor(raw, _keystream(keys.enc, nonce, len(raw)))
-    tag = hmac.new(keys.mac, nonce + ct, hashlib.sha256).digest()
-    return nonce + ct + tag
-
-
-def unseal(keys, blob):
-    """Blob → slovník, nebo `None`, když nesedí tag (cizí skupina, poškozený
-    přenos, podvržený obsah). Tag se ověřuje **před** dešifrováním."""
-    if not blob or len(blob) < 16 + 32:
-        return None
-    nonce, ct, tag = blob[:16], blob[16:-32], blob[-32:]
-    if not hmac.compare_digest(tag, hmac.new(keys.mac, nonce + ct, hashlib.sha256).digest()):
-        return None
+    """Klíče skupiny (`ident`, `enc`, `mac`) s cache v paměti procesu."""
     try:
-        return json.loads(gzip.decompress(_xor(ct, _keystream(keys.enc, nonce, len(ct)))).decode("utf-8"))
-    except (OSError, ValueError, UnicodeDecodeError):
-        return None
+        return _keys_for(code, SALT, CODE_LEN)
+    except SealError as e:
+        raise SyncError(str(e) or "Kód skupiny nemá správný tvar")
+
 
 
 def filter_circles(changes, circles):
@@ -211,7 +120,7 @@ class Relay(object):
         self.timeout = timeout
 
     def _request(self, method, url, body=None, kind="application/octet-stream"):
-        headers = {"X-Nokturno-Group": self.keys.group_id, "X-Nokturno-Device": self.device_id}
+        headers = {"X-Nokturno-Group": self.keys.ident, "X-Nokturno-Device": self.device_id}
         if body is not None:
             headers["Content-Type"] = kind
         req = urllib.request.Request(url, data=body, headers=headers, method=method)

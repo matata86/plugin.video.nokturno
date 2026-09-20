@@ -59,7 +59,7 @@ def main():
     version = addon_version(ROOT)
     if "~sync" not in version:
         sys.exit(f"addon.xml má {version} — vývojový build chce verzi s „~sync“ "
-                 f"(např. 5.99.0~sync1), ať ji repozitář na boxu nikdy nepřebije")
+                 f"(např. 9.99.0~sync1), ať ji repozitář na boxu nikdy nepřebije")
 
     shutil.rmtree(OUT, ignore_errors=True)
     tree = os.path.join(OUT, ADDON_ID)
