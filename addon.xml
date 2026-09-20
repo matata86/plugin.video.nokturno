@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="6.4.2" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="6.4.3" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>6.4.2 – Odkaz na Ko-fi je dočasně odebraný z popisu doplňku a z nápovědy.
+    <news>6.4.3 – Oprava pádu tlačítka Vyzkoušet OpenSubtitles v nastavení (NameError: Dialog).
+6.4.2 – Odkaz na Ko-fi je dočasně odebraný z popisu doplňku a z nápovědy.
 6.4.1 – Náhodný film a Náhodný seriál nabízí jen tituly, které mají tvůj preferovaný jazyk ve zvuku nebo v titulcích (u češtiny se počítají i slovenské titulky). Dřív se losovalo naslepo a část titulů byla jen anglicky. Když žádný z osmi vylosovaných kandidátů nevyhoví do 15 sekund (po tu dobu běží ukazatel na pozadí), vezme se prostě první a oznámení to řekne. Bez nastaveného preferovaného jazyka se nic nemění (díky, @fsecko1)
 6.4.0 – Titulky z OpenSubtitles: tituly, ke kterým zdroje žádné české ani slovenské titulky nemají (u více než třetiny titulů), se doplní z opensubtitles.com. Hledá se podle IMDb id a u seriálu podle sezóny a dílu, takže se nepřichytí titulky k jinému dílu. Stáhne se vždy nejvýš jeden soubor, až při přehrání — bez účtu 5 titulků denně, s vlastním účtem (Nastavení → OpenSubtitles, nepovinné) 20. Tlačítko Vyzkoušet OpenSubtitles ukáže, jestli zdroj funguje a kolik stažení dnes zbývá
 6.3.7 – Řádek se stavem zdrojů v menu je kratší, aby se vešel na řádek a neroloval se: ukáže nejzávažnější zdroj a u ostatních jen počet. Celé vysvětlení je ve výpisu po kliknutí, kde má každý zdroj vlastní řádek

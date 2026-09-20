@@ -2992,11 +2992,11 @@ def os_check():
     """
     from opensubtitles_api import OpenSubtitlesError   # líný import, viz reuse invoker
     if not on("os_enabled"):
-        Dialog().ok(L(30611, "OpenSubtitles"), L(30622, "OpenSubtitles jsou v nastavení vypnuté."))
+        xbmcgui.Dialog().ok(L(30611, "OpenSubtitles"), L(30622, "OpenSubtitles jsou v nastavení vypnuté."))
         return
     api = get_opensubtitles()
     if api is None:
-        Dialog().ok(L(30611, "OpenSubtitles"),
+        xbmcgui.Dialog().ok(L(30611, "OpenSubtitles"),
                     L(30623, "Klíč se nepodařilo získat ze serveru — zkuste to později."))
         return
     radky = []
@@ -3004,7 +3004,7 @@ def os_check():
         ucet = api.ucet()
     except OpenSubtitlesError as err:
         xbmc.log(f"[{ADDON_ID}] OpenSubtitles účet: {err}", xbmc.LOGINFO)
-        Dialog().ok(L(30611, "OpenSubtitles"),
+        xbmcgui.Dialog().ok(L(30611, "OpenSubtitles"),
                     L(30624, "Přihlášení se nepovedlo — zkontrolujte jméno a heslo."))
         return
     if ucet:
@@ -3016,7 +3016,7 @@ def os_check():
     radky.insert(0, L(30621, "OpenSubtitles funguje.") if nalez
                  else L(30623, "Klíč se nepodařilo získat ze serveru — zkuste to později."))
     radky.append(L(30625, "Titulků ke zkušebnímu titulu: %s") % len(nalez))
-    Dialog().ok(L(30611, "OpenSubtitles"), "\n".join(radky))
+    xbmcgui.Dialog().ok(L(30611, "OpenSubtitles"), "\n".join(radky))
 
 
 def luna_find():
