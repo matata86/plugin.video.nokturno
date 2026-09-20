@@ -1795,3 +1795,35 @@ msgstr "neodpovídá"
 msgctxt "#30650"
 msgid "the status could not be determined"
 msgstr "nepodařilo se zjistit stav"
+
+msgctxt "#30651"
+msgid "ends in %s days"
+msgstr "končí za %s dní"
+
+msgctxt "#30652"
+msgid "no VIP"
+msgstr "účet bez VIP"
+
+msgctxt "#30653"
+msgid "%s GB left"
+msgstr "zbývá %s GB"
+
+msgctxt "#30654"
+msgid "not paired"
+msgstr "není spárováno"
+
+msgctxt "#30655"
+msgid "no Premium"
+msgstr "účet bez Premium"
+
+msgctxt "#30656"
+msgid "paused %s min"
+msgstr "pauza %s min"
+
+msgctxt "#30657"
+msgid "sign-in does not match"
+msgstr "nesedí přihlášení"
+
+msgctxt "#30658"
+msgid "status unknown"
+msgstr "stav neznámý"

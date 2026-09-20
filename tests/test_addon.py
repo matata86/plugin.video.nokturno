@@ -4312,9 +4312,27 @@ class TestStavZdroju(unittest.TestCase):
                 self._row("webshare", "fail", "expired"),
                 self._row("hellspy", "warn", "paused", minutes=7)]
         souhrn = default.account_summary(rows)
+        # do štítku se vejde jeden zdroj, nejzávažnější napřed; zbytek je „+N"
         self.assertIn("WebShare", souhrn)
-        self.assertIn("HellSpy", souhrn)
+        self.assertIn("+1", souhrn)
         self.assertNotIn("Luna", souhrn)
+
+    def test_stitek_menu_se_vejde_na_radek(self):
+        """Skin má na řádek zhruba čtyřicet znaků a delší text si roluje pod rukama —
+        na Office byl ze souhrnu dvou zdrojů vidět jen prostředek věty."""
+        rows = [self._row(s, "warn", c, **d) for s, c, d in (
+            ("webshare", "expires_soon", {"days": 3}),
+            ("hellspy", "paused", {"minutes": 10}),
+            ("sledujteto", "no_premium", {}),
+            ("cztor", "not_paired", {}))]
+        for r in rows:
+            holy = re.sub(r"\[/?COLOR[^\]]*\]", "", default.account_summary([r] + rows[1:]))
+            self.assertLessEqual(len(holy), 40, holy)
+
+    def test_vypis_ma_plny_text_i_kdyz_stitek_kratky(self):
+        row = self._row("sledujteto", "warn", "no_premium")
+        self.assertIn("přehrávání", default.account_line(row, color=False))
+        self.assertNotIn("přehrávání", default.account_line(row, color=False, short=True))
 
     def test_souhrn_bez_problemu_je_prazdny(self):
         self.assertEqual(default.account_summary([self._row("luna", "ok", "ok")]), "")

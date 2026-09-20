@@ -1792,3 +1792,35 @@ msgstr "nem válaszol"
 msgctxt "#30650"
 msgid "the status could not be determined"
 msgstr "az állapot nem állapítható meg"
+
+msgctxt "#30651"
+msgid "ends in %s days"
+msgstr "%s nap múlva lejár"
+
+msgctxt "#30652"
+msgid "no VIP"
+msgstr "nincs VIP"
+
+msgctxt "#30653"
+msgid "%s GB left"
+msgstr "%s GB maradt"
+
+msgctxt "#30654"
+msgid "not paired"
+msgstr "nincs párosítva"
+
+msgctxt "#30655"
+msgid "no Premium"
+msgstr "nincs Premium"
+
+msgctxt "#30656"
+msgid "paused %s min"
+msgstr "szünet %s perc"
+
+msgctxt "#30657"
+msgid "sign-in does not match"
+msgstr "a bejelentkezés nem egyezik"
+
+msgctxt "#30658"
+msgid "status unknown"
+msgstr "ismeretlen állapot"

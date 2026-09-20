@@ -2751,6 +2751,26 @@ ACCOUNT_TEXTS = {
     ("storage", "ok"): (30647, "odpovídá"),
 }
 
+# Totéž zkrácené pro štítek položky v menu. Skin má na řádek zhruba čtyřicet znaků
+# a delší text si roluje pod rukama — na Office bylo z „Stav zdrojů: Luna: server
+# neodpovídá · WebShare: předplatné vypršelo · +2" vidět jen prostředek věty a
+# uživatel nepoznal, co čte. Ve výpisu pod tím má každý zdroj vlastní řádek, takže
+# tam zůstává plný text z `ACCOUNT_TEXTS`.
+ACCOUNT_SHORT = {
+    ("webshare", "expires_soon"): (30651, "končí za %s dní"),
+    ("webshare", "free"): (30652, "účet bez VIP"),
+    ("fastshare", "credit"): (30653, "zbývá %s GB"),
+    ("cztor", "expires_soon"): (30651, "končí za %s dní"),
+    ("cztor", "not_paired"): (30654, "není spárováno"),
+    ("sledujteto", "no_premium"): (30655, "účet bez Premium"),
+    ("hellspy", "paused"): (30656, "pauza %s min"),
+}
+
+ACCOUNT_COMMON_SHORT = {
+    "bad_login": (30657, "nesedí přihlášení"),
+    "error": (30658, "stav neznámý"),
+}
+
 # co platí pro každý zdroj stejně (selhání kontroly, viz `engine._account_fail_code`)
 ACCOUNT_COMMON = {
     "bad_login": (30648, "nesedí jméno nebo heslo"),
@@ -2769,12 +2789,17 @@ ACCOUNT_ARGS = {
 }
 
 
-def account_text(row):
-    """Stav jednoho zdroje jednou větou, bez jeho jména — to dodává volající."""
+def account_text(row, short=False):
+    """Stav jednoho zdroje jednou větou, bez jeho jména — to dodává volající.
+    `short` vrátí variantu do štítku menu, kde je místo jen na pár slov."""
     source, code = row["source"], row["code"]
     if source == "luna":
         sid, fallback = LUNA_DIAG_SHORT.get(code, (30168, "v pořádku") if code == "ok" else
                                             LUNA_DIAG_SHORT["unreachable"])
+    elif short:
+        sid, fallback = (ACCOUNT_SHORT.get((source, code)) or ACCOUNT_COMMON_SHORT.get(code)
+                         or ACCOUNT_TEXTS.get((source, code)) or ACCOUNT_COMMON.get(code)
+                         or ACCOUNT_COMMON_SHORT["error"])
     else:
         sid, fallback = ACCOUNT_TEXTS.get((source, code)) or ACCOUNT_COMMON.get(code) or ACCOUNT_COMMON["error"]
     detail = row.get("detail") or {}
@@ -2785,10 +2810,10 @@ def account_text(row):
         return L(sid, fallback)
 
 
-def account_line(row, color=True):
+def account_line(row, color=True, short=False):
     """„WebShare: předplatné končí za 3 dny" — jméno zdroje a stav, stav v barvě."""
     tag = ACCOUNT_TAGS.get(row["source"]) or row["source"]
-    text = account_text(row)
+    text = account_text(row, short=short)
     if color:
         text = f"[COLOR {ACCOUNT_COLORS.get(row['level'], ACCOUNT_COLORS[ACC_OK])}]{text}[/COLOR]"
     return f"{tag}: {text}"
@@ -2807,17 +2832,20 @@ def account_action(row):
     return podle_zdroje.get(row["code"]) or podle_zdroje.get("") or "settings"
 
 
-# Kolik zdrojů se vejde do jednoho řádku menu. Víc ne — skiny řádek ořezávají
-# a uživatel by z hlášky viděl jen začátek; zbytek je ve výpisu pod ní.
-SUMMARY_LIMIT = 2
+# Kolik zdrojů se vejde do štítku v menu. Jeden, a ještě zkráceně: skin má na řádek
+# zhruba čtyřicet znaků a delší text si sám roluje, takže z něj uživatel vidí
+# v každém okamžiku jen výsek. Ověřeno na Office se dvěma zdroji a „+2" — ze štítku
+# bylo vidět „server neodpovídá · WebShare: předplatné" bez začátku i konce.
+# Zbytek patří do výpisu pod položkou, kde má každý zdroj vlastní řádek.
+SUMMARY_LIMIT = 1
 
 
 def account_summary(rows, limit=SUMMARY_LIMIT):
-    """Souhrn do jedné položky menu: „WebShare: předplatné končí za 3 dny · HellSpy: …"."""
+    """Štítek položky v menu: „WebShare: končí za 3 dní · +2"."""
     bad = accounts_problems(rows)
     if not bad:
         return ""
-    texty = [account_line(r) for r in bad[:limit]]
+    texty = [account_line(r, short=True) for r in bad[:limit]]
     if len(bad) > limit:
         texty.append(f"[COLOR {GREY}]+{len(bad) - limit}[/COLOR]")
     return " · ".join(texty)
