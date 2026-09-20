@@ -3517,6 +3517,10 @@ def main_menu(apis):
     if not any(apis.values()):
         # bez modálního dialogu: ten by při volání z widgetu/JSON-RPC čekal na OK a zablokoval i vypínání Kodi
         notify(L(30104), xbmcgui.NOTIFICATION_WARNING, 6000)
+        # bez zdroje je průvodce jediné, co dává smysl — dřív tu byla jen položka Nastavení
+        # a kdo průvodce jednou přeskočil, neměl jak zjistit, že existuje
+        folder_item(L(30359, "Průvodce nastavením"), build_url(action="setup_wizard"),
+                    icon="DefaultAddonProgram.png")
         folder_item(L(30107), build_url(action="settings"), icon="DefaultAddonProgram.png")
         xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
         return
@@ -3536,7 +3540,7 @@ def main_menu(apis):
     # čistá instalace: průvodce nahoře jako položka. Spouštět ho z kořene sám od sebe
     # nejde — modální dialog v cestě, kterou otevírají widgety a JSON-RPC, blokuje
     # i vypínání Kodi (viz pravidlo v CLAUDE.md)
-    if not STORE.load("wizard_done", False) and not accounts_set():
+    if not accounts_set():   # i po přeskočení: bez účtu nemá doplněk co ukázat
         folder_item(L(30359, "Průvodce nastavením"), build_url(action="setup_wizard"),
                     icon="DefaultAddonProgram.png")
     fresh = unseen_changelog()

@@ -1058,7 +1058,8 @@ class TestRouter(unittest.TestCase):
         with mock.patch.object(default, "get_apis", return_value={"luna": None, "sosac": None, "ws": None}):
             default.router("")
         self.assertEqual(len(xbmcplugin.ended), 1)
-        self.assertEqual([params_of(u)["action"] for u in xbmcplugin.urls()], ["settings"])
+        self.assertEqual([params_of(u)["action"] for u in xbmcplugin.urls()], ["setup_wizard", "settings"],
+                         "průvodce je i po přeskočení (wizard_done), bez zdroje nemá doplněk co ukázat")
         self.assertEqual([n[2] for n in xbmcgui.notifications], [xbmcgui.NOTIFICATION_WARNING])
 
     def test_akce_bez_parametru_neshodi_plugin(self):
