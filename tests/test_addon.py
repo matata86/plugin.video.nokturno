@@ -4261,3 +4261,128 @@ class TestPopisCasuFazi(unittest.TestCase):
         popis = default.describe_timings({"zdroje": {"A": ">20s", "B": ">20s"}})
         self.assertIn("A >20s", popis)
         self.assertIn("B >20s", popis)
+class TestStavZdroju(unittest.TestCase):
+    """Stav zdrojů jako první položka menu (nápad 17 z auditu 2026-09-19).
+
+    „Prostě mi to nejde" má několik různých příčin, které od sebe uživatel
+    u televize nerozezná. Hlídá se tu, že se hlásí jen to, co má, že se stav
+    kreslí barvou a slovem (ne ✔/✘, ty fonty skinů kreslí jako prázdný proužek)
+    a že čtení stavu **nesahá na síť** — menu se otevírá za 0,9 s a to číslo se
+    nesmí zhoršit.
+    """
+
+    def setUp(self):
+        reset_kodi()
+        xbmcaddon.settings.clear()
+
+    @staticmethod
+    def _row(source, level, code, **detail):
+        return {"source": source, "level": level, "code": code, "detail": detail,
+                "age": 60, "stale": False}
+
+    def test_veta_nese_jmeno_zdroje_i_cislo(self):
+        radek = default.account_line(self._row("webshare", "warn", "expires_soon", days=3))
+        self.assertIn("WebShare", radek)
+        self.assertIn("3", radek)
+
+    def test_stav_je_slovem_v_barve_hexem(self):
+        """Emoji a ✔/✘ kreslí fonty skinů jako prázdný proužek, pojmenované barvy
+        závisí na skinu — viz `5.2.30~beta2`."""
+        radek = default.account_line(self._row("hellspy", "warn", "paused", minutes=10))
+        self.assertRegex(radek, r"\[COLOR FF[0-9A-F]{6}\]")
+        for znak in ("✔", "✘", "❌", "⚠"):
+            self.assertNotIn(znak, radek)
+
+    def test_kazda_uroven_ma_vlastni_barvu(self):
+        barvy = {default.account_line(self._row("webshare", level, "expired"))
+                 for level in ("fail", "warn", "ok")}
+        self.assertEqual(len(barvy), 3)
+
+    def test_luna_pouziva_svou_sadu_textu_z_5_2_30(self):
+        radek = default.account_line(self._row("luna", "fail", "bad_token"))
+        self.assertIn("token", radek.lower())
+
+    def test_neznamy_kod_nespadne(self):
+        radek = default.account_line(self._row("fastshare", "fail", "nesmysl"))
+        self.assertTrue(radek.startswith(default.FS_TAG))
+
+    def test_souhrn_bere_jen_problemy(self):
+        rows = [self._row("luna", "ok", "ok"),
+                self._row("webshare", "fail", "expired"),
+                self._row("hellspy", "warn", "paused", minutes=7)]
+        souhrn = default.account_summary(rows)
+        self.assertIn("WebShare", souhrn)
+        self.assertIn("HellSpy", souhrn)
+        self.assertNotIn("Luna", souhrn)
+
+    def test_souhrn_bez_problemu_je_prazdny(self):
+        self.assertEqual(default.account_summary([self._row("luna", "ok", "ok")]), "")
+
+    def test_souhrn_dlouhy_seznam_zkrati(self):
+        rows = [self._row(s, "fail", "expired") for s in
+                ("luna", "webshare", "cztor", "fastshare", "sledujteto")]
+        self.assertIn("+2", default.account_summary(rows))
+
+    def test_menu_bez_problemu_polozku_neukaze(self):
+        """Kdo problém nemá, tomu by položka jen zabírala místo."""
+        with mock.patch.object(default.KodiEngine, "accounts",
+                               lambda self, **kw: [self_row for self_row in ()]):
+            default.router("")
+        popisky = [li.getLabel() for _h, _u, li, _f in xbmcplugin.items]
+        self.assertFalse([p for p in popisky if "Stav zdrojů" in p])
+
+    def test_menu_s_problemem_ma_polozku_prvni(self):
+        rows = [self._row("webshare", "fail", "expired")]
+        with mock.patch.object(default.KodiEngine, "accounts", lambda self, **kw: rows):
+            default.router("")
+        prvni = xbmcplugin.items[0]
+        self.assertIn("Stav zdrojů", prvni[2].getLabel())
+        self.assertIn("WebShare", prvni[2].getLabel())
+        self.assertIn("action=accounts", prvni[1])
+
+    def test_vypis_vynecha_vypnute_zdroje(self):
+        rows = [self._row("webshare", "fail", "expired"),
+                {"source": "cztor", "level": "off", "code": "off", "detail": {}, "age": None, "stale": False}]
+        with mock.patch.object(default.KodiEngine, "accounts", lambda self, **kw: rows):
+            default.router("action=accounts")
+        popisky = [li.getLabel() for _h, _u, li, _f in xbmcplugin.items]
+        self.assertTrue([p for p in popisky if "WebShare" in p])
+        self.assertFalse([p for p in popisky if "CZtor" in p])
+
+    def test_vypis_vede_rovnou_tam_kde_se_to_opravuje(self):
+        rows = [self._row("luna", "fail", "unreachable"),
+                self._row("cztor", "fail", "not_paired"),
+                self._row("webshare", "warn", "expires_soon", days=2)]
+        with mock.patch.object(default.KodiEngine, "accounts", lambda self, **kw: rows):
+            default.router("action=accounts")
+        cile = [url for _h, url, _li, _f in xbmcplugin.items]
+        self.assertIn("action=luna_check", cile[0])
+        self.assertIn("action=cztor_pair", cile[1])
+        self.assertIn("action=sub_status", cile[2])
+
+    def test_vypis_nikdy_neotevre_modal(self):
+        """Modál v cestě, kterou umí spustit widget nebo JSON-RPC, zasekne plugin
+        i vypínání Kodi (pravidlo z CLAUDE.md)."""
+        rows = [self._row("webshare", "fail", "expired")]
+        with mock.patch.object(default.KodiEngine, "accounts", lambda self, **kw: rows):
+            default.router("action=accounts")
+        self.assertEqual(xbmcgui.oks, [])
+
+    def test_obnova_zavira_adresar_uspesne(self):
+        """Služba sem chodí přes Files.GetDirectory; `succeeded=False` by dělalo
+        v každém kole řádek `error <general>` v kodi.log (viz 6.2.7)."""
+        with mock.patch.object(default.KodiEngine, "refresh_accounts", lambda self, **kw: []):
+            default.router("action=accounts_refresh")
+        self.assertIs(xbmcplugin.ended[-1]["succeeded"], True)
+
+    def test_obnova_nespadne_kdyz_zdroj_selze(self):
+        def vybuch(self, **kw):
+            raise OSError("síť spadla")
+        with mock.patch.object(default.KodiEngine, "refresh_accounts", vybuch):
+            default.router("action=accounts_refresh")
+        self.assertIs(xbmcplugin.ended[-1]["succeeded"], True)
+
+    def test_sluzba_obnovuje_pod_platnosti_zaznamu(self):
+        """Jinak by v menu stál stav označený jako zastaralý."""
+        from accounts import TTL as ACCOUNTS_TTL
+        self.assertLess(service.ACCOUNTS_EVERY, ACCOUNTS_TTL)

@@ -1712,3 +1712,86 @@ msgstr "Náhodný seriál"
 msgctxt "#30610"
 msgid "Nothing to pick from"
 msgstr "Nemám z čeho losovat"
+msgctxt "#30630"
+msgid "Source status"
+msgstr "Stav zdrojů"
+
+msgctxt "#30631"
+msgid "subscription until %s"
+msgstr "předplatné do %s"
+
+msgctxt "#30632"
+msgid "subscription ends in %s days"
+msgstr "předplatné končí za %s dní"
+
+msgctxt "#30633"
+msgid "subscription has expired"
+msgstr "předplatné vypršelo"
+
+msgctxt "#30634"
+msgid "account without VIP — downloads at a few kB/s"
+msgstr "účet bez VIP — stahování pár kB/s"
+
+msgctxt "#30635"
+msgid "unlimited downloads"
+msgstr "neomezené stahování"
+
+msgctxt "#30636"
+msgid "%s GB of credit left"
+msgstr "zbývá %s GB kreditu"
+
+msgctxt "#30637"
+msgid "out of credit"
+msgstr "došel kredit"
+
+msgctxt "#30638"
+msgid "%s until %s"
+msgstr "%s do %s"
+
+msgctxt "#30639"
+msgid "subscription ends in %s days"
+msgstr "předplatné končí za %s dní"
+
+msgctxt "#30640"
+msgid "subscription has expired"
+msgstr "předplatné vypršelo"
+
+msgctxt "#30641"
+msgid "the device is not paired"
+msgstr "zařízení není spárované"
+
+msgctxt "#30642"
+msgid "account status unknown"
+msgstr "stav účtu neznámý"
+
+msgctxt "#30643"
+msgid "Premium"
+msgstr "Premium"
+
+msgctxt "#30644"
+msgid "account without Premium — playback will not work"
+msgstr "účet bez Premium — přehrávání nepůjde"
+
+msgctxt "#30645"
+msgid "all good"
+msgstr "v pořádku"
+
+msgctxt "#30646"
+msgid "paused for %s min — it is refusing requests from this network"
+msgstr "pozastaveno na %s min — odmítá dotazy z téhle sítě"
+
+msgctxt "#30647"
+msgid "responding"
+msgstr "odpovídá"
+
+msgctxt "#30648"
+msgid "the username or password does not match"
+msgstr "nesedí jméno nebo heslo"
+
+msgctxt "#30649"
+msgid "not responding"
+msgstr "neodpovídá"
+
+msgctxt "#30650"
+msgid "the status could not be determined"
+msgstr "nepodařilo se zjistit stav"

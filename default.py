@@ -52,6 +52,8 @@ from sledujteto_api import SledujtetoApi, SledujtetoError  # noqa: E402
 from fastshare_api import FastshareApi, FastshareError  # noqa: E402
 from cztor_api import CztorApi, CztorError  # noqa: E402
 from storage_api import SLOTS as STORAGE_SLOTS, StorageApi, StorageError, parse_ref  # noqa: E402
+from accounts import (FAIL as ACC_FAIL, OFF as ACC_OFF, OK as ACC_OK,  # noqa: E402
+                      WARN as ACC_WARN, problems as accounts_problems)
 from store import WATCHED_MAX, Store, migrate_profile  # noqa: E402
 from source_errors import describe_failure, summarize as summarize_failures  # noqa: E402
 from sync import sync_once  # noqa: E402
@@ -2698,6 +2700,155 @@ def luna_diag_text(result, base=""):
         return L(sid, fallback)
 
 
+# --- stav zdrojů ------------------------------------------------------------
+#
+# „Prostě mi to nejde" má několik různých příčin, které od sebe uživatel u televize
+# nerozezná: vypršené předplatné, účet bez VIP, pauza HellSpy po 429, Luna, která
+# neběží. Do teď to šlo poznat jen z prázdného seznamu streamů, nebo tlačítkem
+# „Ověřit zdroje" schovaným v nastavení. Teď je stav první položkou menu — ale jen
+# když je co hlásit, ať se menu nezaplevelí.
+#
+# Data přicházejí z `accounts.py` v jádru jako kód příčiny a čísla; věta se skládá
+# až tady, protože HA jich potřebuje jinou podobu. Stav se **čte z uloženého
+# záznamu**, po síti ho obnovuje služba na pozadí (`AccountsChecker` v service.py) —
+# otevření menu se tím nesmí zdržet ani o milisekundu.
+
+# Stav slovem v barvě zadané hexem. Emoji a ✔/✘ kreslí fonty skinů jako prázdný
+# proužek a pojmenované barvy (`green`) závisí na skinu — viz `5.2.30~beta2`.
+ACCOUNT_COLORS = {ACC_FAIL: "FFFF6B6B", ACC_WARN: "FFFFC14E", ACC_OK: "FF6FD18A", ACC_OFF: "FF9A9A9A"}
+
+# Jméno zdroje tak, jak ho uživatel zná ze seznamu streamů (obarvené stejně).
+ACCOUNT_TAGS = {"luna": LUNA_TAG, "webshare": WS_TAG, "cztor": CZ_TAG, "fastshare": FS_TAG,
+                "sledujteto": ST_TAG, "hellspy": HS_TAG, "storage": DAV_TAG}
+
+# (zdroj, kód) → (id řetězce, český fallback). `%s` se dosazuje z `detail`, viz
+# `ACCOUNT_ARGS`. Luna má vlastní sadu už od 5.2.30 (`LUNA_DIAG_SHORT`), tady se
+# jen použije. Kódy `off`/`unknown` se nehlásí vůbec — zdroj je vypnutý, nebo se
+# ho doplněk ještě nestihl zeptat.
+ACCOUNT_TEXTS = {
+    ("webshare", "vip"): (30631, "předplatné do %s"),
+    ("webshare", "expires_soon"): (30632, "předplatné končí za %s dní"),
+    ("webshare", "expired"): (30633, "předplatné vypršelo"),
+    ("webshare", "free"): (30634, "účet bez VIP — stahování pár kB/s"),
+    ("fastshare", "unlimited"): (30635, "neomezené stahování"),
+    ("fastshare", "credit"): (30636, "zbývá %s GB kreditu"),
+    ("fastshare", "no_credit"): (30637, "došel kredit"),
+    ("cztor", "ok"): (30638, "%s do %s"),
+    ("cztor", "expires_soon"): (30639, "předplatné končí za %s dní"),
+    ("cztor", "expired"): (30640, "předplatné vypršelo"),
+    ("cztor", "not_paired"): (30641, "zařízení není spárované"),
+    ("cztor", "unknown"): (30642, "stav účtu neznámý"),
+    ("sledujteto", "premium"): (30643, "Premium"),
+    ("sledujteto", "no_premium"): (30644, "účet bez Premium — přehrávání nepůjde"),
+    ("hellspy", "ok"): (30645, "v pořádku"),
+    ("hellspy", "paused"): (30646, "pozastaveno na %s min — odmítá dotazy z téhle sítě"),
+    ("storage", "ok"): (30647, "odpovídá"),
+}
+
+# co platí pro každý zdroj stejně (selhání kontroly, viz `engine._account_fail_code`)
+ACCOUNT_COMMON = {
+    "bad_login": (30648, "nesedí jméno nebo heslo"),
+    "unreachable": (30649, "neodpovídá"),
+    "error": (30650, "nepodařilo se zjistit stav"),
+}
+
+# co se v které hlášce dosazuje za %s (pořadí podle textu)
+ACCOUNT_ARGS = {
+    ("webshare", "vip"): ("until",),
+    ("webshare", "expires_soon"): ("days",),
+    ("fastshare", "credit"): ("gb",),
+    ("cztor", "ok"): ("plan", "until"),
+    ("cztor", "expires_soon"): ("days",),
+    ("hellspy", "paused"): ("minutes",),
+}
+
+
+def account_text(row):
+    """Stav jednoho zdroje jednou větou, bez jeho jména — to dodává volající."""
+    source, code = row["source"], row["code"]
+    if source == "luna":
+        sid, fallback = LUNA_DIAG_SHORT.get(code, (30168, "v pořádku") if code == "ok" else
+                                            LUNA_DIAG_SHORT["unreachable"])
+    else:
+        sid, fallback = ACCOUNT_TEXTS.get((source, code)) or ACCOUNT_COMMON.get(code) or ACCOUNT_COMMON["error"]
+    detail = row.get("detail") or {}
+    args = tuple(str(detail.get(k, "?")) for k in ACCOUNT_ARGS.get((source, code), ()))
+    try:
+        return L(sid, fallback) % args if args else L(sid, fallback)
+    except TypeError:   # překlad se zástupnými symboly nesouhlasí — radši holý text než pád
+        return L(sid, fallback)
+
+
+def account_line(row, color=True):
+    """„WebShare: předplatné končí za 3 dny" — jméno zdroje a stav, stav v barvě."""
+    tag = ACCOUNT_TAGS.get(row["source"]) or row["source"]
+    text = account_text(row)
+    if color:
+        text = f"[COLOR {ACCOUNT_COLORS.get(row['level'], ACCOUNT_COLORS[ACC_OK])}]{text}[/COLOR]"
+    return f"{tag}: {text}"
+
+
+# kam vede klik na řádek — rovnou tam, kde se to opravuje
+ACCOUNT_ACTIONS = {
+    "luna": {"": "luna_check"},
+    "cztor": {"not_paired": "cztor_pair", "": "cztor_status"},
+    "webshare": {"expires_soon": "sub_status", "expired": "sub_status", "": "settings"},
+}
+
+
+def account_action(row):
+    podle_zdroje = ACCOUNT_ACTIONS.get(row["source"]) or {}
+    return podle_zdroje.get(row["code"]) or podle_zdroje.get("") or "settings"
+
+
+def account_summary(rows, limit=3):
+    """Souhrn do jedné položky menu: „WebShare: předplatné končí za 3 dny · HellSpy: …"."""
+    bad = accounts_problems(rows)
+    if not bad:
+        return ""
+    texty = [account_line(r) for r in bad[:limit]]
+    if len(bad) > limit:
+        texty.append(f"[COLOR {GREY}]+{len(bad) - limit}[/COLOR]")
+    return " · ".join(texty)
+
+
+def accounts_refresh(apis):
+    """Obnova stavu účtů po síti — volá ji služba na pozadí přes JSON-RPC, stejnou
+    cestou jako zahřívání katalogů (služba vlastní jádro nemá).
+
+    Jeden dotaz na zdroj; HellSpy se neptá vůbec, jen si přečte svou pauzu po 429 —
+    právě opakovanými dotazy si doplněk blokaci dvakrát přivodil (6.0.2, 6.0.4).
+    """
+    try:
+        warn_days = int(setting("sub_warn_days") or 5)
+    except ValueError:
+        warn_days = 5
+    try:
+        engine_of(apis).refresh_accounts(warn_days=warn_days)
+    except Exception as e:  # noqa: BLE001 – obnova na pozadí nesmí nikdy nic shodit
+        log_error(f"obnova stavu zdrojů: {e}")
+    # jako u `prefetch()`: prázdný, ale úspěšně zavřený adresář, ať služba nedělá
+    # v každém kole řádek `error <general>: GetDirectory` v kodi.log
+    xbmcplugin.endOfDirectory(HANDLE, succeeded=True, cacheToDisc=False)
+
+
+def list_accounts(apis):
+    """Výpis stavu všech nastavených zdrojů — žádný modál, ten by z widgetu nebo
+    JSON-RPC neměl kdo zavřít a zablokoval by i vypínání Kodi."""
+    engine = engine_of(apis)
+    rows = engine.accounts()
+    for row in rows:
+        if row["level"] == ACC_OFF and row["code"] == "off":
+            continue    # zdroj je vypnutý schválně, není co hlásit
+        folder_item(account_line(row), build_url(action=account_action(row)),
+                    icon="DefaultAddonService.png")
+    folder_item(L(30167, "Ověřit zdroje"), build_url(action="test_sources"),
+                icon="DefaultAddonProgram.png")
+    folder_item(L(30392, "Nastavení"), build_url(action="settings"), icon="DefaultAddonProgram.png")
+    # bez cache na disk — stav se mění, zpět do menu by jinak ukázalo starý výpis
+    xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
 def luna_find_remote(values):
     """Najít Lunu ze stránky „Nastavit z mobilu“: běží ve vlákně serveru, jen vrátí adresu
     stránce — do nastavení se uloží až tlačítkem Uložit."""
@@ -3237,6 +3388,17 @@ def main_menu(apis):
         folder_item(L(30107), build_url(action="settings"), icon="DefaultAddonProgram.png")
         xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
         return
+    # Stav zdrojů úplně nahoře, ale jen když je co hlásit — jinak by tu u všech
+    # bez problému jen zabíral místo. Čte se z uloženého záznamu (obnovu dělá
+    # služba na pozadí), takže menu nezdrží. Souhrn je dlouhý, proto jde i do
+    # popisku položky, kde ho skin ukáže celý.
+    souhrn = account_summary(engine_of(apis).accounts())
+    if souhrn:
+        li = xbmcgui.ListItem(label=f"{L(30630, 'Stav zdrojů')}: {souhrn}")
+        li.setArt({"icon": "DefaultIconWarning.png", "thumb": "DefaultIconWarning.png"})
+        tag = li.getVideoInfoTag()
+        tag.setPlot(souhrn)
+        xbmcplugin.addDirectoryItem(HANDLE, build_url(action="accounts"), li, isFolder=True)
     # čistá instalace: průvodce nahoře jako položka. Spouštět ho z kořene sám od sebe
     # nejde — modální dialog v cestě, kterou otevírají widgety a JSON-RPC, blokuje
     # i vypínání Kodi (viz pravidlo v CLAUDE.md)
@@ -5298,6 +5460,10 @@ def router(query):
         apis = get_apis()
         if not action:
             main_menu(apis)
+        elif action == "accounts":
+            list_accounts(apis)
+        elif action == "accounts_refresh":
+            accounts_refresh(apis)
         elif action == "catalogs":
             list_catalogs(apis, p["type"], p.get("src", "luna"))
         elif action == "browse":

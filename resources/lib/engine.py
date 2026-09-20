@@ -19,6 +19,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 
 from abort import Aborted, check as check_stop, gather, never
+import accounts as accounts_lib
 from const import CONF_CZ_ENABLED, CONF_HS_ENABLED, DEFAULT_SORT, LANGS, SORT_ORDERS
 from cinemeta_api import CinemetaApi, CinemetaError
 from enrich import DEAD_IMAGES, _capped, _cinemeta, _fetch, _fetch_title, enrich, enrich_one
@@ -39,7 +40,7 @@ from cztor_api import CztorApi, CztorError
 from storage_api import StorageApi, StorageError, match_texts, parse_ref
 from wikidata_api import local_titles
 from mediainfo import describe as describe_media, probe as probe_media, quality_from_size
-from webshare_api import WebshareApi, WebshareError, human_size
+from webshare_api import WebshareApi, WebshareApiError, WebshareError, human_size
 
 WS_LIMIT = 25    # kolik souborů brát z fulltextu WebShare
 HS_LIMIT = 25    # totéž pro HellSpy
@@ -290,6 +291,16 @@ def split_episode_id(item_id):
     return str(item_id), None, None
 
 
+def _account_fail_code(err):
+    """Selhání kontroly účtu → kód. Rozlišuje „účet doplněk odmítl" od „nešlo se zeptat",
+    protože první chce zásah uživatele a druhé jen počkat."""
+    if isinstance(err, (WebshareError, SledujtetoError, FastshareError, CztorError)):
+        return "bad_login"
+    if isinstance(err, StorageError):
+        return "unreachable"
+    return "error"
+
+
 class Engine:
     """Přístup ke třem zdrojům obsahu pod jedním rozhraním."""
 
@@ -402,6 +413,12 @@ class Engine:
                     self.ws_error = err
                     _LOGGER.warning("WebShare login selhal, další pokus za %d s: %s", WS_RETRY_S, err)
                     self._ws_retry_after = time.time() + WS_RETRY_S
+                    # zadarmo a čerstvěji než obnova na pozadí: odmítnuté heslo je
+                    # jiná věc než výpadek sítě, uživatel u první musí zasáhnout
+                    self._note_account("webshare", {
+                        "level": accounts_lib.FAIL,
+                        "code": "bad_login" if isinstance(err, WebshareApiError) else "unreachable",
+                        "detail": {"error": str(err)[:120]}})
         return self._ws
 
     def check_subscription(self):
@@ -581,6 +598,98 @@ class Engine:
                 "cztor": self._cz_paired,
                 "storage": bool(self.storages),
                 "torrent": self.prowlarr is not None}
+
+    # --- stav účtů ----------------------------------------------------------
+    #
+    # Dvě metody schválně: `accounts()` nesahá na síť (čte ji menu v Kodi při
+    # každém otevření), `refresh_accounts()` ano a patří na pozadí. Detail
+    # v `lib/accounts.py`.
+
+    def accounts(self, ttl=accounts_lib.TTL):
+        """Stav účtů napříč zdroji **bez jediného dotazu na síť** — z toho, co
+        naposledy uložil `refresh_accounts()`, plus živá pauza HellSpy z disku.
+
+        Vrací seznam v pořadí `accounts.SOURCES`; texty si skládá volající.
+        """
+        saved = dict(self.store.load(accounts_lib.STORE, {}) or {})
+        if self._opt(CONF_HS_ENABLED, False):
+            # pauza po 429 je levná a mění se po minutách — brát ji z šestihodinového
+            # záznamu by znamenalo hlásit blokaci dávno po jejím konci
+            saved["hellspy"] = {**accounts_lib.hellspy(self.store), "ts": time.time()}
+        return accounts_lib.compose(saved, self.sources(), ttl=ttl)
+
+    def account_problems(self, ttl=accounts_lib.TTL):
+        """Jen zdroje, se kterými uživatel musí něco udělat (prázdné = vše v pořádku)."""
+        return accounts_lib.problems(self.accounts(ttl=ttl))
+
+    def _note_account(self, source, record):
+        """Zapíše stav zdroje zjištěný mimochodem při běžné práci — selhaný login
+        WebShare, 429 z HellSpy. Zadarmo a čerstvěji než obnova na pozadí."""
+        try:
+            with self.store.updating(accounts_lib.STORE, {}) as data:
+                data[source] = {**record, "ts": time.time()}
+        except Exception as err:  # noqa: BLE001 – stav účtů nesmí shodit hledání
+            _LOGGER.debug("stav účtu %s se neuložil: %s", source, err)
+
+    def _account_checks(self, only=None, warn_days=accounts_lib.WARN_DAYS, deep=True):
+        """{jméno zdroje: funkce bez parametrů} — jen zdroje, které jsou nastavené.
+        Klienti se zakládají tady (bez sítě), samotné dotazy dělá až `refresh_accounts`."""
+        chce = (lambda name: True) if only is None else (lambda name: name in set(only))
+        checks = {}
+        if chce("luna") and self._opt("luna_token"):
+            url, token = self._opt("luna_url"), self._opt("luna_token")
+            checks["luna"] = lambda: accounts_lib.luna(url, token, deep=deep)
+        if chce("webshare") and self._opt("ws_username").strip():
+            def ws_check():
+                api = self.ws
+                if api is None:
+                    raise WebshareError(str(self.ws_error or "přihlášení se nepovedlo"))
+                return accounts_lib.webshare(api, warn_days=warn_days)
+            checks["webshare"] = ws_check
+        if chce("cztor") and self._opt(CONF_CZ_ENABLED, False):
+            client = self.cztor_client()
+            checks["cztor"] = lambda: accounts_lib.cztor(client, warn_days=warn_days, deep=deep)
+        if chce("fastshare") and self.fs is not None:
+            checks["fastshare"] = lambda: accounts_lib.fastshare(self.fs)
+        if chce("sledujteto") and self.st is not None:
+            checks["sledujteto"] = lambda: accounts_lib.sledujteto(self.st)
+        if chce("hellspy") and self._opt(CONF_HS_ENABLED, False):
+            checks["hellspy"] = lambda: accounts_lib.hellspy(self.store)   # nikdy se neptá po síti
+        if chce("storage") and self.storages:
+            prvni = self.storages[0]
+            checks["storage"] = lambda: accounts_lib.storage(prvni)
+        return checks
+
+    def refresh_accounts(self, only=None, warn_days=accounts_lib.WARN_DAYS, deep=True,
+                         timeout=25, workers=4):
+        """Zjistí stav účtů po síti a uloží ho pro `accounts()`.
+
+        Patří na pozadí — služba v Kodi, časovač v HA. Jeden dotaz na zdroj;
+        HellSpy se neptá vůbec, jen si přečte vlastní pauzu. `only` omezí obnovu
+        na vyjmenované zdroje, `deep=False` vynechá to, co stojí víc než jeden
+        dotaz (ověření tokenu Luny dotazem na streamy, profil CZtoru).
+        """
+        checks = self._account_checks(only=only, warn_days=warn_days, deep=deep)
+        if not checks:
+            return self.accounts()
+        vysledky = {}
+        with ThreadPoolExecutor(max_workers=max(1, min(workers, len(checks)))) as pool:
+            futures = {name: pool.submit(fn) for name, fn in checks.items()}
+            for name, future in futures.items():
+                try:
+                    vysledky[name] = future.result(timeout=timeout)
+                except Exception as err:  # noqa: BLE001 – přesně tohle chceme uživateli ukázat
+                    _LOGGER.debug("stav účtu %s: %s", name, err)
+                    vysledky[name] = {"level": accounts_lib.FAIL, "code": _account_fail_code(err),
+                                      "detail": {"error": str(err)[:120]}}
+        now = time.time()
+        try:
+            with self.store.updating(accounts_lib.STORE, {}) as data:
+                for name, rec in vysledky.items():
+                    data[name] = {**rec, "ts": now}
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("stav účtů se neuložil: %s", err)
+        return self.accounts()
 
     def _streams_cache_key(self, ctype, item_id, alt=None):
         """Klíč 72h cache streamů — nese i otisk zapnutých zdrojů a účtů. Bez něj měl titul po

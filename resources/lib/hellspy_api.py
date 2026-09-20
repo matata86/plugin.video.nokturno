@@ -40,19 +40,37 @@ class HellspyRateLimited(HellspyError):
 
 # Po první 429 se HellSpy celému procesu přeskočí na tuhle dobu. Stavba katalogu s jazykem
 # (desítky kandidátů) jinak volala HellSpy znovu pro každý titul — 48 dotazů za pár sekund
-# s odpovědí 429 blokaci jen prodlužovalo. Stav je v paměti procesu, restart ho vynuluje.
+# s odpovědí 429 blokaci jen prodlužovalo.
 RATE_LIMIT_COOLDOWN = 10 * 60
+BLOCK_STORE = "hellspy_block"   # hellspy_block.json v profilu — pauza viditelná i pro ostatní procesy
 _blocked_until = 0.0
 
 
-def blocked_for():
-    """Kolik sekund ještě HellSpy nevolat (0 = lze)."""
-    return max(0.0, _blocked_until - time.time())
+def blocked_for(cache=None):
+    """Kolik sekund ještě HellSpy nevolat (0 = lze).
+
+    Paměť procesu stačí na jedno hledání, ale ne na celý doplněk: v Kodi je
+    plugin jiný interpret než služba na pozadí, takže bez disku by jeden
+    o pauze druhého nevěděl. S `cache` (úložiště jádra) se bere ta pozdější
+    z obou — stav zapsaný kterýmkoli procesem platí pro všechny.
+    """
+    konec = _blocked_until
+    if cache is not None and hasattr(cache, "load"):
+        try:
+            konec = max(konec, float((cache.load(BLOCK_STORE, {}) or {}).get("until") or 0))
+        except (OSError, ValueError, TypeError):
+            pass
+    return max(0.0, konec - time.time())
 
 
-def _block():
+def _block(cache=None):
     global _blocked_until
     _blocked_until = time.time() + RATE_LIMIT_COOLDOWN
+    if cache is not None and hasattr(cache, "save"):
+        try:
+            cache.save(BLOCK_STORE, {"until": _blocked_until})
+        except OSError:
+            pass   # pauza pak platí jen pro tenhle proces, což je pořád lepší než nic
 
 
 from streams import human_size  # noqa: F401
@@ -73,7 +91,7 @@ class HellspyApi:
         self._opener = urllib.request.build_opener(_KeepRedirect)
 
     def _get(self, path, **params):
-        if blocked_for() > 0:
+        if blocked_for(self.cache) > 0:
             err = HellspyRateLimited("HTTP 429 (pauza)")
             err.paused = True
             raise err
@@ -84,7 +102,7 @@ class HellspyApi:
                 return json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             if e.code == 429:
-                _block()
+                _block(self.cache)
                 raise HellspyRateLimited("HTTP 429") from e
             raise HellspyError(f"HTTP {e.code}") from e
         except Exception as e:  # noqa: BLE001 – síť, DNS, rozsypaný JSON

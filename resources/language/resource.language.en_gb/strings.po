@@ -1710,4 +1710,86 @@ msgstr ""
 
 msgctxt "#30610"
 msgid "Nothing to pick from"
+msgctxt "#30630"
+msgid "Source status"
+msgstr ""
+
+msgctxt "#30631"
+msgid "subscription until %s"
+msgstr ""
+
+msgctxt "#30632"
+msgid "subscription ends in %s days"
+msgstr ""
+
+msgctxt "#30633"
+msgid "subscription has expired"
+msgstr ""
+
+msgctxt "#30634"
+msgid "account without VIP — downloads at a few kB/s"
+msgstr ""
+
+msgctxt "#30635"
+msgid "unlimited downloads"
+msgstr ""
+
+msgctxt "#30636"
+msgid "%s GB of credit left"
+msgstr ""
+
+msgctxt "#30637"
+msgid "out of credit"
+msgstr ""
+
+msgctxt "#30638"
+msgid "%s until %s"
+msgstr ""
+
+msgctxt "#30639"
+msgid "subscription ends in %s days"
+msgstr ""
+
+msgctxt "#30640"
+msgid "subscription has expired"
+msgstr ""
+
+msgctxt "#30641"
+msgid "the device is not paired"
+msgstr ""
+
+msgctxt "#30642"
+msgid "account status unknown"
+msgstr ""
+
+msgctxt "#30643"
+msgid "Premium"
+msgstr ""
+
+msgctxt "#30644"
+msgid "account without Premium — playback will not work"
+msgstr ""
+
+msgctxt "#30645"
+msgid "all good"
+msgstr ""
+
+msgctxt "#30646"
+msgid "paused for %s min — it is refusing requests from this network"
+msgstr ""
+
+msgctxt "#30647"
+msgid "responding"
+msgstr ""
+
+msgctxt "#30648"
+msgid "the username or password does not match"
+msgstr ""
+
+msgctxt "#30649"
+msgid "not responding"
+msgstr ""
+
+msgctxt "#30650"
+msgid "the status could not be determined"
 msgstr ""

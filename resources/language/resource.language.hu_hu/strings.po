@@ -1709,3 +1709,86 @@ msgstr "Véletlen sorozat"
 msgctxt "#30610"
 msgid "Nothing to pick from"
 msgstr "Nincs miből választani"
+msgctxt "#30630"
+msgid "Source status"
+msgstr "Források állapota"
+
+msgctxt "#30631"
+msgid "subscription until %s"
+msgstr "előfizetés eddig: %s"
+
+msgctxt "#30632"
+msgid "subscription ends in %s days"
+msgstr "az előfizetés %s nap múlva lejár"
+
+msgctxt "#30633"
+msgid "subscription has expired"
+msgstr "az előfizetés lejárt"
+
+msgctxt "#30634"
+msgid "account without VIP — downloads at a few kB/s"
+msgstr "VIP nélküli fiók — a letöltés csak pár kB/s"
+
+msgctxt "#30635"
+msgid "unlimited downloads"
+msgstr "korlátlan letöltés"
+
+msgctxt "#30636"
+msgid "%s GB of credit left"
+msgstr "%s GB kredit maradt"
+
+msgctxt "#30637"
+msgid "out of credit"
+msgstr "elfogyott a kredit"
+
+msgctxt "#30638"
+msgid "%s until %s"
+msgstr "%s eddig: %s"
+
+msgctxt "#30639"
+msgid "subscription ends in %s days"
+msgstr "az előfizetés %s nap múlva lejár"
+
+msgctxt "#30640"
+msgid "subscription has expired"
+msgstr "az előfizetés lejárt"
+
+msgctxt "#30641"
+msgid "the device is not paired"
+msgstr "az eszköz nincs párosítva"
+
+msgctxt "#30642"
+msgid "account status unknown"
+msgstr "a fiók állapota ismeretlen"
+
+msgctxt "#30643"
+msgid "Premium"
+msgstr "Premium"
+
+msgctxt "#30644"
+msgid "account without Premium — playback will not work"
+msgstr "Premium nélküli fiók — a lejátszás nem fog működni"
+
+msgctxt "#30645"
+msgid "all good"
+msgstr "rendben"
+
+msgctxt "#30646"
+msgid "paused for %s min — it is refusing requests from this network"
+msgstr "%s percre szüneteltetve — elutasítja a kéréseket erről a hálózatról"
+
+msgctxt "#30647"
+msgid "responding"
+msgstr "válaszol"
+
+msgctxt "#30648"
+msgid "the username or password does not match"
+msgstr "a felhasználónév vagy a jelszó nem egyezik"
+
+msgctxt "#30649"
+msgid "not responding"
+msgstr "nem válaszol"
+
+msgctxt "#30650"
+msgid "the status could not be determined"
+msgstr "az állapot nem állapítható meg"

@@ -46,13 +46,14 @@ from cztor_api import CztorApi  # noqa: E402
 from sosac_direct import SosacDirect  # noqa: E402
 from stats import COLLECT_URL, Stats  # noqa: E402
 from crash import CRASH_URL, CrashReporter  # noqa: E402
+import accounts as accounts_lib  # noqa: E402
 from storage_api import StorageApi, parse_ref  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
 from sync import sync_once  # noqa: E402
 from trend_api import CATALOG_ID as TREND_CATALOG_ID  # noqa: E402
 from tracks import SUBS_WHEN_NEEDED, pick_audio, pick_subtitle, track_lang  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
-from webshare_api import WebshareApi, WebshareError  # noqa: E402
+from webshare_api import WebshareApi  # noqa: E402
 import kodi_marks  # noqa: E402 – vedle service.py, čte videodatabázi Kodi
 
 PROP = "nokturno.playing"
@@ -65,6 +66,8 @@ FORCE_STATS_PROP = "nokturno.force_stats"   # plugin → služba: aktualizace do
 SYNC_EVERY = 5 * 60   # výměna s HA; změny (dokoukáno, Můj seznam) ji vyvolají hned
 KODI_MARKS_EVERY = 60   # s – „Označit jako zhlédnuté“ ze skinu, viz KodiMarks
 SUB_CHECK_EVERY = 12 * 3600   # jak často se ptát WebShare na stav předplatného
+ACCOUNTS_DELAY = 240      # po startu Kodi napřed skin a widgety, teprve pak stav účtů
+ACCOUNTS_EVERY = 6 * 3600     # pod `accounts.TTL` (12 h), ať v menu nestojí zastaralý stav
 WATCHED_PCT = 0.90
 MIN_RESUME = 90  # s – po takové době přehrávání patří titul do rozkoukaných
 SAVE_EVERY = 30  # s – jak často se za běhu přepisuje pozice rozkoukaného
@@ -503,50 +506,66 @@ class Downloader(threading.Thread):
 
 # --- synchronizace přes Home Assistant ----------------------------------------------
 
-class SubscriptionChecker:
-    """Jednou za den upozorní, že WebShare předplatné brzy vyprší nebo už vypršelo.
+class AccountsChecker:
+    """Obnoví stav účtů napříč zdroji a upozorní na končící předplatné WebShare.
 
-    Kontroluje se přes síť jen `SUB_CHECK_EVERY`, ale upozornění samo se ukáže
-    nejvýš jednou za kalendářní den (`last_warned`) — jinak by vyskakovalo při
-    každém startu Kodi i uvnitř jednoho dne.
+    Obnova jde přes plugin (`action=accounts_refresh`) stejnou cestou jako zahřívání
+    katalogů — služba vlastní jádro nemá a plugin už všechny klienty zdrojů má
+    postavené. Výsledek si plugin uloží do `accounts.json`, odkud ho menu čte bez
+    jediného dotazu na síť.
+
+    Nahradila dřívější `SubscriptionChecker`, která se na totéž ptala WebShare sama:
+    kontrola předplatného je teď jen jeden ze sedmi zdrojů v jedné obnově, takže
+    dotazů na WebShare nepřibylo. Upozornění se ukáže nejvýš jednou za kalendářní
+    den (`last_warned`), jinak by vyskakovalo při každém startu Kodi.
     """
 
     def __init__(self, store):
         self.store = store
-        self.next = time.time() + 30
+        self.next = time.time() + ACCOUNTS_DELAY
 
     def tick(self):
         if time.time() < self.next:
             return
-        self.next = time.time() + SUB_CHECK_EVERY
+        self.next = time.time() + ACCOUNTS_EVERY
+        if xbmc.Player().isPlaying():
+            self.next = time.time() + WARM_RETRY   # obnova zdrojů počká, až se dokouká
+            return
+
+        def run():
+            try:
+                rpc_directory("plugin://plugin.video.nokturno/?action=accounts_refresh")
+            except Exception as e:  # noqa: BLE001 – stav účtů nesmí shodit službu
+                log(f"obnova stavu zdrojů: {e}", xbmc.LOGWARNING)
+                return
+            self.warn_subscription()
+
+        threading.Thread(target=run, daemon=True).start()
+
+    def warn_subscription(self):
+        """Upozornění na končící nebo proběhlé předplatné WebShare — jediný stav,
+        který si zaslouží vyskočit sám; zbytek uživatel najde v menu."""
         addon = fresh_addon()
         if addon is None or addon.getSetting("ws_enabled") != "true":
-            return
-        user, pw = addon.getSetting("ws_username").strip(), addon.getSetting("ws_password").strip()
-        if not user or not pw:
             return
         try:
             warn_days = int(addon.getSetting("sub_warn_days") or 5)
         except ValueError:
             warn_days = 5
-
-        def run():
-            try:
-                status = WebshareApi(user, pw).account_status()
-            except WebshareError as e:
-                log(f"stav předplatného WebShare: {e}", xbmc.LOGWARNING)
-                return
-            days = status["days"] if status["vip"] else 0
-            if days > warn_days:
-                return   # v pořádku, není co hlásit
-            today = time.strftime("%Y-%m-%d")
-            state = self.store.reload(SUB_STATE, {})
-            if state.get("last_warned") == today:
-                return
-            self.store.save(SUB_STATE, {"last_warned": today})
-            msg = Lf(30236, days) if status["vip"] else L(30237, "WebShare předplatné vypršelo.")
-            xbmcgui.Dialog().notification(L(30000), msg, xbmcgui.NOTIFICATION_WARNING, 8000)
-        threading.Thread(target=run, daemon=True).start()
+        saved = self.store.reload(accounts_lib.STORE, {}) or {}
+        rec = saved.get("webshare") or {}
+        days = int((rec.get("detail") or {}).get("days") or 0)
+        if rec.get("code") == "expires_soon" and days > warn_days:
+            return      # obnova počítala s jiným prahem, než je teď v nastavení
+        if rec.get("code") not in ("expires_soon", "expired", "free"):
+            return
+        today = time.strftime("%Y-%m-%d")
+        state = self.store.reload(SUB_STATE, {})
+        if state.get("last_warned") == today:
+            return
+        self.store.save(SUB_STATE, {"last_warned": today})
+        msg = Lf(30236, days) if rec["code"] == "expires_soon" else L(30237, "WebShare předplatné vypršelo.")
+        xbmcgui.Dialog().notification(L(30000), msg, xbmcgui.NOTIFICATION_WARNING, 8000)
 
 
 SUB_STATE = "substate"   # substate.json v profilu: {"last_warned": "YYYY-MM-DD"}
@@ -1093,7 +1112,7 @@ def main():
     threading.Thread(target=lang_warmer, args=(monitor,), daemon=True).start()
     threading.Thread(target=lang_trigger_watcher, args=(monitor,), daemon=True).start()
     syncer = Syncer(store)
-    sub_checker = SubscriptionChecker(store)
+    accounts_checker = AccountsChecker(store)
     marks = KodiMarks(store)
     crash_sender = CrashSender(CrashReporter(PROFILE))
     log("start")
@@ -1103,7 +1122,7 @@ def main():
             player.tick()
             stats_tick(stats)
             syncer.tick()
-            sub_checker.tick()
+            accounts_checker.tick()
             marks.tick()
             crash_sender.tick()
             if monitor.waitForAbort(POLL):
