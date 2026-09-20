@@ -76,6 +76,8 @@ WARM_PROP = "nokturno.warm"    # plugin při zahřívání cache API jen zapisuj
 WARM_RETRY = 10 * 60      # když se zrovna přehrává, zahřívání počká
 LANG_WARM_DELAY = 300     # živé ověřování zdrojů je dražší než ostatní zahřívání, ať nestartuje současně s ním
 LANG_WARM_EVERY = 6 * 3600     # pod `LANG_CATALOG_TTL` (8 h) v default.py, ať uživatel nenarazí na živý přepočet
+FORYOU_SEEN_KEY = "foryou_seen"      # stejný literál jako v default.py (note_foryou_open)
+FORYOU_SEEN_DAYS = 14                # a stejná lhůta jako LANG_SEEN_DAYS níž
 LANG_SEEN_KEY = "lang_catalog_seen"   # stejný literál jako v default.py (note_lang_catalog_open)
 LANG_SEEN_DAYS = 14                  # a stejná lhůta — kdo seznam neotevřel, tomu se nezahřívá
 LANG_TRIGGER_PROP = "nokturno.lang_trigger"  # stejný literál jako v default.py (lang_catalog_trigger) —
@@ -656,7 +658,27 @@ def warm_urls():
             urls.append(base.format(src="luna", t=t, c=f"tmdb.top_rated_{t}"))
         # vlastní žebříček (dashboard) — bez ohledu na TMDB/Lunu, funguje vždycky stejně
         urls.append(base.format(src="trend", t=t, c=TREND_CATALOG_ID))
-    return urls
+    return urls + foryou_warm_urls()
+
+
+def foryou_warm_urls():
+    """„Pro tebe" — doporučení k naposledy zhlédnutým (`default.list_foryou`).
+
+    Patří do `warm_urls()` (2,5 h), ne mezi jazykové katalogy: je to jen TMDB, žádné
+    hledání ve zdrojích. **Jen pro typ, který uživatel za posledních `FORYOU_SEEN_DAYS`
+    dní otevřel** (`default.note_foryou_open`) — u instalace, která „Pro tebe" nikdy
+    neotevřela, by šlo o dotazy na TMDB, které nikdo neuvidí. Totéž pravidlo jako
+    u `lang_warm_urls()` níž (audit 2026-09-19, nález 12).
+
+    Cache doporučení platí 24 h a přepočítá se, jen když by do dalšího kola zahřívání
+    nevydržela (`default.FORYOU_REFRESH_AFTER`) nebo když uživatel mezitím něco
+    dokoukal a změnily se vzory."""
+    store = Store(PROFILE)
+    seen = store.load(FORYOU_SEEN_KEY, {}) or {}
+    ted = time.time()
+    base = "plugin://plugin.video.nokturno/?action=foryou&type={t}"
+    return [base.format(t=t) for t in ("movie", "series")
+            if ted - (seen.get(t) or 0) < FORYOU_SEEN_DAYS * 86400]
 
 
 def lang_warm_urls():

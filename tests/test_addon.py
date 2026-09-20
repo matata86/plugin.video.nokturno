@@ -1429,9 +1429,207 @@ class TestMenuAZahrivani(unittest.TestCase):
         """2026-09-15 (druhé kolo): obě jdou přes `list_genres()` — uživatel dřív
         neměl jak si Populární/Nejlépe hodnocené přefiltrovat podle žánru."""
         default.browse_menu({"tmdb": object(), "sosac_db": None, "luna": None, "cinemeta": None}, "movie")
-        podle_katalogu = {params_of(u)["catalog"]: params_of(u)["action"] for u in xbmcplugin.urls()}
+        # `.get()`: menu má od „Pro tebe"/„Náhodný film" i položky bez `catalog`
+        podle_katalogu = {params_of(u).get("catalog"): params_of(u)["action"] for u in xbmcplugin.urls()}
         self.assertEqual(podle_katalogu.get("popular"), "genres")
         self.assertEqual(podle_katalogu.get("top_rated"), "genres")
+
+
+class FakeTmdb:
+    """Jen to, co „Pro tebe" a „Náhodný film" z TMDB potřebují."""
+
+    def __init__(self, podobne=None, katalog=None, zanry=("Komedie", "Drama"), chyba=None):
+        self.podobne = podobne or {}
+        self.katalog = katalog or []
+        self.zanry = list(zanry)
+        self.chyba = chyba
+        self.similar_volani = []
+        self.catalog_volani = []
+
+    def similar(self, ctype, imdb_id, limit=40):
+        self.similar_volani.append((ctype, imdb_id, limit))
+        if self.chyba:
+            raise self.chyba
+        return self.podobne.get(imdb_id, [])[:limit]
+
+    def catalogs(self, ctype):
+        return [{"id": "popular", "name": "Populární", "genres": self.zanry}]
+
+    def catalog(self, ctype, cid, genre=None, search=None, skip=0):
+        self.catalog_volani.append((cid, genre, skip))
+        return list(self.katalog)
+
+
+def meta_item(iid, name=None, **extra):
+    return dict({"id": iid, "name": name or iid, "_title": name or iid, "type": "movie",
+                 "year": "2020", "description": "popis", "poster": "", "background": "",
+                 "genres": ["Komedie"]}, **extra)
+
+
+class TestProTebe(unittest.TestCase):
+    """„Pro tebe" (6.3.0) — doporučení TMDB k naposledy zhlédnutým, počítaná u klienta
+    z `watched` v profilu. Sleduje se hlavně to, co audit u katalogů hlídá pořád dokola:
+    kolik se toho opravdu tahá ze sítě a co se stane, když zdroj neodpoví."""
+
+    def setUp(self):
+        reset_kodi()
+        default.STORE.save("watched", {})
+        default.STORE.save("items", {})
+        default.STORE.save(default.FORYOU_SEEN_KEY, {})
+        default.STORE.clear_cache()
+
+    def videno(self, *keys):
+        for key in keys:
+            default.STORE.set_watched(key)
+
+    def test_serial_je_jeden_vzor_a_typ_se_nepopletl(self):
+        self.videno("tt0000001", "tt0000002:1:1", "tt0000002:1:2")
+        self.assertEqual(default.foryou_seeds({}, "movie"), ["tt0000001"])
+        self.assertEqual(default.foryou_seeds({}, "series"), ["tt0000002"])
+
+    def test_doporuceni_z_tmdb_bez_uz_videnych(self):
+        self.videno("tt0000001", "tt0000009")
+        tmdb = FakeTmdb({"tt0000009": [meta_item("tt0000003"), meta_item("tt0000001")],
+                         "tt0000001": [meta_item("tt0000004")]})
+        default.list_foryou({"tmdb": tmdb, "dash": None}, "movie")
+        ids = {params_of(u).get("id") for u in xbmcplugin.urls()}
+        self.assertEqual(ids, {"tt0000003", "tt0000004"})   # tt0000001 je vzor i zhlédnuté
+
+    def test_druhe_otevreni_uz_na_tmdb_nesaha(self):
+        self.videno("tt0000001")
+        tmdb = FakeTmdb({"tt0000001": [meta_item("tt0000003")]})
+        default.list_foryou({"tmdb": tmdb, "dash": None}, "movie")
+        xbmcplugin.reset()
+        default.list_foryou({"tmdb": tmdb, "dash": None}, "movie")
+        self.assertEqual(len(tmdb.similar_volani), 1)
+        self.assertEqual([params_of(u).get("id") for u in xbmcplugin.urls()], ["tt0000003"])
+
+    def test_novy_zhlednuty_titul_cache_zneplatni(self):
+        self.videno("tt0000001")
+        tmdb = FakeTmdb({"tt0000001": [meta_item("tt0000003")], "tt0000002": [meta_item("tt0000004")]})
+        default.list_foryou({"tmdb": tmdb, "dash": None}, "movie")
+        self.videno("tt0000002")
+        xbmcplugin.reset()
+        default.list_foryou({"tmdb": tmdb, "dash": None}, "movie")
+        self.assertEqual({params_of(u).get("id") for u in xbmcplugin.urls()}, {"tt0000003", "tt0000004"})
+
+    def test_vypadek_tmdb_ukaze_posledni_znamy_stav(self):
+        self.videno("tt0000001")
+        tmdb = FakeTmdb({"tt0000001": [meta_item("tt0000003")]})
+        default.list_foryou({"tmdb": tmdb, "dash": None}, "movie")
+        self.videno("tt0000002")          # jiné vzory → cache už nesedí
+        rozbity = FakeTmdb(chyba=default.TmdbError("nope"))
+        xbmcplugin.reset()
+        default.list_foryou({"tmdb": rozbity, "dash": None}, "movie")
+        self.assertEqual([params_of(u).get("id") for u in xbmcplugin.urls()], ["tt0000003"])
+
+    def test_po_vypadku_se_nezkousi_znovu_hned(self):
+        self.videno("tt0000001")
+        rozbity = FakeTmdb(chyba=default.TmdbError("nope"))
+        default.list_foryou({"tmdb": rozbity, "dash": None}, "movie")
+        default.list_foryou({"tmdb": rozbity, "dash": None}, "movie")
+        self.assertEqual(len(rozbity.similar_volani), 1)   # značka výpadku drží 5 minut
+
+    def test_bez_klice_tmdb_se_pta_dashboardu(self):
+        self.videno("tt0000001")
+
+        class FakeDash:
+            def __init__(self):
+                self.volani = []
+
+            def similar(self, ctype, imdb_id):
+                self.volani.append((ctype, imdb_id))
+                return [meta_item("tt0000005")]
+
+        dash = FakeDash()
+        default.list_foryou({"tmdb": None, "dash": dash}, "movie")
+        self.assertEqual(dash.volani, [("movie", "tt0000001")])
+        self.assertEqual([params_of(u).get("id") for u in xbmcplugin.urls()], ["tt0000005"])
+
+    def test_protoze_jsi_videl_je_ze_snimku_bez_dotazu(self):
+        self.videno("tt0000001")
+        default.STORE.remember_item("tt0000001", {"title": "Matrix (1999)", "year": "1999", "type": "movie"})
+        tmdb = FakeTmdb({"tt0000001": [meta_item("tt0000003")]})
+        default.list_foryou({"tmdb": tmdb, "dash": None}, "movie")
+        tag = xbmcplugin.items[0][2].getVideoInfoTag()
+        plot = next(args[0] for name, args, _kw in tag.calls if name == "setPlot")
+        self.assertIn("Matrix", plot.split("\n")[0])
+        self.assertNotIn("1999", plot.split("\n")[0])   # rok kreslí Label2, ne název
+
+    def test_bez_historie_se_polozka_v_menu_neukaze(self):
+        apis = {"tmdb": None, "sosac_db": None, "luna": None, "cinemeta": None, "dash": None}
+        default.browse_menu(apis, "movie")
+        self.assertNotIn("foryou", [params_of(u).get("action") for u in xbmcplugin.urls()])
+        self.videno("tt0000001")
+        xbmcplugin.reset()
+        default.browse_menu(apis, "movie")
+        self.assertIn("foryou", [params_of(u).get("action") for u in xbmcplugin.urls()])
+
+    def test_zahriva_se_jen_otevreny_typ(self):
+        self.assertEqual(service.foryou_warm_urls(), [])
+        default.note_foryou_open("movie")
+        self.assertEqual([params_of(u)["type"] for u in service.foryou_warm_urls()], ["movie"])
+        default.STORE.save(default.FORYOU_SEEN_KEY,
+                           {"movie": int(time.time()) - (default.FORYOU_SEEN_DAYS + 1) * 86400})
+        self.assertEqual(service.foryou_warm_urls(), [])
+
+
+class TestNahodnyTitul(unittest.TestCase):
+    """„Náhodný film" (6.3.0) — ne-složka, takže z výpisu ani z widgetu nevznikne modál."""
+
+    def setUp(self):
+        reset_kodi()
+        default.STORE.save("watched", {})
+        default.STORE.save("items", {})
+        default.STORE.clear_cache()
+
+    def test_polozka_v_menu_je_ne_slozka(self):
+        apis = {"tmdb": None, "sosac_db": None, "luna": None, "cinemeta": None, "dash": None}
+        default.browse_menu(apis, "movie")
+        nahodny = [(u, folder) for _h, u, _li, folder in xbmcplugin.items
+                   if params_of(u).get("action") == "random"]
+        self.assertEqual(len(nahodny), 1)
+        self.assertFalse(nahodny[0][1])
+
+    def test_zanr_se_bere_z_toho_co_uzivatel_videl(self):
+        default.STORE.set_watched("tt0000001")
+        default.STORE.remember_item("tt0000001", {"title": "X", "type": "movie", "genres": ["Drama"]})
+        tmdb = FakeTmdb(katalog=[meta_item("tt0000007")], zanry=("Komedie", "Drama"))
+        meta, genre = default.random_pick({"tmdb": tmdb}, "movie")
+        self.assertEqual(meta["id"], "tt0000007")
+        self.assertEqual(genre, "Drama")
+        self.assertEqual(tmdb.catalog_volani[0][1], "Drama")
+
+    def test_zanr_ktery_zdroj_nenabizi_se_nepouzije(self):
+        default.STORE.set_watched("tt0000001")
+        default.STORE.remember_item("tt0000001", {"title": "X", "type": "movie", "genres": ["Comedy"]})
+        tmdb = FakeTmdb(katalog=[meta_item("tt0000007")], zanry=("Komedie",))
+        _meta, genre = default.random_pick({"tmdb": tmdb}, "movie")
+        self.assertEqual(genre, "")
+
+    def test_klik_ve_vypisu_otevre_dialog_vyberu_streamu(self):
+        tmdb = FakeTmdb(katalog=[meta_item("tt0000007")])
+        with mock.patch.object(default, "HANDLE", -1), \
+                mock.patch.object(default, "pick_title") as pick, \
+                mock.patch.object(default, "play") as play:
+            default.random_title({"tmdb": tmdb}, "movie")
+        pick.assert_called_once()
+        self.assertEqual(pick.call_args[0][2], "tt0000007")
+        play.assert_not_called()
+
+    def test_prehrat_ze_skinu_jde_pres_play(self):
+        tmdb = FakeTmdb(katalog=[meta_item("tt0000007")])
+        with mock.patch.object(default, "play") as play, mock.patch.object(default, "pick_title") as pick:
+            default.random_title({"tmdb": tmdb}, "movie")
+        play.assert_called_once()
+        self.assertEqual(play.call_args[1].get("ask"), "1")
+        pick.assert_not_called()
+
+    def test_bez_zdroje_jen_oznameni_a_neuspesny_konec(self):
+        with mock.patch.object(default, "play") as play:
+            default.random_title({"tmdb": None, "luna": None, "cinemeta": None}, "movie")
+        play.assert_not_called()
+        self.assertEqual(xbmcplugin.resolved[-1][1], False)
 
 
 class FakeSosacDb:

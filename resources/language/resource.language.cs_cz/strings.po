@@ -1688,3 +1688,27 @@ msgstr "Soubor se nepodařilo zapsat: %s"
 msgctxt "#30604"
 msgid "The file could not be read: %s"
 msgstr "Soubor se nepodařilo přečíst: %s"
+
+msgctxt "#30605"
+msgid "For you"
+msgstr "Pro tebe"
+
+msgctxt "#30606"
+msgid "Because you watched %s"
+msgstr "Protože jsi viděl: %s"
+
+msgctxt "#30607"
+msgid "Nothing to recommend yet — watch something and come back."
+msgstr "Zatím nemám z čeho doporučovat — něco si pusť a vrať se."
+
+msgctxt "#30608"
+msgid "Random movie"
+msgstr "Náhodný film"
+
+msgctxt "#30609"
+msgid "Random series"
+msgstr "Náhodný seriál"
+
+msgctxt "#30610"
+msgid "Nothing to pick from"
+msgstr "Nemám z čeho losovat"

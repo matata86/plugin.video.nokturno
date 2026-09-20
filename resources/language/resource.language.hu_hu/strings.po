@@ -1685,3 +1685,27 @@ msgstr "A fájlt nem sikerült megírni: %s"
 msgctxt "#30604"
 msgid "The file could not be read: %s"
 msgstr "A fájlt nem sikerült beolvasni: %s"
+
+msgctxt "#30605"
+msgid "For you"
+msgstr "Neked"
+
+msgctxt "#30606"
+msgid "Because you watched %s"
+msgstr "Mert ezt nézted: %s"
+
+msgctxt "#30607"
+msgid "Nothing to recommend yet — watch something and come back."
+msgstr "Még nincs miből ajánlanom — nézz meg valamit, és gyere vissza."
+
+msgctxt "#30608"
+msgid "Random movie"
+msgstr "Véletlen film"
+
+msgctxt "#30609"
+msgid "Random series"
+msgstr "Véletlen sorozat"
+
+msgctxt "#30610"
+msgid "Nothing to pick from"
+msgstr "Nincs miből választani"

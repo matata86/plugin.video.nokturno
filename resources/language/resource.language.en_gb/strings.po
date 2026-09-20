@@ -1687,3 +1687,27 @@ msgstr ""
 msgctxt "#30604"
 msgid "The file could not be read: %s"
 msgstr ""
+
+msgctxt "#30605"
+msgid "For you"
+msgstr ""
+
+msgctxt "#30606"
+msgid "Because you watched %s"
+msgstr ""
+
+msgctxt "#30607"
+msgid "Nothing to recommend yet — watch something and come back."
+msgstr ""
+
+msgctxt "#30608"
+msgid "Random movie"
+msgstr ""
+
+msgctxt "#30609"
+msgid "Random series"
+msgstr ""
+
+msgctxt "#30610"
+msgid "Nothing to pick from"
+msgstr ""

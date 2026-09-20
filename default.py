@@ -13,6 +13,7 @@ import base64
 import json
 import logging
 import os
+import random
 import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import struct
@@ -45,12 +46,13 @@ from dash_api import DashApi  # noqa: E402
 from sosac_api import SosacError, is_sosac_id as _is_stremio_sosac_id  # noqa: E402
 from sosac_direct import EXPORT as SOSAC_EXPORT, SosacDirect, is_direct_id  # noqa: E402
 from enrich import enrich, enrich_one, shutdown_pool as release_enrich  # noqa: E402
+import foryou  # noqa: E402
 from hellspy_api import HellspyApi, HellspyError  # noqa: E402
 from sledujteto_api import SledujtetoApi, SledujtetoError  # noqa: E402
 from fastshare_api import FastshareApi, FastshareError  # noqa: E402
 from cztor_api import CztorApi, CztorError  # noqa: E402
 from storage_api import SLOTS as STORAGE_SLOTS, StorageApi, StorageError, parse_ref  # noqa: E402
-from store import Store, migrate_profile  # noqa: E402
+from store import WATCHED_MAX, Store, migrate_profile  # noqa: E402
 from source_errors import describe_failure, summarize as summarize_failures  # noqa: E402
 from sync import sync_once  # noqa: E402
 from streams import estimate_rank, langs_from_name, parse_stream, subs_from_name  # noqa: E402
@@ -185,6 +187,22 @@ LANG_LOCK_WAIT = 90    # s – radši počkat na cizí přepočet, než ho spust
 LANG_LOCK_POLL = 1     # s – jak často se během čekání kontroluje, jestli zámek zase zmizel
 LANG_LOCK_STALE = 8 * 60  # s – nejdelší pozorovaný běh byl pod 4 min (60 kandidátů); zámek starší
                           # než tohle je nejspíš od procesu, co ho Kodi zabilo, ne od živého výpočtu
+# „Pro tebe" — doporučení k naposledy zhlédnutým titulům (TMDB `recommendations`,
+# bez vlastního klíče přes dashboard `/similar`). Je to řádově levnější než jazykové
+# katalogy výš (žádné hledání ve zdrojích, jen TMDB, a detaily titulů má 30denní cache
+# sdílená se všemi katalogy), ale platí tu totéž pravidlo: na pozadí se zahřívá jen typ,
+# který uživatel za posledních `FORYOU_SEEN_DAYS` dní otevřel (audit 2026-09-19, nález 12).
+FORYOU_TTL = 24 * 3600
+FORYOU_SEEN_KEY = "foryou_seen"
+FORYOU_SEEN_DAYS = 14
+# O kolik dřív než vyprší cache ji zahřívání přepočítá — musí být aspoň interval
+# zahřívání (`service.WARM_EVERY`, 2,5 h), jinak kolo jen přečte platnou cache a nechá
+# ji vypršet mezi dvěma koly (tatáž past jako u `LANG_REFRESH_AFTER`, 6.2.2 nález 29).
+FORYOU_REFRESH_AFTER = FORYOU_TTL - 3 * 3600
+FORYOU_DOWN_KEY = "nokturno:foryou:down"   # značka výpadku, vzor `trend_api.DOWN_KEY`
+FORYOU_DOWN_TTL = 300
+FORYOU_STALE_TTL = 14 * 86400   # jak staré doporučení se ještě ukáže, když TMDB neodpoví
+FORYOU_PAGES = 5   # z kolika stránek katalogu se losuje „Náhodný film" (víc = pestřejší)
 CZECH_LANGS = {"CZ", "SK"}
 SOSAC_TAG = "[COLOR FFE0A040]Sosáč[/COLOR]"
 HS_TAG = "[COLOR FFFF8A6B]HellSpy[/COLOR]"
@@ -272,6 +290,19 @@ def note_lang_catalog_open(ctype):
 def lang_catalog_wanted(ctype, days=LANG_SEEN_DAYS):
     """Otevřel uživatel tenhle seznam za posledních `days` dní?"""
     kdy = (STORE.load(LANG_SEEN_KEY, {}) or {}).get(str(ctype)) or 0
+    return bool(kdy) and time.time() - kdy < days * 86400
+
+
+def note_foryou_open(ctype):
+    """Zapamatuje, že uživatel otevřel „Pro tebe" — podle toho se rozhoduje, jestli
+    má služba seznam zahřívat na pozadí (viz `service.foryou_warm_urls`)."""
+    with STORE.updating(FORYOU_SEEN_KEY, {}) as seen:
+        seen[str(ctype)] = int(time.time())
+
+
+def foryou_wanted(ctype, days=FORYOU_SEEN_DAYS):
+    """Otevřel uživatel „Pro tebe" za posledních `days` dní?"""
+    kdy = (STORE.load(FORYOU_SEEN_KEY, {}) or {}).get(str(ctype)) or 0
     return bool(kdy) and time.time() - kdy < days * 86400
 
 
@@ -3265,6 +3296,11 @@ def browse_menu(apis, ctype):
             return "cinemeta", cinemeta_cid, None
         return None
 
+    # „Pro tebe" jen když je z čeho doporučovat — prázdný seznam by jen mátl. Seznam
+    # vzorů se čte z profilu (`watched`), žádná síť, takže kreslení menu to nezdrží.
+    if foryou_seeds(apis, ctype, limit=1):
+        folder_item(L(30605, "Pro tebe"), build_url(action="foryou", type=ctype),
+                    icon="DefaultAddonsRecentlyUpdated.png")
     rows = [
         (L(30398, "Populární na TMDB"), "genres", pick("popular", f"tmdb.top_{kind}", "top"), "DefaultMovies.png"),
         (L(30393, "Nejsledovanější tento týden"), "catalog", ("trend", TREND_CATALOG_ID, None),
@@ -3291,6 +3327,13 @@ def browse_menu(apis, ctype):
             params["genre"] = genre
         folder_item(label, build_url(**params), icon=icon)
     dash_catalog_items(apis, "browse", kind)
+    # „Náhodný film/seriál" je ne-složka: klik ji Kodi spustí jako skript s handle −1
+    # a `random_title()` rovnou otevře dialog výběru streamu — ve výpisu se tedy žádný
+    # modál neotevře a widget ani JSON-RPC se sem nedostanou (vzor `tv_pick`).
+    nahodny = xbmcgui.ListItem(label=L(30609, "Náhodný seriál") if ctype == "series"
+                               else L(30608, "Náhodný film"))
+    nahodny.setArt({"icon": "DefaultAddonsUpdates.png", "thumb": "DefaultAddonsUpdates.png"})
+    xbmcplugin.addDirectoryItem(HANDLE, build_url(action="random", type=ctype), nahodny, isFolder=False)
     xbmcplugin.endOfDirectory(HANDLE)
 
 
@@ -4345,6 +4388,165 @@ def similar_item(ctype, item_id):
                     icon="DefaultVideoPlaylists.png")
 
 
+def foryou_seeds(apis, ctype, limit=foryou.SEEDS):
+    """Tituly, ze kterých se doporučuje — naposledy zhlédnuté daného typu."""
+    return foryou.seed_ids(STORE.recently_watched(), ctype, limit=limit)
+
+
+def foryou_seed_names(seeds):
+    """`{id vzoru: název}` ze snímků titulů v profilu (`items.json`) — žádný dotaz
+    na síť. Co snímek nemá, do „Protože jsi viděl …" prostě nepůjde."""
+    hledane, out = set(seeds), {}
+    for key, _entry in STORE.recently_watched():
+        base, season, _episode = split_episode_id(key)
+        if base not in hledane or base in out:
+            continue
+        snap = STORE.item(key) or {}
+        name = strip_year(snap.get("tvshow") if season is not None else snap.get("title"), snap.get("year"))
+        if name:
+            out[base] = name
+    return out
+
+
+def foryou_build(apis, ctype, seeds):
+    """Doporučení ke vzorům: s vlastním klíčem přímo z TMDB, bez něj (nebo při jeho
+    chybě) z dashboardu, který se na TMDB zeptá za doplněk — stejná dvojice jako
+    u „Podobné tituly" (`list_similar`)."""
+    tmdb, dash = apis.get("tmdb"), apis.get("dash")
+
+    def similar(item_id):
+        if should_stop():
+            # pět vzorů = až patnáct dotazů na TMDB za sebou; při vypínání Kodi
+            # se smyčka nesmí dotáhnout do konce (CLAUDE.md, „Přerušení při vypnutí")
+            raise Aborted()
+        if tmdb is not None:
+            try:
+                return tmdb.similar(ctype, item_id, limit=foryou.PER_SEED)
+            except TmdbError as e:
+                log_error(f"pro tebe {item_id}: {e}")
+        if dash is not None:
+            return dash.similar(ctype, item_id)
+        return []
+
+    skip = foryou.known_ids(STORE.recently_watched(limit=WATCHED_MAX), STORE.in_progress())
+    return foryou.recommend(seeds, similar, skip=skip)
+
+
+def foryou_items(apis, ctype, seeds):
+    """Seznam „Pro tebe" z cache; přepočítá se, jen když je stará nebo se změnily vzory.
+
+    Klíč je jeden na typ a seznam vzorů se ukládá dovnitř — po zhlédnutí nového titulu
+    se doporučení přepočítají hned (jinak by týden stála na místě), ale při výpadku TMDB
+    i dashboardu je pořád z čeho ukázat poslední známý stav místo prázdna
+    (`FORYOU_STALE_TTL`). Značka výpadku `FORYOU_DOWN_KEY` drží doplněk od toho, aby
+    při každém otevření znovu čekal na timeout — přesně jako `nokturno:trend:down`
+    v `trend_api.py` (6.2.2, nález 30)."""
+    key = f"nokturno:foryou:{ctype}"
+    rec = STORE.peek_cached(key, FORYOU_TTL) or {}
+    stara = STORE.peek_cached(key, FORYOU_REFRESH_AFTER) is None
+    if rec.get("items") and rec.get("seeds") == seeds and not (warming() and stara):
+        return rec["items"]
+    zaloha = (STORE.peek_cached(key, FORYOU_STALE_TTL) or {}).get("items") or []
+    if STORE.peek_cached(FORYOU_DOWN_KEY, FORYOU_DOWN_TTL) is not None:
+        return zaloha
+    items = foryou_build(apis, ctype, seeds)
+    if not items:
+        # buď zdroj neodpověděl, nebo TMDB k těmhle vzorům nic nezná — tak jako tak
+        # se to nemá zkoušet znovu při každém otevření seznamu
+        STORE.cached_if(FORYOU_DOWN_KEY, FORYOU_DOWN_TTL, lambda: {"t": int(time.time())}, fresh=True)
+        return zaloha
+    STORE.cached_if(key, FORYOU_TTL, lambda: {"seeds": seeds, "items": items}, fresh=True)
+    return items
+
+
+def list_foryou(apis, ctype):
+    """„Pro tebe" — doporučení k tomu, co uživatel dokoukal naposledy.
+
+    Kreslení menu tohle nezdrží: položka v `browse_menu()` je obyčejná složka a
+    počítá se až tady, po vstupu do ní."""
+    note_foryou_open(ctype)
+    set_content("tvshows" if ctype == "series" else "movies")
+    seeds = foryou_seeds(apis, ctype)
+    items = foryou_items(apis, ctype, seeds) if seeds else []
+    names = foryou_seed_names(seeds) if items else {}
+    for m in items:
+        because = names.get(m.get("_because") or "")
+        if because:
+            popis = Lf(30606, because)
+            m = dict(m, description=f"{popis}\n\n{m.get('description') or ''}".strip())
+        add_meta_item(m, ctype)
+    if not items:
+        # notifikace, ne modál — sem se dá dostat i z widgetu a z JSON-RPC
+        notify(L(30607, "Zatím nemám z čeho doporučovat — něco si pusť a vrať se."),
+               xbmcgui.NOTIFICATION_INFO, 4000)
+    xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
+def random_source(apis, ctype):
+    """Odkud losovat: TMDB s vlastním klíčem, jinak Luna, jinak Cinemeta — stejné
+    pořadí jako v `browse_menu()`."""
+    kind = "series" if ctype == "series" else "movie"
+    if apis.get("tmdb") is not None:
+        return "tmdb", "popular"
+    if apis.get("luna") is not None:
+        return "luna", f"tmdb.top_{kind}"
+    if apis.get("cinemeta") is not None:
+        return "cinemeta", "top"
+    return None, None
+
+
+def random_pick(apis, ctype):
+    """Náhodný titul a žánr, ve kterém se losovalo (prázdný = losovalo se ze všeho).
+
+    Žánr je vážený tím, co uživatel viděl (`foryou.pick_genre`) — kdo kouká hlavně
+    komedie, dostane spíš komedii, ale ne pokaždé. Bere se jen ze žánrů, které zdroj
+    sám nabízí: snímky mají žánry tak, jak je vrátil zdroj (TMDB česky, Luna
+    a Cinemeta anglicky), a cizí slovo by katalog nenašel.
+
+    Stránka se losuje taky (`FORYOU_PAGES`), jinak by se pořád vybíralo z týchž
+    dvaceti nejpopulárnějších."""
+    src, cid = random_source(apis, ctype)
+    if not src:
+        return None, ""
+    api = apis[src]
+    nabidka = set(next((c.get("genres") or [] for c in api.catalogs(ctype) if c["id"] == cid), []))
+    snaps = [STORE.item(key) for key, _entry in STORE.recently_watched()]
+    counts = {g: n for g, n in foryou.genre_counts(snaps).items() if g in nabidka}
+    genre = foryou.pick_genre(counts)
+    skip = PAGE * random.randrange(FORYOU_PAGES)
+    metas = api.catalog(ctype, cid, genre=genre, skip=skip) or []
+    if not metas and (genre or skip):
+        genre, metas = "", (api.catalog(ctype, cid) or [])
+    videne = foryou.known_ids(STORE.recently_watched(limit=WATCHED_MAX))
+    volba = [m for m in metas if m.get("id") not in videne] or metas
+    return (random.choice(volba) if volba else None), (genre or "")
+
+
+def random_title(apis, ctype):
+    """„Náhodný film" / „Náhodný seriál": vylosuje titul a otevře nad ním výběr streamu.
+
+    Položka je ve výpisu ne-složka, takže klik ji Kodi spustí jako skript s handle −1
+    (dialog), kdežto Přehrát ze skinu ji rozklíčovává s handle ≥ 0 (`setResolvedUrl`) —
+    stejné rozdělení jako u titulu v režimu seznamu (5.2.7~beta20). Výpis se tu nikdy
+    nekreslí, takže widget ani JSON-RPC žádný dialog neotevřou."""
+    try:
+        meta, genre = random_pick(apis, ctype)
+    except Errors as e:
+        log_error(f"náhodný titul: {e}")
+        meta, genre = None, ""
+    if meta is None:
+        notify(L(30610, "Nemám z čeho losovat"), xbmcgui.NOTIFICATION_WARNING, 4000)
+        if HANDLE >= 0:
+            xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
+        return
+    jmeno = display_name(meta)
+    notify(f"{jmeno} · {genre}" if genre else jmeno, xbmcgui.NOTIFICATION_INFO, 4000)
+    if HANDLE < 0:
+        pick_title(apis, ctype, meta["id"])
+    else:
+        play(apis, ctype, meta["id"], ask="1")
+
+
 def list_similar(apis, ctype, item_id):
     """Podobné tituly: s vlastním TMDB klíčem přímo z TMDB, bez něj (nebo při jeho chybě)
     z dashboardu, který se na TMDB ptá za doplněk."""
@@ -5075,6 +5277,11 @@ def router(query):
                 xbmc.executebuiltin(runplugin(action="title", type=p.get("type", "movie"), id=p.get("id"),
                                               series=p.get("series"), alt=p.get("alt")))
             return
+        if action == "random":
+            # ne-složka jako titul v režimu seznamu: klik (handle −1) i Přehrát ze skinu
+            # (handle ≥ 0) vedou na tutéž cestu, výpis se nekreslí nikdy
+            random_title(get_apis(), p.get("type", "movie"))
+            return
         if action == "tv_pick":
             # volba nad TV programem: dialog jen po kliku ve výpisu (handle −1), jinak nic
             if HANDLE < 0:
@@ -5095,6 +5302,8 @@ def router(query):
             list_catalogs(apis, p["type"], p.get("src", "luna"))
         elif action == "browse":
             browse_menu(apis, p.get("type", "movie"))
+        elif action == "foryou":
+            list_foryou(apis, p.get("type", "movie"))
         elif action == "similar":
             list_similar(apis, p.get("type", "movie"), p.get("id", ""))
         elif action == "tv":
