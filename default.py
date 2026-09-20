@@ -2019,7 +2019,8 @@ def sync_now():
         if sync_via_relay():
             ok, pushed, pulled, why = sync_relay_once(jmeno)
         else:
-            ok, pushed, pulled, why = sync_once(STORE, cfg[0], cfg[1], jmeno)
+            ok, pushed, pulled, why = sync_once(STORE, cfg[0], cfg[1], jmeno,
+                                                circles=sync_circles())
         notify((L(30187, "Synchronizováno: odesláno %d, přijato %d") % (pushed, pulled)) if ok
                else f"{L(30188, 'Synchronizace selhala')}: {why}",
                xbmcgui.NOTIFICATION_INFO if ok else xbmcgui.NOTIFICATION_ERROR, 5000)

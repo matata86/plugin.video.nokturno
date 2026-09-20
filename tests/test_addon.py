@@ -4758,6 +4758,29 @@ class TestSynchronizaceRelay(unittest.TestCase):
         self.assertEqual(ha.call_count, 0)
         self.assertEqual(relay.call_args[0][1], self.KOD)
 
+    def test_okruhy_plati_i_pro_home_assistant(self):
+        """Přepínače „co se synchronizuje" jsou v nastavení jen jedny — musí tedy
+        platit pro obě střediska. Do 2026-09-20 je brala jen cesta přes relay."""
+        xbmcaddon.settings.update({"sync_mode": "0", "sync_url": "http://ha", "sync_key": "k",
+                                   "sync_history": "false"})
+        syncer = service.Syncer(object())
+        with mock.patch.object(service, "sync_once", return_value=(True, 0, 0, "")) as ha, \
+                mock.patch.object(service.syncbox, "sync_once") as relay:
+            syncer.tick(force=True)
+            for _ in range(50):
+                if ha.call_count:
+                    break
+                time.sleep(0.02)
+        self.assertEqual(relay.call_count, 0)
+        self.assertEqual(ha.call_args[1]["circles"], ("watched", "favourites"))
+
+    def test_rucni_synchronizace_pres_ha_posila_okruhy(self):
+        xbmcaddon.settings.update({"sync_mode": "0", "sync_url": "http://ha", "sync_key": "k",
+                                   "sync_favourites": "false"})
+        with mock.patch.object(default, "sync_once", return_value=(True, 0, 0, "")) as ha:
+            default.sync_now()
+        self.assertEqual(ha.call_args[1]["circles"], ("watched", "history"))
+
     def test_sluzba_bez_kodu_nechodi_na_sit(self):
         xbmcaddon.settings["sync_code"] = ""
         syncer = service.Syncer(object())

@@ -824,7 +824,7 @@
           <control format="action" type="button"/>
         </setting>
       </group>
-      <group id="4">
+      <group id="4" label="30682">
         <setting id="sync_watched" type="boolean" label="30668">
           <level>0</level>
           <default>true</default>

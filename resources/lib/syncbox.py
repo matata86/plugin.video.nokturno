@@ -34,7 +34,8 @@ import urllib.request
 from sealbox import SealError, format_code, keys_for as _keys_for, new_code as _new_code, \
     normalize_code, seal, unseal, valid_code as _valid_code
 from stats import COLLECT_URL
-from sync import apply_changes, collect_changes
+from sync import CIRCLES, DEFAULT_CIRCLES, SNAPSHOTS, apply_changes, collect_changes, \
+    filter_circles
 
 SYNC_URL = COLLECT_URL.rsplit("/", 1)[0] + "/sync"
 STATE = "syncbox"          # syncbox.json v profilu
@@ -48,17 +49,7 @@ MAX_BLOB = 128 * 1024      # shoda s limitem relaye
 SALT = b"nokturno-sync-v1"
 CODE_LEN = 16              # 80 bitů — kód se opisuje z obrazovky televize
 
-# Okruhy: co z blobu se posílá a přijímá. Klíče odpovídají `collect_changes`.
-CIRCLES = {
-    "watched": ("watched", "next_hidden"),   # zhlédnuto, rozkoukanost, skryté další díly
-    "favourites": ("favlog",),               # Můj seznam jako deník zapnuto/vypnuto
-    "history": ("histlog",),                 # historie hledání
-}
-DEFAULT_CIRCLES = ("watched", "favourites", "history")
-# Snímky titulů jdou vždy k tomu, co se posílá — bez nich by druhá strana
-# neuměla položku vykreslit. `collect_changes` je omezuje na dotčené klíče.
-SNAPSHOTS = "items"
-
+# Okruhy (`CIRCLES`, `filter_circles`) jsou v `sync.py` — platí pro obě střediska stejně.
 FUTURE_SLACK = 6 * 3600    # `ts` víc než tohle v budoucnu = rozbité hodiny protějšku
 
 
@@ -82,17 +73,6 @@ def keys_for(code):
     except SealError as e:
         raise SyncError(str(e) or "Kód skupiny nemá správný tvar")
 
-
-
-def filter_circles(changes, circles):
-    """Ze stavu nechá jen zapnuté okruhy; snímky titulů jdou vždy s tím, co zbyde."""
-    allowed = set()
-    for name in circles or ():
-        allowed.update(CIRCLES.get(name, ()))
-    out = {k: v for k, v in (changes or {}).items() if k in allowed}
-    if out and (changes or {}).get(SNAPSHOTS):
-        out[SNAPSHOTS] = changes[SNAPSHOTS]
-    return out
 
 
 def sanitize(changes, now=None):
@@ -195,6 +175,11 @@ def sync_once(store, code, circles=DEFAULT_CIRCLES, base_url=SYNC_URL, name="", 
         return _fail(store, state, str(e))
 
     relay = Relay(keys, device, base_url)
+    # Zapnutý okruh musí dostat i to, co přišlo, když byl vypnutý: cizí bloby
+    # se stahují jen od `since`, takže bez resetu by se dorovnal až cizí změnou.
+    znamka = ",".join(sorted(circles or ()))
+    if state.get("circles") != znamka:
+        state = dict(state, since=0, sent="")
     payload = filter_circles(collect_changes(store, 0), circles)
     if extra:
         payload["extra"] = extra
@@ -223,7 +208,7 @@ def sync_once(store, code, circles=DEFAULT_CIRCLES, base_url=SYNC_URL, name="", 
         pulled += apply_changes(store, sanitize(filter_circles(data, circles)))
     now = int(time.time())
     store.save(STATE, dict(state, since=rev, last_ok=now, last_error="",
-                           pushed=pushed, pulled=pulled))
+                           circles=znamka, pushed=pushed, pulled=pulled))
     return True, pushed, pulled, ""
 
 

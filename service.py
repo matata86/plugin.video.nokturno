@@ -592,8 +592,9 @@ class Syncer:
         if addon is None or addon.getSetting("sync_enabled") != "true":
             return
         relay = addon.getSetting("sync_mode") == "1"
+        circles = self._circles(addon)      # okruhy platí pro obě střediska stejně
         if relay:
-            code, circles = addon.getSetting("sync_code").strip(), self._circles(addon)
+            code = addon.getSetting("sync_code").strip()
             if not code:
                 return
         else:
@@ -614,7 +615,8 @@ class Syncer:
                 if relay:
                     ok, pushed, pulled, why = syncbox.sync_once(self.store, code, circles=circles, name=jmeno)
                 else:
-                    ok, pushed, pulled, why = sync_once(self.store, url, key, jmeno)
+                    ok, pushed, pulled, why = sync_once(self.store, url, key, jmeno,
+                                                        circles=circles)
                 log(f"sync: odesláno {pushed}, přijato {pulled}" if ok else f"sync neproběhl: {why}",
                     xbmc.LOGINFO if ok else xbmc.LOGWARNING)
             finally:
