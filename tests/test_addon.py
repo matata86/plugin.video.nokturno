@@ -4617,3 +4617,163 @@ class TestOpenSubtitles(unittest.TestCase):
 
         self.assertEqual(default.subtitle_refs({"engine": Jadro()}, {"subtitles": ["os:1"]}, "http://x"),
                          ["os:1"])
+
+
+class TestSynchronizaceRelay(unittest.TestCase):
+    """UI synchronizace přes slepý relay (větev `sync`) — nastavení, tlačítka, služba."""
+
+    KOD = "NKT-8G4M-2QX7-VB9K-TRWP"
+
+    def setUp(self):
+        xbmcaddon.settings.clear()
+        xbmcaddon.settings.update({"sync_enabled": "true", "sync_mode": "1", "sync_code": self.KOD})
+        xbmcgui.reset()
+
+    def tearDown(self):
+        xbmcaddon.settings.clear()
+
+    # --- nastavení ---
+
+    def test_rezim_relay_se_pozna_podle_sync_mode(self):
+        self.assertTrue(default.sync_via_relay())
+        xbmcaddon.settings["sync_mode"] = "0"
+        self.assertFalse(default.sync_via_relay(), "nula je Home Assistant")
+        xbmcaddon.settings.update({"sync_mode": "1", "sync_enabled": "false"})
+        self.assertFalse(default.sync_via_relay(), "vypnutá synchronizace nejede nikudy")
+
+    def test_bez_kodu_neni_kam_synchronizovat(self):
+        xbmcaddon.settings["sync_code"] = ""
+        self.assertIsNone(default.sync_settings())
+
+    def test_okruhy_podle_prepinacu(self):
+        self.assertEqual(default.sync_circles(), ("watched", "favourites", "history"),
+                         "výchozí stav je vše zapnuté")
+        xbmcaddon.settings["sync_history"] = "false"
+        self.assertEqual(default.sync_circles(), ("watched", "favourites"))
+        for klic in ("sync_watched", "sync_favourites"):
+            xbmcaddon.settings[klic] = "false"
+        self.assertEqual(default.sync_circles(), ())
+
+    # --- tlačítka ---
+
+    def test_zalozeni_skupiny_ulozi_kod_a_otevre_pripojeni(self):
+        xbmcaddon.settings.update({"sync_code": "", "sync_enabled": "false", "sync_mode": "0"})
+        with mock.patch.object(default.syncbox.Relay, "open_group") as otevri:
+            default.sync_create()
+        self.assertEqual(otevri.call_count, 1)
+        kod = xbmcaddon.settings["sync_code"]
+        self.assertTrue(default.syncbox.valid_code(kod), kod)
+        self.assertEqual(xbmcaddon.settings["sync_mode"], "1")
+        self.assertEqual(xbmcaddon.settings["sync_enabled"], "true")
+        self.assertTrue(any(kod in " ".join(map(str, t)) for t in xbmcgui.textviewers),
+                        "kód se musí ukázat celý, je to jediný klíč k datům")
+
+    def test_zalozeni_podruhe_drzi_stejny_kod(self):
+        """Tlačítko slouží i k opětovnému otevření připojení. Nový kód by odřízl
+        zařízení, která už ve skupině jsou."""
+        with mock.patch.object(default.syncbox.Relay, "open_group"):
+            default.sync_create()
+        self.assertEqual(xbmcaddon.settings["sync_code"], self.KOD)
+
+    def test_zalozeni_pri_nedostupnem_relayi_nic_nezapne(self):
+        xbmcaddon.settings.update({"sync_code": "", "sync_enabled": "false"})
+        with mock.patch.object(default.syncbox.Relay, "open_group",
+                               side_effect=default.syncbox.SyncError("síť spadla")):
+            default.sync_create()
+        self.assertEqual(xbmcaddon.settings["sync_enabled"], "false")
+        self.assertTrue(xbmcgui.oks)
+
+    def test_pripojeni_spatnym_kodem_nic_neulozi(self):
+        xbmcaddon.settings.update({"sync_code": "", "sync_enabled": "false"})
+        with mock.patch.object(xbmcgui.Dialog, "input", return_value="tohle-neni-kod"), \
+                mock.patch.object(default.syncbox, "sync_once") as kolo:
+            default.sync_join()
+        self.assertEqual(kolo.call_count, 0, "na relay se nemá chodit s nesmyslným kódem")
+        self.assertEqual(xbmcaddon.settings["sync_code"], "")
+        self.assertTrue(xbmcgui.oks)
+
+    def test_pripojeni_ulozi_az_po_uspesnem_kole(self):
+        xbmcaddon.settings.update({"sync_code": "", "sync_enabled": "false", "sync_mode": "0"})
+        with mock.patch.object(xbmcgui.Dialog, "input", return_value=self.KOD), \
+                mock.patch.object(default.syncbox, "sync_once", return_value=(True, 2, 3, "")):
+            default.sync_join()
+        self.assertEqual(xbmcaddon.settings["sync_code"], self.KOD)
+        self.assertEqual(xbmcaddon.settings["sync_mode"], "1")
+        self.assertEqual(xbmcaddon.settings["sync_enabled"], "true")
+
+    def test_neuspesne_pripojeni_nic_nezapne(self):
+        xbmcaddon.settings.update({"sync_code": "", "sync_enabled": "false"})
+        with mock.patch.object(xbmcgui.Dialog, "input", return_value=self.KOD), \
+                mock.patch.object(default.syncbox, "sync_once", return_value=(False, 0, 0, "HTTP 404")):
+            default.sync_join()
+        self.assertEqual(xbmcaddon.settings["sync_code"], "")
+        self.assertEqual(xbmcaddon.settings["sync_enabled"], "false")
+
+    def test_odchod_smaze_kod_a_odhlasi_se_z_relaye(self):
+        with mock.patch.object(xbmcgui.Dialog, "yesno", return_value=True), \
+                mock.patch.object(default.syncbox.Relay, "forget") as odhlas:
+            default.sync_leave()
+        self.assertEqual(odhlas.call_count, 1)
+        self.assertEqual(xbmcaddon.settings["sync_code"], "")
+        self.assertEqual(xbmcaddon.settings["sync_enabled"], "false")
+
+    def test_odchod_bez_potvrzeni_nic_nedela(self):
+        with mock.patch.object(xbmcgui.Dialog, "yesno", return_value=False), \
+                mock.patch.object(default.syncbox.Relay, "forget") as odhlas:
+            default.sync_leave()
+        self.assertEqual(odhlas.call_count, 0)
+        self.assertEqual(xbmcaddon.settings["sync_code"], self.KOD)
+
+    def test_odchod_pri_nedostupnem_relayi_stejne_odpoji(self):
+        """Blob na serveru zůstane a smaže ho retence — ale tohle Kodi se odpojit musí,
+        jinak by uživatel zůstal ve skupině kvůli výpadku sítě."""
+        with mock.patch.object(xbmcgui.Dialog, "yesno", return_value=True), \
+                mock.patch.object(default.syncbox.Relay, "forget",
+                                  side_effect=default.syncbox.SyncError("síť")):
+            default.sync_leave()
+        self.assertEqual(xbmcaddon.settings["sync_code"], "")
+        self.assertEqual(xbmcaddon.settings["sync_enabled"], "false")
+
+    def test_stazene_v_ha_se_v_rezimu_relay_nenabizi(self):
+        """Soubory stahuje a podepsané odkazy vydává HA. Slepý relay žádné nemá,
+        a „adresa“ v jeho nastavení není server — položka by vedla do prázdna."""
+        polozky = []
+        with mock.patch.object(default, "folder_item", side_effect=lambda label, *a, **k: polozky.append(label)), \
+                mock.patch.object(default, "set_content"), mock.patch.object(default.STORE, "downloads", return_value=[]):
+            default.list_downloads()
+        self.assertEqual(polozky, [], "v režimu relay se položka nabízet nemá")
+
+    # --- služba ---
+
+    def test_sluzba_jde_pres_relay_podle_nastaveni(self):
+        syncer = service.Syncer(object())
+        with mock.patch.object(service.syncbox, "sync_once", return_value=(True, 1, 0, "")) as relay, \
+                mock.patch.object(service, "sync_once") as ha:
+            syncer.tick(force=True)
+            for _ in range(50):
+                if relay.call_count:
+                    break
+                time.sleep(0.02)
+        self.assertEqual(relay.call_count, 1)
+        self.assertEqual(ha.call_count, 0)
+        self.assertEqual(relay.call_args[0][1], self.KOD)
+
+    def test_sluzba_bez_kodu_nechodi_na_sit(self):
+        xbmcaddon.settings["sync_code"] = ""
+        syncer = service.Syncer(object())
+        with mock.patch.object(service.syncbox, "sync_once") as relay:
+            syncer.tick(force=True)
+            time.sleep(0.05)
+        self.assertEqual(relay.call_count, 0)
+
+    def test_probuzeni_vyvola_synchronizaci(self):
+        """Periodické kolo běží po SYNC_EVERY; kdo si sedne k druhé TV, nemá čekat
+        pět minut na rozkoukanost. Na CoreELEC je tohle jediný signál návratu —
+        Kodi tam běží pořád, takže „start“ nikdy nenastane."""
+        okno = xbmcgui.Window(10000)
+        okno.clearProperty(service.SYNC_PROP)
+        service.ServiceMonitor().onScreensaverDeactivated()
+        self.assertEqual(okno.getProperty(service.SYNC_PROP), "1")
+        okno.clearProperty(service.SYNC_PROP)
+        service.ServiceMonitor().onDPMSDeactivated()
+        self.assertEqual(okno.getProperty(service.SYNC_PROP), "1")

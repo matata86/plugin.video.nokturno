@@ -1905,3 +1905,87 @@ msgstr "nincs a kívánt nyelven"
 msgctxt "#30660"
 msgid "Looking for a title in your preferred language…"
 msgstr "Cím keresése a kívánt nyelven…"
+
+msgctxt "#30661"
+msgid "Where your Kodi boxes meet"
+msgstr "Ahol a Kodi dobozaid találkoznak"
+
+msgctxt "#30662"
+msgid "Home Assistant"
+msgstr "Home Assistant"
+
+msgctxt "#30663"
+msgid "Nokturno dashboard"
+msgstr "Nokturno vezérlőpult"
+
+msgctxt "#30664"
+msgid "Group code"
+msgstr "Csoportkód"
+
+msgctxt "#30665"
+msgid "Create a group"
+msgstr "Csoport létrehozása"
+
+msgctxt "#30666"
+msgid "Join a group"
+msgstr "Csatlakozás csoporthoz"
+
+msgctxt "#30667"
+msgid "Leave the group"
+msgstr "Kilépés a csoportból"
+
+msgctxt "#30668"
+msgid "Sync watched and resume points"
+msgstr "Megtekintett és folytatás szinkronizálása"
+
+msgctxt "#30669"
+msgid "Sync My list"
+msgstr "Saját lista szinkronizálása"
+
+msgctxt "#30670"
+msgid "Sync search history"
+msgstr "Keresési előzmények szinkronizálása"
+
+msgctxt "#30671"
+msgid "New group created. Type this code on your other Kodi:"
+msgstr "A csoport létrejött. Írd be ezt a kódot a másik Kodi eszközön:"
+
+msgctxt "#30672"
+msgid "The code lets a new device join for 30 minutes. Keep it — without it nobody can read your data, and it cannot be recovered."
+msgstr "A kód 30 percig enged be új eszközt. Őrizd meg — nélküle az adataidat senki sem olvassa el, és nem állíthatók vissza."
+
+msgctxt "#30673"
+msgid "Type the group code from your first Kodi"
+msgstr "Írd be az első Kodi csoportkódját"
+
+msgctxt "#30674"
+msgid "Joined. Synchronisation runs in the background."
+msgstr "Csatlakozva. A szinkronizálás a háttérben fut."
+
+msgctxt "#30675"
+msgid "That code does not look right."
+msgstr "A kód nem megfelelő alakú."
+
+msgctxt "#30676"
+msgid "No group yet — create one, or join with a code from another Kodi."
+msgstr "Még nincs csoport — hozz létre egyet, vagy csatlakozz egy másik Kodi kódjával."
+
+msgctxt "#30677"
+msgid "Leave the group? This Kodi stops synchronising. Nothing already saved here is deleted."
+msgstr "Kilépsz a csoportból? Ez a Kodi nem szinkronizál tovább. Az itt tárolt adatok megmaradnak."
+
+msgctxt "#30678"
+msgid "Left the group."
+msgstr "Kiléptél a csoportból."
+
+msgctxt "#30679"
+msgid "Open joining again"
+msgstr "Csatlakozás újranyitása"
+
+msgctxt "#30680"
+msgid "Joining is open for 30 minutes."
+msgstr "A csatlakozás 30 percig nyitva van."
+
+msgctxt "#30681"
+msgid "The dashboard only stores sealed data it cannot read. The code is the key and never leaves your devices."
+msgstr "A vezérlőpult csak lezárt adatot tárol, amelyet maga nem tud elolvasni. A kód a kulcs, és sosem hagyja el az eszközeidet."

@@ -50,6 +50,7 @@ import accounts as accounts_lib  # noqa: E402
 from storage_api import StorageApi, parse_ref  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
 from sync import sync_once  # noqa: E402
+import syncbox  # noqa: E402
 from trend_api import CATALOG_ID as TREND_CATALOG_ID  # noqa: E402
 from tracks import SUBS_WHEN_NEEDED, pick_audio, pick_subtitle, track_lang  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
@@ -63,7 +64,8 @@ SYNC_PROP = "nokturno.sync"
 CRASH_PROP = "nokturno.crash"   # plugin → služba: nové hlášení o pádu ve frontě (default.report_crash)
 CRASH_EVERY = 30 * 60           # fronta hlášení bez nového pádu (neodeslané kvůli síti) — jednou za čas
 FORCE_STATS_PROP = "nokturno.force_stats"   # plugin → služba: aktualizace doplňku, nečekat na SEND_EVERY
-SYNC_EVERY = 5 * 60   # výměna s HA; změny (dokoukáno, Můj seznam) ji vyvolají hned
+SYNC_EVERY = 5 * 60   # výměna se střediskem; změny (dokoukáno, Můj seznam) ji vyvolají hned
+SYNC_FIRST = 20       # první výměna po startu — ať je rozkoukanost z druhé TV hned na začátku
 KODI_MARKS_EVERY = 60   # s – „Označit jako zhlédnuté“ ze skinu, viz KodiMarks
 SUB_CHECK_EVERY = 12 * 3600   # jak často se ptát WebShare na stav předplatného
 ACCOUNTS_DELAY = 240      # po startu Kodi napřed skin a widgety, teprve pak stav účtů
@@ -577,16 +579,27 @@ class Syncer:
 
     def __init__(self, store):
         self.store = store
-        self.next = time.time() + 60          # první výměna minutu po startu
+        self.next = time.time() + SYNC_FIRST   # první výměna krátce po startu
         self.lock = threading.Lock()
+
+    @staticmethod
+    def _circles(addon):
+        vyber = {"watched": "sync_watched", "favourites": "sync_favourites", "history": "sync_history"}
+        return tuple(o for o, klic in vyber.items() if addon.getSetting(klic) != "false")
 
     def tick(self, force=False):
         addon = fresh_addon()
         if addon is None or addon.getSetting("sync_enabled") != "true":
             return
-        url, key = addon.getSetting("sync_url").strip(), addon.getSetting("sync_key").strip()
-        if not url or not key:
-            return
+        relay = addon.getSetting("sync_mode") == "1"
+        if relay:
+            code, circles = addon.getSetting("sync_code").strip(), self._circles(addon)
+            if not code:
+                return
+        else:
+            url, key = addon.getSetting("sync_url").strip(), addon.getSetting("sync_key").strip()
+            if not url or not key:
+                return
         asked = xbmcgui.Window(10000).getProperty(SYNC_PROP)
         if not force and not asked and time.time() < self.next:
             return
@@ -597,7 +610,11 @@ class Syncer:
 
         def run():
             try:
-                ok, pushed, pulled, why = sync_once(self.store, url, key, xbmc.getInfoLabel("System.FriendlyName"))
+                jmeno = xbmc.getInfoLabel("System.FriendlyName")
+                if relay:
+                    ok, pushed, pulled, why = syncbox.sync_once(self.store, code, circles=circles, name=jmeno)
+                else:
+                    ok, pushed, pulled, why = sync_once(self.store, url, key, jmeno)
                 log(f"sync: odesláno {pushed}, přijato {pulled}" if ok else f"sync neproběhl: {why}",
                     xbmc.LOGINFO if ok else xbmc.LOGWARNING)
             finally:
@@ -861,6 +878,18 @@ class ServiceMonitor(xbmc.Monitor):
     def onNotification(self, sender, method, data):
         if method == "System.OnQuit":
             mark_quitting()
+
+    def onScreensaverDeactivated(self):
+        """Někdo si sedl k téhle TV — stáhnout, co mezitím přišlo z druhé.
+
+        Periodické kolo běží po `SYNC_EVERY`, takže rozkoukanost z druhého Kodi
+        by tu jinak mohla být i pět minut stará. Na CoreELEC navíc Kodi běží
+        pořád (vypíná se jen televize), takže „start" nikdy nenastane a tohle je
+        jediná chvíle, kdy se dá poznat, že se uživatel vrátil."""
+        xbmcgui.Window(10000).setProperty(SYNC_PROP, "1")
+
+    def onDPMSDeactivated(self):
+        xbmcgui.Window(10000).setProperty(SYNC_PROP, "1")
 
     def abortRequested(self):
         return QUITTING.is_set() or super().abortRequested()

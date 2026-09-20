@@ -1908,3 +1908,87 @@ msgstr "bez preferovaného jazyka"
 msgctxt "#30660"
 msgid "Looking for a title in your preferred language…"
 msgstr "Hľadám titul s preferovaným jazykom…"
+
+msgctxt "#30661"
+msgid "Where your Kodi boxes meet"
+msgstr "Kde sa tvoje Kodi stretávajú"
+
+msgctxt "#30662"
+msgid "Home Assistant"
+msgstr "Home Assistant"
+
+msgctxt "#30663"
+msgid "Nokturno dashboard"
+msgstr "Dashboard Nokturna"
+
+msgctxt "#30664"
+msgid "Group code"
+msgstr "Kód skupiny"
+
+msgctxt "#30665"
+msgid "Create a group"
+msgstr "Založiť skupinu"
+
+msgctxt "#30666"
+msgid "Join a group"
+msgstr "Pripojiť sa ku skupine"
+
+msgctxt "#30667"
+msgid "Leave the group"
+msgstr "Odísť zo skupiny"
+
+msgctxt "#30668"
+msgid "Sync watched and resume points"
+msgstr "Synchronizovať zhliadnuté a rozpozerané"
+
+msgctxt "#30669"
+msgid "Sync My list"
+msgstr "Synchronizovať Môj zoznam"
+
+msgctxt "#30670"
+msgid "Sync search history"
+msgstr "Synchronizovať históriu hľadania"
+
+msgctxt "#30671"
+msgid "New group created. Type this code on your other Kodi:"
+msgstr "Skupina je založená. Na ďalšom Kodi zadaj tento kód:"
+
+msgctxt "#30672"
+msgid "The code lets a new device join for 30 minutes. Keep it — without it nobody can read your data, and it cannot be recovered."
+msgstr "Kód pustí nové zariadenie dovnútra 30 minút. Schovaj si ho — bez neho tvoje dáta nikto neprečíta a nedajú sa obnoviť."
+
+msgctxt "#30673"
+msgid "Type the group code from your first Kodi"
+msgstr "Zadaj kód skupiny z prvého Kodi"
+
+msgctxt "#30674"
+msgid "Joined. Synchronisation runs in the background."
+msgstr "Pripojené. Synchronizácia beží na pozadí."
+
+msgctxt "#30675"
+msgid "That code does not look right."
+msgstr "Kód nemá správny tvar."
+
+msgctxt "#30676"
+msgid "No group yet — create one, or join with a code from another Kodi."
+msgstr "Zatiaľ žiadna skupina — založ ju, alebo sa pripoj kódom z iného Kodi."
+
+msgctxt "#30677"
+msgid "Leave the group? This Kodi stops synchronising. Nothing already saved here is deleted."
+msgstr "Odísť zo skupiny? Toto Kodi sa prestane synchronizovať. Nič, čo je tu uložené, sa nezmaže."
+
+msgctxt "#30678"
+msgid "Left the group."
+msgstr "Odišiel si zo skupiny."
+
+msgctxt "#30679"
+msgid "Open joining again"
+msgstr "Znovu otvoriť pripojenie"
+
+msgctxt "#30680"
+msgid "Joining is open for 30 minutes."
+msgstr "Pripojenie je otvorené 30 minút."
+
+msgctxt "#30681"
+msgid "The dashboard only stores sealed data it cannot read. The code is the key and never leaves your devices."
+msgstr "Dashboard u seba drží len zapečatené dáta, ktoré sám neprečíta. Kód je kľúč a nikdy z tvojich zariadení neodíde."
