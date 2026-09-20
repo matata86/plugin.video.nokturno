@@ -161,7 +161,7 @@ def device_id(store):
 
 
 def sync_once(store, code, circles=DEFAULT_CIRCLES, base_url=SYNC_URL, name="", extra=None,
-              settings=None, on_settings=None):
+              settings=None, on_settings=None, stamp=False):
     """Jedno kolo s relayem. Vrací (ok, odesláno, přijato, důvod) — nikdy
     nevyhodí výjimku, stejně jako `sync.sync_once`.
 
@@ -169,6 +169,12 @@ def sync_once(store, code, circles=DEFAULT_CIRCLES, base_url=SYNC_URL, name="", 
     a `accounts`, viz `setsync.py`); `on_settings(zmeny)` se zavolá, když má
     hostitel něco zapsat. Bez `settings` se oba okruhy chovají, jako by nebyly —
     jádro do `settings.xml` nevidí a samo z něj nic nevytáhne.
+
+    `stamp=True` patří Home Assistantu, když je sám členem skupiny: přijatým
+    záznamům vyrazí čas příjmu (`rts`), takže je Kodi, která chodí přes HA
+    (`sync.py`), dostanou i tehdy, když vznikly dávno — filtr `since` v HA
+    kole jde podle času příjmu, ne vzniku. Kodi `stamp` nepoužívá; `rts` smí
+    razit jen střed, jinak by si dvě zařízení razila navzájem cizí časy.
     """
     # `device_id()` zakládá id zařízení a ukládá ho do téhož souboru jako stav,
     # takže se musí volat PŘED načtením stavu — jinak by ho závěrečné uložení
@@ -216,7 +222,7 @@ def sync_once(store, code, circles=DEFAULT_CIRCLES, base_url=SYNC_URL, name="", 
         if data is None:
             continue          # cizí skupina nebo poškozený blob — tiše dál
         data = sanitize(filter_circles(data, circles))
-        pulled += apply_changes(store, data)
+        pulled += apply_changes(store, data, stamp=stamp)
         if settings is not None:
             # deník nastavení slévá `setsync` (novější `ts` vyhrává), zapsat
             # do `settings.xml` musí hostitel — jádro tam nedosáhne

@@ -2011,5 +2011,5 @@ msgid "Logins for the sources (WebShare, Sosáč, Sledujteto, FastShare, OpenSub
 msgstr "Bejelentkezések a forrásokhoz (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, saját tároló) és a TMDB kulcs. A jelszavak titkosítva mennek, a kiszolgáló nem olvassa el őket. A CZtor és a Trakt párosítása minden eszközön külön szükséges."
 
 msgctxt "#30687"
-msgid "Home Assistant and the dashboard"
-msgstr "Home Assistant és a dashboard"
+msgid "HA and dashboard"
+msgstr "HA és dashboard"

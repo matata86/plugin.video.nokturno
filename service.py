@@ -49,7 +49,7 @@ from crash import CRASH_URL, CrashReporter  # noqa: E402
 import accounts as accounts_lib  # noqa: E402
 from storage_api import StorageApi, parse_ref  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
-from sync import sync_once  # noqa: E402
+from sync import reset_since, sync_once  # noqa: E402
 import syncbox  # noqa: E402
 from trend_api import CATALOG_ID as TREND_CATALOG_ID  # noqa: E402
 from tracks import SUBS_WHEN_NEEDED, pick_audio, pick_subtitle, track_lang  # noqa: E402
@@ -661,6 +661,11 @@ class Syncer:
                     log(f"sync: odesláno {pushed}, přijato {pulled}" if ok
                         else f"sync neproběhl: {why}",
                         xbmc.LOGINFO if ok else xbmc.LOGWARNING)
+                    # most mezi středisky: co přišlo z relaye, má jít i do HA.
+                    # Přijatý záznam nese čas vzniku, takže by ho filtr `since`
+                    # v HA kole přeskočil — příští kolo proto pošle celý stav.
+                    if ok and pulled and ha:
+                        reset_since(self.store)
             finally:
                 self.lock.release()
         threading.Thread(target=run, daemon=True).start()

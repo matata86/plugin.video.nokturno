@@ -57,7 +57,7 @@ from accounts import (FAIL as ACC_FAIL, OFF as ACC_OFF, OK as ACC_OK,  # noqa: E
                       WARN as ACC_WARN, problems as accounts_problems)
 from store import WATCHED_MAX, Store, migrate_profile  # noqa: E402
 from source_errors import describe_failure, summarize as summarize_failures  # noqa: E402
-from sync import sync_once  # noqa: E402
+from sync import reset_since, sync_once  # noqa: E402
 import kodi_settings  # noqa: E402
 import setsync  # noqa: E402
 import syncbox  # noqa: E402
@@ -2085,6 +2085,10 @@ def sync_now():
         for kam, cfg in cile:
             if kam == "relay":
                 ok, pushed, pulled, why = sync_relay_once(jmeno)
+                # most mezi středisky, viz `sync.reset_since` — přijatý záznam
+                # nese čas vzniku a filtr `since` v HA kole by ho přeskočil
+                if ok and pulled and sync_via_ha():
+                    reset_since(STORE)
             else:
                 ok, pushed, pulled, why = sync_once(STORE, cfg[0], cfg[1], jmeno,
                                                     circles=sync_circles(False))

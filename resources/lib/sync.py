@@ -105,6 +105,22 @@ def collect_changes(store, since):
             "items": {k: items[k] for k in keys if k in items}}
 
 
+def reset_since(store):
+    """Zahodí „kam jsme došli" a příští kolo s HA pošle celý stav.
+
+    Volá se, když do `Store` přiteklo něco odjinud než z HA — typicky ze slepého
+    relaye (`syncbox.py`), když je některé Kodi mostem mezi oběma středisky.
+    Přijatý záznam si nese čas vzniku, a ten bývá starší než poslední výměna
+    s HA, takže by ho filtr `since` už nikdy neposlal. `rts` razí jen střed,
+    takže most jinou možnost nemá; celý stav je malý a pošle se jen po skutečné
+    změně. Most je ale nouzové řešení — jede jen dokud to Kodi běží. Čistší je
+    dát kód skupiny i samotnému HA (`CONF_SYNC_CODE` v integraci).
+    """
+    state = store.reload(STATE, {})
+    if state.get("since"):
+        store.save(STATE, dict(state, since=0))
+
+
 def apply_changes(store, changes, stamp=False):
     """Slije cizí změny do místního úložiště. Vrací počet skutečně přijatých záznamů.
     `stamp=True` (jen střed, HA) přijatým záznamům vyrazí čas příjmu `rts`."""

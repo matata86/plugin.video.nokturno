@@ -2010,5 +2010,5 @@ msgid "Logins for the sources (WebShare, Sosáč, Sledujteto, FastShare, OpenSub
 msgstr ""
 
 msgctxt "#30687"
-msgid "Home Assistant and the dashboard"
+msgid "HA and dashboard"
 msgstr ""
