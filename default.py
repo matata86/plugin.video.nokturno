@@ -2953,7 +2953,12 @@ def prefetch(apis, kind):
                 collect_streams(apis, "series", ep_id, meta, snap.get("alt"))
             except Errors as e:
                 log_error(f"prefetch {ep_id}: {e}")
-    xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
+    # Služba sem chodí přes Files.GetDirectory (JSON-RPC), a `succeeded=False` Kodi hlásí
+    # jako `GetDirectory - Error getting plugin://…?action=prefetch` — v každém kole
+    # zahřívání jeden řádek `error` v kodi.log, který uživatelé posílají na dashboard.
+    # Prázdný, ale úspěšně zavřený adresář je totéž bez té hlášky (nic se nekreslí,
+    # `cacheToDisc=False` drží Kodi od zapamatování prázdného výpisu).
+    xbmcplugin.endOfDirectory(HANDLE, succeeded=True, cacheToDisc=False)
 
 
 def stats_sources():

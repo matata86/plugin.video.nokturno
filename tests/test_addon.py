@@ -2866,6 +2866,17 @@ class TestPreruseniPriKonciKodi(unittest.TestCase):
             default.prefetch({"engine": default.KodiEngine()}, "next")
         self.assertEqual(len(xbmcplugin.ended), 1)
 
+    def test_prefetch_zavira_adresár_uspesne(self):
+        """Služba volá prefetch přes `Files.GetDirectory`; `succeeded=False` by Kodi
+        v každém kole zahřívání zapsalo `GetDirectory - Error getting plugin://…`
+        do `kodi.log`, který uživatelé posílají na dashboard."""
+        with mock.patch.object(default.STORE, "recently_watched", return_value=[]):
+            default.prefetch({"engine": default.KodiEngine()}, "next")
+        self.assertEqual(len(xbmcplugin.ended), 1)
+        self.assertTrue(xbmcplugin.ended[0]["succeeded"])
+        self.assertFalse(xbmcplugin.ended[0]["cacheToDisc"])
+        self.assertEqual(xbmcplugin.items, [], "prefetch nic nevypisuje")
+
     def test_sluzba_neprednacita_kdyz_kodi_konci(self):
         """`prefetch_next_later` čeká 15 s přes `waitForAbort` (stub vrátí True = konec) — pak nic."""
         with mock.patch.object(service, "warm_caches", side_effect=AssertionError("nemá zahřívat")):
