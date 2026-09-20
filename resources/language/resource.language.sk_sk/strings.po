@@ -1620,3 +1620,71 @@ msgstr "ukázané"
 msgctxt "#30586"
 msgid "hidden"
 msgstr "skryté"
+
+msgctxt "#30587"
+msgid "Transfer settings"
+msgstr "Prenos nastavenia"
+
+msgctxt "#30588"
+msgid "Copies accounts and options to another Kodi. CZtor and Trakt accounts stay behind — sign in again on the new device."
+msgstr "Prenesie účty a voľby do ďalšieho Kodi. Účty CZtoru a Traktu zostanú — na novom zariadení sa prihlás znova."
+
+msgctxt "#30589"
+msgid "Send to another Kodi"
+msgstr "Odoslať do iného Kodi"
+
+msgctxt "#30590"
+msgid "Load from another Kodi"
+msgstr "Načítať z iného Kodi"
+
+msgctxt "#30591"
+msgid "Save to a file"
+msgstr "Uložiť do súboru"
+
+msgctxt "#30592"
+msgid "Load from a file"
+msgstr "Načítať zo súboru"
+
+msgctxt "#30593"
+msgid "On the other Kodi open Settings – Transfer settings – Load from another Kodi and type this code:[CR][CR][B]%s[/B][CR][CR]It works once and expires in %s minutes."
+msgstr "Na druhom Kodi otvor Nastavenia – Prenos nastavenia – Načítať z iného Kodi a zadaj tento kód:[CR][CR][B]%s[/B][CR][CR]Použije sa raz a platí %s minút."
+
+msgctxt "#30594"
+msgid "Code from the other Kodi"
+msgstr "Kód z druhého Kodi"
+
+msgctxt "#30595"
+msgid "Transfer failed: %s"
+msgstr "Prenos sa nepodaril: %s"
+
+msgctxt "#30596"
+msgid "%s settings will be written, from %s.[CR]Already the same: %s · not used here: %s[CR][CR]Current settings will be overwritten. A copy stays in %s."
+msgstr "Zapíše sa %s nastavení z %s.[CR]Už sedí: %s · tu sa nepoužije: %s[CR][CR]Terajšie nastavenie sa prepíše. Kópia zostane v %s."
+
+msgctxt "#30597"
+msgid "Settings transferred (%s)"
+msgstr "Nastavenie prenesené (%s)"
+
+msgctxt "#30598"
+msgid "Nothing to change — the other device has the same settings."
+msgstr "Z prenosu neprišla žiadna zmena."
+
+msgctxt "#30599"
+msgid "Saved to %s[CR][CR]Code for loading it:[CR][B]%s[/B][CR][CR]Without the code nobody can read the file."
+msgstr "Uložené do %s[CR][CR]Kód na načítanie:[CR][B]%s[/B][CR][CR]Bez kódu súbor nikto neprečíta."
+
+msgctxt "#30600"
+msgid "The CZtor account is not transferred. Pair now?"
+msgstr "Účet CZtoru sa neprenáša. Spárovať teraz?"
+
+msgctxt "#30601"
+msgid "The Trakt account is not transferred. Sign in now?"
+msgstr "Účet Traktu sa neprenáša. Prihlásiť teraz?"
+
+msgctxt "#30603"
+msgid "The file could not be written: %s"
+msgstr "Súbor sa nepodarilo zapísať: %s"
+
+msgctxt "#30604"
+msgid "The file could not be read: %s"
+msgstr "Súbor sa nepodarilo prečítať: %s"

@@ -101,6 +101,9 @@ class Dialog:
     def browse(self, *args, **kwargs):
         return ""
 
+    def browseSingle(self, *args, **kwargs):
+        return ""
+
 
 class DialogProgress(_Recorder):
     def iscanceled(self):

@@ -13,6 +13,42 @@
         </setting>
       </group>
     </category>
+    <category id="transfer" label="30587" help="30588">
+      <group id="1">
+        <setting id="transfer_send_action" type="action" label="30589" help="30588">
+          <level>0</level>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=transfer_send)</data>
+          <control format="action" type="button"/>
+        </setting>
+        <setting id="transfer_receive_action" type="action" label="30590" help="30588">
+          <level>0</level>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=transfer_receive)</data>
+          <control format="action" type="button"/>
+        </setting>
+        <setting id="transfer_file_save_action" type="action" label="30591" help="30588">
+          <level>0</level>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=transfer_file_save)</data>
+          <control format="action" type="button"/>
+        </setting>
+        <setting id="transfer_file_load_action" type="action" label="30592" help="30588">
+          <level>0</level>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=transfer_file_load)</data>
+          <control format="action" type="button"/>
+        </setting>
+      </group>
+    </category>
     <category id="ws" label="30050">
       <group id="1">
         <setting id="ws_enabled" type="boolean" label="30051" help="30300">

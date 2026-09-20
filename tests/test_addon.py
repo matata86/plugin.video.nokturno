@@ -3524,3 +3524,211 @@ class TestSloucenéVerze(unittest.TestCase):
     def test_adresa_prehrani_nese_nahradni_odkazy(self):
         self.assertEqual(default.alts_param(self.rep), "ws:2")
         self.assertIsNone(default.alts_param(self.alt))
+
+
+class TestPrenosNastaveni(unittest.TestCase):
+    """Přenos nastavení do dalšího Kodi (6.2.0): kód na obrazovce, obsah zašifrovaný.
+
+    Hlídá hlavně hranice — co se přenést **nesmí** (cesty toho stroje, klíč
+    synchronizace, tokeny účtů) a že se stávající nastavení nepřepíše bez
+    zálohy a bez potvrzení."""
+
+    def setUp(self):
+        reset_kodi()
+        xbmcaddon.settings.clear()
+        xbmcaddon.settings.update(ws_enabled="true", ws_username="martin", ws_password="tajne",
+                                  pref_lang="1", download_dir="/storage/kodi", sync_key="klic",
+                                  cz_enabled="true")
+        # CZtor je ve výchozím stavu testu spárovaný — jinak by potvrzený přenos skončil
+        # nabídkou párování, a ta chce síť. Testy párování si ho přemockují samy.
+        sparovany = mock.Mock()
+        sparovany.paired.return_value = True
+        patch = mock.patch.object(default, "cztor_client", return_value=sparovany)
+        patch.start()
+        self.addCleanup(patch.stop)
+
+    # --- co se přenáší -----------------------------------------------------
+    def test_obsah_nese_ucty_ale_ne_stroj(self):
+        payload = default.transfer_payload()
+        self.assertEqual(payload["settings"]["ws_username"], "martin")
+        self.assertEqual(payload["settings"]["ws_password"], "tajne")
+        self.assertNotIn("download_dir", payload["settings"])
+        self.assertNotIn("sync_key", payload["settings"])
+        self.assertTrue(payload["source"].startswith("Kodi "))
+
+    def test_cztor_jde_jen_jako_priznak(self):
+        payload = default.transfer_payload()
+        self.assertEqual(payload["flags"], {"cztor": True})
+        self.assertNotIn("cz_", "".join(payload["settings"]))
+
+    def test_neulozena_polozka_jde_s_vychozi_hodnotou(self):
+        del xbmcaddon.settings["pref_lang"]
+        payload = default.transfer_payload()
+        self.assertIn("pref_lang", payload["settings"])
+
+    # --- zápis na druhém zařízení -----------------------------------------
+    def cizi_prenos(self, **zmeny):
+        xbmcaddon.settings.update(zmeny)
+        payload = default.transfer_payload()
+        xbmcaddon.settings.update(ws_username="puvodni", ws_password="puvodni")
+        return payload
+
+    def test_potvrzeny_prenos_zapise_a_zalohuje(self):
+        payload = self.cizi_prenos(ws_username="novy")
+        with open(os.path.join(default.PROFILE, "settings.xml"), "w") as f:
+            f.write("<settings/>")
+        with mock.patch.object(xbmcgui.Dialog, "yesno", return_value=True), \
+             mock.patch.object(default.STORE, "clear_cache") as cache:
+            default.transfer_apply(payload)
+        self.assertEqual(xbmcaddon.settings["ws_username"], "novy")
+        self.assertTrue(os.path.exists(os.path.join(default.PROFILE, default.TRANSFER_BACKUP)))
+        cache.assert_called_once()          # cache patřila k účtům, které tu byly do teď
+        self.assertEqual(len(xbmcgui.notifications), 1)
+
+    def test_bez_potvrzeni_se_nic_nezapise(self):
+        payload = self.cizi_prenos(ws_username="novy")
+        with mock.patch.object(xbmcgui.Dialog, "yesno", return_value=False):
+            default.transfer_apply(payload)
+        self.assertEqual(xbmcaddon.settings["ws_username"], "puvodni")
+
+    def test_shodny_prenos_se_jen_ohlasi(self):
+        payload = default.transfer_payload()
+        with mock.patch.object(xbmcgui.Dialog, "yesno", return_value=True) as yesno:
+            default.transfer_apply(payload)
+        yesno.assert_not_called()
+        self.assertEqual(len(xbmcgui.oks), 1)
+
+    def test_podvrzeny_prenos_neprepise_cestu_ani_klic(self):
+        payload = default.transfer_payload()
+        payload["settings"].update(download_dir="/cizi", sync_key="cizi", neznamy="1")
+        with mock.patch.object(xbmcgui.Dialog, "yesno", return_value=True), \
+             mock.patch.object(default.STORE, "clear_cache"):
+            default.transfer_apply(payload)
+        self.assertEqual(xbmcaddon.settings["download_dir"], "/storage/kodi")
+        self.assertEqual(xbmcaddon.settings["sync_key"], "klic")
+        self.assertNotIn("neznamy", xbmcaddon.settings)
+
+    def test_novy_ucet_zahodi_token_webshare(self):
+        payload = self.cizi_prenos(ws_username="novy")
+        xbmcgui.Window(10000).setProperty("nokturno.ws_token", "stary")
+        with mock.patch.object(xbmcgui.Dialog, "yesno", return_value=True), \
+             mock.patch.object(default.STORE, "clear_cache"):
+            default.transfer_apply(payload)
+        self.assertEqual(xbmcgui.Window(10000).getProperty("nokturno.ws_token"), "")
+
+    def test_priznak_cztor_nabidne_parovani(self):
+        payload = self.cizi_prenos(ws_username="novy")
+        fake = mock.Mock()
+        fake.paired.return_value = False
+        with mock.patch.object(xbmcgui.Dialog, "yesno", return_value=True), \
+             mock.patch.object(default.STORE, "clear_cache"), \
+             mock.patch.object(default, "cztor_client", return_value=fake), \
+             mock.patch.object(default, "cztor_pair") as pair:
+            default.transfer_apply(payload)
+        pair.assert_called_once()
+
+    def test_sparovany_cztor_se_uz_neptá(self):
+        payload = self.cizi_prenos(ws_username="novy")
+        fake = mock.Mock()
+        fake.paired.return_value = True
+        with mock.patch.object(xbmcgui.Dialog, "yesno", return_value=True), \
+             mock.patch.object(default.STORE, "clear_cache"), \
+             mock.patch.object(default, "cztor_client", return_value=fake), \
+             mock.patch.object(default, "cztor_pair") as pair:
+            default.transfer_apply(payload)
+        pair.assert_not_called()
+
+    # --- cesta přes server -------------------------------------------------
+    def test_odeslani_ukaze_kod(self):
+        with mock.patch.object(default.transfer_core, "send_payload",
+                               return_value=("NKT-ABCD-EFGH", 900)) as send:
+            default.transfer_send()
+        self.assertIn("NKT-ABCD-EFGH", xbmcgui.oks[0][1])
+        self.assertIn("martin", json.dumps(send.call_args[0][0]))
+
+    def test_chyba_serveru_se_ukaze_a_nic_nezmeni(self):
+        with mock.patch.object(default.transfer_core, "send_payload",
+                               side_effect=default.transfer_core.TransferError("server mlčí")):
+            default.transfer_send()
+        self.assertIn("server mlčí", xbmcgui.oks[0][1])
+
+    def test_nacteni_bere_kod_od_uzivatele(self):
+        payload = self.cizi_prenos(ws_username="novy")
+        with mock.patch.object(xbmcgui.Dialog, "input", return_value="NKT-ABCD-EFGH"), \
+             mock.patch.object(xbmcgui.Dialog, "yesno", return_value=True), \
+             mock.patch.object(default.STORE, "clear_cache"), \
+             mock.patch.object(default.transfer_core, "receive", return_value=payload) as recv:
+            default.transfer_receive()
+        recv.assert_called_once_with("NKT-ABCD-EFGH")
+        self.assertEqual(xbmcaddon.settings["ws_username"], "novy")
+
+    def test_prazdny_kod_nic_nedela(self):
+        with mock.patch.object(xbmcgui.Dialog, "input", return_value=""), \
+             mock.patch.object(default.transfer_core, "receive") as recv:
+            default.transfer_receive()
+        recv.assert_not_called()
+
+    # --- cesta přes soubor -------------------------------------------------
+    def test_soubor_tam_a_zpet(self):
+        folder = tempfile.mkdtemp(prefix="nokturno-prenos-")
+        try:
+            with mock.patch.object(xbmcgui.Dialog, "browseSingle", return_value=folder):
+                default.transfer_file_save()
+            soubory = [f for f in os.listdir(folder) if f.endswith(default.TRANSFER_EXT)]
+            self.assertEqual(len(soubory), 1)
+            cesta = os.path.join(folder, soubory[0])
+            with open(cesta, "rb") as f:
+                blob = f.read()
+            self.assertNotIn(b"tajne", blob)       # heslo v souboru čitelné není
+            kod = re.search(r"NKT-[0-9A-Z-]+", xbmcgui.oks[0][1]).group(0)
+
+            xbmcaddon.settings.update(ws_username="puvodni")
+            with mock.patch.object(xbmcgui.Dialog, "browseSingle", return_value=cesta), \
+                 mock.patch.object(xbmcgui.Dialog, "input", return_value=kod), \
+                 mock.patch.object(xbmcgui.Dialog, "yesno", return_value=True), \
+                 mock.patch.object(default.STORE, "clear_cache"):
+                default.transfer_file_load()
+            self.assertEqual(xbmcaddon.settings["ws_username"], "martin")
+        finally:
+            shutil.rmtree(folder, ignore_errors=True)
+
+    def test_spatny_kod_u_souboru_nic_nezapise(self):
+        folder = tempfile.mkdtemp(prefix="nokturno-prenos-")
+        try:
+            with mock.patch.object(xbmcgui.Dialog, "browseSingle", return_value=folder):
+                default.transfer_file_save()
+            cesta = os.path.join(folder, os.listdir(folder)[0])
+            xbmcaddon.settings.update(ws_username="puvodni")
+            with mock.patch.object(xbmcgui.Dialog, "browseSingle", return_value=cesta), \
+                 mock.patch.object(xbmcgui.Dialog, "input", return_value="NKT-AAAA-AAAA"), \
+                 mock.patch.object(xbmcgui.Dialog, "yesno", return_value=True):
+                default.transfer_file_load()
+            self.assertEqual(xbmcaddon.settings["ws_username"], "puvodni")
+        finally:
+            shutil.rmtree(folder, ignore_errors=True)
+
+    # --- napojení na Kodi --------------------------------------------------
+    def test_tlacitka_v_nastaveni_vedou_na_router(self):
+        xml = ET.parse(ROOT / "resources" / "settings.xml").getroot()
+        kategorie = next(c for c in xml.iter("category") if c.get("id") == "transfer")
+        akce = [re.search(r"action=(\w+)", s.findtext("data")).group(1)
+                for s in kategorie.iter("setting")]
+        self.assertEqual(akce, ["transfer_send", "transfer_receive",
+                                "transfer_file_save", "transfer_file_load"])
+        for name in akce:
+            self.assertIn(name, default.MARKS_SKIP)   # čtení videodatabáze tu nemá co dělat
+
+    def test_router_vola_funkce(self):
+        for akce, funkce in (("transfer_send", "transfer_send"),
+                             ("transfer_receive", "transfer_receive"),
+                             ("transfer_file_save", "transfer_file_save"),
+                             ("transfer_file_load", "transfer_file_load")):
+            with mock.patch.object(default, funkce) as f:
+                default.router("action=" + akce)
+            f.assert_called_once()
+
+    def test_prenos_neni_v_seznamu_kategorii_z_mobilu(self):
+        """Stránka z mobilu je formulář hodnot — tlačítka přenosu na ni nepatří."""
+        self.assertNotIn("transfer", default.REMOTE_SETUP_CATEGORIES)
+        ids = [f["id"] for s in default.remote_setup_schema() for f in s["fields"] if f.get("id")]
+        self.assertNotIn("transfer_send_action", ids)

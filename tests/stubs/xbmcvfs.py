@@ -53,8 +53,13 @@ class File:
     def read(self, n=-1):
         return self.f.read(n)
 
+    def readBytes(self):
+        return bytearray(self.f.read())
+
     def write(self, data):
-        return self.f.write(data if isinstance(data, bytes) else data.encode())
+        if isinstance(data, (bytes, bytearray)):
+            return self.f.write(bytes(data))
+        return self.f.write(data.encode())
 
     def close(self):
         self.f.close()

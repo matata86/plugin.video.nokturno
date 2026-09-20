@@ -51,6 +51,7 @@ from sync import sync_once  # noqa: E402
 from streams import estimate_rank, langs_from_name, parse_stream, subs_from_name  # noqa: E402
 from qr import encode as qr_encode, to_png as qr_png  # noqa: E402
 from remote_setup import SetupServer, parse_order  # noqa: E402
+import transfer as transfer_core  # noqa: E402 – `transfer_*` funkce níž by se jménem potkaly
 from tracks import FILE_CODES, SUBTITLE_FALLBACK, decode_subtitle, subtitle_format, subtitle_lang  # noqa: E402
 from trakt_api import TraktApi, TraktError  # noqa: E402
 from webshare_api import SORTS, WebshareApi, WebshareError, human_size  # noqa: E402
@@ -2152,6 +2153,168 @@ def remote_setup_action(section=None):
         xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
     if saved:
         ADDON.openSettings()
+
+
+# Kam se uloží kopie nastavení před tím, než ho přepíše přenos z jiného zařízení.
+TRANSFER_BACKUP = "settings-pred-prenosem.xml"
+TRANSFER_EXT = ".nokturno"
+
+
+def _close_settings():
+    """Zavře otevřený dialog nastavení. Drží vlastní kopii hodnot, takže by při
+    zavření přepsal, co mezitím zapsal přenos — a při čtení by vydal starý stav."""
+    if not xbmc.getCondVisibility("Window.IsVisible(addonsettings)"):
+        return
+    xbmc.executebuiltin("Dialog.Close(addonsettings,true)")
+    for _ in range(30):
+        if not xbmc.getCondVisibility("Window.IsVisible(addonsettings)") or MONITOR.waitForAbort(0.1):
+            break
+
+
+def transfer_values(schema):
+    """`{id: hodnota}` pro přenos. Neuložená položka jde s výchozí hodnotou ze
+    `settings.xml` — stejně jako u stránky z mobilu."""
+    return {f["id"]: ADDON.getSetting(f["id"]) or f["default"]
+            for section in schema for f in section["fields"]
+            if f.get("type") not in ("heading", "info", "action")}
+
+
+def transfer_payload():
+    """Obsah přenosu z aktuálního nastavení.
+
+    CZtor a Trakt ve schématu formuláře nejsou (párují se na místě, ne vyplněním
+    pole), takže se jejich stav přidá zvlášť — a jen jako příznak, nikdy token."""
+    schema = remote_setup_schema()
+    extras = {"cztor": ADDON.getSetting("cz_enabled") == "true", "trakt": bool(STORE.trakt())}
+    return transfer_core.pack(schema, transfer_values(schema),
+                              source="Kodi %s" % ADDON.getAddonInfo("version"), extras=extras)
+
+
+def transfer_send():
+    """Odeslat nastavení do jiného Kodi: kód na obrazovce, obsah zašifrovaný.
+
+    Dialog s kódem zůstane otevřený, dokud ho uživatel nezavře — má čas dojít
+    k druhé televizi a kód opsat. Na server jde jen neprůhledná binárka."""
+    _close_settings()
+    try:
+        code, ttl = transfer_core.send_payload(transfer_payload())
+    except transfer_core.TransferError as e:
+        xbmcgui.Dialog().ok(L(30587, "Přenos nastavení"), Lf(30595, e))
+        return
+    xbmc.log(f"[{ADDON_ID}] přenos nastavení odeslán, platí {ttl} s", xbmc.LOGINFO)
+    xbmcgui.Dialog().ok(L(30587, "Přenos nastavení"), Lf(30593, code, max(1, ttl // 60)))
+
+
+def transfer_receive(code=None):
+    """Načíst nastavení z jiného Kodi podle opsaného kódu."""
+    _close_settings()
+    dialog = xbmcgui.Dialog()
+    if not code:
+        code = dialog.input(L(30594, "Kód z druhého Kodi"), defaultt="NKT-")
+        if not code:
+            return
+    try:
+        payload = transfer_core.receive(code)
+    except transfer_core.TransferError as e:
+        dialog.ok(L(30587, "Přenos nastavení"), Lf(30595, e))
+        return
+    transfer_apply(payload)
+
+
+def transfer_file_save():
+    """Týž přenos, jen místo serveru soubor — na USB nebo síťový disk. Kód je
+    potřeba pořád: bez něj soubor nikdo nepřečte."""
+    _close_settings()
+    dialog = xbmcgui.Dialog()
+    folder = dialog.browseSingle(3, L(30591, "Uložit do souboru"), "files")
+    if not folder:
+        return
+    code = transfer_core.new_code()
+    name = "nokturno-%s%s" % (time.strftime("%Y-%m-%d"), TRANSFER_EXT)
+    path = os.path.join(folder, name) if "://" not in folder else folder.rstrip("/") + "/" + name
+    try:
+        blob = transfer_core.export_bytes(code, transfer_payload())
+        handle = xbmcvfs.File(path, "w")
+        try:
+            if not handle.write(bytearray(blob)):
+                raise OSError("zápis se nepovedl")
+        finally:
+            handle.close()
+    except (transfer_core.TransferError, OSError) as e:
+        dialog.ok(L(30587, "Přenos nastavení"), Lf(30603, e))
+        return
+    dialog.ok(L(30587, "Přenos nastavení"), Lf(30599, path, code))
+
+
+def transfer_file_load():
+    _close_settings()
+    dialog = xbmcgui.Dialog()
+    path = dialog.browseSingle(1, L(30592, "Načíst ze souboru"), "files", TRANSFER_EXT)
+    if not path or path.endswith("/"):
+        return
+    code = dialog.input(L(30594, "Kód z druhého Kodi"), defaultt="NKT-")
+    if not code:
+        return
+    try:
+        handle = xbmcvfs.File(path)
+        try:
+            blob = bytes(handle.readBytes())
+        finally:
+            handle.close()
+    except OSError as e:
+        dialog.ok(L(30587, "Přenos nastavení"), Lf(30604, e))
+        return
+    try:
+        payload = transfer_core.import_bytes(code, blob)
+    except transfer_core.TransferError as e:
+        dialog.ok(L(30587, "Přenos nastavení"), Lf(30595, e))
+        return
+    transfer_apply(payload)
+
+
+def transfer_backup_settings():
+    """Kopie `settings.xml` vedle něj. Import je přepis — bez zálohy by se nešlo
+    vrátit k tomu, co na zařízení bylo."""
+    source = os.path.join(PROFILE, "settings.xml")
+    target = os.path.join(PROFILE, TRANSFER_BACKUP)
+    if not xbmcvfs.exists(source):
+        return ""
+    xbmcvfs.delete(target)
+    return target if xbmcvfs.copy(source, target) else ""
+
+
+def transfer_apply(payload):
+    """Náhled, potvrzení, zápis. Uživatel vidí, co se změní, ještě než se to stane."""
+    schema = remote_setup_schema()
+    plan = transfer_core.plan(payload, transfer_values(schema), transfer_core.exportable(schema))
+    dialog = xbmcgui.Dialog()
+    if plan.empty():
+        dialog.ok(L(30587, "Přenos nastavení"), L(30598, "Z přenosu nepřišla žádná změna."))
+        return
+    if not dialog.yesno(L(30587, "Přenos nastavení"),
+                        Lf(30596, len(plan), plan.source or "Kodi", len(plan.same),
+                           len(plan.unknown) + len(plan.blocked), TRANSFER_BACKUP)):
+        return
+
+    backup = transfer_backup_settings()
+    for key, value in plan.changes.items():
+        ADDON.setSetting(key, value)
+    if any(k.startswith("ws_") for k in plan.changes):
+        xbmcgui.Window(10000).clearProperty("nokturno.ws_token")   # nový účet = nový login
+    STORE.clear_cache()     # cache patří k účtům, které tu byly do teď
+    xbmc.log(f"[{ADDON_ID}] přenos nastavení: zapsáno {len(plan)} položek "
+             f"({', '.join(sorted(plan.changes))}), záloha {backup or 'žádná'}", xbmc.LOGINFO)
+    notify(Lf(30597, len(plan)))
+
+    # Tokeny se nepřenášejí schválně: obnovovací token CZtoru se použitím mění, takže by
+    # kopie odhlásila původní zařízení, a token Traktu je vázaný na zařízení. Přenos nese
+    # jen příznak „tady to bylo zapnuté“ — přihlásit se musí každé zařízení samo.
+    if "cztor" in plan.flags and not cztor_client().paired() \
+            and dialog.yesno(L(30560, "CZtor"), L(30600, "Účet CZtoru se nepřenáší. Spárovat teď?")):
+        cztor_pair()
+    if "trakt" in plan.flags and not STORE.trakt() \
+            and dialog.yesno(L(30090, "Trakt"), L(30601, "Účet Traktu se nepřenáší. Přihlásit teď?")):
+        trakt_auth()
 
 
 def _wizard_accounts(dialog):
@@ -4781,6 +4944,14 @@ def router(query):
         "website_info": website_info,
         "test_sources": test_sources,
         "remote_setup": lambda: remote_setup_action(p.get("section")),
+        "transfer_send": lambda: (transfer_send(),
+                                  xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
+        "transfer_receive": lambda: (transfer_receive(),
+                                     xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
+        "transfer_file_save": lambda: (transfer_file_save(),
+                                       xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
+        "transfer_file_load": lambda: (transfer_file_load(),
+                                       xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
         "stream_layout_reset": lambda: (stream_layout_reset(),
                                         xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
         "setup_wizard": lambda: (setup_wizard(force=True),
@@ -4938,7 +5109,8 @@ MARKS_SKIP = frozenset((
     "cztor_status", "cztor_logout", "clear_cache", "stats_send", "log_send", "website_info",
     "test_sources", "remote_setup", "stream_layout_reset", "setup_wizard", "sub_status",
     "luna_check", "luna_find", "speedtest", "update_repos", "tmdbhelper_player", "sync_now",
-    "whats_new", "ha_files", "settings",
+    "whats_new", "ha_files", "settings", "transfer_send", "transfer_receive",
+    "transfer_file_save", "transfer_file_load",
 ))
 
 
