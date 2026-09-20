@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="6.3.7" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="6.4.0" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>6.3.7 – Řádek se stavem zdrojů v menu je kratší, aby se vešel na řádek a neroloval se: ukáže nejzávažnější zdroj a u ostatních jen počet. Celé vysvětlení je ve výpisu po kliknutí, kde má každý zdroj vlastní řádek
+    <news>6.4.0 – Titulky z OpenSubtitles: tituly, ke kterým zdroje žádné české ani slovenské titulky nemají (u více než třetiny titulů), se doplní z opensubtitles.com. Hledá se podle IMDb id a u seriálu podle sezóny a dílu, takže se nepřichytí titulky k jinému dílu. Stáhne se vždy nejvýš jeden soubor, až při přehrání — bez účtu 5 titulků denně, s vlastním účtem (Nastavení → OpenSubtitles, nepovinné) 20. Tlačítko Vyzkoušet OpenSubtitles ukáže, jestli zdroj funguje a kolik stažení dnes zbývá
+6.3.7 – Řádek se stavem zdrojů v menu je kratší, aby se vešel na řádek a neroloval se: ukáže nejzávažnější zdroj a u ostatních jen počet. Celé vysvětlení je ve výpisu po kliknutí, kde má každý zdroj vlastní řádek
 6.3.6 – Anglický název položky menu je „For You“
 6.3.5 – Doplněk už nehledá díly, které ještě nevyšly. Po dokoukání dílu se na pozadí předstahuje ten další — jenže se bral první s vyšším číslem bez ohledu na datum vydání, takže u seriálu vysílaného po týdnu se pořád dokola hledal díl, který nikde být nemůže. Totéž platilo pro řádek „Další díl“ v Pokračovat ve sledování
 6.3.4 – Slovenský překlad položky menu srovnán s češtinou: „Pre Teba“
