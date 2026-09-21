@@ -2361,12 +2361,23 @@ def remote_setup_schema(section=None):
                 kind, control = node.get("type"), node.find("control")
                 field = {"id": node.get("id")}
                 if node.get("id") == "sync_code":
-                    # kód je zároveň šifrovací klíč skupiny — z mobilu se jen ukazuje,
-                    # aby se dal opsat na další Kodi. Zakládání a opuštění skupiny
-                    # zůstává na televizi (`sync_create`/`sync_leave`).
+                    # Skupina už je: kód se jen ukáže, aby se dal opsat na další Kodi —
+                    # je to zároveň šifrovací klíč a přepsat ho omylem by tohle Kodi
+                    # ze skupiny vyřadilo. Skupina ještě není: pole na opsání kódu
+                    # z prvního Kodi, služba se podle něj připojí do pěti minut.
+                    # Zakládání a opuštění zůstává na televizi (`sync_create`/`sync_leave`).
                     kod = setting("sync_code").strip()
                     if kod:
                         fields.append({"type": "info", "label": _plain(L(30664, "Kód skupiny")), "help": kod})
+                        continue
+                    field["type"] = "text"
+                    field["default"] = ""
+                    field["label"] = _plain(L(30664, "Kód skupiny"))
+                    field["help"] = _plain(L(30707, "Kód z prvního Kodi, na kterém jsi skupinu založil. "
+                                                    "Zapni Synchronizaci, jako středisko zvol Dashboard "
+                                                    "Nokturna a ulož — toto Kodi se připojí do pěti minut."))
+                    field["enable"] = [("sync_enabled", "true"), ("sync_mode", "1")]
+                    fields.append(field)
                     continue
                 if node.get("id") in REMOTE_SETUP_ACTIONS:
                     field["type"] = "action"

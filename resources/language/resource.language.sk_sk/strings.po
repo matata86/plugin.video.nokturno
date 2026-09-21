@@ -2074,3 +2074,7 @@ msgstr "Zavri tlačidlom Späť."
 msgctxt "#30706"
 msgid "Scan the QR code to open the support page."
 msgstr "Naskenuj QR kód a otvorí sa stránka s možnosťami podpory."
+
+msgctxt "#30707"
+msgid "The code from the first Kodi where you created the group. Turn on Synchronisation, choose Nokturno dashboard as the hub and save — this Kodi joins within five minutes."
+msgstr "Kód z prvého Kodi, na ktorom si skupinu založil. Zapni Synchronizáciu, ako stredisko zvoľ Dashboard Nokturna a ulož — toto Kodi sa pripojí do piatich minút."

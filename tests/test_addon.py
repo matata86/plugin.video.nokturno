@@ -5041,12 +5041,20 @@ class TestSynchronizaceZMobilu(unittest.TestCase):
         kody = [f for f in sekce["fields"] if f.get("help") == "NKT-4F7K-2B9Q"]
         self.assertEqual(len(kody), 1)
         self.assertEqual(kody[0]["type"], "info")
+        # už připojené Kodi kód nepřepisuje — je to šifrovací klíč, překlep by ho
+        # ze skupiny vyřadil
         self.assertNotIn("sync_code", [f.get("id") for f in sekce["fields"]])
 
-    def test_bez_skupiny_se_kod_neukazuje(self):
+    def test_bez_skupiny_jde_kod_zadat(self):
+        """Druhé Kodi se do skupiny připojí opsáním kódu z prvního — a to jde i z mobilu,
+        stejně jako všechna ostatní nastavení."""
         with mock.patch.object(default, "setting", lambda k, d="": ""):
             sekce = [s for s in default.remote_setup_schema("sync")][0]
-        self.assertNotIn("sync_code", [f.get("id") for f in sekce["fields"]])
+        pole = {f.get("id"): f for f in sekce["fields"]}
+        self.assertEqual(pole["sync_code"]["type"], "text")
+        self.assertTrue(pole["sync_code"]["help"])
+        # zadat kód dává smysl jen v režimu dashboardu se zapnutou synchronizací
+        self.assertEqual(pole["sync_code"]["enable"], [("sync_enabled", "true"), ("sync_mode", "1")])
         self.assertEqual([f for f in sekce["fields"] if f.get("type") == "info"], [])
 
     def test_slozena_podminka_zasedi_spravnou_sekci(self):
