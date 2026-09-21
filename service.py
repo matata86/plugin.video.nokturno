@@ -74,6 +74,8 @@ SUB_CHECK_EVERY = 12 * 3600   # jak často se ptát WebShare na stav předplatn�
 ACCOUNTS_DELAY = 240      # po startu Kodi napřed skin a widgety, teprve pak stav účtů
 ACCOUNTS_EVERY = 6 * 3600     # pod `accounts.TTL` (12 h), ať v menu nestojí zastaralý stav
 ACCOUNTS_RETRY = 20 * 60      # zdroj, na který se nešlo dostat, zkusit dřív — viz AccountsChecker.tick
+ACCOUNTS_TRIGGER_PROP = "nokturno.accounts_trigger"   # stejný literál jako v default.py
+                                                      # (refresh_accounts_after_test) — obnovit hned
 WATCHED_PCT = 0.90
 MIN_RESUME = 90  # s – po takové době přehrávání patří titul do rozkoukaných
 SAVE_EVERY = 30  # s – jak často se za běhu přepisuje pozice rozkoukaného
@@ -531,6 +533,8 @@ class AccountsChecker:
         self.next = time.time() + ACCOUNTS_DELAY
 
     def tick(self):
+        if self.requested():
+            self.next = 0      # „Ověřit zdroje" v menu — obnovit hned, ne až za šest hodin
         if time.time() < self.next:
             return
         self.next = time.time() + ACCOUNTS_EVERY
@@ -550,12 +554,21 @@ class AccountsChecker:
                 self.next = min(self.next, time.time() + ACCOUNTS_RETRY)
             self.warn_subscription()
 
+        threading.Thread(target=run, daemon=True).start()
+
+    @staticmethod
+    def requested():
+        """Požádal plugin o obnovu hned? Vlastnost okna se přečte a smaže."""
+        win = xbmcgui.Window(10000)
+        if win.getProperty(ACCOUNTS_TRIGGER_PROP) != "1":
+            return False
+        win.clearProperty(ACCOUNTS_TRIGGER_PROP)
+        return True
+
     def unreachable(self):
         """Selhal aspoň jeden zdroj tím, že se k němu nešlo dostat?"""
         saved = self.store.reload(accounts_lib.STORE, {}) or {}
         return any((rec or {}).get("code") == "unreachable" for rec in saved.values())
-
-        threading.Thread(target=run, daemon=True).start()
 
     def warn_subscription(self):
         """Upozornění na končící nebo proběhlé předplatné WebShare — jediný stav,

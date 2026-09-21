@@ -5074,25 +5074,44 @@ class TestStavZdrojuPoTestu(unittest.TestCase):
     2026-09-21 viděl v menu čtyři zdroje v chybě a v testu hned vedle všechno
     v pořádku — po testu se proto uložený stav přepíše."""
 
-    def test_po_testu_se_obnovi_ulozeny_stav(self):
-        obnoveno = []
+    def test_po_testu_se_o_obnovu_pozada(self):
+        """Obnova nesmí běžet v pluginu — nedostupný zdroj se odbaví až timeoutem
+        (Luna 20 s, úložiště taky) a po „Ověřit zdroje" se jen točilo kolečko
+        (nahlášeno na `6.6.0~beta10`). Plugin proto jen zapíše vlastnost okna."""
+        okno = xbmcgui.Window(10000)
+        okno.clearProperty(default.ACCOUNTS_TRIGGER_PROP)
+        default.refresh_accounts_after_test()
+        self.assertEqual(okno.getProperty(default.ACCOUNTS_TRIGGER_PROP), "1")
 
-        class FalesnyEngine:
-            def refresh_accounts(self):
-                obnoveno.append(True)
+    def test_sluzba_zadost_prevezme_a_smaze(self):
+        okno = xbmcgui.Window(10000)
+        okno.setProperty(service.ACCOUNTS_TRIGGER_PROP, "1")
+        self.assertTrue(service.AccountsChecker.requested())
+        self.assertFalse(service.AccountsChecker.requested())   # podruhé už ne
 
-        with mock.patch.object(default, "KodiEngine", FalesnyEngine):
-            default.refresh_accounts_after_test()
-        self.assertEqual(obnoveno, [True])
+    def test_stejny_literal_v_obou_souborech(self):
+        """Plugin a služba se potkávají jen přes tenhle řetězec."""
+        self.assertEqual(default.ACCOUNTS_TRIGGER_PROP, service.ACCOUNTS_TRIGGER_PROP)
 
-    def test_chyba_obnovy_nezabrani_vypisu(self):
-        """Výsledek testu se musí ukázat i tehdy, když obnova spadne."""
-        class RozbityEngine:
-            def refresh_accounts(self):
-                raise RuntimeError("bez sítě")
-
-        with mock.patch.object(default, "KodiEngine", RozbityEngine):
-            default.refresh_accounts_after_test()   # nesmí vyhodit
+    def test_tick_obnovu_opravdu_spusti(self):
+        """Celá cesta od vlastnosti okna po dotaz na plugin. Samotné `requested()`
+        i `unreachable()` mají vlastní testy, přesto po nich na Office zůstalo
+        kolečko: spuštění vlákna se při úpravě octlo za `return` uvnitř
+        `unreachable()`, takže `tick()` si běh jen nadefinoval a nepustil."""
+        okno = xbmcgui.Window(10000)
+        okno.setProperty(service.ACCOUNTS_TRIGGER_PROP, "1")
+        checker = service.AccountsChecker.__new__(service.AccountsChecker)
+        checker.store = mock.Mock()
+        checker.store.reload.return_value = {}
+        checker.next = time.time() + service.ACCOUNTS_EVERY
+        hotovo = threading.Event()
+        with mock.patch.object(service, "rpc_directory", side_effect=lambda *a: hotovo.set()) as rpc, \
+                mock.patch.object(service.AccountsChecker, "warn_subscription"), \
+                mock.patch.object(service.xbmc, "Player") as player:
+            player.return_value.isPlaying.return_value = False
+            checker.tick()
+            self.assertTrue(hotovo.wait(5), "obnova stavu zdrojů se vůbec nespustila")
+        self.assertIn("action=accounts_refresh", rpc.call_args[0][0])
 
 
 class TestObnovaPoVypadkuSite(unittest.TestCase):

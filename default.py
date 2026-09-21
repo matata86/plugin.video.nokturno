@@ -187,6 +187,8 @@ LANG_LOCK_PROP = "nokturno.lang_busy"  # zámek přes okno (sdílené mezi proce
 LANG_PROGRESS_PROP = "nokturno.lang_progress"  # živý postup přepočtu (viz _build_lang_catalog), sdílený
                                                 # stejně jako zámek — kdo na zámek čeká, si z něj přečte,
                                                 # jak daleko je proces, co ho drží
+ACCOUNTS_TRIGGER_PROP = "nokturno.accounts_trigger"   # stejný literál jako v service.py — žádost o obnovu
+                                                      # stavu zdrojů hned, viz refresh_accounts_after_test
 LANG_TRIGGER_PROP = "nokturno.lang_trigger"  # žádost o okamžitý přepočet na pozadí (viz lang_catalog_trigger
                                               # tady a lang_trigger_watcher ve service.py) — stejný literál
                                               # v obou souborech, stejně jako WARM_PROP
@@ -3012,16 +3014,21 @@ def test_sources():
 
 
 def refresh_accounts_after_test():
-    """Po „Ověřit zdroje" přepsat i uložený stav pro položku Stav zdrojů v menu.
+    """Po „Ověřit zdroje" požádat službu, ať přepíše i uložený stav pro položku
+    Stav zdrojů v menu.
 
     Jsou to dvě různé cesty: test se ptá zdrojů živě, kdežto menu čte záznam
     z `accounts.json`, který platí dvanáct hodin. Když obnova na pozadí padla
     na vypnutou síť (na mobilu hned po startu Kodi), ukazovalo menu půl dne
-    chyby, zatímco test hned vedle hlásil všechno v pořádku — přesně tohle
-    nahlásil uživatel 2026-09-21. Běží po testu, takže odpovědi jdou z cache
-    klientů a nic se neptá dvakrát."""
+    chyby, zatímco test hned vedle hlásil všechno v pořádku.
+
+    Obnova **nesmí běžet tady**: nedostupný zdroj se v ní odbaví až timeoutem
+    (Luna 20 s, úložiště taky), takže plugin po testu půl minuty jen točil
+    kolečkem — nahlásil uživatel na `6.6.0~beta10`. Stejný vzor jako u
+    přepočtu jazykových katalogů: plugin zapíše vlastnost okna, službu to
+    probudí do několika sekund a čeká se na pozadí."""
     try:
-        KodiEngine().refresh_accounts()
+        xbmcgui.Window(10000).setProperty(ACCOUNTS_TRIGGER_PROP, "1")
     except Exception as e:  # noqa: BLE001 – výsledek testu se musí ukázat i tak
         log_error(e)
 
