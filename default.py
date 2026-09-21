@@ -844,6 +844,15 @@ def folder_item(label, url, icon=None, context=None):
     xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
 
 
+def action_item(label, url, icon=None):
+    """Položka, která jen spustí akci s dialogem (nastavení, novinky, průvodce). Není složka —
+    Kodi ji po kliknutí spustí s handle −1, takže se nekreslí žádný výpis a do kodi.log
+    nepadá `GetDirectory - Error getting …` (to hlásí každý `endOfDirectory(succeeded=False)`)."""
+    li = xbmcgui.ListItem(label=label)
+    li.setArt({"icon": icon or ICON, "thumb": icon or ICON})
+    xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=False)
+
+
 def bare_title(meta):
     """Titul bez roku – u Sosáče jen titul bez jazyků a originálu."""
     if is_sosac_id(meta.get("id")):
@@ -3113,7 +3122,7 @@ def list_accounts(apis):
                     icon="DefaultAddonService.png")
     folder_item(L(30167, "Ověřit zdroje"), build_url(action="test_sources"),
                 icon="DefaultAddonProgram.png")
-    folder_item(L(30392, "Nastavení"), build_url(action="settings"), icon="DefaultAddonProgram.png")
+    action_item(L(30392, "Nastavení"), build_url(action="settings"), icon="DefaultAddonProgram.png")
     # bez cache na disk — stav se mění, zpět do menu by jinak ukázalo starý výpis
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
@@ -3679,7 +3688,8 @@ def whats_new():
     body = "\n\n".join(f"[B]{v}[/B]\n" + "\n".join(f"• {t}" for t in texts) for v, texts in groups) \
         or L(30193, "Žádné novinky")
     STORE.save(SEEN, {"version": current_version()})
-    xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
+    if HANDLE >= 0:
+        xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
     xbmcgui.Dialog().textviewer(L(30191, "Novinky"), body)
     xbmc.executebuiltin("Container.Refresh")
 
@@ -3693,9 +3703,9 @@ def main_menu(apis):
         notify(L(30104), xbmcgui.NOTIFICATION_WARNING, 6000)
         # bez zdroje je průvodce jediné, co dává smysl — dřív tu byla jen položka Nastavení
         # a kdo průvodce jednou přeskočil, neměl jak zjistit, že existuje
-        folder_item(L(30359, "Průvodce nastavením"), build_url(action="setup_wizard"),
+        action_item(L(30359, "Průvodce nastavením"), build_url(action="setup_wizard"),
                     icon="DefaultAddonProgram.png")
-        folder_item(L(30107), build_url(action="settings"), icon="DefaultAddonProgram.png")
+        action_item(L(30107), build_url(action="settings"), icon="DefaultAddonProgram.png")
         xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
         return
     # Stav zdrojů úplně nahoře, ale jen když je co hlásit — jinak by tu u všech
@@ -3715,11 +3725,11 @@ def main_menu(apis):
     # nejde — modální dialog v cestě, kterou otevírají widgety a JSON-RPC, blokuje
     # i vypínání Kodi (viz pravidlo v CLAUDE.md)
     if not accounts_set():   # i po přeskočení: bez účtu nemá doplněk co ukázat
-        folder_item(L(30359, "Průvodce nastavením"), build_url(action="setup_wizard"),
+        action_item(L(30359, "Průvodce nastavením"), build_url(action="setup_wizard"),
                     icon="DefaultAddonProgram.png")
     fresh = unseen_changelog()
     if fresh:
-        folder_item(f"{L(30192, 'Novinky ve verzi')} {fresh[0][0]}",
+        action_item(f"{L(30192, 'Novinky ve verzi')} {fresh[0][0]}",
                     build_url(action="whats_new"), icon="DefaultAddonRepository.png")
     # vlastní ikony místo jedné a té samé ikony doplňku u každé položky — jména
     # standardní sady Kodi (dodává je aktivní skin, žádný soubor navíc v doplňku)
@@ -3740,7 +3750,7 @@ def main_menu(apis):
         folder_item(L(30387, "Moje úložiště"), build_url(action="dav_browse"), icon="DefaultHardDisk.png")
     if setting("download_dir") or sync_targets():
         folder_item(L(30391, "Stažené"), build_url(action="downloads"), icon="DefaultHardDisk.png")
-    folder_item(L(30392, "Nastavení"), build_url(action="settings"), icon="DefaultAddonProgram.png")
+    action_item(L(30392, "Nastavení"), build_url(action="settings"), icon="DefaultAddonProgram.png")
     # bez cache na disk — položky se mění podle stavu (Novinky, Pokračovat), zpět do
     # menu z podsložky by jinak Kodi ukázalo starý výpis i s už přečtenými Novinkami
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
@@ -5852,8 +5862,7 @@ def router(query):
                                        xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
         "stream_layout_reset": lambda: (stream_layout_reset(),
                                         xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
-        "setup_wizard": lambda: (setup_wizard(force=True),
-                                 xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
+        "setup_wizard": lambda: _tlacitko(lambda: setup_wizard(force=True)),
         "sub_status": sub_status,
         # tlačítka s dialogem, žádný výpis: z nastavení (RunPlugin, handle −1) je to jedno, ale z
         # výpisu (Stav zdrojů → Luna) má Kodi handle ≥ 0 a bez endOfDirectory nahlásí GetDirectory
@@ -5867,7 +5876,8 @@ def router(query):
         "sync_now": sync_now,
         "whats_new": whats_new,
         "ha_files": list_ha_files,
-        "settings": lambda: (xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False), ADDON.openSettings()),
+        "settings": lambda: (xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False) if HANDLE >= 0 else None,
+                             ADDON.openSettings()),
     }
     try:
         if action == "title_download":

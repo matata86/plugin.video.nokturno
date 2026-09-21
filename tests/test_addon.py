@@ -2026,6 +2026,7 @@ class FakeStats:
         self.uses, self.plays, self.sent, self.seen = [], [], [], []
         self._due = due
         self.last_message = None
+        self.data = {}
 
     def note_use(self, ts):
         self.uses.append(ts)
@@ -2185,6 +2186,17 @@ class TestSluzbaStatistiky(unittest.TestCase):
             stats = FakeStats(due=False)
             service.stats_tick(stats)
         self.assertEqual(len(stats.sent), 1)
+        self.assertEqual(xbmcgui.Window(10000).getProperty(service.FORCE_STATS_PROP), "")
+
+    def test_force_stats_po_aktualizaci_nepta_se_znovu_kdyz_uz_poslano(self):
+        """Start služby po aktualizaci statistiky poslal a zprávu vyzvedl; druhé odeslání do
+        minut dashboard odmítl (HTTP 429) — nucené se přeskočí."""
+        xbmcgui.Window(10000).setProperty(service.FORCE_STATS_PROP, "1")
+        with mock.patch.object(service, "_STARTED_AT", time.time() - service.MESSAGE_DELAY - 1):
+            stats = FakeStats(due=False)
+            stats.data["last_sent"] = time.time() - 60
+            service.stats_tick(stats)
+        self.assertEqual(stats.sent, [])
         self.assertEqual(xbmcgui.Window(10000).getProperty(service.FORCE_STATS_PROP), "")
 
 

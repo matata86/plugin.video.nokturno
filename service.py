@@ -65,6 +65,7 @@ USED_PROP = "nokturno.used"
 SYNC_PROP = "nokturno.sync"
 CRASH_PROP = "nokturno.crash"   # plugin → služba: nové hlášení o pádu ve frontě (default.report_crash)
 CRASH_EVERY = 30 * 60           # fronta hlášení bez nového pádu (neodeslané kvůli síti) — jednou za čas
+FORCE_STATS_GAP = 600   # nucené odeslání po aktualizaci jen když poslední úspěšné bylo dřív
 FORCE_STATS_PROP = "nokturno.force_stats"   # plugin → služba: aktualizace doplňku, nečekat na SEND_EVERY
 SYNC_EVERY = 5 * 60   # výměna se střediskem; změny (dokoukáno, Můj seznam) ji vyvolají hned
 SYNC_FIRST = 20       # první výměna po startu — ať je rozkoukanost z druhé TV hned na začátku
@@ -1075,7 +1076,9 @@ def stats_tick(stats, force=False):
         # start skinu, by nikdo nezaznamenal (viz vlastnost do `getProperty` necháváme
         # nastavenou, dokud grace neuplyne, aby se to nezahodilo)
         xbmcgui.Window(10000).clearProperty(FORCE_STATS_PROP)
-        force = True
+        # start služby po aktualizaci už statistiky odeslal (a zprávu z dashboardu vyzvedl) —
+        # druhé odeslání do minut dashboard omezí (HTTP 429)
+        force = time.time() - float(stats.data.get("last_sent") or 0) > FORCE_STATS_GAP
     addon = fresh_addon()
     if addon is None:
         return
