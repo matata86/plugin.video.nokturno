@@ -8,6 +8,16 @@ Podrobný návod (instalace, nastavení každého zdroje, používání, řešen
 
 > **Patří k sobě:** stejné zdroje nabízí i [**Nokturno pro Home Assistant**](https://github.com/matata86/nokturno-ha) (HACS integrace, přehrává právě přes tenhle doplněk) a [**Nokturno pro Stremio**](https://github.com/matata86/nokturno-stremio) (i Nuvio). Všechny tři stojí na společném jádru [nokturno-core](https://github.com/matata86/nokturno-core).
 
+## Rychlý start
+
+1. V Kodi povol *Nastavení → Systém → Doplňky → **Neznámé zdroje***.
+2. Přidej zdroj `https://nokturno.tailf0014.ts.net/repo/` a z něj nainstaluj `repository.nokturno.zip`, pak doplněk **Nokturno** (přesný postup níž v [Instalaci](#instalace)).
+3. Po instalaci tě **průvodce** provede vyplněním zdrojů. Nic víc není nutné — HellSpy funguje bez účtu a katalogy bez nastavení.
+
+Nastavení účtů se dá pohodlně vyplnit **z mobilu** (QR kód na TV) nebo přenést z jiného Kodi.
+
+## Zdroje
+
 Video doplněk pro Kodi (20 Nexus a novější — `InfoTagVideo`, testováno na Kodi 21 Omega, CoreELEC). Sedm rovnocenných zdrojů streamů a vlastní úložiště, každý jde zapnout samostatně:
 
 | zdroj | co dává | co potřebuje |
@@ -23,18 +33,17 @@ Video doplněk pro Kodi (20 Nexus a novější — `InfoTagVideo`, testováno na
 
 Přihlašovací údaje zůstávají v Kodi — doplněk je posílá jen službě, ke které patří (WebShare, Streamuj, Luna, Sledujteto, FastShare, CZtor).
 
-### Vlastní databáze filmů a seriálů
-
-Katalog (*Filmy* / *Seriály*) a hledání titulů běžely dřív jen přes Lunu (nebo přihlášený Sosáč) — bez nich se dřív ani nezobrazily v menu. Teď se použije řetězec zdrojů metadat, v tomhle pořadí (každý se zkusí, jen když předchozí nic nevrátil):
-
-1. **TMDB** — jakmile má uživatel vlastní zdarma klíč (viz *Nastavení → Vlastní databáze filmů a seriálů* → nápověda s návodem), má přednost **i před Lunou** — umí česky i to, co Luna neřekne (popis, obsazení). Luna zůstává zdrojem streamů, ne metadat.
-2. **Luna** — bez TMDB klíče, když je dostupná (beze změny oproti dřívějšku)
-3. **Veřejný katalog Sosáče** — bez TMDB i Luny, bez účtu, české tituly a žánry, ale bez popisu
-4. **Cinemeta** — poslední záchrana, funguje vždy, ale jen anglicky
-
-Streamy samotné (WebShare/HellSpy/Sledujteto/FastShare/Luna) se pak hledají stejně jako dřív — vlastní databáze řeší jen "co je to za titul", ne odkud stream stáhnout.
-
 ## Co umí
+
+- **Sedm zdrojů + vlastní úložiště** v jednom hledání a jednom výběru streamu (stejný soubor z více zdrojů se sloučí do jednoho řádku)
+- **Výběr streamu v dialogu** — kvalita, jazyk zvuku i titulků, kanály, kodek, velikost; filtr a zapamatovaný stream u seriálu
+- **Pokračovat ve sledování**, Můj seznam, rozkoukané a zhlédnuté i bez Kodi knihovny; **Trakt.tv** a **Up Next**
+- **Katalogy, žebříčky, TV program, Pro Tebe** a náhodný titul; **Stav zdrojů** v menu řekne, co nefunguje
+- **Nastavit z mobilu**, **přenos nastavení** do dalšího Kodi a průvodce prvním nastavením
+- **Titulky z OpenSubtitles**, **stahování** na pozadí s navazováním, **Přehrát z detailu** přes TMDb Helper (Arctic Fuse)
+
+<details>
+<summary><b>Všechny funkce podrobně</b></summary>
 
 - **Nastavit z mobilu** — na TV se ukáže QR kód a adresa, nastavení vyplníš v pohodlném formuláři v telefonu (včetně hledání a ověření Luny); hesla se nezobrazují
 - **Přenos nastavení do dalšího Kodi** (od 6.2.0) — kód `NKT-XXXX-XXXX`, obsah šifrovaný, platí 15 minut; nebo přes soubor na USB. CZtor a Trakt se nepřenášejí
@@ -72,6 +81,8 @@ Streamy samotné (WebShare/HellSpy/Sledujteto/FastShare/Luna) se pak hledají st
 - **Sledování předplatného WebShare** — tlačítko v nastavení ukáže, kolik dní zbývá; upozornění pár dní před koncem a pak každý den, dokud předplatné nevyprší
 - **Žánr v popisu titulu** — tučně na začátku, přeložený do češtiny i u titulů z anglicky mluvících zdrojů
 - **Nápověda ke každé volbě v nastavení** — dole v dialogu se zobrazí, co položka dělá, ne jen její název
+
+</details>
 
 ### Přehrát z detailu filmu (TMDb Helper, Arctic Fuse)
 
@@ -134,7 +145,38 @@ Zapni, co máš — jeden, víc, nebo všech sedm (plus vlastní úložiště):
 - **CZtor** — *Nastavení → CZtor → Spárovat PINem*: na TV se ukáže PIN, zadáš ho na `cztor.com/activate`; heslo se do doplňku nezadává.
 - **Vlastní databáze filmů a seriálů (TMDB)** — nepovinné, ale s klíčem má přednost i před Lunou (viz výš): zdarma klíč z [themoviedb.org](https://www.themoviedb.org/signup) → ikona profilu → *Nastavení* → *API* → *Request an API Key* → *Developer* → krátký formulář → zkopíruj **API Key (v3 auth)** (ne delší "API Read Access Token") do *Nastavení → Vlastní databáze filmů a seriálů*. Bez klíče se použije Luna (je-li dostupná), jinak zdarma veřejný katalog Sosáče a Cinemeta, ale bez českého popisu.
 
-## Struktura
+## Vlastní databáze filmů a seriálů
+
+Katalog (*Filmy* / *Seriály*) a hledání titulů běžely dřív jen přes Lunu (nebo přihlášený Sosáč) — bez nich se dřív ani nezobrazily v menu. Teď se použije řetězec zdrojů metadat, v tomhle pořadí (každý se zkusí, jen když předchozí nic nevrátil):
+
+1. **TMDB** — jakmile má uživatel vlastní zdarma klíč (viz *Nastavení → Vlastní databáze filmů a seriálů* → nápověda s návodem), má přednost **i před Lunou** — umí česky i to, co Luna neřekne (popis, obsazení). Luna zůstává zdrojem streamů, ne metadat.
+2. **Luna** — bez TMDB klíče, když je dostupná (beze změny oproti dřívějšku)
+3. **Veřejný katalog Sosáče** — bez TMDB i Luny, bez účtu, české tituly a žánry, ale bez popisu
+4. **Cinemeta** — poslední záchrana, funguje vždy, ale jen anglicky
+
+Streamy samotné (WebShare/HellSpy/Sledujteto/FastShare/Luna) se pak hledají stejně jako dřív — vlastní databáze řeší jen "co je to za titul", ne odkud stream stáhnout.
+
+## Nokturno v Home Assistantu
+
+Stejné zdroje umí i [**integrace Nokturno pro Home Assistant**](https://github.com/matata86/nokturno-ha) (instalace přes HACS). Hledá ve stejných zdrojích (WebShare, Sosáč, Luna, HellSpy, Sledujteto, FastShare, vlastní úložiště), výsledky pouští **v Kodi právě přes tenhle doplněk** (`plugin://plugin.video.nokturno/…`), takže titul skončí v „Pokračovat ve sledování" a Kodi si pamatuje pozici. Navíc umí stáhnout film do Home Assistantu nebo poslat odkaz do mobilu.
+
+[![Otevřít repozitář v HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=matata86&repository=nokturno-ha&category=integration)
+[![Přidat integraci](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=nokturno)
+[![Přidat repozitář s doplňky](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fmatata86%2Fha-addons)
+
+Tlačítka otevřou tvoji instanci: první přidá integraci do HACS, druhé spustí její nastavení, třetí přidá repozitář s addony (server **Luna** jako doplněk HA).
+
+Účty se nastavují stejné jako tady; obě aplikace sdílejí knihovny zdrojů, takže se chovají shodně.
+
+## Nokturno ve Stremiu
+
+Stejné zdroje (WebShare, Sosáč, Sledujteto, FastShare, HellSpy) jsou i jako [**doplněk pro Stremio**](https://github.com/matata86/nokturno-stremio) — funguje i v Nuviu a dalších klientech Stremia. Na rozdíl od tohoto doplňku nemá vlastní katalogy ani knihovnu — dohledává jen streamy k titulům, které si Stremio najde samo.
+
+**Přidat do Stremia:** [nokturno.tailf0014.ts.net/configure](https://nokturno.tailf0014.ts.net/configure).
+
+## Pro pokročilé a vývojáře
+
+### Struktura
 
 ```
 addon.xml
@@ -175,7 +217,7 @@ resources/language/…          # en_GB, cs_CZ, sk_SK
 
 Test klientů bez Kodi: `python3 resources/lib/luna_api.py http://IP:7126 e1.XXXX`, `python3 resources/lib/sosac_direct.py <streamuj_user> <streamuj_heslo>`
 
-## Anonymní statistiky
+### Anonymní statistiky
 
 Od 3.0.0 hlášení nese i to, **které zdroje máš zapnuté** (jen přepínače — žádné účty ani adresy).
 
@@ -224,7 +266,7 @@ přesně, co odchází:
 
 Očekávaná odpověď je `{"ok": true}`.
 
-## Odeslání logu
+### Odeslání logu
 
 V *Nastavení → Pokročilé* je (úplně dole) tlačítko **Odeslat log Kodi**. Po
 potvrzení („Opravdu odeslat log?") pošle poslední ~500 KB souboru `kodi.log`
@@ -238,24 +280,6 @@ Očekávaná odpověď je HTTP 200; při chybě (síť, server, moc časté odes
 doplněk zobrazí notifikaci s důvodem. Nahlášené logy vidí administrátor v
 [dashboardu statistik](https://github.com/matata86/plugin.video.nokturno/wiki/Reseni-problemu#jak-nahlásit-chybu),
 starší 30 dní se mažou automaticky.
-
-## Nokturno v Home Assistantu
-
-Stejné zdroje umí i [**integrace Nokturno pro Home Assistant**](https://github.com/matata86/nokturno-ha) (instalace přes HACS). Hledá ve stejných zdrojích (WebShare, Sosáč, Luna, HellSpy, Sledujteto, FastShare, vlastní úložiště), výsledky pouští **v Kodi právě přes tenhle doplněk** (`plugin://plugin.video.nokturno/…`), takže titul skončí v „Pokračovat ve sledování" a Kodi si pamatuje pozici. Navíc umí stáhnout film do Home Assistantu nebo poslat odkaz do mobilu.
-
-[![Otevřít repozitář v HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=matata86&repository=nokturno-ha&category=integration)
-[![Přidat integraci](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=nokturno)
-[![Přidat repozitář s doplňky](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fmatata86%2Fha-addons)
-
-Tlačítka otevřou tvoji instanci: první přidá integraci do HACS, druhé spustí její nastavení, třetí přidá repozitář s addony (server **Luna** jako doplněk HA).
-
-Účty se nastavují stejné jako tady; obě aplikace sdílejí knihovny zdrojů, takže se chovají shodně.
-
-## Nokturno ve Stremiu
-
-Stejné zdroje (WebShare, Sosáč, Sledujteto, FastShare, HellSpy) jsou i jako [**doplněk pro Stremio**](https://github.com/matata86/nokturno-stremio) — funguje i v Nuviu a dalších klientech Stremia. Na rozdíl od tohoto doplňku nemá vlastní katalogy ani knihovnu — dohledává jen streamy k titulům, které si Stremio najde samo.
-
-**Přidat do Stremia:** [nokturno.tailf0014.ts.net/configure](https://nokturno.tailf0014.ts.net/configure).
 
 ## Licence
 
