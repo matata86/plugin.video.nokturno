@@ -183,5 +183,8 @@ class WindowDialog:
     def show(self):
         windows_shown.append(self)
 
+    def doModal(self):
+        windows_shown.append(self)
+
     def close(self):
         pass

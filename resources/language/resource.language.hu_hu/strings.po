@@ -2032,10 +2032,6 @@ msgctxt "#30695"
 msgid "ID of this installation"
 msgstr "Ennek a telepítésnek az azonosítója"
 
-msgctxt "#30696"
-msgid "Give this ID when reporting a problem — the log sent from the add-on and any crash report are found by it. It says nothing about who you are."
-msgstr "Add meg ezt az azonosítót, ha hibát jelentesz — ez alapján található meg a bővítményből küldött napló és az összeomlási jelentés. Arról, hogy ki vagy, semmit nem árul el."
-
 msgctxt "#30697"
 msgid "Support the project"
 msgstr "A projekt támogatása"
@@ -2063,3 +2059,11 @@ msgstr "Stremio fórum: stremio.cz/d/240"
 msgctxt "#30703"
 msgid "Version"
 msgstr "Verzió"
+
+msgctxt "#30704"
+msgid "PayPal"
+msgstr "PayPal"
+
+msgctxt "#30705"
+msgid "Close with Back."
+msgstr "Zárás a Vissza gombbal."

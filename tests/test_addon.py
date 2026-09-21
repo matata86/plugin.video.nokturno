@@ -175,11 +175,18 @@ class TestNastaveni(unittest.TestCase):
         self.assertIn("deadbeef", text)
 
     def test_info_ukaze_adresy_na_prispevek(self):
-        with mock.patch.object(xbmcgui.Dialog, "textviewer") as dialog:
-            default.info_donate()
-        text = dialog.call_args[0][1]
-        self.assertIn("paypal.me/matata86", text)
-        self.assertIn("bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc", text)
+        """Bitcoinová adresa má 42 znaků, z televize se opsat nedá — vedle ní je QR."""
+        with tempfile.TemporaryDirectory() as profil:
+            with mock.patch.object(default, "PROFILE", profil):
+                default.info_donate()
+                qr_path = os.path.join(profil, "donate-btc.png")
+                self.assertTrue(os.path.exists(qr_path))
+                with open(qr_path, "rb") as f:
+                    self.assertEqual(f.read(8), b"\x89PNG\r\n\x1a\n")
+        okno = xbmcgui.windows_shown[-1]
+        texty = [c.text for c in okno.controls if hasattr(c, "text")]
+        self.assertTrue(any("bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc" in t for t in texty))
+        self.assertTrue(any("paypal.me/matata86" in t for t in texty))
 
     def test_id_instalace_se_opravdu_precte(self):
         """Beta 8: `install_id()` sahala na `Stats` globálně, jenže ten se v default.py
@@ -5019,3 +5026,33 @@ class TestSynchronizaceRelay(unittest.TestCase):
         okno.clearProperty(service.SYNC_PROP)
         service.ServiceMonitor().onDPMSDeactivated()
         self.assertEqual(okno.getProperty(service.SYNC_PROP), "1")
+
+
+class TestSynchronizaceZMobilu(unittest.TestCase):
+    """Stránka „Nastavit z mobilu“ nad kategorií Synchronizace."""
+
+    def test_kod_skupiny_jde_jen_precist(self):
+        """Kód je zároveň šifrovací klíč skupiny — z mobilu se ukazuje, aby se dal opsat
+        na další Kodi, ale needituje se. Zakládání a opuštění zůstává na televizi."""
+        with mock.patch.object(default, "setting", lambda k, d="": "NKT-4F7K-2B9Q" if k == "sync_code" else ""):
+            sekce = [s for s in default.remote_setup_schema("sync")][0]
+        kody = [f for f in sekce["fields"] if f.get("help") == "NKT-4F7K-2B9Q"]
+        self.assertEqual(len(kody), 1)
+        self.assertEqual(kody[0]["type"], "info")
+        self.assertNotIn("sync_code", [f.get("id") for f in sekce["fields"]])
+
+    def test_bez_skupiny_se_kod_neukazuje(self):
+        with mock.patch.object(default, "setting", lambda k, d="": ""):
+            sekce = [s for s in default.remote_setup_schema("sync")][0]
+        self.assertNotIn("sync_code", [f.get("id") for f in sekce["fields"]])
+        self.assertEqual([f for f in sekce["fields"] if f.get("type") == "info"], [])
+
+    def test_slozena_podminka_zasedi_spravnou_sekci(self):
+        """Sekce Dashboard a Home Assistant se v settings.xml řídí dvojicí podmínek
+        (`<and>`); bez jejich čtení by na stránce svítily obě naráz."""
+        with mock.patch.object(default, "setting", lambda k, d="": ""):
+            sekce = [s for s in default.remote_setup_schema("sync")][0]
+        podle_id = {f.get("id"): f for f in sekce["fields"]}
+        self.assertEqual(podle_id["sync_url"]["enable"], [("sync_enabled", "true"), ("sync_mode", "0")])
+        self.assertEqual(podle_id["sync_settings"]["enable"], [("sync_enabled", "true"), ("sync_mode", "1")])
+        self.assertEqual(podle_id["sync_watched"]["enable"], ("sync_enabled", "true"))

@@ -2035,10 +2035,6 @@ msgctxt "#30695"
 msgid "ID of this installation"
 msgstr "ID tejto inštalácie"
 
-msgctxt "#30696"
-msgid "Give this ID when reporting a problem — the log sent from the add-on and any crash report are found by it. It says nothing about who you are."
-msgstr "Toto ID uveď, keď hlásiš problém — podľa neho sa nájde log odoslaný z doplnku aj hlásenie o páde. O tom, kto si, nič nehovorí."
-
 msgctxt "#30697"
 msgid "Support the project"
 msgstr "Podporiť projekt"
@@ -2066,3 +2062,11 @@ msgstr "Fórum pre Stremio: stremio.cz/d/240"
 msgctxt "#30703"
 msgid "Version"
 msgstr "Verzia"
+
+msgctxt "#30704"
+msgid "PayPal"
+msgstr "PayPal"
+
+msgctxt "#30705"
+msgid "Close with Back."
+msgstr "Zavri tlačidlom Späť."

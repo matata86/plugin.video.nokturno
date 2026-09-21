@@ -296,18 +296,60 @@ def info_install():
     Pevné hodnoty (web, fóra) proto nese rovnou popisek tlačítka; verze a id se
     do popisku napsat nedají, ukazuje je tenhle dialog."""
     xbmcgui.Dialog().textviewer(L(30432, "Info"),
-                                "%s: %s[CR]%s: %s[CR][CR]%s" % (L(30703, "Verze"), _ADDON_VERSION,
-                                                                L(30695, "ID této instalace"), install_id() or "—",
-                                                                L(30696, "")))
+                                "%s: %s[CR]%s: %s" % (L(30703, "Verze"), _ADDON_VERSION,
+                                                      L(30695, "ID této instalace"), install_id() or "—"))
+
+
+PAYPAL_URL = "paypal.me/matata86"
+BITCOIN_ADDRESS = "bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc"
 
 
 def info_donate():
-    """Tlačítko v kategorii Info: kam poslat příspěvek. Adresy jsou dlouhé, do
-    popisku tlačítka se nevejdou."""
-    xbmcgui.Dialog().textviewer(L(30697, "Podpořit projekt"),
-                                "%s[CR]%s[CR][CR]%s[CR]%s" % (L(30698, "PayPal"), "paypal.me/matata86",
-                                                              L(30699, "Bitcoin"),
-                                                              "bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc"))
+    """Tlačítko v kategorii Info: kam poslat příspěvek.
+
+    Bitcoinová adresa má 42 znaků a z televize se opsat nedá — vedle ní je proto
+    QR kód (`bitcoin:` podle BIP 21, peněženky v mobilu ho načtou rovnou). Okno
+    je stejné jako u „Nastavit z mobilu“: obrázek se dá Kodi jen jako soubor."""
+    qr_path = os.path.join(PROFILE, "donate-btc.png")
+    backdrop = os.path.join(PROFILE, "remote-setup-bg.png")
+    try:
+        if not os.path.exists(qr_path):
+            with open(qr_path, "wb") as f:
+                f.write(_qr().to_png(_qr().encode("bitcoin:" + BITCOIN_ADDRESS), scale=10, border=2))
+        if not os.path.exists(backdrop):   # jednobarevná plocha, ztmaví se `colorDiffuse`
+            with open(backdrop, "wb") as f:
+                f.write(_qr().to_png([[False]], scale=1, border=0))
+    except Exception as e:  # noqa: BLE001 – bez QR se ukáže aspoň adresa
+        log_error(e)
+        qr_path = ""
+    window = DonateWindow(qr_path, backdrop)
+    try:
+        window.doModal()
+    finally:
+        del window
+
+
+class DonateWindow(xbmcgui.WindowDialog):
+    """Adresy na příspěvek a QR na bitcoinovou adresu. Zavře se čímkoli."""
+    CLOSE_ACTIONS = (7, 9, 10, 13, 92, 100, 401)   # OK, Zpět, Stop, klik, ťuknutí
+
+    def __init__(self, qr_path, backdrop_path=""):
+        super().__init__()
+        if backdrop_path:   # bez podkladu prosvítá dialog nastavení a text je nečitelný
+            self.addControl(xbmcgui.ControlImage(0, 0, 1280, 720, backdrop_path, colorDiffuse="FF0D0B14"))
+        self.addControl(xbmcgui.ControlLabel(90, 70, 1100, 50, "[B]%s[/B]" % L(30697, "Podpořit projekt"),
+                                             font="font13", textColor="FFFFFFFF"))
+        if qr_path:
+            self.addControl(xbmcgui.ControlImage(90, 150, 380, 380, qr_path, aspectRatio=2))
+        text = xbmcgui.ControlTextBox(500, 160, 700, 380, font="font12", textColor="FFE6E1F0")
+        self.addControl(text)
+        text.setText("[B]%s[/B][CR]%s[CR][CR][B]%s[/B][CR]%s[CR][CR]%s"
+                     % (L(30699, "Bitcoin"), BITCOIN_ADDRESS, L(30704, "PayPal"), PAYPAL_URL,
+                        L(30705, "Zavři tlačítkem Zpět.")))
+
+    def onAction(self, action):
+        if action.getId() in self.CLOSE_ACTIONS:
+            self.close()
 
 
 def install_id():
@@ -2315,6 +2357,14 @@ def remote_setup_schema(section=None):
             for node in group.findall("setting"):
                 kind, control = node.get("type"), node.find("control")
                 field = {"id": node.get("id")}
+                if node.get("id") == "sync_code":
+                    # kód je zároveň šifrovací klíč skupiny — z mobilu se jen ukazuje,
+                    # aby se dal opsat na další Kodi. Zakládání a opuštění skupiny
+                    # zůstává na televizi (`sync_create`/`sync_leave`).
+                    kod = setting("sync_code").strip()
+                    if kod:
+                        fields.append({"type": "info", "label": _plain(L(30664, "Kód skupiny")), "help": kod})
+                    continue
                 if node.get("id") in REMOTE_SETUP_ACTIONS:
                     field["type"] = "action"
                     field["action"], field["inputs"] = REMOTE_SETUP_ACTIONS[node.get("id")]
@@ -2350,6 +2400,11 @@ def remote_setup_schema(section=None):
                 dep = node.find("dependencies/dependency[@type='enable']")
                 if dep is not None and dep.get("setting"):
                     field["enable"] = (dep.get("setting"), (dep.text or "").strip())
+                elif dep is not None:   # <and> s víc podmínkami (sekce Synchronizace)
+                    podminky = [(c.get("setting"), (c.text or "").strip())
+                                for c in dep.findall("and/condition") if c.get("setting")]
+                    if podminky:
+                        field["enable"] = podminky
                 fields.append(field)
         if fields:
             sections.append({"id": category.get("id"), "label": _plain(L(int(category.get("label")))),
