@@ -1,44 +1,50 @@
 """Přehraj.to — hledání videí a odkaz na přehrání.
 
-Vlastní rozhraní server nemá: `/api/*` vrací 404 a oficiální doplněk pro Kodi
-(`plugin.video.prehrajto` 2.0.5, autor WrightDerby) čte tytéž stránky jako
-prohlížeč. Čte se proto HTML:
+Server má **dvě rozhraní**:
 
-    GET  /hledej/<text>[?videoListing-visualPaginator-page=N]  → výpis, 32 na stranu
-    GET  /<slug>/<hash>                                        → stránka videa
-    POST /?frm=loginDialog-login-loginForm                     → přihlášení, cookies
-    GET  /<slug>/<hash>?do=download                            → 302 na podepsaný odkaz CDN
+* **JSON API** `https://prehrajto.cz/api/v2/` (doména `.cz`), které používá jejich
+  oficiální appka pro Android (`to.prehraj.app`). Každý dotaz chce `Authorization:
+  Bearer <JWT>`; bez tokenu vrací 401 „Missing access token" a **anonymní token
+  nevydává** (žádný guest/anonymous endpoint neexistuje). Token je tentýž JWT, který
+  web ukládá do cookie `access_token` po přihlášení — bere se proto z relace založené
+  `login()` a obnovuje se, jakmile vyprší (JWT platí ~10 min, web ho na `GET /`
+  vydá znovu z cookie `refresh_token`).
+* **HTML** `https://prehraj.to/` — tytéž stránky jako prohlížeč, čte je i cizí doplněk
+  pro Kodi (`plugin.video.prehrajto` 2.0.5). Bez účtu je vidět jen první strana
+  hledání (32 položek) a přehraje se překódované 1080p.
 
-**Bez přihlášení** je vidět jen první strana hledání (dál se chce účet) a stránka
-videa nabídne překódované verze 1080p a 720p. **S účtem Premium** jde stránkovat
-a `?do=download` vydá **původní soubor** — tedy i 4K a HDR, které v překódování
-nejsou. Změřeno na jednom titulu: originál 2,87 GB proti překódovaným 2,92 GB
-(1080p) a 1,38 GB (720p), rychlost 33 MB/s proti 6,8 MB/s bez účtu.
+Proto: **s účtem se jede přes JSON API** (stránkování `offset`, hlasy i titulky
+rovnou ve výsledku hledání, přímý odkaz na **původní soubor** jedním dotazem, a hlavně
+**bez plovoucí 429** — 40 souběžných hledání prošlo, kdežto HTML scraping dostával 429
+už od ~20). **Bez účtu se čte HTML** (jediná možná cesta) — první strana, překódované
+1080p, žádný originál.
 
-Podepsaný odkaz CDN **nedrží na IP** (ověřeno ze dvou sítí) a nechce hlavičky ani
-cookie, takže hraje i tam, kde nemůže projít proxy — v Kodi, v Stremiu i ve
-stahování. Platí zhruba den (`expires` v adrese), dohledává se proto až při
-přehrání, jako u WebShare a HellSpy.
+`videos/{id}/download` (JSON) i `?do=download` (HTML) vydají podepsaný odkaz na CDN
+(`premiumcdn.net`). Odkaz **nedrží na IP** (ověřeno ze dvou sítí) a nechce hlavičky ani
+cookie, takže hraje i tam, kde nemůže projít proxy — v Kodi, v Stremiu i ve stahování.
+Platí zhruba den (`expires` v adrese), dohledává se proto až při přehrání, jako u
+WebShare a HellSpy.
 
-Odkaz nese slug i hash (`pt:<slug>:<hash>`), protože `?do=download` na cizím slugu
-neodpoví odkazem, jen přesměruje zpátky na stránku videa. Stránka videa sama je
-na slugu nezávislá.
+Odkaz nese id, slug i hash (`pt:<id>:<slug>:<hash>`). Id potřebuje JSON API pro
+download; slug a hash je adresa stránky videa pro HTML zálohu. Starší tvar bez id
+(`pt:<slug>:<hash>`, z HTML výpisu bez účtu) se čte dál — použije jen HTML cestu.
 
-Dvě vlastnosti serveru, se kterými je nutné počítat:
+Vlastnost serveru, se kterou je nutné počítat i na JSON API:
 
-* **HTTP 429.** Limit je plovoucí a nepravidelný — dvacet dotazů v dávce projde,
-  dvanáct po 1,5 s ne. Po první 429 se zdroj na `RATE_LIMIT_COOLDOWN` přeskakuje,
-  stejně jako HellSpy (6.0.2, 6.0.4): opakované dotazy blokaci jen prodlužují.
-  Dotazy z více vláken navíc jdou za sebou po `MIN_GAP` (`_wait_for_slot`) — dřív pět
-  hledání naráz (náhodný titul, zahřívání katalogu) dostalo 429 všechna.
-* **Prázdná odpověď na některé dotazy.** Hledání je jinak citlivé na diakritiku i
-  na pořadí slov, ale `okresni prebor` vrátí nula výsledků, zatímco `prebor
-  okresni` i `okresni prebo` vrátí plnou stranu. Je to vada jejich indexu u
-  konkrétního řetězce, ne pravidlo, které by šlo obejít výpočtem. Jádro zkouší
-  víc variant názvu (`MAX_TITLE_VARIANTS`), takže se přes to obvykle přenese samo.
+* **HTTP 429.** Na HTML je limit plovoucí a nepravidelný (dvacet dotazů v dávce projde,
+  dvanáct po 1,5 s ne); JSON API tenhle strop nemá. Po první 429 (odkudkoli) se zdroj
+  celému procesu přeskočí na `RATE_LIMIT_COOLDOWN`, stejně jako HellSpy (6.0.2, 6.0.4):
+  opakované dotazy blokaci jen prodlužují. HTML dotazy navíc jdou po `MIN_GAP`
+  (`_wait_for_slot`) za sebou — JSON dotazy tímhle frontu nedrží, limit tam není.
+* **Prázdná odpověď na některé dotazy.** Hledání je citlivé na pořadí slov: `okresni
+  prebor` vrátí nula výsledků, `prebor okresni` plnou stranu. Vada jejich indexu, ne
+  pravidlo. Jádro zkouší víc variant názvu (`MAX_TITLE_VARIANTS`), takže se přes to
+  obvykle přenese samo.
 """
+import base64
 import hashlib
 import html
+import json
 import re
 import threading
 import time
@@ -49,21 +55,27 @@ import urllib.request
 from streams import human_size
 
 BASE = "https://prehraj.to"
+API_BASE = "https://prehrajto.cz/api/v2"
 TIMEOUT = 20
 SEARCH_TTL = 12 * 3600
 LINK_TTL = 6 * 3600          # podepsaný odkaz CDN platí ~24 h, bereme si rezervu
 SESSION_TTL = 6 * 3600       # jak dlouho věřit uloženým cookies bez ověření
 SESSION_STORE = "prehrajto_session"
-PER_PAGE = 32                # kolik výsledků vrátí jedna strana hledání
+PER_PAGE = 32                # kolik výsledků vzít na jednu stranu (HTML dává vždy 32)
 MAX_PAGES = 5                # strop stránkování, ať se jedno hledání nerozroste do desítek dotazů
+JWT_SKEW = 60                # kolik sekund před vypršením JWT ho už považovat za starý
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
+#: `pt:<id>:<slug>:<hash>` (z JSON API, id pro download) nebo starší `pt:<slug>:<hash>`
+#: (z HTML výpisu bez účtu, jen HTML cesta).
+REF_ID_RE = re.compile(r"^pt:(\d{1,15}):([A-Za-z0-9._-]{1,120}):([0-9a-f]{8,32})$")
 REF_RE = re.compile(r"^pt:([A-Za-z0-9._-]{1,120}):([0-9a-f]{8,32})$")
-#: Titulky téhož videa — `pts:<slug>:<hash>:<pořadí>`. Podepsaná adresa `.vtt` platí
-#: jen den, takže se do výpisu streamů nesmí uložit; dohledá se až při přehrání.
-SUB_REF_RE = re.compile(r"^pts:([A-Za-z0-9._-]{1,120}):([0-9a-f]{8,32}):(\d{1,2})$")
+#: Titulky téhož videa — `pts:[<id>:]<slug>:<hash>:<pořadí>`. Podepsaná adresa `.vtt`
+#: platí jen den, takže se do výpisu streamů nesmí uložit; dohledá se až při přehrání.
+SUB_ID_RE = re.compile(r"^pts:(\d{1,15}):([A-Za-z0-9._-]{1,120}):([0-9a-f]{8,32}):(\d{1,2})$")
+SUB_RE = re.compile(r"^pts:([A-Za-z0-9._-]{1,120}):([0-9a-f]{8,32}):(\d{1,2})$")
 
-#: Jedna položka výpisu. Kotví na `data-video-id`, za ním jde odkaz i titulek;
+#: Jedna položka HTML výpisu. Kotví na `data-video-id`, za ním jde odkaz i titulek;
 #: zbytek (stopáž, kvalita, velikost) se dočítá z těla položky.
 ITEM_RE = re.compile(
     r'data-video-id="(\d+)">\s*<a class="video[^"]*"\s*href="/([^/"]+)/([0-9a-f]+)"\s*title="([^"]*)"(.*?)</a>',
@@ -90,9 +102,8 @@ RATE_LIMIT_COOLDOWN = 10 * 60
 BLOCK_STORE = "prehrajto_block"
 _blocked_until = 0.0
 
-#: Odstup mezi dvěma dotazy na server, ať jdou vlákna za sebou. Limit Přehraj.to je plovoucí
-#: a hlídá se na adresu — náhodný titul nebo zahřívání katalogu hledá víc titulů naráz
-#: a pět dotazů ve stejné desetině sekundy dostalo 429 (logy z 2026-09-21).
+#: Odstup mezi dvěma **HTML** dotazy, ať jdou vlákna za sebou. JSON API tuhle frontu
+#: nedrží — plovoucí limit je jen na HTML scrapingu, ověřeno 40 souběžnými dotazy.
 MIN_GAP = 1.5
 #: Kdo by na svůj termín čekal déle, dotaz vynechá; fronta desítek kandidátů katalogu
 #: by jinak držela vlákna minuty a zdroj by se hlásil jako výpadek celého hledání.
@@ -174,7 +185,7 @@ def _size(text):
 
 
 def parse_listing(page):
-    """Výpis hledání → položky ve tvaru, se kterým pracuje jádro."""
+    """HTML výpis hledání → položky ve tvaru, se kterým pracuje jádro."""
     out = []
     for m in ITEM_RE.finditer(page):
         body = m.group(5)
@@ -185,7 +196,7 @@ def parse_listing(page):
 
         size = _size(first(SIZE_RE))
         out.append({
-            "id": m.group(1),
+            "id": "",                      # HTML výpis id nenese, jen JSON API
             "slug": m.group(2),
             "hash": m.group(3),
             "name": html.unescape(m.group(4)),
@@ -198,35 +209,59 @@ def parse_listing(page):
 
 
 def make_ref(file):
+    """`pt:<id>:<slug>:<hash>` s id z JSON API, jinak starší `pt:<slug>:<hash>`."""
+    vid = str(file.get("id") or "").strip()
+    if vid:
+        return "pt:{id}:{slug}:{hash}".format(**file)
     return "pt:{slug}:{hash}".format(**file)
 
 
-def parse_ref(url):
-    """`pt:<slug>:<hash>` → adresa stránky videa."""
+def _split_ref(url):
+    """`pt:[<id>:]<slug>:<hash>` → (id nebo "", slug, hash). Neplatný → výjimka."""
+    m = REF_ID_RE.match(str(url or ""))
+    if m:
+        return m.group(1), m.group(2), m.group(3)
     m = REF_RE.match(str(url or ""))
-    if not m:
-        raise PrehrajtoError("neplatný odkaz na soubor")
-    return f"{BASE}/{m.group(1)}/{m.group(2)}"
+    if m:
+        return "", m.group(1), m.group(2)
+    raise PrehrajtoError("neplatný odkaz na soubor")
+
+
+def parse_ref(url):
+    """`pt:[<id>:]<slug>:<hash>` → adresa stránky videa (HTML)."""
+    _vid, slug, h = _split_ref(url)
+    return f"{BASE}/{slug}/{h}"
+
+
+def _split_sub_ref(url):
+    """`pts:[<id>:]<slug>:<hash>:<pořadí>` → (id nebo "", slug, hash, pořadí)."""
+    m = SUB_ID_RE.match(str(url or ""))
+    if m:
+        return m.group(1), m.group(2), m.group(3), int(m.group(4))
+    m = SUB_RE.match(str(url or ""))
+    if m:
+        return "", m.group(1), m.group(2), int(m.group(3))
+    raise PrehrajtoError("neplatný odkaz na titulky")
 
 
 def parse_sub_ref(url):
-    """`pts:<slug>:<hash>:<pořadí>` → (adresa stránky videa, pořadí titulků)."""
-    m = SUB_REF_RE.match(str(url or ""))
-    if not m:
-        raise PrehrajtoError("neplatný odkaz na titulky")
-    return f"{BASE}/{m.group(1)}/{m.group(2)}", int(m.group(3))
+    """`pts:[<id>:]<slug>:<hash>:<pořadí>` → (adresa stránky videa, pořadí)."""
+    _vid, slug, h, index = _split_sub_ref(url)
+    return f"{BASE}/{slug}/{h}", index
 
 
 def sub_refs(ref, count):
     """Odkazy na titulky téhož videa: `pt:a:b` + 2 → `["pts:a:b:0", "pts:a:b:1"]`."""
-    m = REF_RE.match(str(ref or ""))
-    if not m:
+    try:
+        vid, slug, h = _split_ref(ref)
+    except PrehrajtoError:
         return []
-    return [f"pts:{m.group(1)}:{m.group(2)}:{i}" for i in range(count)]
+    prefix = f"pts:{vid}:{slug}:{h}" if vid else f"pts:{slug}:{h}"
+    return [f"{prefix}:{i}" for i in range(count)]
 
 
 def parse_tracks(page):
-    """Titulky ze stránky videa → `[(adresa, jazyk)]`, bez duplicit.
+    """Titulky z HTML stránky videa → `[(adresa, jazyk)]`, bez duplicit.
 
     Stránka nese tentýž seznam dvakrát (jwplayer a videojs) — adresy se shodují,
     takže se druhý průchod jen zahodí. Jazyk bývá v `srclang`/`label` jako „cze",
@@ -250,6 +285,17 @@ def parse_tracks(page):
     return out
 
 
+def _jwt_expired(token):
+    """JWT je (skoro) po platnosti? Rozsypaný token = ano, ať se obnoví."""
+    try:
+        payload = token.split(".")[1]
+        payload += "=" * (-len(payload) % 4)
+        exp = json.loads(base64.urlsafe_b64decode(payload)).get("exp") or 0
+        return time.time() + JWT_SKEW >= float(exp)
+    except Exception:  # noqa: BLE001
+        return True
+
+
 class PrehrajtoApi:
     def __init__(self, email, password, cache=None, cache_ttl=SEARCH_TTL):
         self.email = (email or "").strip()
@@ -257,6 +303,13 @@ class PrehrajtoApi:
         self.cache = cache
         self.cache_ttl = cache_ttl
         self._cookies = None
+        # sdílená instance (Stremio, jeden účet instance) běží z víc vláken naráz —
+        # přihlášení a obnova tokenu se nesmí spustit dvakrát zároveň
+        self._lock = threading.RLock()
+
+    @property
+    def _account(self):
+        return bool(self.email and self.password)
 
     # --- síť ----------------------------------------------------------------
     def _open(self, path, data=None, headers=None, redirect=True):
@@ -279,9 +332,17 @@ class PrehrajtoApi:
         except Exception as e:  # noqa: BLE001 – síť, DNS, rozpadlé spojení
             raise PrehrajtoError(str(e)[:120]) from e
 
+    def _paused(self):
+        """Zvedne `PrehrajtoRateLimited`, pokud po dřívější 429 ještě běží pauza."""
+        zbyva = blocked_for(self.cache)
+        if zbyva:
+            err = PrehrajtoRateLimited(f"pauza po HTTP 429, zbývá {int(zbyva)} s", status=429)
+            err.paused = True
+            raise err
+
     @staticmethod
     def _wait_for_slot():
-        """Zařadí dotaz do fronty: termíny se rozdávají po `MIN_GAP`, spí se mimo zámek."""
+        """Zařadí HTML dotaz do fronty: termíny se rozdávají po `MIN_GAP`, spí se mimo zámek."""
         global _next_slot
         with _gate:
             now = time.time()
@@ -295,21 +356,52 @@ class PrehrajtoApi:
             time.sleep(slot - now)
 
     def _page(self, path, **kw):
-        def paused():
-            pauza = blocked_for(self.cache)
-            if pauza:
-                err = PrehrajtoRateLimited(f"pauza po HTTP 429, zbývá {int(pauza)} s", status=429)
-                err.paused = True
-                raise err
-        paused()
+        """Jedna HTML stránka jako text. Drží frontu `MIN_GAP` (plovoucí 429 scrapingu)."""
+        self._paused()
         self._wait_for_slot()
-        paused()   # za tu dobu mohla jiná fronta narazit na 429
+        self._paused()   # za tu dobu mohla jiná fronta narazit na 429
         resp = self._open(path, **kw)
         try:
             # `replace` — v názvech souborů od uživatelů se občas objeví bajt mimo UTF-8
             return resp.read().decode("utf-8", "replace")
         finally:
             resp.close()
+
+    def _api(self, path, params=None):
+        """JSON API `videos/…` s Bearer tokenem → `payload`. Bez fronty `MIN_GAP`
+        (JSON API plovoucí limit nemá), pauzu po 429 ale respektuje.
+
+        Vypršelý token API odmítne 401 — obnoví se a dotaz se zopakuje jednou.
+        """
+        self._paused()
+        url = f"{API_BASE}/{path}"
+        if params:
+            url += "?" + urllib.parse.urlencode(params)
+        last = None
+        for attempt in (False, True):
+            token = self._bearer(force=attempt)
+            try:
+                resp = self._open(url, headers={
+                    "Authorization": f"Bearer {token}",
+                    "Accept": "application/json",
+                })
+            except PrehrajtoError as e:
+                if e.status == 401 and not attempt:
+                    last = e
+                    continue        # token vypršel — obnov a zkus znovu
+                raise
+            try:
+                body = json.loads(resp.read().decode("utf-8", "replace"))
+            finally:
+                resp.close()
+            if body.get("status") == "ok":
+                return body.get("payload") or {}
+            zprava = str((body.get("payload") or {}).get("message") or "chyba API")[:120]
+            if body.get("code") == 401 and not attempt:
+                last = PrehrajtoError(zprava, status=401)
+                continue
+            raise PrehrajtoError(zprava, status=body.get("code"))
+        raise last or PrehrajtoError("API nevydalo odpověď", status=401)
 
     # --- účet ---------------------------------------------------------------
     def _account_key(self):
@@ -339,13 +431,13 @@ class PrehrajtoApi:
                 self.cache.save(SESSION_STORE, data)
 
     def login(self):
-        """Přihlásí se jménem a heslem a vrátí cookies relace.
+        """Přihlásí se jménem a heslem a vrátí cookies relace (vč. `access_token`).
 
         Každé přihlášení zakládá na serveru záznam v „Správě přihlášených
         zařízení", proto se cookies ukládají a znovu se přihlašuje až po
         `SESSION_TTL`.
         """
-        if not self.email or not self.password:
+        if not self._account:
             raise PrehrajtoError("účet není vyplněný")
         self._cookies = None
         resp = self._open("/")                       # bez první návštěvy server relaci nezaloží
@@ -375,13 +467,47 @@ class PrehrajtoApi:
 
     def session(self):
         """Cookies z paměti nebo úložiště, dokud jsou čerstvé; jinak nové přihlášení."""
-        if self._cookies:
-            return self._cookies
-        saved = self._saved_cookies()
-        if saved:
-            self._cookies = saved
-            return saved
-        return self.login()
+        with self._lock:
+            if self._cookies:
+                return self._cookies
+            saved = self._saved_cookies()
+            if saved:
+                self._cookies = saved
+                return saved
+            return self.login()
+
+    def _refresh_web(self):
+        """`GET /` s cookie `refresh_token` → web vydá nový `access_token`. True = obnoveno."""
+        try:
+            resp = self._open("/")
+            jar = _cookies_from(resp)
+            resp.close()
+        except PrehrajtoError:
+            return False
+        if jar.get("access_token"):
+            self._cookies = {**(self._cookies or {}), **jar}
+            self._save_cookies(self._cookies)
+            return True
+        return False
+
+    def _bearer(self, force=False):
+        """Čerstvý JWT pro `Authorization: Bearer`. Vypršelý obnoví přes web, a když
+        propadl i `refresh_token`, přihlásí se celé znovu."""
+        with self._lock:
+            self.session()
+            token = (self._cookies or {}).get("access_token")
+            if not force and token and not _jwt_expired(token):
+                return token
+            if self._refresh_web():
+                token = (self._cookies or {}).get("access_token")
+                if token and not _jwt_expired(token):
+                    return token
+            self.forget()
+            self.login()
+            token = (self._cookies or {}).get("access_token")
+            if not token:
+                raise PrehrajtoError("přihlášení nevydalo token", status=401)
+            return token
 
     def me(self):
         """{"premium": bool, "days": int} z „Můj účet". Vyžaduje přihlášení."""
@@ -395,34 +521,59 @@ class PrehrajtoApi:
         return {"premium": bool(m) and days > 0, "days": days}
 
     # --- hledání ------------------------------------------------------------
-    def search(self, query, limit=PER_PAGE):
-        """Hledá podle názvu. Bez účtu jen první strana, s účtem se stránkuje.
+    @staticmethod
+    def _map_item(it):
+        """Položka JSON API → tvar, se kterým pracuje jádro (stejný jako z HTML)."""
+        size = _int(it.get("size"))
+        return {
+            "id": str(it.get("id") or ""),
+            "slug": it.get("slug") or "",
+            "hash": it.get("hash") or "",
+            "name": it.get("name") or "",
+            "size": size,
+            "size_h": human_size(size) if size else "",
+            "duration": _int(it.get("length")),
+            "hd": bool(it.get("hd")),
+        }
 
-        Vrací `(položky, celkem)`. `celkem` je jen počet nalezených — server
-        celkový počet výsledků nikde nepíše.
-        """
+    def _search_api(self, query, limit):
+        """JSON API se stránkováním přes `offset`. Nese id, takže download jde přímo."""
+        out, seen = [], set()
+        offset = 0
+        for _page in range(MAX_PAGES):
+            payload = self._api("videos/search", {"phrase": query, "limit": PER_PAGE, "offset": offset})
+            data = (payload or {}).get("data") or []
+            nove = 0
+            for it in data:
+                h = it.get("hash")
+                if not h or h in seen:
+                    continue
+                seen.add(h)
+                out.append(self._map_item(it))
+                nove += 1
+            # kratší strana i strana bez nového = konec výpisu
+            if len(data) < PER_PAGE or not nove or len(out) >= limit:
+                break
+            offset += len(data)
+        return out[:limit], len(out[:limit])
+
+    def _search_html(self, query):
+        """HTML výpis bez účtu — server dál chce přihlášení, druhou stranu nevydá."""
+        path = "/hledej/" + urllib.parse.quote(query, safe="")
+        items = parse_listing(self._page(path))
+        return items, len(items)
+
+    def search(self, query, limit=PER_PAGE):
+        """Hledá podle názvu. S účtem přes JSON API (stránkování), bez účtu HTML
+        (jen první strana). Vrací `(položky, celkem)`; `celkem` = počet nalezených."""
         query = str(query or "").strip()
         if not query:
             return [], 0
 
         def load():
-            logged = bool(self.email and self.password)
-            if logged:
-                self.session()
-            out, seen = [], set()
-            pages = min(MAX_PAGES, max(1, -(-limit // PER_PAGE))) if logged else 1
-            for page in range(1, pages + 1):
-                path = "/hledej/" + urllib.parse.quote(query, safe="")
-                if page > 1:
-                    path += f"?videoListing-visualPaginator-page={page}"
-                items = parse_listing(self._page(path))
-                nove = [i for i in items if i["hash"] not in seen]
-                seen.update(i["hash"] for i in nove)
-                out.extend(nove)
-                # kratší strana i strana bez nového = konec výpisu
-                if len(items) < PER_PAGE or not nove or len(out) >= limit:
-                    break
-            return out[:limit], len(out[:limit])
+            if self._account:
+                return self._search_api(query, limit)
+            return self._search_html(query)
 
         if self.cache is None:
             return load()
@@ -432,13 +583,16 @@ class PrehrajtoApi:
         return files, total
 
     # --- přehrání -----------------------------------------------------------
-    def _download_link(self, page_url):
-        """Původní soubor přes `?do=download`, nebo prázdno. Vyžaduje Premium.
+    def _api_download(self, vid):
+        """Podepsaný odkaz na **původní soubor** přes JSON API. Prázdno = nedostupný."""
+        payload = self._api(f"videos/{vid}/download")
+        data = (payload or {}).get("data") or {}
+        return data.get("download_link") or ""
 
-        Slug v adrese musí sedět — na cizím slugu server odkaz nevydá a jen
-        přesměruje zpátky na stránku videa.
-        """
-        if not (self.email and self.password):
+    def _html_download(self, page_url):
+        """Původní soubor přes HTML `?do=download`. Vyžaduje Premium; slug musí sedět,
+        na cizím slugu server jen přesměruje zpátky na stránku videa."""
+        if not self._account:
             return ""
         self.session()
         resp = self._open(page_url + "?do=download", redirect=False)
@@ -446,23 +600,53 @@ class PrehrajtoApi:
         resp.close()
         return location if "premiumcdn" in location else ""
 
-    def _video_page(self, ref):
-        """Stránka videa → (nejlepší překódovaná verze, titulky)."""
-        page = self._page(parse_ref(ref))
+    def _html_page(self, page_url):
+        """HTML stránka videa → (nejlepší překódovaná verze, titulky)."""
+        page = self._page(page_url)
         sources = [(int(res), url) for url, res in SOURCE_RE.findall(page)]
         if not sources:
             raise PrehrajtoError("na stránce videa není žádný soubor")
         return max(sources)[1], parse_tracks(page)
 
+    def _api_tracks(self, vid):
+        """Titulky z detailu JSON API → `[(adresa, jazyk)]`."""
+        payload = self._api(f"videos/{vid}")
+        data = (payload or {}).get("data") or {}
+        out = []
+        for sub in data.get("subtitles") or []:
+            url = sub.get("cdnUrl")
+            if url:
+                out.append((url, str(sub.get("language") or "").upper()[:3]))
+        return out
+
     def tracks(self, ref):
-        """Titulky ze stránky videa jako `[(adresa, jazyk)]`. Prázdné, když nejsou."""
-        return self._video_page(ref)[1]
+        """Titulky videa jako `[(adresa, jazyk)]`. S účtem z JSON API, jinak z HTML."""
+        vid, slug, h = _split_ref(ref)
+        if vid and self._account:
+            try:
+                return self._api_tracks(vid)
+            except PrehrajtoRateLimited:
+                raise
+            except PrehrajtoError:
+                pass                # JSON selhalo → zkus HTML stránku
+        return self._html_page(f"{BASE}/{slug}/{h}")[1]
 
     def _resolve(self, ref):
-        """Adresa souboru. S Premium původní soubor, bez něj nejlepší překódovaná
-        verze ze stránky videa."""
-        link = self._download_link(parse_ref(ref))
-        return link or self._video_page(ref)[0]
+        """Adresa souboru. S Premium a id přímo z JSON API (původní soubor), jinak
+        HTML: `?do=download` (Premium) nebo nejlepší překódovaná verze."""
+        vid, slug, h = _split_ref(ref)
+        if vid and self._account:
+            try:
+                link = self._api_download(vid)
+                if link:
+                    return link
+            except PrehrajtoRateLimited:
+                raise
+            except PrehrajtoError:
+                pass                # spadni na HTML
+        page_url = f"{BASE}/{slug}/{h}"
+        link = self._html_download(page_url)
+        return link or self._html_page(page_url)[0]
 
     def file_link(self, ref):
         """Přímá adresa souboru. Pamatuje se po `LINK_TTL` — podepsaný odkaz
@@ -472,9 +656,17 @@ class PrehrajtoApi:
         return self.cache.cached(f"prehrajto:link:{ref}", LINK_TTL, lambda: self._resolve(ref))
 
     def subtitle_link(self, sub_ref):
-        """Adresa souboru titulků z `pts:<slug>:<hash>:<pořadí>`."""
-        page_url, index = parse_sub_ref(sub_ref)
-        found = parse_tracks(self._page(page_url))
+        """Adresa souboru titulků z `pts:[<id>:]<slug>:<hash>:<pořadí>`."""
+        vid, slug, h, index = _split_sub_ref(sub_ref)
+        if vid and self._account:
+            try:
+                found = self._api_tracks(vid)
+            except PrehrajtoRateLimited:
+                raise
+            except PrehrajtoError:
+                found = self._html_page(f"{BASE}/{slug}/{h}")[1]
+        else:
+            found = parse_tracks(self._page(f"{BASE}/{slug}/{h}"))
         if index >= len(found):
             raise PrehrajtoError("titulky už na stránce nejsou")
         return found[index][0]

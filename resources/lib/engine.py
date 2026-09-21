@@ -349,7 +349,7 @@ class Engine:
     """Přístup ke třem zdrojům obsahu pod jedním rozhraním."""
 
     def __init__(self, options, storage_dir, opener=None, store=None, should_stop=None,
-                 storage_limits=None):
+                 storage_limits=None, pt_api=None):
         """`opener`: volitelný `urllib.request.OpenerDirector` pro vlastní úložiště —
         veřejná instance jím hlídá, kam se smí připojit (viz `StorageApi`).
         `storage_limits`: stropy průchodu cizím úložištěm pro veřejnou instanci —
@@ -370,6 +370,10 @@ class Engine:
         self.store = store or Store(storage_dir)
         self.opener = opener
         self.storage_limits = dict(storage_limits or {})
+        # sdílená `PrehrajtoApi` instance (Stremio: jeden účet instance pro všechna
+        # jádra — jinak by každé nastavení dělalo vlastní login a přeteklo by
+        # „Správu přihlášených zařízení" účtu). Bez ní si jádro klienta postaví samo.
+        self._pt_shared = pt_api
         self.should_stop = should_stop or never
         self.last_timings = {}   # časy fází posledního `raw_streams()` (s), viz tam
         self._luna = None
@@ -537,8 +541,11 @@ class Engine:
         """Přehraj.to — přepínač, účet nepovinný. Bez něj je vidět jen první strana
         hledání a nabídne se překódovaná verze; s Premium účtem se stránkuje a hraje
         se původní soubor (viz `lib/prehrajto_api`)."""
-        if self._pt is None and self._opt(CONF_PT_ENABLED, False):
-            self._pt = PrehrajtoApi(self._opt("pt_email"), self._opt("pt_password"), cache=self.store)
+        if self._pt is None:
+            if self._pt_shared is not None:
+                self._pt = self._pt_shared        # sdílený účet instance (Stremio)
+            elif self._opt(CONF_PT_ENABLED, False):
+                self._pt = PrehrajtoApi(self._opt("pt_email"), self._opt("pt_password"), cache=self.store)
         return self._pt
 
     @property
@@ -672,7 +679,7 @@ class Engine:
                 "hellspy": bool(self._opt(CONF_HS_ENABLED, False)),
                 "sledujteto": bool(str(self._opt("st_email") or "").strip()),
                 "fastshare": bool(str(self._opt("fs_username") or "").strip()),
-                "prehrajto": bool(self._opt(CONF_PT_ENABLED, False)),
+                "prehrajto": bool(self._opt(CONF_PT_ENABLED, False) or self._pt_shared is not None),
                 "cztor": self._cz_paired,
                 "storage": bool(self.storages),
                 "torrent": self.prowlarr is not None}
@@ -1851,7 +1858,9 @@ class Engine:
         z hlavičky souboru v `_fill_audio`, stejně jako u HellSpy."""
         if not self.pt:
             return []
-        premium = bool(str(self._opt("pt_email") or "").strip() and self._opt("pt_password"))
+        # velikost patří původnímu souboru — ten dostane jen účet (Kodi z nastavení,
+        # Stremio ze sdílené instance); `_account` platí pro obě cesty
+        premium = bool(getattr(self.pt, "_account", False))
         queries, relevant = self._title_queries(meta, video, ctype, alt, strict)
         out, seen = [], set()
         for query in queries:
