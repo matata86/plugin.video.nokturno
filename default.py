@@ -3206,7 +3206,8 @@ ACCOUNT_TEXTS = {
     ("prehrajto", "anonymous"): (30718, "bez účtu — jen první strana výsledků"),
     ("prehrajto", "paused"): (30719, "pozastaveno na %s min (HTTP 429)"),
     ("hellspy", "ok"): (30645, "v pořádku"),
-    ("hellspy", "paused"): (30646, "pozastaveno na %s min (HTTP 429)"),
+    # 429 od HellSpy = blokace sítě uživatele, ne limit dotazů (viz `source_errors`)
+    ("hellspy", "paused"): (30646, "odmítá tuto síť (HTTP 429) — VPN nebo mobilní data? Zkusí se za %s min"),
     ("storage", "ok"): (30647, "odpovídá"),
 }
 
@@ -3225,6 +3226,7 @@ ACCOUNT_SHORT = {
     ("prehrajto", "expires_soon"): (30651, "končí za %s dní"),
     ("prehrajto", "no_premium"): (30720, "účet bez Premium"),
     ("prehrajto", "paused"): (30656, "pauza %s min"),
+    ("hellspy", "paused"): (30725, "odmítá síť"),
 }
 
 ACCOUNT_COMMON_SHORT = {

@@ -1844,8 +1844,8 @@ msgid "all good"
 msgstr "v poriadku"
 
 msgctxt "#30646"
-msgid "paused for %s min (HTTP 429)"
-msgstr "pozastavené na %s min (HTTP 429)"
+msgid "rejects this network (HTTP 429) — VPN or mobile data? Retry in %s min"
+msgstr "odmieta túto sieť (HTTP 429) — VPN alebo mobilné dáta? Skúsi sa o %s min"
 
 msgctxt "#30647"
 msgid "responding"
@@ -2146,3 +2146,7 @@ msgstr "Premium, zostáva %s dní"
 msgctxt "#30724"
 msgid "Set up from phone and transfer"
 msgstr "Nastaviť z mobilu a prenos"
+
+msgctxt "#30725"
+msgid "rejects network"
+msgstr "odmieta sieť"

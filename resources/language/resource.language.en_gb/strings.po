@@ -1771,7 +1771,7 @@ msgid "all good"
 msgstr ""
 
 msgctxt "#30646"
-msgid "paused for %s min (HTTP 429)"
+msgid "rejects this network (HTTP 429) — VPN or mobile data? Retry in %s min"
 msgstr ""
 
 msgctxt "#30647"
@@ -2144,4 +2144,8 @@ msgstr ""
 
 msgctxt "#30724"
 msgid "Set up from phone and transfer"
+msgstr ""
+
+msgctxt "#30725"
+msgid "rejects network"
 msgstr ""

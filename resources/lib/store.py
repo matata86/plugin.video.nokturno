@@ -70,6 +70,9 @@ def migrate_profile(new_dir):
     return old_settings
 
 
+_MISSING = object()   # `_read_cached`: záznam chybí nebo prošel (None je platná hodnota)
+
+
 class Store:
     def __init__(self, directory):
         self.dir = directory
@@ -100,6 +103,9 @@ class Store:
         # dostane tentýž objekt a ukládá se jednou, na konci té vnější. Jinak by vnitřní
         # načetla data znovu z disku a vnější je svým uložením přepsala zpátky.
         self._tx = {}
+        # zámky per klíč cache (`cached_if`), viz `_key_lock`
+        self._key_locks = {}
+        self._key_locks_guard = threading.Lock()
 
     # --- soubory ------------------------------------------------------------
     def _path(self, name):
@@ -504,29 +510,67 @@ class Store:
         věci, co se mají zapamatovat jen při úspěchu (např. nalezené streamy),
         ne prázdný/neúspěšný výsledek, který má jít zkusit znovu hned příště.
         `fresh=True` cache jen zapíše, nečte (zahřívání na pozadí obnoví, co už tam je)."""
-        # nezávislé na self._cache (soubor per hash klíče) — nepotřebuje self._lock,
-        # nejhorší případ při souběhu je zbytečné dvojí stažení, ne pád
+        # nezávislé na self._cache (soubor per hash klíče) — nepotřebuje self._lock.
+        # Souběh nad týmž klíčem drží zámek per klíč: dřív se při něm stáhlo dvakrát
+        # totéž, což u jednoho uživatele nevadilo, ale na serveru Stremia otevře nový
+        # populární titul padesát lidí naráz a každý by šel na TMDB, HellSpy i pro
+        # hlavičky souborů sám. Napřed se čte bez zámku (běžný případ, cache platná),
+        # zámek se bere až při chybějícím záznamu a pod ním se čte ještě jednou.
         path = os.path.join(self.dir, "cache", hashlib.md5(key.encode("utf-8")).hexdigest() + ".json")
+        if not fresh:
+            data = self._read_cached(path, ttl)
+            if data is not _MISSING:
+                return data
+        entry = self._key_lock(path)
         try:
-            if not fresh and time.time() - os.path.getmtime(path) < ttl:
+            with entry[0]:
+                if not fresh:
+                    data = self._read_cached(path, ttl)
+                    if data is not _MISSING:
+                        return data
+                data = loader()
+                if not ok(data):
+                    return data
+                tmp = self._tmp(path)
+                try:
+                    with open(tmp, "w", encoding="utf-8") as f:
+                        json.dump(data, f, ensure_ascii=False)
+                    os.replace(tmp, path)
+                except OSError:
+                    try:
+                        os.remove(tmp)
+                    except OSError:
+                        pass
+                return data
+        finally:
+            self._key_unlock(path, entry)
+
+    @staticmethod
+    def _read_cached(path, ttl):
+        try:
+            if time.time() - os.path.getmtime(path) < ttl:
                 with open(path, encoding="utf-8") as f:
                     return json.load(f)
         except (OSError, ValueError):
             pass
-        data = loader()
-        if not ok(data):
-            return data
-        tmp = self._tmp(path)
-        try:
-            with open(tmp, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False)
-            os.replace(tmp, path)
-        except OSError:
-            try:
-                os.remove(tmp)
-            except OSError:
-                pass
-        return data
+        return _MISSING
+
+    def _key_lock(self, path):
+        """Zámek na jeden klíč cache; položka `[RLock, počet držitelů]` zmizí, jakmile
+        ji nikdo nedrží — jinak by slovník rostl s každým kdy použitým klíčem. RLock,
+        ne Lock: loader smí (byť neměl) sáhnout na tentýž klíč znovu."""
+        with self._key_locks_guard:
+            entry = self._key_locks.get(path)
+            if entry is None:
+                entry = self._key_locks[path] = [threading.RLock(), 0]
+            entry[1] += 1
+            return entry
+
+    def _key_unlock(self, path, entry):
+        with self._key_locks_guard:
+            entry[1] -= 1
+            if entry[1] <= 0:
+                self._key_locks.pop(path, None)
 
     def peek_cached(self, key, ttl):
         """Vrátí, co pro `key` uložil `cached()`/`cached_if()`, jen když je to ještě

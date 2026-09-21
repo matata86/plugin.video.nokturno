@@ -1841,8 +1841,8 @@ msgid "all good"
 msgstr "rendben"
 
 msgctxt "#30646"
-msgid "paused for %s min (HTTP 429)"
-msgstr "%s percre szüneteltetve (HTTP 429)"
+msgid "rejects this network (HTTP 429) — VPN or mobile data? Retry in %s min"
+msgstr "elutasítja ezt a hálózatot (HTTP 429) — VPN vagy mobilnet? Újra %s perc múlva"
 
 msgctxt "#30647"
 msgid "responding"
@@ -2143,3 +2143,7 @@ msgstr "Premium, %s nap van hátra"
 msgctxt "#30724"
 msgid "Set up from phone and transfer"
 msgstr "Beállítás telefonról és átvitel"
+
+msgctxt "#30725"
+msgid "rejects network"
+msgstr "elutasítja a hálózatot"

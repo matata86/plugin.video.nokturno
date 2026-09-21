@@ -22,6 +22,13 @@ MAX_LEN = 90
 
 def describe_failure(label, err):
     """„Luna neodpovídá" / „WebShare: login: Wrong password" — bez adres a tokenů."""
+    if type(err).__name__ == "HellspyRateLimited":
+        # HTTP 429 od HellSpy není překročený limit dotazů (měřeno 2026-09-21: 76 hledání/s
+        # z čisté IP bez jediné 429), ale blokace rozsahu adres uživatele — CGNAT mobilního
+        # operátora, VPN. Uživatelé s 429 ji dostávají od prvního dotazu. Oprava je u nich,
+        # holé „HTTP 429" jim neřekne nic. Podle jména třídy, ne importem: `hellspy_api`
+        # importuje `streams`, tenhle modul nemá na čem záviset.
+        return f"{label} odmítá tuto síť (HTTP 429) — VPN nebo mobilní data?"
     text = " ".join(_URL_RE.sub("", str(err or "")).split())
     if not text or any(k in text.lower() for k in _OFFLINE):
         return f"{label} neodpovídá"
