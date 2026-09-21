@@ -2442,6 +2442,18 @@ class TestNastavitZMobilu(unittest.TestCase):
             default.router("action=remote_setup")
         self.assertEqual([c[0] for c in rs.call_args_list], [("streamlist",), (None,), (None,)])
 
+    @staticmethod
+    def cekej_na_okno(limit=5.0):
+        """Okno QR kódu se otvírá v jiném vlákně. Pevná pauza na pomalém běhu CI
+        nestačila (`windows_shown[-1]` → IndexError na Pythonu 3.8), tak se čeká,
+        dokud nevznikne."""
+        konec = time.time() + limit
+        while time.time() < konec:
+            if xbmcgui.windows_shown:
+                return xbmcgui.windows_shown[-1]
+            time.sleep(0.02)
+        raise AssertionError("okno se do %s s neotevřelo" % limit)
+
     def run_setup(self, submit):
         """Spustí remote_setup, `submit(url)` hraje roli mobilu."""
         started = []
@@ -2495,8 +2507,7 @@ class TestNastavitZMobilu(unittest.TestCase):
         xbmc.cond_visible.add("System.Platform.Android")
         try:
             def zpet(url):
-                time.sleep(0.1)
-                win = xbmcgui.windows_shown[-1]
+                win = self.cekej_na_okno()
                 self.assertIsNotNone(win.link, "na Androidu je adresa ControlButton, ne jen label")
                 self.assertIs(win.focused, win.link, "adresa má mít fokus rovnou")
                 win.onControl(win.link)
@@ -2512,8 +2523,7 @@ class TestNastavitZMobilu(unittest.TestCase):
         xbmcgui.windows_shown.clear()
 
         def zpet_bez_androidu(url):
-            time.sleep(0.1)
-            win = xbmcgui.windows_shown[-1]
+            win = self.cekej_na_okno()
             self.assertIsNone(win.link, "bez Androidu zůstává obyčejný label")
             win.onAction(mock.Mock(getId=lambda: 92))
         self.run_setup(zpet_bez_androidu)
@@ -2527,8 +2537,7 @@ class TestNastavitZMobilu(unittest.TestCase):
         xbmc.cond_visible.add("System.Platform.Android")
         try:
             def tuknuti(url):
-                time.sleep(0.1)
-                win = xbmcgui.windows_shown[-1]
+                win = self.cekej_na_okno()
                 win.onAction(mock.Mock(getId=lambda: 107))          # MOUSE_MOVE zaostří, nic víc
                 self.assertFalse(xbmcgui.notifications)
                 win.onAction(mock.Mock(getId=lambda: 401))          # TOUCH_TAP s fokusem na adrese
