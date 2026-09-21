@@ -4908,7 +4908,9 @@ def list_recent():
     apis = None
     for key, _entry in STORE.recently_watched():
         snap = STORE.item(key)
-        if snap and thin_snapshot(snap):
+        # zhlédnuté z jiného zařízení (synchronizace) přijdou bez snímku — bez
+        # dohledání by je výpis tiše vynechal a „Naposledy" na druhém Kodi zůstalo prázdné
+        if not snap or thin_snapshot(snap):
             apis = apis or get_apis()
             snap = recover_snapshot(apis, key) or snap
         if snap:

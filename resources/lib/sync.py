@@ -43,6 +43,7 @@ DEFAULT_CIRCLES = ("watched", "favourites", "history")
 # Snímky titulů jdou vždy k tomu, co se posílá — bez nich by druhá strana
 # neuměla položku vykreslit. `collect_changes` je omezuje na dotčené klíče.
 SNAPSHOTS = "items"
+RECENT_SNAPSHOTS = 50   # kolik nejnovějších zhlédnutých nese snímek do synchronizace
 # ...ale jen na ty, kde snímek opravdu chybět nesmí: Můj seznam a rozkoukané.
 # Dokoukaný titul si druhá strana dohledá sama (`recover_snapshot`, hubený snímek),
 # kdežto snímek váží asi 1,3 kB a `items` jich drží až `ITEMS_MAX`. Měřeno na
@@ -140,6 +141,11 @@ def _snapshots(items, watched, favlog):
             return False
 
     keys = {k for k, v in watched.items() if rozkoukany(v)}
+    # nejnovější zhlédnuté (menu „Naposledy") — příjemce jinak dostane jen záznam
+    # bez snímku a titul si musí dohledávat po jednom přes síť
+    zhlednute = sorted((k for k, v in watched.items() if isinstance(v, dict) and v.get("playcount")),
+                       key=lambda k: _seen(watched[k]), reverse=True)
+    keys |= set(zhlednute[:RECENT_SNAPSHOTS])
     keys |= {k for k, v in favlog.items() if isinstance(v, dict) and v.get("on")}
     keys = [k for k in keys if k in items]
     if len(keys) > SNAPSHOT_MAX:
