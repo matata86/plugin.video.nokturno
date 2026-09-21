@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="6.6.5" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="7.0.0~beta1" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,9 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>6.6.5 – Nedostupná Luna se po prvním neúspěchu pět minut nevolá a spojení se ověřuje s limitem 5 s (dřív každý výpis čekal přes 20 s na timeout). Řádky ve výpisu Stav zdrojů už nezapisují do logu chybu „GetDirectory failed“. U řádku z Luny se ukážou rozlišení, kodek a titulky ze souboru.
+    <news>7.0.0~beta1 – Přehraj.to jako osmý zdroj. Zapni ho v Nastavení → Přehraj.to. Účet není povinný: bez něj je vidět jen první strana výsledků a hraje se překódovaný soubor v 1080p, s účtem Premium je výsledků víc a hraje se původní soubor včetně 4K.
+7.0.0~beta1 – Stav zdrojů umí i Přehraj.to: řekne, jestli jedeš bez účtu, kolik dní zbývá do konce Premium, nebo že server na chvíli omezil dotazy.
+6.6.5 – Nedostupná Luna se po prvním neúspěchu pět minut nevolá a spojení se ověřuje s limitem 5 s (dřív každý výpis čekal přes 20 s na timeout). Řádky ve výpisu Stav zdrojů už nezapisují do logu chybu „GetDirectory failed“. U řádku z Luny se ukážou rozlišení, kodek a titulky ze souboru.
 6.6.4 – Streamy z WebShare, které uživatelé opakovaně označili jako špatné (hlasy kladné minus záporné ≤ −2), se z výpisu vynechají. Jeden záporný hlas ani oblíbený soubor s pár zápory (+10/−4) se neskryje. Skryté soubory ukáže „Zobrazit všechny streamy“.
 6.6.3 – Naposledy zhlédnuté se po synchronizaci ukáže i na druhém zařízení. Zhlédnuté tituly z jiného Kodi dřív přišly bez náhledu a výpis je vynechal; teď se náhled dohledá a synchronizace ho posílá rovnou.
 6.6.2 – Stav zdrojů se po otevření menu sám obnoví, když říká „neodpovídá“ nebo když poslední obnova proběhla bez sítě — na mobilu Android utne Kodi na pozadí síť a stav z takové obnovy dřív stál v menu až do další.
