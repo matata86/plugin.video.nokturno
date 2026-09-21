@@ -144,6 +144,18 @@ class TestNastaveni(unittest.TestCase):
             for suffix in ("url", "username", "password", "name"):
                 self.assertIn(f"dav{slot}_{suffix}", xml_ids)
 
+    def test_volba_strediska_neridi_viditelnost(self):
+        """`visible` dependency na hodnotě, kterou uživatel přepíná v témže dialogu,
+        nefunguje: Kodi položku skryje, ale zpátky ji neodkryje — po přepnutí střediska
+        zmizela sekce Home Assistant i sekce Dashboard a zůstal viset prázdný nadpis
+        (nalezeno na Office na 6.6.0~beta5). Sekce se proto jen zakazují (`enable`),
+        obě jsou vidět vždy a napoví je nadpis skupiny."""
+        xml = (ROOT / "resources" / "settings.xml").read_text(encoding="utf-8")
+        self.assertNotIn('type="visible" setting="sync_mode"', xml)
+        # obě sekce se pořád musí řídit střediskem, jen přes `enable`
+        self.assertEqual(xml.count('<condition setting="sync_mode" operator="is">0</condition>'), 2)
+        self.assertGreaterEqual(xml.count('<condition setting="sync_mode" operator="is">1</condition>'), 4)
+
 
 class TestAddonXml(unittest.TestCase):
     def setUp(self):

@@ -753,8 +753,12 @@
             <allowempty>true</allowempty>
           </constraints>
           <dependencies>
-            <dependency type="visible" setting="sync_mode" operator="is">0</dependency>
-            <dependency type="enable" setting="sync_enabled">true</dependency>
+            <dependency type="enable">
+              <and>
+                <condition setting="sync_enabled" operator="is">true</condition>
+                <condition setting="sync_mode" operator="is">0</condition>
+              </and>
+            </dependency>
           </dependencies>
           <control type="edit" format="string">
           </control>
@@ -766,8 +770,12 @@
             <allowempty>true</allowempty>
           </constraints>
           <dependencies>
-            <dependency type="visible" setting="sync_mode" operator="is">0</dependency>
-            <dependency type="enable" setting="sync_enabled">true</dependency>
+            <dependency type="enable">
+              <and>
+                <condition setting="sync_enabled" operator="is">true</condition>
+                <condition setting="sync_mode" operator="is">0</condition>
+              </and>
+            </dependency>
           </dependencies>
           <control type="edit" format="string">
           </control>
@@ -780,8 +788,12 @@
             <allowempty>true</allowempty>
           </constraints>
           <dependencies>
-            <dependency type="visible" setting="sync_mode" operator="is">1</dependency>
-            <dependency type="enable" setting="sync_enabled">true</dependency>
+            <dependency type="enable">
+              <and>
+                <condition setting="sync_enabled" operator="is">true</condition>
+                <condition setting="sync_mode" operator="is">1</condition>
+              </and>
+            </dependency>
           </dependencies>
           <data>RunPlugin(plugin://plugin.video.nokturno/?action=sync_create)</data>
           <control format="action" type="button"/>
@@ -792,8 +804,12 @@
             <allowempty>true</allowempty>
           </constraints>
           <dependencies>
-            <dependency type="visible" setting="sync_mode" operator="is">1</dependency>
-            <dependency type="enable" setting="sync_enabled">true</dependency>
+            <dependency type="enable">
+              <and>
+                <condition setting="sync_enabled" operator="is">true</condition>
+                <condition setting="sync_mode" operator="is">1</condition>
+              </and>
+            </dependency>
           </dependencies>
           <data>RunPlugin(plugin://plugin.video.nokturno/?action=sync_join)</data>
           <control format="action" type="button"/>
@@ -805,8 +821,12 @@
             <allowempty>true</allowempty>
           </constraints>
           <dependencies>
-            <dependency type="visible" setting="sync_mode" operator="is">1</dependency>
-            <dependency type="enable" setting="sync_enabled">true</dependency>
+            <dependency type="enable">
+              <and>
+                <condition setting="sync_enabled" operator="is">true</condition>
+                <condition setting="sync_mode" operator="is">1</condition>
+              </and>
+            </dependency>
           </dependencies>
           <control type="edit" format="string">
           </control>
@@ -817,8 +837,12 @@
             <allowempty>true</allowempty>
           </constraints>
           <dependencies>
-            <dependency type="visible" setting="sync_mode" operator="is">1</dependency>
-            <dependency type="enable" setting="sync_enabled">true</dependency>
+            <dependency type="enable">
+              <and>
+                <condition setting="sync_enabled" operator="is">true</condition>
+                <condition setting="sync_mode" operator="is">1</condition>
+              </and>
+            </dependency>
           </dependencies>
           <data>RunPlugin(plugin://plugin.video.nokturno/?action=sync_leave)</data>
           <control format="action" type="button"/>
@@ -853,8 +877,12 @@
           <level>0</level>
           <default>false</default>
           <dependencies>
-            <dependency type="visible" setting="sync_mode" operator="is">1</dependency>
-            <dependency type="enable" setting="sync_enabled">true</dependency>
+            <dependency type="enable">
+              <and>
+                <condition setting="sync_enabled" operator="is">true</condition>
+                <condition setting="sync_mode" operator="is">1</condition>
+              </and>
+            </dependency>
           </dependencies>
           <control type="toggle"/>
         </setting>
@@ -862,8 +890,12 @@
           <level>0</level>
           <default>false</default>
           <dependencies>
-            <dependency type="visible" setting="sync_mode" operator="is">1</dependency>
-            <dependency type="enable" setting="sync_enabled">true</dependency>
+            <dependency type="enable">
+              <and>
+                <condition setting="sync_enabled" operator="is">true</condition>
+                <condition setting="sync_mode" operator="is">1</condition>
+              </and>
+            </dependency>
           </dependencies>
           <control type="toggle"/>
         </setting>
