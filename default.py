@@ -57,7 +57,7 @@ from accounts import (FAIL as ACC_FAIL, OFF as ACC_OFF, OK as ACC_OK,  # noqa: E
                       WARN as ACC_WARN, problems as accounts_problems)
 from store import WATCHED_MAX, Store, migrate_profile  # noqa: E402
 from source_errors import describe_failure, summarize as summarize_failures  # noqa: E402
-from sync import reset_since, sync_once  # noqa: E402
+from sync import sync_once  # noqa: E402
 import kodi_settings  # noqa: E402
 import setsync  # noqa: E402
 import syncbox  # noqa: E402
@@ -1961,22 +1961,43 @@ def mark_used():
     xbmcgui.Window(10000).setProperty(USED_PROP, str(int(time.time())))
 
 
-# Kde se Kodi potkávají (`sync_mode`): 0 = Home Assistant, 1 = dashboard (slepý
-# relay), 2 = obojí naráz. Dvě střediska vedle sebe si nepřekáží — slévání je
-# last-write-wins podle `ts`, tedy komutativní, a každé středisko má vlastní stav
-# (`sync.json` × `syncbox.json`). Kdo má HA, nepřijde jeho přepnutím na relay
-# o kartu v HA; kdo relay nemá, nepozná rozdíl.
-SYNC_MODE_HA, SYNC_MODE_RELAY, SYNC_MODE_BOTH = "0", "1", "2"
+# Kde se Kodi potkávají (`sync_mode`): 0 = Home Assistant, 1 = dashboard (slepý relay).
+#
+# Třetí volba „HA i dashboard" existovala mezi `9.99.0~sync4` a `6.6.0~beta1`, kdy
+# byl relay jediná cesta, jak mít dashboard a zároveň nepřijít o data v kartě HA.
+# Od bety 1 chodí do skupiny i samotná integrace (pole „Kód skupiny z Kodi"), takže
+# je to zbytečná druhá cesta k témuž — a dvě volby, které dělají totéž, se v UI
+# nedají vysvětlit. Kdo má HA a chce dashboard, zadá týž kód i v integraci; HA je
+# pak členem skupiny jako každé Kodi. Uložená „2" se při startu překlopí na relay
+# (`migrate_sync_mode`).
+SYNC_MODE_HA, SYNC_MODE_RELAY = "0", "1"
+SYNC_MODE_BOTH_OLD = "2"          # jen pro migraci, do nastavení už se nedostane
 
 
 def sync_via_relay():
-    """Jede synchronizace (taky) přes dashboard, ne jen přes Home Assistant?"""
-    return on("sync_enabled", "false") and setting("sync_mode") in (SYNC_MODE_RELAY, SYNC_MODE_BOTH)
+    """Jede synchronizace přes dashboard, ne přes Home Assistant?"""
+    return on("sync_enabled", "false") and setting("sync_mode") == SYNC_MODE_RELAY
 
 
 def sync_via_ha():
-    """Jede synchronizace (taky) přes Home Assistant?"""
-    return on("sync_enabled", "false") and setting("sync_mode") in (SYNC_MODE_HA, SYNC_MODE_BOTH)
+    """Jede synchronizace přes Home Assistant?"""
+    return on("sync_enabled", "false") and setting("sync_mode") == SYNC_MODE_HA
+
+
+def migrate_sync_mode():
+    """Uložená volba „HA i dashboard" (`2`) přejde na dashboard.
+
+    Dashboard, ne Home Assistant: kdo si „obojí" vybral, chtěl dashboard a HA měl
+    navíc. Kartu v HA dohoní tím, že týž kód skupiny zadá i v integraci — tam je
+    od 6.6.0 pole „Kód skupiny z Kodi". Oznámení je jednorázové, ale samotné
+    přepsání nastavení se dělá bezpodmínečně: volba `2` už v `settings.xml`
+    neexistuje a Kodi by na ni spadlo zpátky na výchozí hodnotu.
+    """
+    if setting("sync_mode") != SYNC_MODE_BOTH_OLD:
+        return
+    ADDON.setSetting("sync_mode", SYNC_MODE_RELAY)
+    notify(L(30688, "Synchronizace jede přes dashboard. Máš-li Home Assistant, zadej "
+                    "týž kód skupiny i v nastavení integrace."), ms=8000)
 
 
 def sync_settings():
@@ -1989,15 +2010,15 @@ def sync_settings():
 
 
 def sync_targets():
-    """Kam se tohle Kodi synchronizuje: `[("ha", (adresa, klíč)), ("relay", kód)]`.
-    Prázdný seznam = není kam. Home Assistant jde první: co z něj přijde, odejde
-    v témže kole i do relaye, protože ten bere stav ze `Store` až při svém kole."""
-    cile = []
+    """Kam se tohle Kodi synchronizuje: `[("ha", (adresa, klíč))]` nebo
+    `[("relay", kód)]`. Prázdný seznam = není kam. Seznam (a ne jedna hodnota)
+    zůstal ze dvou středisek naráz — volajícím se tím nic nemění a kdyby se
+    někdy vrátilo víc cílů, není co přepisovat."""
     if sync_settings():
-        cile.append(("ha", sync_settings()))
+        return [("ha", sync_settings())]
     if sync_via_relay() and setting("sync_code").strip():
-        cile.append(("relay", setting("sync_code").strip()))
-    return cile
+        return [("relay", setting("sync_code").strip())]
+    return []
 
 
 # Okruhy nastavení a účtů umí jen relay — Home Assistant je střed pro `Store`,
@@ -2012,7 +2033,7 @@ SYNC_RELAY_ONLY = ("settings", "accounts")
 def sync_circles(relay=None):
     """Okruhy zapnuté v nastavení. Prázdný výběr = neposílá se ani nepřijímá nic."""
     if relay is None:
-        relay = setting("sync_mode") in (SYNC_MODE_RELAY, SYNC_MODE_BOTH)
+        relay = setting("sync_mode") == SYNC_MODE_RELAY
     return tuple(okruh for okruh, klic in SYNC_CIRCLE_SETTINGS.items()
                  if on(klic, "false" if okruh in SYNC_RELAY_ONLY else "true")
                  and (relay or okruh not in SYNC_RELAY_ONLY))
@@ -2095,10 +2116,6 @@ def sync_now():
         for kam, cfg in cile:
             if kam == "relay":
                 ok, pushed, pulled, why = sync_relay_once(jmeno)
-                # most mezi středisky, viz `sync.reset_since` — přijatý záznam
-                # nese čas vzniku a filtr `since` v HA kole by ho přeskočil
-                if ok and pulled and sync_via_ha():
-                    reset_since(STORE)
             else:
                 ok, pushed, pulled, why = sync_once(STORE, cfg[0], cfg[1], jmeno,
                                                     circles=sync_circles(False))
@@ -6049,6 +6066,9 @@ def _tlacitko(fn):
 
 def main(query):
     try:
+        # zrušená volba střediska „HA i dashboard"; patří sem, ne do `migrate_on_start`
+        # — ta běží na úrovni modulu, tedy dřív, než je tahle funkce definovaná
+        migrate_sync_mode()
         action = dict(urllib.parse.parse_qsl(query.lstrip("?"))).get("action") or ""
         if action not in MARKS_SKIP:
             adopt_kodi_marks()

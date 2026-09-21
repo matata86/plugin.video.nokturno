@@ -1986,7 +1986,7 @@ msgid "Joining is open for 30 minutes."
 msgstr ""
 
 msgctxt "#30681"
-msgid "The dashboard only stores sealed data it cannot read. The code is the key and never leaves your devices. \"Home Assistant and the dashboard\" runs both at once — the HA card stays current and settings with accounts are shared through the dashboard."
+msgid "The dashboard only stores sealed data it cannot read. The code is the key and never leaves your devices. With Home Assistant, enter the same group code in the integration settings — HA then joins the group as another device and its card stays current."
 msgstr ""
 
 msgctxt "#30682"
@@ -2009,6 +2009,6 @@ msgctxt "#30686"
 msgid "Logins for the sources (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, own storage) and the TMDB key. Passwords travel encrypted and the server cannot read them, but anyone holding the group code can — only give it to your own devices. CZtor and Trakt must be paired on each device separately."
 msgstr ""
 
-msgctxt "#30687"
-msgid "HA and dashboard"
+msgctxt "#30688"
+msgid "Syncing goes through the dashboard. If you have Home Assistant, enter the same group code in the integration settings too."
 msgstr ""

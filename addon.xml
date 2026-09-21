@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="6.6.0~beta1" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="6.6.0~beta2" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,10 +30,10 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>6.6.0~beta1 – Synchronizace více Kodi i bez Home Assistanta: střed dělá dashboard, který do dat nevidí. První Kodi založí skupinu a ukáže kód, ostatní ho opíšou.
+    <news>6.6.0~beta2 – Střediska jsou jen dvě: Home Assistant, nebo dashboard. Kdo má obojí, zadá týž kód skupiny i v nastavení integrace v Home Assistantu — HA se tím stane dalším členem skupiny a změny z Kodi mimo domácí síť se k ní dostanou přes dashboard. Uložená volba „HA i dashboard“ se překlopí na dashboard.
+6.6.0~beta1 – Synchronizace více Kodi i bez Home Assistanta: střed dělá dashboard, který do dat nevidí. První Kodi založí skupinu a ukáže kód, ostatní ho opíšou.
 6.6.0~beta1 – Zvlášť si zapneš, co se sdílí: zhlédnuto a rozkoukanost, Můj seznam, historie hledání, nastavení doplňku a přihlášení ke zdrojům (poslední dvě jsou vypnuté).
 6.6.0~beta1 – Volby „co se synchronizuje“ platí nově i pro cestu přes Home Assistant; dřív se tam posílalo a přijímalo vždycky všechno.
-6.6.0~beta1 – Kdo má Home Assistant i Kodi mimo domácí síť, může zapnout obě střediska naráz („HA i dashboard“).
 6.5.12 – U řádku streamu z Luny se ukážou i rozlišení, kodek a titulky ze souboru (dřív chyběly). U českých a slovenských titulů se zvuk označený jen „EN“ ukáže jako odhad „~CZ“.
 6.5.12~beta4 – Stopa zvuku bez jazyka v souboru si nechá jazyk od Luny (po doplnění titulků a rozlišení ze souboru zmizelo „EN“).
 6.5.12~beta3 – U řádku streamu z Luny se ukážou i rozlišení, kodek a titulky ze souboru (dřív chyběly); čtou se přímo z Lunina odkazu, ne z odhadem spárovaného souboru.

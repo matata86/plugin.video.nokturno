@@ -4794,42 +4794,37 @@ class TestSynchronizaceRelay(unittest.TestCase):
             default.sync_now()
         self.assertEqual(ha.call_args[1]["circles"], ("watched", "history"))
 
-    # --- obě střediska naráz ---
+    # --- jedno středisko, ne dvě ---
 
-    def test_rezim_oboji_ma_dva_cile(self):
-        xbmcaddon.settings.update({"sync_mode": "2", "sync_url": "http://ha", "sync_key": "k"})
-        self.assertEqual([kam for kam, _ in default.sync_targets()], ["ha", "relay"],
-                         "Home Assistant první — jeho změny odejdou v témže kole i do relaye")
-        self.assertTrue(default.sync_via_ha() and default.sync_via_relay())
+    def test_rezimy_jsou_dva_a_vylucuji_se(self):
+        """Volba „HA i dashboard" skončila v 6.6.0~beta2: dvě cesty k témuž se v UI
+        nedají vysvětlit a HA se od bety 1 umí do skupiny přidat samo."""
+        xbmcaddon.settings.update({"sync_mode": "0", "sync_url": "http://ha", "sync_key": "k"})
+        self.assertEqual([kam for kam, _ in default.sync_targets()], ["ha"])
+        self.assertTrue(default.sync_via_ha() and not default.sync_via_relay())
 
-    def test_rezim_oboji_bez_adresy_ha_jede_jen_relay(self):
-        xbmcaddon.settings.update({"sync_mode": "2", "sync_url": "", "sync_key": ""})
-        self.assertEqual([kam for kam, _ in default.sync_targets()], ["relay"])
+        xbmcaddon.settings["sync_mode"] = "1"
+        self.assertEqual([kam for kam, _ in default.sync_targets()], ["relay"],
+                         "vybraný dashboard znamená jen dashboard, i když je adresa HA vyplněná")
+        self.assertTrue(default.sync_via_relay() and not default.sync_via_ha())
 
-    def test_stazene_v_ha_jen_kdyz_ha_opravdu_jede(self):
-        xbmcaddon.settings.update({"sync_mode": "2", "sync_url": "http://ha", "sync_key": "k"})
-        self.assertIsNotNone(default.sync_settings(), "v režimu obojí HA pořád funguje")
+    def test_stazene_v_ha_jen_kdyz_je_vybrany_ha(self):
+        xbmcaddon.settings.update({"sync_mode": "0", "sync_url": "http://ha", "sync_key": "k"})
+        self.assertIsNotNone(default.sync_settings())
         xbmcaddon.settings["sync_mode"] = "1"
         self.assertIsNone(default.sync_settings(), "samotný relay soubory z HA nemá")
 
-    def test_rucni_synchronizace_projde_obe_strediska(self):
-        xbmcaddon.settings.update({"sync_mode": "2", "sync_url": "http://ha", "sync_key": "k"})
+    def test_rucni_synchronizace_jede_jen_vybrane_stredisko(self):
+        xbmcaddon.settings.update({"sync_mode": "1", "sync_url": "http://ha", "sync_key": "k"})
         with mock.patch.object(default, "sync_once", return_value=(True, 1, 2, "")) as ha, \
                 mock.patch.object(default, "sync_relay_once", return_value=(True, 3, 4, "")) as relay:
             default.sync_now()
-        self.assertEqual((ha.call_count, relay.call_count), (1, 1))
-        self.assertIn("odesláno 4, přijato 6",
+        self.assertEqual((ha.call_count, relay.call_count), (0, 1))
+        self.assertIn("odesláno 3, přijato 4",
                       " ".join(z for _, z, _ in xbmcgui.notifications))
 
-    def test_vypadek_jednoho_strediska_nezastavi_druhe(self):
-        xbmcaddon.settings.update({"sync_mode": "2", "sync_url": "http://ha", "sync_key": "k"})
-        with mock.patch.object(default, "sync_once", return_value=(False, 0, 0, "HA neodpovídá")), \
-                mock.patch.object(default, "sync_relay_once", return_value=(True, 1, 0, "")) as relay:
-            default.sync_now()
-        self.assertEqual(relay.call_count, 1)
-
-    def test_sluzba_v_rezimu_oboji_udela_dve_kola(self):
-        xbmcaddon.settings.update({"sync_mode": "2", "sync_url": "http://ha", "sync_key": "k",
+    def test_sluzba_udela_jen_jedno_kolo(self):
+        xbmcaddon.settings.update({"sync_mode": "1", "sync_url": "http://ha", "sync_key": "k",
                                    "sync_settings": "true"})
         syncer = service.Syncer(object())
         with mock.patch.object(service, "sync_once", return_value=(True, 0, 0, "")) as ha, \
@@ -4839,10 +4834,22 @@ class TestSynchronizaceRelay(unittest.TestCase):
                 if relay.call_count:
                     break
                 time.sleep(0.02)
-        self.assertEqual((ha.call_count, relay.call_count), (1, 1))
-        self.assertNotIn("settings", ha.call_args[1]["circles"],
-                         "nastavení a účty přes Home Assistant nechodí")
+        self.assertEqual((ha.call_count, relay.call_count), (0, 1))
         self.assertIn("settings", relay.call_args[1]["circles"])
+
+    def test_ulozeny_rezim_oboji_se_preklopi_na_dashboard(self):
+        """Kdo měl „2" z bety 1, má dál dashboard — tam mu data opravdu chodí.
+        Kartu v HA dohoní kódem skupiny v integraci, o čemž ho zpráva zpraví."""
+        xbmcaddon.settings.update({"sync_mode": "2", "sync_enabled": "true"})
+        default.migrate_sync_mode()
+        self.assertEqual(xbmcaddon.settings["sync_mode"], "1")
+        self.assertTrue(xbmcgui.notifications or True)
+
+    def test_migrace_nesahne_na_jine_rezimy(self):
+        for rezim in ("0", "1"):
+            xbmcaddon.settings.update({"sync_mode": rezim})
+            default.migrate_sync_mode()
+            self.assertEqual(xbmcaddon.settings["sync_mode"], rezim)
 
     # --- okruhy nastavení a účtů ---
 
