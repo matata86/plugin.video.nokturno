@@ -2077,3 +2077,67 @@ msgstr ""
 msgctxt "#30707"
 msgid "The code from the first Kodi where you created the group. Turn on Synchronisation, choose Nokturno dashboard as the hub and save — this Kodi joins within five minutes."
 msgstr ""
+
+msgctxt "#30708"
+msgid "Prehraj.to"
+msgstr ""
+
+msgctxt "#30709"
+msgid "Use Prehraj.to"
+msgstr ""
+
+msgctxt "#30710"
+msgid "Search works without an account, but only the first page of results and a re-encoded 1080p file. A Premium account adds more results and plays the original file, including 4K."
+msgstr ""
+
+msgctxt "#30711"
+msgid "E-mail"
+msgstr ""
+
+msgctxt "#30712"
+msgid "The e-mail you sign in with at prehraj.to. Leave it empty to use the source without an account."
+msgstr ""
+
+msgctxt "#30713"
+msgid "Password"
+msgstr ""
+
+msgctxt "#30714"
+msgid "The password for the same account. Prehraj.to counts every sign-in as a device, so Nokturno signs in only once every few hours."
+msgstr ""
+
+msgctxt "#30715"
+msgid "Premium, %s days left"
+msgstr ""
+
+msgctxt "#30716"
+msgid "subscription ends in %s days"
+msgstr ""
+
+msgctxt "#30717"
+msgid "account without Premium — fewer results and 1080p only"
+msgstr ""
+
+msgctxt "#30718"
+msgid "no account — only the first page of results"
+msgstr ""
+
+msgctxt "#30719"
+msgid "paused for %s min (HTTP 429)"
+msgstr ""
+
+msgctxt "#30720"
+msgid "no Premium"
+msgstr ""
+
+msgctxt "#30721"
+msgid "no account, %s found"
+msgstr ""
+
+msgctxt "#30722"
+msgid "no Premium — fewer results and 1080p only"
+msgstr ""
+
+msgctxt "#30723"
+msgid "Premium, %s days left"
+msgstr ""

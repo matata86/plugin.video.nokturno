@@ -2078,3 +2078,67 @@ msgstr "Naskenuj QR kód a otevře se stránka s možnostmi podpory."
 msgctxt "#30707"
 msgid "The code from the first Kodi where you created the group. Turn on Synchronisation, choose Nokturno dashboard as the hub and save — this Kodi joins within five minutes."
 msgstr "Kód z prvního Kodi, na kterém jsi skupinu založil. Zapni Synchronizaci, jako středisko zvol Dashboard Nokturna a ulož — toto Kodi se připojí do pěti minut."
+
+msgctxt "#30708"
+msgid "Prehraj.to"
+msgstr "Přehraj.to"
+
+msgctxt "#30709"
+msgid "Use Prehraj.to"
+msgstr "Používat Přehraj.to"
+
+msgctxt "#30710"
+msgid "Search works without an account, but only the first page of results and a re-encoded 1080p file. A Premium account adds more results and plays the original file, including 4K."
+msgstr "Bez účtu se hledá taky, ale je vidět jen první strana výsledků a hraje se překódovaný soubor v 1080p. S účtem Premium je výsledků víc a hraje se původní soubor včetně 4K."
+
+msgctxt "#30711"
+msgid "E-mail"
+msgstr "E-mail"
+
+msgctxt "#30712"
+msgid "The e-mail you sign in with at prehraj.to. Leave it empty to use the source without an account."
+msgstr "E-mail, kterým se přihlašuješ na prehraj.to. Nech prázdné a zdroj se použije bez účtu."
+
+msgctxt "#30713"
+msgid "Password"
+msgstr "Heslo"
+
+msgctxt "#30714"
+msgid "The password for the same account. Prehraj.to counts every sign-in as a device, so Nokturno signs in only once every few hours."
+msgstr "Heslo ke stejnému účtu. Přehraj.to počítá každé přihlášení jako zařízení, proto se Nokturno přihlašuje jen jednou za pár hodin."
+
+msgctxt "#30715"
+msgid "Premium, %s days left"
+msgstr "Premium, zbývá %s dní"
+
+msgctxt "#30716"
+msgid "subscription ends in %s days"
+msgstr "předplatné končí za %s dní"
+
+msgctxt "#30717"
+msgid "account without Premium — fewer results and 1080p only"
+msgstr "účet bez Premium — méně výsledků a jen 1080p"
+
+msgctxt "#30718"
+msgid "no account — only the first page of results"
+msgstr "bez účtu — jen první strana výsledků"
+
+msgctxt "#30719"
+msgid "paused for %s min (HTTP 429)"
+msgstr "pozastaveno na %s min (HTTP 429)"
+
+msgctxt "#30720"
+msgid "no Premium"
+msgstr "účet bez Premium"
+
+msgctxt "#30721"
+msgid "no account, %s found"
+msgstr "bez účtu, nalezeno %s"
+
+msgctxt "#30722"
+msgid "no Premium — fewer results and 1080p only"
+msgstr "bez Premium — méně výsledků a jen 1080p"
+
+msgctxt "#30723"
+msgid "Premium, %s days left"
+msgstr "Premium, zbývá %s dní"

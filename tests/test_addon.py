@@ -5209,3 +5209,94 @@ class TestObnovaPoVypadkuSite(unittest.TestCase):
         self.assertTrue(checker.unreachable())
         ulozeno[service.accounts_lib.OFFLINE] = {"ts": time.time() - 2 * service.accounts_lib.OFFLINE_TTL}
         self.assertFalse(checker.unreachable())
+
+
+class TestPrehrajto(unittest.TestCase):
+    """Přehraj.to jako osmý zdroj (6.7.0).
+
+    Účet je nepovinný a právě v tom je past: bez něj server vydá jen první stranu
+    hledání a překódovaný soubor v 1080p, s Premium účtem stránkuje a vydá původní
+    soubor. Zdroj se proto smí zapnout i bez přihlášení, ale nesmí o sobě tvrdit
+    nic, co platí až s účtem.
+    """
+
+    def setUp(self):
+        reset_kodi()
+        xbmcaddon.settings.clear()
+
+    def test_vypnuty_zdroj_klienta_nezaklada(self):
+        self.assertIsNone(default.get_prehrajto())
+
+    def test_zapnuty_zdroj_jde_i_bez_uctu(self):
+        """Ostatní zdroje s účtem (FastShare, Sledujteto) bez údajů vracejí None —
+        tady se klient založit musí, jinak by zapnutý přepínač nic nedělal."""
+        xbmcaddon.settings["pt_enabled"] = "true"
+        api = default.get_prehrajto()
+        self.assertIsNotNone(api)
+        self.assertEqual((api.email, api.password), ("", ""))
+
+    def test_ucet_se_predava_klientovi(self):
+        xbmcaddon.settings.update({"pt_enabled": "true", "pt_email": " a@b.cz ", "pt_password": "x"})
+        api = default.get_prehrajto()
+        self.assertEqual((api.email, api.password), ("a@b.cz", "x"))
+
+    def test_jadro_dostane_prepinac_i_email_ale_ne_heslo(self):
+        """Heslo si jádro nikdy nebere z voleb — klienta mu dodává `get_prehrajto()`."""
+        xbmcaddon.settings.update({"pt_enabled": "true", "pt_email": "a@b.cz", "pt_password": "tajne"})
+        opts = default.engine_options()
+        self.assertTrue(opts["pt_enabled"])
+        self.assertEqual(opts["pt_email"], "a@b.cz")
+        self.assertNotIn("tajne", str(opts))
+
+    def test_vypnuty_zdroj_neposle_email_do_jadra(self):
+        """Jinak by jádro počítalo s Premium u zdroje, který je vypnutý."""
+        xbmcaddon.settings.update({"pt_enabled": "false", "pt_email": "a@b.cz"})
+        self.assertEqual(default.engine_options()["pt_email"], "")
+
+    def test_zdroj_ma_vlastni_stitek_i_jmeno(self):
+        self.assertIn("Přehraj.to", default.SOURCE_TAGS["pt"])
+        self.assertIn("pt", default.DIRECT_SOURCES)
+
+    def test_stav_bez_uctu_neni_chyba(self):
+        """Bez účtu zdroj funguje, jen s méně výsledky — v menu se to hlásit nesmí,
+        jinak by tam stálo varování u správně nastaveného doplňku."""
+        row = {"source": "prehrajto", "level": "ok", "code": "anonymous", "detail": {},
+               "age": 60, "stale": False}
+        self.assertIn("Přehraj.to", default.account_line(row))
+        self.assertNotIn("prehrajto", default.account_line(row))
+
+    def test_stav_s_premium_nese_dny(self):
+        row = {"source": "prehrajto", "level": "ok", "code": "premium", "detail": {"days": 42},
+               "age": 60, "stale": False}
+        self.assertIn("42", default.account_line(row, color=False))
+
+    def test_kratky_stitek_je_kratsi_nez_veta(self):
+        """Skin má na řádek zhruba čtyřicet znaků a delší text si roluje pod rukama."""
+        row = {"source": "prehrajto", "level": "warn", "code": "no_premium", "detail": {},
+               "age": 60, "stale": False}
+        plny = default.account_line(row, color=False)
+        kratky = default.account_line(row, color=False, short=True)
+        self.assertLess(len(kratky), len(plny))
+        self.assertIn("Premium", kratky)
+
+    def test_pauza_po_429_se_hlasi_s_minutami(self):
+        row = {"source": "prehrajto", "level": "warn", "code": "paused", "detail": {"minutes": 7},
+               "age": 60, "stale": False}
+        self.assertIn("7", default.account_line(row, color=False))
+
+    def test_nastaveni_ma_vlastni_kategorii_a_vsechny_preklady(self):
+        import xml.etree.ElementTree as ET
+        root = ET.parse(ROOT / "resources" / "settings.xml").getroot()
+        kategorie = {c.get("id"): c for c in root.iter("category")}
+        self.assertIn("pt", kategorie)
+        ids = {s.get("id") for s in kategorie["pt"].iter("setting")}
+        self.assertEqual(ids, {"pt_enabled", "pt_email", "pt_password"})
+        # e-mail i heslo mají smysl jen se zapnutým přepínačem
+        for setting in kategorie["pt"].iter("setting"):
+            if setting.get("id") == "pt_enabled":
+                continue
+            zavislosti = [d.get("setting") for d in setting.iter("dependency")]
+            self.assertIn("pt_enabled", zavislosti)
+
+    def test_stranka_z_mobilu_zna_novou_kategorii(self):
+        self.assertIn("pt", default.REMOTE_SETUP_CATEGORIES)

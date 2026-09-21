@@ -52,6 +52,7 @@ from hellspy_api import HellspyApi, HellspyError  # noqa: E402
 from sledujteto_api import SledujtetoApi, SledujtetoError  # noqa: E402
 from fastshare_api import FastshareApi, FastshareError  # noqa: E402
 from cztor_api import CztorApi, CztorError  # noqa: E402
+from prehrajto_api import PrehrajtoApi, PrehrajtoError  # noqa: E402
 from storage_api import SLOTS as STORAGE_SLOTS, StorageApi, StorageError, parse_ref  # noqa: E402
 from accounts import (FAIL as ACC_FAIL, OFF as ACC_OFF, OK as ACC_OK,  # noqa: E402
                       WARN as ACC_WARN, problems as accounts_problems)
@@ -220,13 +221,14 @@ SOSAC_TAG = "[COLOR FFE0A040]Sosáč[/COLOR]"
 HS_TAG = "[COLOR FFFF8A6B]HellSpy[/COLOR]"
 ST_TAG = "[COLOR FF4DD0C0]Sledujteto[/COLOR]"
 FS_TAG = "[COLOR FFF2C14E]FastShare[/COLOR]"
+PT_TAG = "[COLOR FF9AD5FF]Přehraj.to[/COLOR]"
 CZ_TAG = "[COLOR FFFF6FB5]CZtor[/COLOR]"
 WS_TAG = "[COLOR FF60B0FF]WebShare[/COLOR]"
 DAV_COLOR = "FFB0E57C"
 DAV_TAG = f"[COLOR {DAV_COLOR}]Úložiště[/COLOR]"
 LUNA_TAG = "[COLOR FFB39DFF]Luna[/COLOR]"
 SOURCE_TAGS = {"main": LUNA_TAG, "search": WS_TAG, "sosac": SOSAC_TAG, "ws": WS_TAG, "hs": HS_TAG, "st": ST_TAG,
-               "fs": FS_TAG, "cz": CZ_TAG, "dav": DAV_TAG}
+               "fs": FS_TAG, "pt": PT_TAG, "cz": CZ_TAG, "dav": DAV_TAG}
 QUALITY_COLORS = {4: "FFE06A60", 3: "FF6FD18A", 2: "FF6FB6F0", 1: "FFA0A0A0"}
 # krátce, ať zbyde místo na zbytek řádku: „Full HD" se v úzkém sloupci nevyplatí
 QUALITY_NAMES = {4: "4K", 3: "FHD", 2: "HD", 1: "SD"}
@@ -559,6 +561,14 @@ def get_fastshare():
     return FastshareApi(user, pw, cache=STORE)
 
 
+def get_prehrajto():
+    """Přehraj.to — stačí přepínač. Účet je nepovinný: bez něj je vidět jen první
+    strana hledání a hraje se překódovaný soubor, s Premium účtem původní."""
+    if not on("pt_enabled", "false"):
+        return None
+    return PrehrajtoApi(setting("pt_email").strip(), setting("pt_password"), cache=STORE)
+
+
 def cztor_client():
     """Klient CZtor i bez spárování — pro párování a stav účtu. Tokeny drží úložiště
     doplňku, takže je vidí plugin i služba (obnovovací token se použitím mění)."""
@@ -696,6 +706,10 @@ def engine_options():
         "ws_username": setting("ws_username") if on("ws_enabled", "false") else "",
         "st_email": setting("st_email") if on("st_enabled", "false") else "",
         "fs_username": setting("fs_username") if on("fs_enabled", "false") else "",
+        # jádro si podle e-mailu pozná účet (stránkování a původní soubor) — heslo
+        # sem nepatří, klienta si staví `get_prehrajto()`
+        "pt_enabled": on("pt_enabled", "false"),
+        "pt_email": setting("pt_email").strip() if on("pt_enabled", "false") else "",
         "hs_enabled": on("hs_enabled", "false"),
         "tmdb_api_key": setting("tmdb_api_key"),
     }
@@ -712,7 +726,7 @@ class KodiEngine(Engine):
     """
 
     FACTORIES = {"luna": get_luna, "sosac": get_sosac, "sosac_db": get_sosac_db, "ws": get_webshare,
-                 "hs": get_hellspy, "st": get_sledujteto, "fs": get_fastshare, "cz": get_cztor, "storages": get_storages, "tmdb": get_tmdb,
+                 "hs": get_hellspy, "st": get_sledujteto, "fs": get_fastshare, "pt": get_prehrajto, "cz": get_cztor, "storages": get_storages, "tmdb": get_tmdb,
                  "cinemeta": get_cinemeta, "trend": get_trend, "dash": get_dash,
                  "osub": get_opensubtitles}
 
@@ -733,6 +747,7 @@ class KodiEngine(Engine):
     hs = property(lambda self: self._client("hs"))
     st = property(lambda self: self._client("st"))
     fs = property(lambda self: self._client("fs"))
+    pt = property(lambda self: self._client("pt"))
     cz = property(lambda self: self._client("cz"))
 
     def cztor_client(self):
@@ -748,7 +763,7 @@ def get_apis():
     """Klienty zdrojů pod jmény, na která je zvyklý zbytek doplňku, plus jádro pod `engine`."""
     engine = KodiEngine()
     return {"engine": engine, "luna": engine.luna, "sosac": engine.sosac, "ws": engine.ws, "hs": engine.hs,
-            "st": engine.st, "fs": engine.fs, "cz": engine.cz, "dav": engine.storages, "cinemeta": engine.cinemeta, "sosac_db": engine.sosac_db,
+            "st": engine.st, "fs": engine.fs, "pt": engine.pt, "cz": engine.cz, "dav": engine.storages, "cinemeta": engine.cinemeta, "sosac_db": engine.sosac_db,
             "tmdb": engine.tmdb, "trend": engine.trend, "dash": engine.dash}
 
 
@@ -782,7 +797,7 @@ def log_error(err):
 SOURCE_LABELS = {
     LunaError: "Luna", CinemetaError: "Cinemeta", TmdbError: "TMDB",
     SosacError: "Sosáč", WebshareError: "WebShare", HellspyError: "HellSpy", SledujtetoError: "Sledujteto",
-    FastshareError: "FastShare", CztorError: "CZtor", StorageError: L(30405, "Úložiště"),
+    FastshareError: "FastShare", PrehrajtoError: "Přehraj.to", CztorError: "CZtor", StorageError: L(30405, "Úložiště"),
     TraktError: "Trakt.tv",
 }
 
@@ -1401,7 +1416,7 @@ def title_queries(apis, meta, video, ctype, alt=None, strict=True):
     return engine_of(apis)._title_queries(meta, video, ctype, alt, strict)
 
 
-DIRECT_SOURCES = ("ws", "hs", "st", "fs")   # fulltextové zdroje, kde bývá tentýž soubor jako u Luny
+DIRECT_SOURCES = ("ws", "hs", "st", "fs", "pt")   # fulltextové zdroje, kde bývá tentýž soubor jako u Luny
 
 
 def drop_duplicates(streams):
@@ -1517,7 +1532,7 @@ def pref_from_param(value):
 
 
 SOURCE_GROUP = {"main": "Luna", "search": "WebShare", "ws": "WebShare",
-                "sosac": "Sosáč", "hs": "HellSpy", "st": "Sledujteto", "fs": "FastShare", "cz": "CZtor",
+                "sosac": "Sosáč", "hs": "HellSpy", "st": "Sledujteto", "fs": "FastShare", "pt": "Přehraj.to", "cz": "CZtor",
                 "dav": L(30405, "Úložiště")}
 
 
@@ -2329,7 +2344,7 @@ def accounts_set():
 
 # kategorie nastavení, které jdou vyplnit z mobilu; Pokročilé a Info jsou jen tlačítka akcí,
 # Stahování chce cestu vybranou v Kodi
-REMOTE_SETUP_CATEGORIES = ("ws", "sosac", "hs", "st", "fs", "luna", "storage", "database", "playback",
+REMOTE_SETUP_CATEGORIES = ("ws", "sosac", "hs", "st", "fs", "pt", "luna", "storage", "database", "playback",
                            "streamlist", "trakt", "sync", "stats")
 REMOTE_SETUP_TIMEOUT = 1800
 # tlačítka z settings.xml, která mají na stránce z mobilu vlastní akci: id → (akce, pole, která čte)
@@ -2951,6 +2966,7 @@ def test_sources():
     """
     luna, sosac, ws, hs, st = get_luna(), get_sosac(), get_webshare(), get_hellspy(), get_sledujteto()
     fs = get_fastshare()
+    pt = get_prehrajto()
     cz = get_cztor()
     storages = get_storages()
     tmdb = get_tmdb()
@@ -2966,6 +2982,17 @@ def test_sources():
         if account.get("unlimited"):
             return L(30425, "neomezené stahování")
         return f"{L(30426, 'kredit')} {account.get('credit_mb', 0) / 1024:.1f} GB"
+
+    def check_prehrajto():
+        # bez účtu zdroj funguje taky, jen s méně výsledky — ověří se tedy hledáním,
+        # a s účtem navíc Premium (bez něj se hraje jen překódovaný soubor)
+        found, _total = pt.search("matrix", limit=5)
+        if not (pt.email and pt.password):
+            return L(30721, "bez účtu, nalezeno %s") % len(found)
+        user = pt.me()
+        if not user.get("premium"):
+            return L(30722, "bez Premium — méně výsledků a jen 1080p")
+        return L(30723, "Premium, zbývá %s dní") % user.get("days", 0)
 
     def check_cztor():
         # párování se ověří dotazem na účet; bez aktivního předplatného se katalog neotevře
@@ -2992,6 +3019,7 @@ def test_sources():
         "HellSpy": (lambda: len(HellspyApi().search("matrix", limit=5)[0])) if hs else None,
         "Sledujteto": check_sledujteto if st else None,
         "FastShare": check_fastshare if fs else None,
+        "Přehraj.to": check_prehrajto if pt else None,
         "CZtor": check_cztor if cz else None,
         # jen ověření klíče, mimo cache — 401 se překládá na "neplatný TMDB API klíč" v tmdb_api._get
         "TMDB": (lambda: tmdb._get("/configuration") and None) if tmdb else None,
@@ -3150,7 +3178,7 @@ ACCOUNT_COLORS = {ACC_FAIL: "FFFF6B6B", ACC_WARN: "FFFFC14E", ACC_OK: "FF6FD18A"
 
 # Jméno zdroje tak, jak ho uživatel zná ze seznamu streamů (obarvené stejně).
 ACCOUNT_TAGS = {"luna": LUNA_TAG, "webshare": WS_TAG, "cztor": CZ_TAG, "fastshare": FS_TAG,
-                "sledujteto": ST_TAG, "hellspy": HS_TAG, "storage": DAV_TAG}
+                "sledujteto": ST_TAG, "prehrajto": PT_TAG, "hellspy": HS_TAG, "storage": DAV_TAG}
 
 # (zdroj, kód) → (id řetězce, český fallback). `%s` se dosazuje z `detail`, viz
 # `ACCOUNT_ARGS`. Luna má vlastní sadu už od 5.2.30 (`LUNA_DIAG_SHORT`), tady se
@@ -3171,6 +3199,11 @@ ACCOUNT_TEXTS = {
     ("cztor", "unknown"): (30642, "stav účtu neznámý"),
     ("sledujteto", "premium"): (30643, "Premium"),
     ("sledujteto", "no_premium"): (30644, "účet bez Premium — přehrávání nepůjde"),
+    ("prehrajto", "premium"): (30715, "Premium, zbývá %s dní"),
+    ("prehrajto", "expires_soon"): (30716, "předplatné končí za %s dní"),
+    ("prehrajto", "no_premium"): (30717, "účet bez Premium — méně výsledků a jen 1080p"),
+    ("prehrajto", "anonymous"): (30718, "bez účtu — jen první strana výsledků"),
+    ("prehrajto", "paused"): (30719, "pozastaveno na %s min (HTTP 429)"),
     ("hellspy", "ok"): (30645, "v pořádku"),
     ("hellspy", "paused"): (30646, "pozastaveno na %s min (HTTP 429)"),
     ("storage", "ok"): (30647, "odpovídá"),
@@ -3188,7 +3221,9 @@ ACCOUNT_SHORT = {
     ("cztor", "expires_soon"): (30651, "končí za %s dní"),
     ("cztor", "not_paired"): (30654, "není spárováno"),
     ("sledujteto", "no_premium"): (30655, "účet bez Premium"),
-    ("hellspy", "paused"): (30656, "pauza %s min"),
+    ("prehrajto", "expires_soon"): (30651, "končí za %s dní"),
+    ("prehrajto", "no_premium"): (30720, "účet bez Premium"),
+    ("prehrajto", "paused"): (30656, "pauza %s min"),
 }
 
 ACCOUNT_COMMON_SHORT = {
@@ -3211,6 +3246,9 @@ ACCOUNT_ARGS = {
     ("cztor", "ok"): ("plan", "until"),
     ("cztor", "expires_soon"): ("days",),
     ("hellspy", "paused"): ("minutes",),
+    ("prehrajto", "premium"): ("days",),
+    ("prehrajto", "expires_soon"): ("days",),
+    ("prehrajto", "paused"): ("minutes",),
 }
 
 

@@ -24,12 +24,13 @@ než jakákoli obnova na pozadí.
 import time
 
 from hellspy_api import blocked_for
+from prehrajto_api import blocked_for as prehrajto_blocked_for
 from luna_api import diagnose as luna_diagnose
 
 OK, WARN, FAIL, OFF = "ok", "warn", "fail", "off"
 
 #: Pořadí, v jakém se stav skládá do hlášky — nejdřív to, co uživatel platí.
-SOURCES = ("luna", "webshare", "cztor", "fastshare", "sledujteto", "hellspy", "storage")
+SOURCES = ("luna", "webshare", "cztor", "fastshare", "sledujteto", "prehrajto", "hellspy", "storage")
 
 STORE = "accounts"          # accounts.json v profilu
 OFFLINE = "accounts_offline"   # značka „při poslední obnově nebyla síť" (jen `ts`)
@@ -114,6 +115,27 @@ def sledujteto(api):
     """Bez Premium Sledujteto odkaz na přehrání nevydá — účet se přihlásí, ale streamy nehrají."""
     user = api.me()
     return _zaznam(OK, "premium") if user.get("is_premium") else _zaznam(WARN, "no_premium")
+
+
+def prehrajto(api, cache=None):
+    """Pauza po 429, pak Premium. Bez účtu je zdroj v pořádku, jen s méně výsledky
+    a překódovaným souborem — proto `ok`, ne varování; `anonymous` to jen pojmenuje.
+
+    Pauzu čte i bez účtu, stejně jako HellSpy: právě opakovanými dotazy si doplněk
+    blokaci u HellSpy dvakrát přivodil (6.0.2, 6.0.4).
+    """
+    zbyva = int(prehrajto_blocked_for(cache))
+    if zbyva > 0:
+        return _zaznam(WARN, "paused", minutes=max(1, (zbyva + 59) // 60))
+    if not (api.email and api.password):
+        return _zaznam(OK, "anonymous")
+    user = api.me()
+    if not user.get("premium"):
+        return _zaznam(WARN, "no_premium")
+    days = int(user.get("days") or 0)
+    if days and days <= WARN_DAYS:
+        return _zaznam(WARN, "expires_soon", days=days)
+    return _zaznam(OK, "premium", days=days)
 
 
 def hellspy(cache=None):

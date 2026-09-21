@@ -245,6 +245,40 @@
         </setting>
       </group>
     </category>
+    <category id="pt" label="30708">
+      <group id="1">
+        <setting id="pt_enabled" type="boolean" label="30709" help="30710">
+          <level>0</level>
+          <default>false</default>
+          <control type="toggle"/>
+        </setting>
+        <setting id="pt_email" type="string" label="30711" help="30712">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="pt_enabled">true</dependency>
+          </dependencies>
+          <control type="edit" format="string">
+          </control>
+        </setting>
+        <setting id="pt_password" type="string" label="30713" help="30714">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="pt_enabled">true</dependency>
+          </dependencies>
+          <control type="edit" format="string">
+            <hidden>true</hidden>
+          </control>
+        </setting>
+      </group>
+    </category>
     <category id="cz" label="30560" help="30562">
       <group id="1">
         <setting id="cz_enabled" type="boolean" label="30561" help="30562">

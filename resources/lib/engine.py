@@ -21,7 +21,8 @@ from datetime import datetime
 
 from abort import Aborted, check as check_stop, gather, never
 import accounts as accounts_lib
-from const import CONF_CZ_ENABLED, CONF_HS_ENABLED, DEFAULT_SORT, LANGS, SORT_ORDERS
+from const import (CONF_CZ_ENABLED, CONF_HS_ENABLED, CONF_PT_ENABLED, DEFAULT_SORT, LANGS,
+                        SORT_ORDERS)
 from cinemeta_api import CinemetaApi, CinemetaError
 from enrich import DEAD_IMAGES, _capped, _cinemeta, _fetch, _fetch_title, enrich, enrich_one
 from luna_api import LunaApi, LunaError, clean_label, parse_base_url, parse_token
@@ -38,6 +39,8 @@ from tracks import SUBTITLE_FALLBACK
 from hellspy_api import HellspyApi, HellspyError, HellspyRateLimited
 from sledujteto_api import SledujtetoApi, SledujtetoError
 from fastshare_api import FastshareApi, FastshareError, make_ref as fastshare_ref
+from prehrajto_api import (PrehrajtoApi, PrehrajtoError, PrehrajtoRateLimited,
+                                make_ref as prehrajto_ref)
 from cztor_api import CztorApi, CztorError
 from storage_api import StorageApi, StorageError, match_texts, parse_ref
 from wikidata_api import local_titles
@@ -50,6 +53,7 @@ WS_HIDE_SCORE = -2   # soubor s hlasy (kladné − záporné) ≤ tohle se ve v�
 HS_LIMIT = 25    # totéž pro HellSpy
 ST_LIMIT = 25    # totéž pro Sledujteto
 FS_LIMIT = 25    # totéž pro FastShare
+PT_LIMIT = 32    # totéž pro Přehraj.to — jedna strana výpisu, bez účtu se dál stejně nedostane
 # značka dílu v názvu souboru: „S01E03", „s1 e3", „1x03"
 EPISODE_ANY_RE = re.compile(r"(?<![a-z0-9])s\d{1,2}\s?e\d{1,2}(?!\d)|(?<!\d)\d{1,2}x\d{2}(?!\d)", re.I)
 AUDIO_PROBE_MAX = 24          # u kolika streamů se ještě vyplatí číst hlavičku souboru
@@ -98,7 +102,8 @@ _HS_ID_RE = re.compile(r"^\d{1,20}$")
 _HS_HASH_RE = re.compile(r"^[0-9A-Za-z]{1,64}$")
 
 SOURCE_NAMES = {"main": "Luna", "search": "WebShare", "ws": "WebShare", "sosac": "Sosáč",
-                "hs": "HellSpy", "st": "Sledujteto", "fs": "FastShare", "cz": "CZtor", "torrent": "Torrent", "dav": "Úložiště"}
+                "hs": "HellSpy", "st": "Sledujteto", "fs": "FastShare", "pt": "Přehraj.to", "cz": "CZtor",
+                "torrent": "Torrent", "dav": "Úložiště"}
 
 # vlastní úložiště (WebDAV) — až tři, každé s adresou, jménem, heslem a názvem;
 # klíče jsou vypsané celé, ať je najde kontrola nastavení v testech konzumentů
@@ -377,6 +382,7 @@ class Engine:
         self._hs = None
         self._st = None
         self._fs = None
+        self._pt = None
         self._cz = None
         self._cz_paired = self._cztor_paired()
         self._osub = None
@@ -401,6 +407,7 @@ class Engine:
         self._hs = None
         self._st = None
         self._fs = None
+        self._pt = None
         self._cz = None
         self._cz_paired = self._cztor_paired()
         self._osub = None
@@ -524,6 +531,15 @@ class Engine:
             if user and self._opt("fs_password"):
                 self._fs = FastshareApi(user, self._opt("fs_password"), cache=self.store)
         return self._fs
+
+    @property
+    def pt(self):
+        """Přehraj.to — přepínač, účet nepovinný. Bez něj je vidět jen první strana
+        hledání a nabídne se překódovaná verze; s Premium účtem se stránkuje a hraje
+        se původní soubor (viz `lib/prehrajto_api`)."""
+        if self._pt is None and self._opt(CONF_PT_ENABLED, False):
+            self._pt = PrehrajtoApi(self._opt("pt_email"), self._opt("pt_password"), cache=self.store)
+        return self._pt
 
     @property
     def cz(self):
@@ -656,6 +672,7 @@ class Engine:
                 "hellspy": bool(self._opt(CONF_HS_ENABLED, False)),
                 "sledujteto": bool(str(self._opt("st_email") or "").strip()),
                 "fastshare": bool(str(self._opt("fs_username") or "").strip()),
+                "prehrajto": bool(self._opt(CONF_PT_ENABLED, False)),
                 "cztor": self._cz_paired,
                 "storage": bool(self.storages),
                 "torrent": self.prowlarr is not None}
@@ -749,6 +766,9 @@ class Engine:
             checks["fastshare"] = lambda: accounts_lib.fastshare(self.fs)
         if chce("sledujteto") and self.st is not None:
             checks["sledujteto"] = lambda: accounts_lib.sledujteto(self.st)
+        if chce("prehrajto") and self.pt is not None:
+            api = self.pt
+            checks["prehrajto"] = lambda: accounts_lib.prehrajto(api, self.store)
         if chce("hellspy") and self._opt(CONF_HS_ENABLED, False):
             checks["hellspy"] = lambda: accounts_lib.hellspy(self.store)   # nikdy se neptá po síti
         if chce("storage") and self.storages:
@@ -784,7 +804,12 @@ class Engine:
         # nebo hned po startu. Uložit „neodpovídá" ke všem by v menu přepsalo
         # dobrý stav šumem, který by tam stál do další obnovy. Stav se nechá
         # a zapíše se jen značka, podle které služba obnovu zopakuje dřív.
-        sitove = {n: r for n, r in vysledky.items() if n != "hellspy"}
+        # Zdroje, které odpověděly bez jediného dotazu na síť, o stavu sítě nic neříkají:
+        # HellSpy se neptá nikdy, Přehraj.to bez účtu taky ne (a s pauzou po 429 ani s ním).
+        bez_site = {"hellspy"}
+        if (vysledky.get("prehrajto") or {}).get("code") in ("anonymous", "paused"):
+            bez_site.add("prehrajto")
+        sitove = {n: r for n, r in vysledky.items() if n not in bez_site}
         if sitove and all(r.get("code") == "unreachable" for r in sitove.values()):
             _LOGGER.info("stav účtů: bez sítě (%s), uložený stav se nechává", ", ".join(sitove))
             try:
@@ -816,6 +841,9 @@ class Engine:
         hlasy ≤ WS_HIDE_SCORE."""
         podpis = {**self.sources(), "ws": self._opt("ws_username").strip(), "st": str(self._opt("st_email") or "").strip(),
                   "fs": str(self._opt("fs_username") or "").strip(),
+                  # účet Přehraj.to mění výsledek, ne jen rychlost: bez něj je vidět jen první
+                  # strana hledání a hraje se překódovaný soubor místo původního
+                  "pt": str(self._opt("pt_email") or "").strip(),
                   "dav": [str(self._opt(f"dav{n}_url") or "").strip() for n in range(1, 4)],
                   "search": bool(self._opt("search_streams", True)), "cross": bool(self._opt("cross_search", True))}
         otisk = hashlib.sha1(json.dumps(podpis, sort_keys=True, default=str).encode("utf-8")).hexdigest()[:10]
@@ -1644,7 +1672,8 @@ class Engine:
             if on_count:
                 on_count(0)
             return streams
-        schemes = ("hs:", "ws:", "streamuj:", "dav:")
+        # `pt:` je podepsaný odkaz bez hlaviček a bez kreditu — hlavičku lze číst vždy
+        schemes = ("hs:", "ws:", "streamuj:", "dav:", "pt:")
         # FastShare strhává kredit za přenesená data — hlavičky výpisu stojí desítky MB.
         # Kdo jede na kredit, zvuk nezjišťujeme; s neomezeným stahováním ano.
         if any(str(s.get("url") or "").startswith("fs:") for s in streams) and self._fastshare_unlimited():
@@ -1808,6 +1837,46 @@ class Engine:
                     "label": name,
                     "detail": f.get("size_h") or "",
                     "source": "hs",
+                    "_duration": f.get("duration") or 0,
+                    "_direct": True,
+                })
+        return out
+
+    def _prehrajto_streams(self, meta, video=None, ctype="movie", alt=None, strict=True, failures=None):
+        """Tentýž titul na Přehraj.to. Velikost z výpisu popisuje **původní soubor**,
+        ten se ale nabídne jen účtu s Premium — bez účtu se hraje překódované 1080p,
+        takže by velikost v popisku lhala a neuvádí se (viz `lib/prehrajto_api`).
+
+        Rozlišení server ve výpisu neposílá, jen příznak HD; skutečné se dočte
+        z hlavičky souboru v `_fill_audio`, stejně jako u HellSpy."""
+        if not self.pt:
+            return []
+        premium = bool(str(self._opt("pt_email") or "").strip() and self._opt("pt_password"))
+        queries, relevant = self._title_queries(meta, video, ctype, alt, strict)
+        out, seen = [], set()
+        for query in queries:
+            self._check_stop()
+            try:
+                files, _total = self.pt.search(query, limit=PT_LIMIT)
+            except PrehrajtoError as err:
+                # pauza po dřívější 429 nic nového neříká — nahlas se loguje jen první odmítnutí
+                _LOGGER.log(logging.DEBUG if getattr(err, "paused", False) else logging.WARNING,
+                            "Přehraj.to hledání „%s“: %s", query, err)
+                if failures is not None:
+                    failures.append(("Přehraj.to", err))
+                if isinstance(err, PrehrajtoRateLimited):
+                    break  # adresa je omezená — další dotazy by blokaci jen prodloužily
+                continue
+            for f in files:
+                name = f.get("name") or ""
+                if f["hash"] in seen or not relevant(name):
+                    continue
+                seen.add(f["hash"])
+                out.append({
+                    "url": prehrajto_ref(f),
+                    "label": name,
+                    "detail": (f.get("size_h") or "") if premium else "",
+                    "source": "pt",
                     "_duration": f.get("duration") or 0,
                     "_direct": True,
                 })
@@ -2302,6 +2371,8 @@ class Engine:
             found += self._sledujteto_streams(meta, video, ctype, alt, strict=False)
         if "fs" in sources:
             found += self._fastshare_streams(meta, video, ctype, alt, strict=False)
+        if "pt" in sources:
+            found += self._prehrajto_streams(meta, video, ctype, alt, strict=False)
         for stream in found:
             parse_stream(stream)
         found = self._merge_direct(found)
@@ -2557,6 +2628,7 @@ class Engine:
                     ("HellSpy", lambda: self._hellspy_streams(m, video, ctype, alt, strict, failures)),
                     ("Sledujteto", lambda: self._sledujteto_streams(m, video, ctype, alt, strict, failures)),
                     ("FastShare", lambda: self._fastshare_streams(m, video, ctype, alt, strict, failures)),
+                    ("Přehraj.to", lambda: self._prehrajto_streams(m, video, ctype, alt, strict, failures)),
                     ("CZtor", lambda: self._cztor_streams(m, video, ctype, alt, failures)),
                 ]
                 if probe_audio:
@@ -2879,6 +2951,21 @@ class Engine:
                 return self._fastshare_api().kodi_url(url)
             except FastshareError as err:
                 raise NokturnoError(f"FastShare: {err}") from err
+        if url.startswith("pts:"):
+            # titulky ze stránky videa; adresa platí den, proto se hledá až teď
+            if self.pt is None:
+                raise NokturnoError("Přehraj.to není zapnutý.")
+            try:
+                return self.pt.subtitle_link(url)
+            except PrehrajtoError as err:
+                raise NokturnoError(f"Přehraj.to: {err}") from err
+        if url.startswith("pt:"):
+            if self.pt is None:
+                raise NokturnoError("Přehraj.to není zapnutý.")
+            try:
+                return self.pt.file_link(url)
+            except PrehrajtoError as err:
+                raise NokturnoError(f"Přehraj.to: {err}") from err
         if url.startswith("cz:"):
             if self.cz is None:
                 raise NokturnoError("CZtor není zapnutý nebo spárovaný.")
