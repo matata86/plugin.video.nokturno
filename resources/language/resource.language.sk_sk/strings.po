@@ -857,8 +857,8 @@ msgid "Password for sledujteto.cz. It is sent only when signing in; requests the
 msgstr "Heslo zo sledujteto.cz. Posiela sa len pri prihlásení, ďalšie požiadavky idú s tokenom."
 
 msgctxt "#30329"
-msgid "Like Nokturno? Support the author: PayPal paypal.me/matata86 · Bitcoin bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc"
-msgstr "Páči sa ti Nokturno? Podpor autora: PayPal paypal.me/matata86 · Bitcoin bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc"
+msgid "Like Nokturno? Support the author: Ko-fi ko-fi.com/matata86 · PayPal paypal.me/matata86 · Bitcoin bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc"
+msgstr "Páči sa ti Nokturno? Podpor autora: Ko-fi ko-fi.com/matata86 · PayPal paypal.me/matata86 · Bitcoin bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc"
 
 msgctxt "#30374"
 msgid "Own storage"

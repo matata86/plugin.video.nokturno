@@ -2,7 +2,7 @@
 
 # Nokturno — filmy a seriály z WebShare, Sosáče, Luny, HellSpy, Sledujteto, FastShare a CZtoru pro Kodi
 
-[![PayPal](https://img.shields.io/badge/PayPal-paypal.me%2Fmatata86-00457C?logo=paypal&logoColor=white)](https://paypal.me/matata86) [![Bitcoin](https://img.shields.io/badge/Bitcoin-BTC-f7931a?logo=bitcoin&logoColor=white)](#podpora)
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-podpo%C5%99%20autora-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/matata86) [![PayPal](https://img.shields.io/badge/PayPal-paypal.me%2Fmatata86-00457C?logo=paypal&logoColor=white)](https://paypal.me/matata86) [![Bitcoin](https://img.shields.io/badge/Bitcoin-BTC-f7931a?logo=bitcoin&logoColor=white)](#podpora)
 
 Podrobný návod (instalace, nastavení každého zdroje, používání, řešení problémů) je ve [wiki](https://github.com/matata86/plugin.video.nokturno/wiki).
 
@@ -292,7 +292,8 @@ svolení autora nejsou dovolené — viz [LICENSE](LICENSE).
 
 ## Podpora
 
-[![Podpoř Nokturno — PayPal, Bitcoin](.github/podpora.png)](https://paypal.me/matata86)
+[![Podpoř Nokturno — Ko-fi, PayPal, Bitcoin](.github/podpora.png)](https://ko-fi.com/matata86)
 
+- **Ko-fi:** https://ko-fi.com/matata86
 - **PayPal:** https://paypal.me/matata86
 - **Bitcoin:** `bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc`

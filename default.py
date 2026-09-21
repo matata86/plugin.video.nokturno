@@ -304,6 +304,7 @@ def info_install():
                                                       L(30695, "ID této instalace"), install_id() or "—"))
 
 
+KOFI_URL = "ko-fi.com/matata86"
 PAYPAL_URL = "paypal.me/matata86"
 BITCOIN_ADDRESS = "bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc"
 DONATE_URL = "https://nokturno.tailf0014.ts.net/#podpora"
@@ -349,9 +350,9 @@ class DonateWindow(xbmcgui.WindowDialog):
             self.addControl(xbmcgui.ControlImage(90, 150, 380, 380, qr_path, aspectRatio=2))
         text = xbmcgui.ControlTextBox(500, 160, 700, 380, font="font12", textColor="FFE6E1F0")
         self.addControl(text)
-        text.setText("%s[CR][CR][B]%s[/B][CR]%s[CR][CR][B]%s[/B][CR]%s[CR][CR]%s"
+        text.setText("%s[CR][CR][B]%s[/B][CR]%s[CR][CR][B]%s[/B][CR]%s[CR][CR][B]%s[/B][CR]%s[CR][CR]%s"
                      % (L(30706, "Naskenuj QR kód a otevře se stránka s možnostmi podpory."),
-                        L(30704, "PayPal"), PAYPAL_URL, L(30699, "Bitcoin"), BITCOIN_ADDRESS,
+                        "Ko-fi", KOFI_URL, L(30704, "PayPal"), PAYPAL_URL, L(30699, "Bitcoin"), BITCOIN_ADDRESS,
                         L(30705, "Zavři tlačítkem Zpět.")))
 
     def onAction(self, action):

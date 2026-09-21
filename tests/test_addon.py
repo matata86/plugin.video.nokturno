@@ -187,6 +187,7 @@ class TestNastaveni(unittest.TestCase):
         texty = [c.text for c in okno.controls if hasattr(c, "text")]
         self.assertTrue(any("bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc" in t for t in texty))
         self.assertTrue(any("paypal.me/matata86" in t for t in texty))
+        self.assertTrue(any("ko-fi.com/matata86" in t for t in texty))
         # QR nese adresu stránky, ne `bitcoin:` — na mobilu se z ní dá kliknout na PayPal
         self.assertEqual(default.DONATE_URL, "https://nokturno.tailf0014.ts.net/#podpora")
 

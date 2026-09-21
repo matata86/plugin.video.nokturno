@@ -857,7 +857,7 @@ msgid "Password for sledujteto.cz. It is sent only when signing in; requests the
 msgstr ""
 
 msgctxt "#30329"
-msgid "Like Nokturno? Support the author: PayPal paypal.me/matata86 · Bitcoin bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc"
+msgid "Like Nokturno? Support the author: Ko-fi ko-fi.com/matata86 · PayPal paypal.me/matata86 · Bitcoin bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc"
 msgstr ""
 
 msgctxt "#30374"
