@@ -162,8 +162,9 @@ class TestNastaveni(unittest.TestCase):
         # trvale zašedlý přes `info_locked` (skrytý přepínač, který je vždy false).
         self.assertNotIn('type="label"', info)
         self.assertEqual(info.count('<control type="edit" format="string"/>'), 8)
-        self.assertEqual(info.count('<dependency type="enable" setting="info_locked">true</dependency>'), 8)
-        self.assertIn('<setting id="info_locked" type="boolean"', info)
+        # zašedlé řádky (`enable` na vypnutý přepínač) byly na TV nečitelné
+        self.assertNotIn('info_locked', info)
+        self.assertNotIn('<dependencies>', info)
         # verze a id instalace se do settings.xml napsat nedají, plní je plugin
         xbmcaddon.settings.pop("info_version", None)
         xbmcaddon.settings.pop("info_install", None)
@@ -171,6 +172,10 @@ class TestNastaveni(unittest.TestCase):
             default.refresh_info()
         self.assertEqual(xbmcaddon.settings["info_version"], default._ADDON_VERSION)
         self.assertEqual(xbmcaddon.settings["info_install"], "deadbeef")
+        # pevné řádky se obnovují taky — pole jdou přepsat, přepis vydrží do dalšího spuštění
+        for klic, hodnota in default.INFO_LINES:
+            self.assertEqual(xbmcaddon.settings[klic], hodnota)
+            self.assertIn("<default>%s</default>" % hodnota, info)
 
     def test_id_instalace_se_opravdu_precte(self):
         """Beta 8: `install_id()` sahala na `Stats` globálně, jenže ten se v default.py

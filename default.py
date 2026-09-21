@@ -288,11 +288,27 @@ def migrate_on_start():
     refresh_info()
 
 
+# pevné řádky kategorie Info; stejné hodnoty jako `<default>` v settings.xml, odsud se obnovují
+INFO_LINES = (("info_web", "nokturno.tailf0014.ts.net"),
+              ("info_family", "Kodi · Stremio · Home Assistant"),
+              ("info_paypal", "paypal.me/matata86"),
+              ("info_bitcoin", "bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc"),
+              ("info_forum_kodi", "xbmc-kodi.cz"),
+              ("info_forum_stremio", "stremio.cz/d/240"))
+
+
 def refresh_info():
-    """Dva řádky v kategorii Info, které se nedají napsat do `settings.xml` natvrdo:
-    verze doplňku a id instalace. Zapisuje se jen při změně — `setSetting` sahá na
-    disk a plugin se spouští při každém kliknutí."""
-    for klic, hodnota in (("info_version", _ADDON_VERSION), ("info_install", install_id())):
+    """Řádky v kategorii Info. Verze a id instalace se do `settings.xml` napsat nedají,
+    ostatní hodnoty jsou pevné a jen se obnovují.
+
+    Řádky jsou obyčejná textová pole a jdou přepsat — zašedlé (`enable` na vypnutý
+    přepínač) byly na TV nečitelné. Přepis tedy vydrží jen do příštího spuštění
+    pluginu. `<control type="label">` Kodi 21 v nastavení doplňku odmítne
+    (`error reading <control> tag`) a přeskočí celou kategorii.
+
+    Zapisuje se jen při změně — `setSetting` sahá na disk a plugin se spouští při
+    každém kliknutí."""
+    for klic, hodnota in (("info_version", _ADDON_VERSION), ("info_install", install_id())) + INFO_LINES:
         if hodnota and ADDON.getSetting(klic) != hodnota:
             ADDON.setSetting(klic, hodnota)
 
