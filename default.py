@@ -3281,8 +3281,10 @@ def list_accounts(apis):
             continue    # zdroj je vypnutý schválně, není co hlásit
         folder_item(account_line(row), build_url(action=account_action(row)),
                     icon="DefaultAddonService.png")
-    folder_item(L(30167, "Ověřit zdroje"), build_url(action="test_sources"),
-                icon="DefaultAddonProgram.png")
+    # ne-složka jako Nastavení pod ní: jako složka by Kodi po kliknutí čekal na
+    # výpis adresáře, který `test_sources` nikdy nezavře — po OK v dialogu se
+    # točilo kolečko navěky (nahlášeno z mobilu na `6.6.0~beta11`)
+    action_item(L(30167, "Ověřit zdroje"), build_url(action="test_sources"), icon="DefaultAddonProgram.png")
     action_item(L(30392, "Nastavení"), build_url(action="settings"), icon="DefaultAddonProgram.png")
     # bez cache na disk — stav se mění, zpět do menu by jinak ukázalo starý výpis
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
@@ -6005,7 +6007,7 @@ def router(query):
                                 xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
         "stats_send": stats_send,
         "log_send": log_send,
-        "test_sources": test_sources,
+        "test_sources": lambda: _tlacitko(test_sources),
         "remote_setup": lambda: remote_setup_action(p.get("section")),
         "transfer_send": lambda: (transfer_send(),
                                   xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="6.6.0~beta12" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="6.6.0~beta13" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>6.6.0~beta12 – Stav zdrojů hlásil „Luna: běží, ale chybí token“ i u vypnutého zdroje Luna.
+    <news>6.6.0~beta13 – Po „Otestovat zdroje“ z výpisu stavu zdrojů se po OK točilo kolečko navěky — položka byla složka.
+6.6.0~beta12 – Stav zdrojů hlásil „Luna: běží, ale chybí token“ i u vypnutého zdroje Luna.
 6.6.0~beta11 – Po „Ověřit zdroje“ se v betě 10 točilo kolečko a stav v menu se nepřepsal.
 6.6.0~beta10 – Stav zdrojů v menu už nehlásí „nesedí jméno nebo heslo“, když se k účtu jen nešlo připojit — výpadek sítě a odmítnutý účet jsou teď rozlišené. „Ověřit zdroje“ zároveň rovnou přepíše stav v menu, takže obě obrazovky nemůžou tvrdit opak; zdroj, na který se nešlo dostat, se zkusí znovu za dvacet minut místo za šest hodin. V záložce Info otevírá Podpořit projekt okno s QR kódem na stránku podpory a s adresami PayPalu i Bitcoinu; řádky Info se nedají přepsat. Nastavit z mobilu ukazuje kód skupiny synchronizace, a když žádná není, jde tam kód z prvního Kodi rovnou zadat.
 6.6.0~beta9 – ID instalace v Info zůstávalo v betě 8 prázdné.

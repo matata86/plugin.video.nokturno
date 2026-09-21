@@ -5099,6 +5099,27 @@ class TestStavZdrojuPoTestu(unittest.TestCase):
             volby = default.engine_options()
         self.assertFalse(volby["luna_enabled"])
 
+    def test_overit_zdroje_ve_vypisu_stavu_neni_slozka(self):
+        """Jako složka Kodi po kliknutí čekal na výpis adresáře, který `test_sources`
+        nikdy nezavře — po OK v dialogu se točilo kolečko navěky (z mobilu na
+        `6.6.0~beta11`; na Office to `Addons.ExecuteAddon` neodhalil, na výpis nečeká)."""
+        reset_kodi()
+        with mock.patch.object(default, "engine_of") as engine_of:
+            engine_of.return_value.accounts.return_value = []
+            default.list_accounts({})
+        polozky = {li.label: is_folder for _h, _u, li, is_folder in xbmcplugin.items}
+        self.assertIn("Ověřit zdroje", polozky)
+        self.assertFalse(polozky["Ověřit zdroje"])
+
+    def test_test_sources_s_handle_zavre_adresar(self):
+        """I kdyby se akce spustila s handle ≥ 0 (odkaz uložený v oblíbených), Kodi
+        nesmí čekat na výpis."""
+        reset_kodi()
+        with mock.patch.object(default, "test_sources"):
+            default.router("?action=test_sources")
+        self.assertEqual(len(xbmcplugin.ended), 1)
+        self.assertFalse(xbmcplugin.ended[-1]["succeeded"])
+
     def test_stejny_literal_v_obou_souborech(self):
         """Plugin a služba se potkávají jen přes tenhle řetězec."""
         self.assertEqual(default.ACCOUNTS_TRIGGER_PROP, service.ACCOUNTS_TRIGGER_PROP)
