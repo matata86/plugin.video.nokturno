@@ -38,6 +38,7 @@ Přihlašovací údaje zůstávají v Kodi — doplněk je posílá jen službě
 - **Sedm zdrojů + vlastní úložiště** v jednom hledání a jednom výběru streamu (stejný soubor z více zdrojů se sloučí do jednoho řádku)
 - **Výběr streamu v dialogu** — kvalita, jazyk zvuku i titulků, kanály, kodek, velikost; filtr a zapamatovaný stream u seriálu
 - **Pokračovat ve sledování**, Můj seznam, rozkoukané a zhlédnuté i bez Kodi knihovny; **Trakt.tv** a **Up Next**
+- **Synchronizace více Kodi** (od 6.6.0) — zhlédnuto, Můj seznam, historie, nastavení i přihlášení se sdílí mezi zařízeními **bez Home Assistanta**; server do dat nevidí
 - **Katalogy, žebříčky, TV program, Pro Tebe** a náhodný titul; **Stav zdrojů** v menu řekne, co nefunguje
 - **Nastavit z mobilu**, **přenos nastavení** do dalšího Kodi a průvodce prvním nastavením
 - **Titulky z OpenSubtitles**, **stahování** na pozadí s navazováním, **Přehrát z detailu** přes TMDb Helper (Arctic Fuse)
@@ -76,7 +77,7 @@ Přihlašovací údaje zůstávají v Kodi — doplněk je posílá jen službě
 - **Trakt.tv** scrobble (vlastní client id/secret), IMDb id pro doplňky titulků, cesty pro widgety skinu
 - **hodnocení v procentech** — položky nesou vlastnost `RatingPercent` („58 %“) vedle běžného ratingu, takže ji skin může ukázat místo hvězdiček
 - **anonymní statistiky** používání, které jdou v nastavení vypnout (viz níže)
-- **Synchronizace mezi více Kodi** — zhlédnuto, rozkoukané (i pozice) a Můj seznam se sdílí přes integraci [Nokturno pro Home Assistant](https://github.com/matata86/nokturno-ha): v HA si v nastavení integrace opiš klíč, v Kodi zapni *Nastavení → Synchronizace*, vyplň adresu HA a klíč. Běží na pozadí, ručně přes „Synchronizovat teď" v menu
+- **Synchronizace mezi více Kodi** (od 6.6.0) — zhlédnuto, rozkoukané (i pozice), Můj seznam a historie hledání se sdílí mezi všemi tvými Kodi, **i bez Home Assistanta**. Středisko je dashboard Nokturna, který drží jen zapečetěná data — jsou zašifrovaná klíčem odvozeným z kódu skupiny a server je nepřečte. *Nastavení → Synchronizace*: na prvním Kodi zvol *Založit skupinu* a opiš kód `NKT-XXXX-XXXX-XXXX-XXXX`, na dalších *Připojit se ke skupině*. Zvlášť se zapíná, co se sdílí: zhlédnuto a rozkoukanost, Můj seznam, historie hledání a (výchozí vypnuté) **nastavení doplňku** a **přihlášení ke zdrojům** — ta jdou zašifrovaná, ale kdo má kód skupiny, přečte je, takže kód patří jen tvým zařízením. **Home Assistant** je dalším členem skupiny: kód zadáš i v nastavení integrace. Kodi v domácí síti může dál synchronizovat přímo s HA přes adresu a klíč (volba *Středisko synchronizace → Home Assistant*). Běží na pozadí, ručně přes „Synchronizovat teď" v menu
 - **Up Next** — je-li nainstalovaná služba [Up Next](https://kodi.tv/addons/omega/service.upnext), dostane u seriálů informaci o dalším dílu a ke konci epizody nabídne jeho přehrání (a s zapamatovaným streamem ho pustí rovnou)
 - **Sledování předplatného WebShare** — tlačítko v nastavení ukáže, kolik dní zbývá; upozornění pár dní před koncem a pak každý den, dokud předplatné nevyprší
 - **Žánr v popisu titulu** — tučně na začátku, přeložený do češtiny i u titulů z anglicky mluvících zdrojů
@@ -198,7 +199,7 @@ resources/lib/mediainfo.py    # čtení hlavičky souboru (MKV/MP4/AVI): zvuk, t
 resources/lib/enrich.py       # popisy titulů Sosáče z Luny/Cinemety
 resources/lib/wikidata_api.py # české a slovenské názvy z Wikidat pro fulltext
 resources/lib/source_errors.py # srozumitelné hlášky o výpadku zdroje (bez tokenů)
-resources/lib/sync.py         # synchronizace zhlédnuto/Můj seznam mezi Kodi přes HA
+resources/lib/sync.py         # synchronizace zhlédnuto/Můj seznam mezi Kodi (dashboard nebo HA)
 resources/lib/stats.py        # čítače používání a jejich odesílání (bez závislosti na Kodi)
 resources/lib/store.py        # historie hledání + zhlédnuto/rozkoukáno (JSON v profilu)
 resources/lib/streams.py      # rozbor, filtr a řazení streamů

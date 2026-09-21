@@ -4,6 +4,7 @@
     python3 tools/make_icon.py            # ikony a fanart
     python3 tools/make_icon.py podpora    # obrázek podpory do README (.github/podpora.png)
     python3 tools/make_icon.py 6.0.0      # obrázek k vydání 6.0.0 s CZtorem (.github/nokturno-6.0.0-cztor.png)
+    python3 tools/make_icon.py 6.6.0      # obrázek k vydání 6.6.0 s přehledem novinek (.github/nokturno-6.6.0-novinky.png)
 
 Značka je prstenec, v něm „N" s perforacemi filmového pásu a nad ním úplněk
 s vyříznutým play. Kreslí se vektorově (cairosvg) a skládá po vrstvách,
@@ -248,6 +249,39 @@ def make_release_600(path):
     sky.save(path, quality=92, subsampling=0) if path.endswith(".jpg") else sky.save(path)
 
 
+def make_release_660(path):
+    """Obrázek k vydání 6.6.0: pět největších novinek řady 6.2–6.6 pod sebou. Tatáž
+    noční obloha a zlato jako u 6.0.0 a fanartu."""
+    W, H = RELEASE
+    sky = render(f'<rect width="{W}" height="{H}" fill="url(#sky)"/>', W, H, scale=1).convert("RGB")
+    q = 4
+    glow = Image.new("RGB", (W // q, H // q), (0, 0, 0))
+    ImageDraw.Draw(glow).ellipse([c / q for c in (700, -80, 1360, 640)], fill=(32, 42, 96))
+    sky = ImageChops.add(sky, glow.filter(ImageFilter.GaussianBlur(24)).resize((W, H), Image.BICUBIC))
+    dr = ImageDraw.Draw(sky, "RGBA")
+    for x, y, r, o in [(1130, 60, 3, 90), (1010, 40, 2, 60), (1150, 560, 3, 70), (60, 600, 2, 55),
+                       (960, 590, 2, 45), (1170, 300, 2, 60), (40, 40, 2, 50)]:
+        dr.ellipse((x - r, y - r, x + r, y + r), fill=(255, 255, 255, o))
+    logo = mark("", "url(#gold)", scale=1).resize((250, 250), Image.LANCZOS)
+    sky.paste(logo, (945, 190), logo)
+    gold, dim = (243, 196, 118), (163, 176, 218)
+    dr.text((70, 42), "Nokturno 6.6", font=font("InterDisplay-Bold.otf", 88), fill=gold)
+    dr.text((74, 150), "Co je nového od verze 6.2", font=font("InterDisplay-Medium.otf", 34), fill=dim)
+    radky = [("Synchronizace více Kodi", "i bez Home Assistanta"),
+             ("Titulky z OpenSubtitles", "česky a slovensky"),
+             ("Pro Tebe", "a náhodný film či seriál"),
+             ("Přenos nastavení", "do dalšího Kodi kódem"),
+             ("Stav zdrojů v menu", "co nefunguje a proč")]
+    big, small = font("InterDisplay-Bold.otf", 42), font("InterDisplay-Medium.otf", 30)
+    y = 222
+    for hlavni, doplnek in radky:
+        dr.ellipse((74, y + 14, 94, y + 34), fill=gold)
+        dr.text((112, y), hlavni, font=big, fill=(255, 255, 255))
+        dr.text((112 + dr.textlength(hlavni, font=big) + 18, y + 8), doplnek, font=small, fill=dim)
+        y += 74
+    sky.save(path)
+
+
 SUPPORT = (1600, 700)
 BTC = "bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc"
 
@@ -332,6 +366,9 @@ if __name__ == "__main__":
     if sys.argv[1:] == ["6.0.0"]:
         make_release_600(os.path.join(ROOT, ".github", "nokturno-6.0.0-cztor.png"))
         print(".github/nokturno-6.0.0-cztor.png hotovo")
+    elif sys.argv[1:] == ["6.6.0"]:
+        make_release_660(os.path.join(ROOT, ".github", "nokturno-6.6.0-novinky.png"))
+        print(".github/nokturno-6.6.0-novinky.png hotovo")
     elif sys.argv[1:] == ["podpora"]:
         make_support(os.path.join(ROOT, ".github", "podpora.png"))
         print(".github/podpora.png hotovo")
