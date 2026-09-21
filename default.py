@@ -285,32 +285,29 @@ def migrate_on_start():
     if STORE.load("seen_version", "") != _ADDON_VERSION:
         STORE.save("seen_version", _ADDON_VERSION)
         xbmcgui.Window(10000).setProperty(FORCE_STATS_PROP, "1")
-    refresh_info()
 
 
-# pevné řádky kategorie Info; stejné hodnoty jako `<default>` v settings.xml, odsud se obnovují
-INFO_LINES = (("info_web", "nokturno.tailf0014.ts.net"),
-              ("info_family", "Kodi · Stremio · Home Assistant"),
-              ("info_paypal", "paypal.me/matata86"),
-              ("info_bitcoin", "bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc"),
-              ("info_forum_kodi", "xbmc-kodi.cz"),
-              ("info_forum_stremio", "stremio.cz/d/240"))
+def info_install():
+    """Tlačítko v kategorii Info: verze doplňku a anonymní id instalace.
+
+    Kategorie Info nemá jediný obyčejný text: `<control type="label">` Kodi 21
+    v nastavení doplňku odmítne (`error reading <control> tag`) a přeskočí celou
+    kategorii, `title` se nevykreslí vůbec a zašedlý `edit` byl na TV nečitelný.
+    Pevné hodnoty (web, fóra) proto nese rovnou popisek tlačítka; verze a id se
+    do popisku napsat nedají, ukazuje je tenhle dialog."""
+    xbmcgui.Dialog().textviewer(L(30432, "Info"),
+                                "%s: %s[CR]%s: %s[CR][CR]%s" % (L(30703, "Verze"), _ADDON_VERSION,
+                                                                L(30695, "ID této instalace"), install_id() or "—",
+                                                                L(30696, "")))
 
 
-def refresh_info():
-    """Řádky v kategorii Info. Verze a id instalace se do `settings.xml` napsat nedají,
-    ostatní hodnoty jsou pevné a jen se obnovují.
-
-    Řádky jsou obyčejná textová pole a jdou přepsat — zašedlé (`enable` na vypnutý
-    přepínač) byly na TV nečitelné. Přepis tedy vydrží jen do příštího spuštění
-    pluginu. `<control type="label">` Kodi 21 v nastavení doplňku odmítne
-    (`error reading <control> tag`) a přeskočí celou kategorii.
-
-    Zapisuje se jen při změně — `setSetting` sahá na disk a plugin se spouští při
-    každém kliknutí."""
-    for klic, hodnota in (("info_version", _ADDON_VERSION), ("info_install", install_id())) + INFO_LINES:
-        if hodnota and ADDON.getSetting(klic) != hodnota:
-            ADDON.setSetting(klic, hodnota)
+def info_donate():
+    """Tlačítko v kategorii Info: kam poslat příspěvek. Adresy jsou dlouhé, do
+    popisku tlačítka se nevejdou."""
+    xbmcgui.Dialog().textviewer(L(30697, "Podpořit projekt"),
+                                "%s[CR]%s[CR][CR]%s[CR]%s" % (L(30698, "PayPal"), "paypal.me/matata86",
+                                                              L(30699, "Bitcoin"),
+                                                              "bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc"))
 
 
 def install_id():
@@ -5936,6 +5933,8 @@ def router(query):
         "update_repos": lambda: _tlacitko(update_repos),
         "tmdbhelper_player": lambda: _tlacitko(tmdbhelper_player),
         "sync_now": sync_now,
+        "info_install": lambda: _tlacitko(info_install),
+        "info_donate": lambda: _tlacitko(info_donate),
         "whats_new": whats_new,
         "ha_files": list_ha_files,
         "settings": lambda: (xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False) if HANDLE >= 0 else None,

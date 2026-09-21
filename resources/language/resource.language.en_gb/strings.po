@@ -2015,15 +2015,15 @@ msgid "Nokturno"
 msgstr ""
 
 msgctxt "#30691"
-msgid "Version"
+msgid "Version and ID of this installation"
 msgstr ""
 
 msgctxt "#30692"
-msgid "Web"
+msgid "Web: nokturno.tailf0014.ts.net"
 msgstr ""
 
 msgctxt "#30693"
-msgid "Family"
+msgid "Family: Kodi · Stremio · Home Assistant"
 msgstr ""
 
 msgctxt "#30694"
@@ -2043,7 +2043,7 @@ msgid "Support the project"
 msgstr ""
 
 msgctxt "#30698"
-msgid "PayPal"
+msgid "Support: PayPal or Bitcoin"
 msgstr ""
 
 msgctxt "#30699"
@@ -2055,9 +2055,13 @@ msgid "Where to ask"
 msgstr ""
 
 msgctxt "#30701"
-msgid "Kodi forum"
+msgid "Kodi forum: xbmc-kodi.cz"
 msgstr ""
 
 msgctxt "#30702"
-msgid "Stremio forum"
+msgid "Stremio forum: stremio.cz/d/240"
+msgstr ""
+
+msgctxt "#30703"
+msgid "Version"
 msgstr ""

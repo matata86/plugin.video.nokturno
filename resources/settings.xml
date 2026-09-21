@@ -994,75 +994,55 @@
     </category>
     <category id="info" label="30432">
       <group id="1" label="30690">
-        <setting id="info_version" type="string" label="30691">
+        <setting id="info_web" type="action" label="30692">
           <level>0</level>
-          <default></default>
           <constraints>
             <allowempty>true</allowempty>
           </constraints>
-          <control type="edit" format="string"/>
+          <control type="button" format="action"/>
         </setting>
-        <setting id="info_web" type="string" label="30692">
+        <setting id="info_family" type="action" label="30693">
           <level>0</level>
-          <default>nokturno.tailf0014.ts.net</default>
           <constraints>
             <allowempty>true</allowempty>
           </constraints>
-          <control type="edit" format="string"/>
-        </setting>
-        <setting id="info_family" type="string" label="30693">
-          <level>0</level>
-          <default>Kodi · Stremio · Home Assistant</default>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <control type="edit" format="string"/>
+          <control type="button" format="action"/>
         </setting>
       </group>
       <group id="2" label="30694">
-        <setting id="info_install" type="string" label="30695" help="30696">
+        <setting id="info_install" type="action" label="30691">
           <level>0</level>
-          <default></default>
           <constraints>
             <allowempty>true</allowempty>
           </constraints>
-          <control type="edit" format="string"/>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=info_install)</data>
+          <control type="button" format="action"/>
         </setting>
       </group>
       <group id="3" label="30697">
-        <setting id="info_paypal" type="string" label="30698">
+        <setting id="info_donate" type="action" label="30698">
           <level>0</level>
-          <default>paypal.me/matata86</default>
           <constraints>
             <allowempty>true</allowempty>
           </constraints>
-          <control type="edit" format="string"/>
-        </setting>
-        <setting id="info_bitcoin" type="string" label="30699">
-          <level>0</level>
-          <default>bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc</default>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <control type="edit" format="string"/>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=info_donate)</data>
+          <control type="button" format="action"/>
         </setting>
       </group>
       <group id="4" label="30700">
-        <setting id="info_forum_kodi" type="string" label="30701">
+        <setting id="info_forum_kodi" type="action" label="30701">
           <level>0</level>
-          <default>xbmc-kodi.cz</default>
           <constraints>
             <allowempty>true</allowempty>
           </constraints>
-          <control type="edit" format="string"/>
+          <control type="button" format="action"/>
         </setting>
-        <setting id="info_forum_stremio" type="string" label="30702">
+        <setting id="info_forum_stremio" type="action" label="30702">
           <level>0</level>
-          <default>stremio.cz/d/240</default>
           <constraints>
             <allowempty>true</allowempty>
           </constraints>
-          <control type="edit" format="string"/>
+          <control type="button" format="action"/>
         </setting>
       </group>
     </category>

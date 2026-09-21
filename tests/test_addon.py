@@ -144,38 +144,42 @@ class TestNastaveni(unittest.TestCase):
             for suffix in ("url", "username", "password", "name"):
                 self.assertIn(f"dav{slot}_{suffix}", xml_ids)
 
-    def test_info_je_text_a_nese_id_instalace(self):
-        """Info bylo jedno tlačítko, které otevřelo dialog s adresou. Teď je to výpis
-        řádků, ze kterých jde jen číst — a hlavně je v něm id instalace, které uživatel
-        do teď neměl jak zjistit, přestože se podle něj v dashboardu hledá jeho log
-        i hlášení o pádu."""
+    def test_info_nejde_editovat(self):
+        """V nastavení doplňku nejde udělat obyčejný text: `<control type="label">`
+        i `<control type="button" format="string">` Kodi 21 odmítne (`error reading
+        <control> tag`) a přeskočí celou kategorii, `title` se nevykreslí vůbec
+        a `edit` šel přepsat (zašedlý `edit` byl zase na TV nečitelný) — všechno
+        ověřeno na Office u bety 9. Hodnoty proto nese popisek tlačítka a klikací
+        jsou jen dva řádky, které se do popisku napsat nedají."""
         xml = (ROOT / "resources" / "settings.xml").read_text(encoding="utf-8")
         info = xml[xml.index('<category id="info"'):]
         info = info[:info.index("</category>")]
-        for klic in ("info_version", "info_web", "info_family", "info_install",
-                     "info_paypal", "info_bitcoin", "info_forum_kodi", "info_forum_stremio"):
-            self.assertIn('id="%s"' % klic, info)
-        self.assertNotIn('format="action"', info, "v Info se nemá na co klikat")
-        # `<control type="label">` Kodi 21 v nastavení doplňku odmítne (`error reading
-        # <control> tag`) a celá kategorie se pak nevykreslí — ověřeno na Office u bety 9
-        # s `type="string"` i `type="action"`. Read-only řádek se proto dělá jako `edit`,
-        # trvale zašedlý přes `info_locked` (skrytý přepínač, který je vždy false).
+        self.assertNotIn('type="string"', info, "textové pole jde přepsat")
         self.assertNotIn('type="label"', info)
-        self.assertEqual(info.count('<control type="edit" format="string"/>'), 8)
-        # zašedlé řádky (`enable` na vypnutý přepínač) byly na TV nečitelné
-        self.assertNotIn('info_locked', info)
-        self.assertNotIn('<dependencies>', info)
-        # verze a id instalace se do settings.xml napsat nedají, plní je plugin
-        xbmcaddon.settings.pop("info_version", None)
-        xbmcaddon.settings.pop("info_install", None)
-        with mock.patch.object(default, "install_id", return_value="deadbeef"):
-            default.refresh_info()
-        self.assertEqual(xbmcaddon.settings["info_version"], default._ADDON_VERSION)
-        self.assertEqual(xbmcaddon.settings["info_install"], "deadbeef")
-        # pevné řádky se obnovují taky — pole jdou přepsat, přepis vydrží do dalšího spuštění
-        for klic, hodnota in default.INFO_LINES:
-            self.assertEqual(xbmcaddon.settings[klic], hodnota)
-            self.assertIn("<default>%s</default>" % hodnota, info)
+        self.assertNotIn('type="edit"', info)
+        self.assertEqual(info.count('<control type="button" format="action"/>'), 6)
+        self.assertEqual(info.count("<data>"), 2)      # jen verze s id a příspěvek
+        for klic in ("info_web", "info_family", "info_install", "info_donate",
+                     "info_forum_kodi", "info_forum_stremio"):
+            self.assertIn('id="%s"' % klic, info)
+
+    def test_info_ukaze_verzi_a_id(self):
+        """Verze a id instalace se do popisku tlačítka napsat nedají — ukazuje je dialog.
+        Id uživatel do teď neměl jak zjistit, přestože se podle něj v dashboardu hledá
+        jeho odeslaný log i hlášení o pádu."""
+        with mock.patch.object(default, "install_id", return_value="deadbeef"), \
+                mock.patch.object(xbmcgui.Dialog, "textviewer") as dialog:
+            default.info_install()
+        text = dialog.call_args[0][1]
+        self.assertIn(default._ADDON_VERSION, text)
+        self.assertIn("deadbeef", text)
+
+    def test_info_ukaze_adresy_na_prispevek(self):
+        with mock.patch.object(xbmcgui.Dialog, "textviewer") as dialog:
+            default.info_donate()
+        text = dialog.call_args[0][1]
+        self.assertIn("paypal.me/matata86", text)
+        self.assertIn("bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc", text)
 
     def test_id_instalace_se_opravdu_precte(self):
         """Beta 8: `install_id()` sahala na `Stats` globálně, jenže ten se v default.py
@@ -187,14 +191,6 @@ class TestNastaveni(unittest.TestCase):
                 json.dump({"id": "abc123", "installed": 1}, f)
             with mock.patch.object(default, "PROFILE", profil):
                 self.assertEqual(default.install_id(), "abc123")
-
-    def test_info_zapisuje_jen_pri_zmene(self):
-        """Plugin běží při každém kliknutí — `setSetting` sahá na disk."""
-        with mock.patch.object(default, "install_id", return_value="deadbeef"):
-            default.refresh_info()
-            with mock.patch.object(default.ADDON, "setSetting") as zapis:
-                default.refresh_info()
-        self.assertEqual(zapis.call_count, 0)
 
     def test_volba_strediska_neridi_viditelnost(self):
         """`visible` dependency na hodnotě, kterou uživatel přepíná v témže dialogu,

@@ -15,7 +15,8 @@ na domácí Wi-Fi přijatelné, stejně jako webové rozhraní Kodi.
 Schéma: `[{"id", "label", "fields": [{"id", "label", "help", "type", "options",
 "enable"}]}]`, `type` je `bool`/`text`/`password`/`choice`/`order`/`heading`, `options` u
 `choice` seznam `(hodnota, popisek)`, `enable` volitelně `(id jiného pole, hodnota)`
-— pole je jen zašedlé, když závislost neplatí, odešle se stejně. `heading` je jen
+nebo seznam takových dvojic (platit musí všechny) — pole je jen zašedlé, když závislost
+neplatí, odešle se stejně. `heading` je jen
 podnadpis uvnitř sekce (např. rozlišení více úložišť) — nemá `id`, do formuláře
 se nic neodesílá a validace ho přeskočí.
 
@@ -202,6 +203,15 @@ class SetupServer:
         return [f for section in self.schema for f in section["fields"]
                 if f.get("type") == "action" and f.get("action") == name]
 
+    @staticmethod
+    def _dep_attrs(enable, esc):
+        """`data-dep`/`data-val` pro jednu i víc podmínek (oddělené čárkou)."""
+        if not enable:
+            return ""
+        pairs = enable if isinstance(enable[0], (list, tuple)) else [enable]
+        return ' data-dep="%s" data-val="%s"' % (esc(",".join(str(p[0]) for p in pairs)),
+                                                 esc(",".join(str(p[1]) for p in pairs)))
+
     def render(self, message="", error=False):
         t = self.texts
         esc = html.escape
@@ -222,8 +232,7 @@ class SetupServer:
                     rows.append(f'<div class="guide">{title}{body}</div>')
                     continue
                 if f.get("type") == "action":
-                    enable = f.get("enable")
-                    attrs = f' data-dep="{esc(enable[0])}" data-val="{esc(str(enable[1]))}"' if enable else ""
+                    attrs = self._dep_attrs(f.get("enable"), esc)
                     help_text = f'<small>{esc(f["help"])}</small>' if f.get("help") else ""
                     rows.append(f'<div class="{row_class} act"{attrs}><span>{help_text}</span>'
                                 f'<button type="button" class="ghost" data-act="{esc(f["action"])}" '
@@ -232,8 +241,7 @@ class SetupServer:
                     continue
                 fid, kind, label = f["id"], f.get("type"), esc(f.get("label") or f["id"])
                 current = str(self.values.get(fid, ""))
-                enable = f.get("enable")
-                attrs = f' data-dep="{esc(enable[0])}" data-val="{esc(str(enable[1]))}"' if enable else ""
+                attrs = self._dep_attrs(f.get("enable"), esc)
                 help_text = f'<small>{esc(f["help"])}</small>' if f.get("help") else ""
                 if kind == "bool":
                     checked = " checked" if current == "true" else ""
@@ -415,9 +423,10 @@ background:var(--accent);border:0;border-radius:12px;padding:15px}}
 <div class="bar"><button type="submit">{save}</button></div></form></main>
 <script>
 function sync(){{document.querySelectorAll("[data-dep]").forEach(function(row){{
-var dep=document.getElementById(row.dataset.dep);if(!dep)return;
-var val=dep.type==="checkbox"?(dep.checked?"true":"false"):dep.value;
-row.classList.toggle("off",val!==row.dataset.val);}});}}
+var ids=row.dataset.dep.split(","),vals=row.dataset.val.split(","),ok=true;
+ids.forEach(function(id,i){{var dep=document.getElementById(id);if(!dep)return;
+var val=dep.type==="checkbox"?(dep.checked?"true":"false"):dep.value;if(val!==vals[i])ok=false;}});
+row.classList.toggle("off",!ok);}});}}
 document.addEventListener("change",sync);sync();
 document.addEventListener("click",function(e){{var b=e.target.closest("button[data-act]");if(!b)return;
 var box=b.parentNode.querySelector(".result"),data=new URLSearchParams();
@@ -427,7 +436,8 @@ fetch("{action}/act/"+b.dataset.act,{{method:"POST",body:data}}).then(function(r
 box.className="result "+(r.level||"fail");box.textContent=r.text;
 if(r.link&&r.link.url){{var a=document.createElement("a");a.href=r.link.url;a.target="_blank";a.rel="noopener";
 a.textContent=r.link.label;a.className="lnk";box.appendChild(document.createElement("br"));box.appendChild(a);}}
-Object.keys(r.set||{{}}).forEach(function(id){{var el=document.getElementById(id);if(el)el.value=r.set[id];}});sync();
+Object.keys(r.set||{{}}).forEach(function(id){{var el=document.getElementById(id);if(!el)return;
+if(el.type==="checkbox")el.checked=r.set[id]==="true";else el.value=r.set[id];}});sync();
 }}).catch(function(){{box.className="result fail";box.textContent={failed};}}).then(function(){{b.disabled=false;}});}});
 document.addEventListener("click",function(e){{var b=e.target.closest("button[data-mv]");if(!b)return;
 var li=b.closest("li"),box=b.closest("[data-order]"),uls=[].slice.call(box.querySelectorAll("ul")),
