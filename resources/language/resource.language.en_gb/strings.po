@@ -2069,3 +2069,7 @@ msgstr ""
 msgctxt "#30705"
 msgid "Close with Back."
 msgstr ""
+
+msgctxt "#30706"
+msgid "Scan the QR code to open the support page."
+msgstr ""

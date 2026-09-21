@@ -2070,3 +2070,7 @@ msgstr "PayPal"
 msgctxt "#30705"
 msgid "Close with Back."
 msgstr "Zavři tlačítkem Zpět."
+
+msgctxt "#30706"
+msgid "Scan the QR code to open the support page."
+msgstr "Naskenuj QR kód a otevře se stránka s možnostmi podpory."

@@ -175,11 +175,11 @@ class TestNastaveni(unittest.TestCase):
         self.assertIn("deadbeef", text)
 
     def test_info_ukaze_adresy_na_prispevek(self):
-        """Bitcoinová adresa má 42 znaků, z televize se opsat nedá — vedle ní je QR."""
+        """Adresy se z televize opsat nedají — QR vede na sekci Podpora na webu."""
         with tempfile.TemporaryDirectory() as profil:
             with mock.patch.object(default, "PROFILE", profil):
                 default.info_donate()
-                qr_path = os.path.join(profil, "donate-btc.png")
+                qr_path = os.path.join(profil, "donate-page.png")
                 self.assertTrue(os.path.exists(qr_path))
                 with open(qr_path, "rb") as f:
                     self.assertEqual(f.read(8), b"\x89PNG\r\n\x1a\n")
@@ -187,6 +187,8 @@ class TestNastaveni(unittest.TestCase):
         texty = [c.text for c in okno.controls if hasattr(c, "text")]
         self.assertTrue(any("bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc" in t for t in texty))
         self.assertTrue(any("paypal.me/matata86" in t for t in texty))
+        # QR nese adresu stránky, ne `bitcoin:` — na mobilu se z ní dá kliknout na PayPal
+        self.assertEqual(default.DONATE_URL, "https://nokturno.tailf0014.ts.net/#podpora")
 
     def test_id_instalace_se_opravdu_precte(self):
         """Beta 8: `install_id()` sahala na `Stats` globálně, jenže ten se v default.py

@@ -302,20 +302,22 @@ def info_install():
 
 PAYPAL_URL = "paypal.me/matata86"
 BITCOIN_ADDRESS = "bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc"
+DONATE_URL = "https://nokturno.tailf0014.ts.net/#podpora"
 
 
 def info_donate():
     """Tlačítko v kategorii Info: kam poslat příspěvek.
 
-    Bitcoinová adresa má 42 znaků a z televize se opsat nedá — vedle ní je proto
-    QR kód (`bitcoin:` podle BIP 21, peněženky v mobilu ho načtou rovnou). Okno
-    je stejné jako u „Nastavit z mobilu“: obrázek se dá Kodi jen jako soubor."""
-    qr_path = os.path.join(PROFILE, "donate-btc.png")
+    Adresy se z televize opsat nedají, proto je vedle nich QR na sekci Podpora
+    na domovské stránce (`DONATE_URL`) — z mobilu se odtud dá kliknout na PayPal
+    i zkopírovat bitcoinová adresa. Okno je stejné jako u „Nastavit z mobilu“:
+    obrázek se dá Kodi jen jako soubor."""
+    qr_path = os.path.join(PROFILE, "donate-page.png")
     backdrop = os.path.join(PROFILE, "remote-setup-bg.png")
     try:
         if not os.path.exists(qr_path):
             with open(qr_path, "wb") as f:
-                f.write(_qr().to_png(_qr().encode("bitcoin:" + BITCOIN_ADDRESS), scale=10, border=2))
+                f.write(_qr().to_png(_qr().encode(DONATE_URL), scale=10, border=2))
         if not os.path.exists(backdrop):   # jednobarevná plocha, ztmaví se `colorDiffuse`
             with open(backdrop, "wb") as f:
                 f.write(_qr().to_png([[False]], scale=1, border=0))
@@ -343,8 +345,9 @@ class DonateWindow(xbmcgui.WindowDialog):
             self.addControl(xbmcgui.ControlImage(90, 150, 380, 380, qr_path, aspectRatio=2))
         text = xbmcgui.ControlTextBox(500, 160, 700, 380, font="font12", textColor="FFE6E1F0")
         self.addControl(text)
-        text.setText("[B]%s[/B][CR]%s[CR][CR][B]%s[/B][CR]%s[CR][CR]%s"
-                     % (L(30699, "Bitcoin"), BITCOIN_ADDRESS, L(30704, "PayPal"), PAYPAL_URL,
+        text.setText("%s[CR][CR][B]%s[/B][CR]%s[CR][CR][B]%s[/B][CR]%s[CR][CR]%s"
+                     % (L(30706, "Naskenuj QR kód a otevře se stránka s možnostmi podpory."),
+                        L(30704, "PayPal"), PAYPAL_URL, L(30699, "Bitcoin"), BITCOIN_ADDRESS,
                         L(30705, "Zavři tlačítkem Zpět.")))
 
     def onAction(self, action):
