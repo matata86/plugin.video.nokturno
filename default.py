@@ -713,6 +713,9 @@ def engine_options():
         "pt_email": setting("pt_email").strip() if on("pt_enabled", "false") else "",
         "hs_enabled": on("hs_enabled", "false"),
         "tmdb_api_key": setting("tmdb_api_key"),
+        # hlavičky souborů ze společné cache serveru (`Engine._media_hints`): dotaz
+        # prozradí serveru identy otvíraných souborů, proto jen s povolenými statistikami
+        "media_hints": on("stats_enabled", "false"),
     }
 
 

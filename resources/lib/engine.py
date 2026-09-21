@@ -42,6 +42,7 @@ from fastshare_api import FastshareApi, FastshareError, make_ref as fastshare_re
 from prehrajto_api import (PrehrajtoApi, PrehrajtoError, PrehrajtoRateLimited,
                                 make_ref as prehrajto_ref)
 from cztor_api import CztorApi, CztorError
+from dash_api import DashApi
 from storage_api import StorageApi, StorageError, match_texts, parse_ref
 from wikidata_api import local_titles
 from mediainfo import describe as describe_media, fetch_sized, probe as probe_media, quality_from_size
@@ -405,6 +406,7 @@ class Engine:
         self._osub = None
         self._storages = None
         self._cinemeta = None
+        self._dash = None
         self._sosac_db = None
         self._tmdb = None
         self._prowlarr = self._qbit = None
@@ -664,6 +666,14 @@ class Engine:
             if key:
                 self._tmdb = TmdbApi(key, cache=self.shared)
         return self._tmdb
+
+    @property
+    def dash(self):
+        """Klient dashboardu Nokturna (společná cache hlaviček, katalogy) — nad společným
+        úložištěm, výpadek serveru si pamatuje pět minut (`dash_api.DOWN_KEY`)."""
+        if self._dash is None:
+            self._dash = DashApi(cache=self.shared)
+        return self._dash
 
     @property
     def prowlarr(self):
@@ -1658,6 +1668,26 @@ class Engine:
         return store.cached_if(f"media:{url}", AUDIO_TTL, load,
                                ok=lambda d: bool(d.get("audio") or d.get("height") or d.get("size"))) or {}
 
+    def _media_hints(self, urls):
+        """Hlavičky souborů ze společné cache serveru (`DashApi.media`) do vlastní cache
+        pod týmž klíčem `media:<url>`, pod kterým by ležely přečtené — `_media_from_file`
+        je pak najde a soubor nečte. Jen se zapnutou volbou `media_hints` (Kodi a HA ji
+        vážou na povolené statistiky: dotaz prozradí serveru identy souborů, které
+        uživatel zrovna otvírá), jen pro `SHARED_MEDIA` (jeden ident = tentýž soubor
+        pro každého) a jen pro to, co v cache ještě není. Stremio volbu nemá — společnou
+        cache má přímo na disku, viz `shared_store`."""
+        if not self._opt("media_hints", False):
+            return
+        want = [u for u in dict.fromkeys(urls)
+                if u and u.startswith(SHARED_MEDIA) and self.shared.peek_cached(f"media:{u}", AUDIO_TTL) is None]
+        if not want:
+            return
+        t0 = time.time()
+        hits = self.dash.media(want)
+        for url, info in hits.items():
+            self.shared.cached_if(f"media:{url}", AUDIO_TTL, lambda info=info: info, fresh=True)
+        self.last_timings["hlavičky ze serveru"] = f"{len(hits)}/{len(want)} za {time.time() - t0:.1f}s"
+
     def _fastshare_unlimited(self):
         """Má účet FastShare neomezené stahování? Přihlášení se pamatuje (`FastshareApi.account`),
         při chybě se bere „ne" — čtení hlavičky je bonus, kvůli němu se kredit riskovat nebude."""
@@ -1716,6 +1746,8 @@ class Engine:
         # pak mají ověřené všechno, bez čekání
         rest = [self._probe_url(s) for s in ordered[limit:]] + [
             s["url"] for s in background if not s.get("_tracks") and str(s.get("url") or "").startswith(schemes)]
+        # hlavičky, které už někdo přečetl, ze serveru — jeden dotaz místo desítek čtení
+        self._media_hints([self._probe_url(s) for s in todo] + rest)
         # skutečný počet čtených hlaviček bývá výrazně nižší než limit —
         # ukazatel průběhu si podle něj dopočítá reálné 100 %, ne odhad
         if on_count:

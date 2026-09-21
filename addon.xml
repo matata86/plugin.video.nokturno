@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="7.3.2" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="7.4.0" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>7.3.2 – HellSpy: hláška „HTTP 429“ teď říká, co znamená — HellSpy odmítá tvoji síť (VPN, mobilní data), ne že by doplněk posílal moc dotazů. Stav zdrojů v menu píše totéž a zkusí to znovu za 10 minut. Souběžné dotazy na stejný titul se slévají do jednoho.
+    <news>7.4.0 – Rychlejší první otevření titulu: údaje o souborech (zvuk, rozlišení, velikost), které už někdo jiný přečetl, si doplněk vezme ze serveru jedním dotazem místo čtení každého souboru zvlášť. Jen se zapnutými statistikami; při výpadku serveru se čte jako dřív.
+7.3.2 – HellSpy: hláška „HTTP 429“ teď říká, co znamená — HellSpy odmítá tvoji síť (VPN, mobilní data), ne že by doplněk posílal moc dotazů. Stav zdrojů v menu píše totéž a zkusí to znovu za 10 minut. Souběžné dotazy na stejný titul se slévají do jednoho.
 7.0.4 – Přehraj.to s účtem Premium teď jede přes jejich rychlé rozhraní: stránkuje se dál, u souborů rovnou vidíš hodnocení a titulky a stahuje se původní soubor bez omezení dotazů. Bez účtu funguje zdroj dál jako dřív (první strana výsledků, přehrávaný soubor v 1080p).
 7.0.3 – Stahování: soubory z Přehraj.to se znovu stahují (dřív skončily chybou „unknown url type: pt“).
 7.0.2 – Přehraj.to se už neptá víc titulů naráz: dotazy jdou za sebou s odstupem, takže server přestane odmítat hledání při výběru náhodného titulu a při zahřívání katalogů (HTTP 429). Popis doplňku, README a wiki teď Přehraj.to uvádějí mezi zdroji.
