@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="6.6.0~beta13" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="6.6.0" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,13 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>6.6.0~beta13 – Po „Otestovat zdroje“ z výpisu stavu zdrojů se po OK točilo kolečko navěky — položka byla složka.
+    <news>6.6.0 – Synchronizace více Kodi i bez Home Assistanta: střediskem je dashboard Nokturna, který do dat nevidí. První Kodi založí skupinu a ukáže kód, ostatní ho opíšou; kdo má Home Assistant, zadá týž kód i v nastavení integrace a HA je dalším členem skupiny.
+6.6.0 – Zvlášť si zapneš, co se sdílí: zhlédnuto a rozkoukanost, Můj seznam, historie hledání, nastavení doplňku a přihlášení ke zdrojům (poslední dvě jsou vypnuté). Volby platí i pro cestu přes Home Assistant.
+6.6.0 – Záložka Info vypisuje verzi, adresu webu, rodinu doplňků, obě fóra a ID této instalace (uveď ho, když hlásíš problém). Podpořit projekt otevře okno s QR kódem na stránku podpory a s adresami PayPalu a Bitcoinu.
+6.6.0 – Stav zdrojů v menu rozlišuje výpadek sítě od odmítnutého účtu, „Ověřit zdroje“ ho rovnou přepíše a vypnutá Luna se v něm neobjeví. Zdroj, na který se nešlo dostat, se zkusí znovu za dvacet minut.
+6.6.0 – Nastavit z mobilu ukazuje kód skupiny synchronizace; bez skupiny jde kód z prvního Kodi rovnou zadat.
+6.6.0 – Texty v nastavení, průvodci a hlášeních jsou věcné, bez první osoby a hovorových obratů.
+6.6.0~beta13 – Po „Otestovat zdroje“ z výpisu stavu zdrojů se po OK točilo kolečko navěky — položka byla složka.
 6.6.0~beta12 – Stav zdrojů hlásil „Luna: běží, ale chybí token“ i u vypnutého zdroje Luna.
 6.6.0~beta11 – Po „Ověřit zdroje“ se v betě 10 točilo kolečko a stav v menu se nepřepsal.
 6.6.0~beta10 – Stav zdrojů v menu už nehlásí „nesedí jméno nebo heslo“, když se k účtu jen nešlo připojit — výpadek sítě a odmítnutý účet jsou teď rozlišené. „Ověřit zdroje“ zároveň rovnou přepíše stav v menu, takže obě obrazovky nemůžou tvrdit opak; zdroj, na který se nešlo dostat, se zkusí znovu za dvacet minut místo za šest hodin. V záložce Info otevírá Podpořit projekt okno s QR kódem na stránku podpory a s adresami PayPalu i Bitcoinu; řádky Info se nedají přepsat. Nastavit z mobilu ukazuje kód skupiny synchronizace, a když žádná není, jde tam kód z prvního Kodi rovnou zadat.
