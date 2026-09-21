@@ -285,6 +285,26 @@ def migrate_on_start():
     if STORE.load("seen_version", "") != _ADDON_VERSION:
         STORE.save("seen_version", _ADDON_VERSION)
         xbmcgui.Window(10000).setProperty(FORCE_STATS_PROP, "1")
+    refresh_info()
+
+
+def refresh_info():
+    """Dva řádky v kategorii Info, které se nedají napsat do `settings.xml` natvrdo:
+    verze doplňku a id instalace. Zapisuje se jen při změně — `setSetting` sahá na
+    disk a plugin se spouští při každém kliknutí."""
+    for klic, hodnota in (("info_version", _ADDON_VERSION), ("info_install", install_id())):
+        if hodnota and ADDON.getSetting(klic) != hodnota:
+            ADDON.setSetting(klic, hodnota)
+
+
+def install_id():
+    """Anonymní id instalace ze statistik. Ukazuje se v Info, aby ho uživatel
+    mohl uvést při hlášení problému — podle něj se v dashboardu najde jeho
+    odeslaný log i hlášení o pádu."""
+    try:
+        return Stats(PROFILE).data["id"]
+    except Exception:      # noqa: BLE001 – profil bez statistik nesmí shodit start
+        return ""
 
 
 migrate_on_start()
@@ -3555,11 +3575,11 @@ def log_send(ask=True):
         return
 
     body = gzip.compress(scrub_log(raw))
-    install_id = Stats(PROFILE).data["id"]
+    instalace = install_id()
     version = ADDON.getAddonInfo("version")
     logs_url = COLLECT_URL.rsplit("/", 1)[0] + "/logs"
     req = urllib.request.Request(
-        f"{logs_url}?id={install_id}&version={urllib.parse.quote(version)}",
+        f"{logs_url}?id={instalace}&version={urllib.parse.quote(version)}",
         data=body, method="POST",
         headers={"Content-Type": "application/gzip", "User-Agent": f"Kodi plugin.video.nokturno/{version}"},
     )
@@ -3618,11 +3638,6 @@ def report_crash(action, exc):
             xbmcgui.Window(10000).setProperty(CRASH_PROP, "1")
     except Exception as e:  # noqa: BLE001 – hlášení o pádu nesmí shodit úklid po pádu
         xbmc.log(f"[{ADDON_ID}] hlášení o pádu nezařazeno: {e}", xbmc.LOGWARNING)
-
-
-def website_info():
-    """Zobrazí odkaz na web rodiny Nokturno (podpora, Stremio, Home Assistant)."""
-    xbmcgui.Dialog().ok(L(30432, "Info"), f"https://nokturno.tailf0014.ts.net/\n\n{L(30434)}")
 
 
 # --- novinky ve verzi -------------------------------------------------------------
@@ -5876,7 +5891,6 @@ def router(query):
                                 xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
         "stats_send": stats_send,
         "log_send": log_send,
-        "website_info": website_info,
         "test_sources": test_sources,
         "remote_setup": lambda: remote_setup_action(p.get("section")),
         "transfer_send": lambda: (transfer_send(),

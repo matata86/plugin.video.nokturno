@@ -144,6 +144,35 @@ class TestNastaveni(unittest.TestCase):
             for suffix in ("url", "username", "password", "name"):
                 self.assertIn(f"dav{slot}_{suffix}", xml_ids)
 
+    def test_info_je_text_a_nese_id_instalace(self):
+        """Info bylo jedno tlačítko, které otevřelo dialog s adresou. Teď je to výpis
+        řádků, ze kterých jde jen číst — a hlavně je v něm id instalace, které uživatel
+        do teď neměl jak zjistit, přestože se podle něj v dashboardu hledá jeho log
+        i hlášení o pádu."""
+        xml = (ROOT / "resources" / "settings.xml").read_text(encoding="utf-8")
+        info = xml[xml.index('<category id="info"'):]
+        info = info[:info.index("</category>")]
+        for klic in ("info_version", "info_web", "info_family", "info_install",
+                     "info_paypal", "info_bitcoin", "info_forum_kodi", "info_forum_stremio"):
+            self.assertIn('id="%s"' % klic, info)
+        self.assertNotIn('format="action"', info, "v Info se nemá na co klikat")
+        self.assertEqual(info.count('<control type="label"/>'), 8)
+        # verze a id instalace se do settings.xml napsat nedají, plní je plugin
+        xbmcaddon.settings.pop("info_version", None)
+        xbmcaddon.settings.pop("info_install", None)
+        with mock.patch.object(default, "install_id", return_value="deadbeef"):
+            default.refresh_info()
+        self.assertEqual(xbmcaddon.settings["info_version"], default._ADDON_VERSION)
+        self.assertEqual(xbmcaddon.settings["info_install"], "deadbeef")
+
+    def test_info_zapisuje_jen_pri_zmene(self):
+        """Plugin běží při každém kliknutí — `setSetting` sahá na disk."""
+        with mock.patch.object(default, "install_id", return_value="deadbeef"):
+            default.refresh_info()
+            with mock.patch.object(default.ADDON, "setSetting") as zapis:
+                default.refresh_info()
+        self.assertEqual(zapis.call_count, 0)
+
     def test_volba_strediska_neridi_viditelnost(self):
         """`visible` dependency na hodnotě, kterou uživatel přepíná v témže dialogu,
         nefunguje: Kodi položku skryje, ale zpátky ji neodkryje — po přepnutí střediska

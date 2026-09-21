@@ -1074,13 +1074,7 @@ msgctxt "#30432"
 msgid "Info"
 msgstr "Infó"
 
-msgctxt "#30433"
-msgid "Nokturno website"
-msgstr "Nokturno weboldal"
 
-msgctxt "#30434"
-msgid "Support the project or follow news here. Besides this Kodi add-on, the Nokturno family also has a Stremio add-on and a Home Assistant integration/card."
-msgstr "Támogasd a projektet, vagy kövesd itt az újdonságokat. Ezen a Kodi bővítményen kívül a Nokturno családnak van Stremio bővítménye és Home Assistant integrációja/kártyája is."
 
 msgctxt "#30435"
 msgid "This list is normally built in the background, but the data isn't ready yet. Checking dubbing/subtitles across the enabled sources can take a few minutes…"
@@ -2013,3 +2007,55 @@ msgstr "A forrásokhoz tartozó bejelentkezések (WebShare, Sosáč, Sledujteto,
 msgctxt "#30688"
 msgid "Synchronisation goes through the dashboard. With Home Assistant, enter the same group code in the integration settings as well."
 msgstr "A szinkronizálás a dashboardon keresztül megy. Home Assistant esetén add meg ugyanazt a csoportkódot az integráció beállításaiban is."
+
+msgctxt "#30690"
+msgid "Nokturno"
+msgstr "Nokturno"
+
+msgctxt "#30691"
+msgid "Version"
+msgstr "Verzió"
+
+msgctxt "#30692"
+msgid "Web"
+msgstr "Web"
+
+msgctxt "#30693"
+msgid "Family"
+msgstr "Család"
+
+msgctxt "#30694"
+msgid "When something does not work"
+msgstr "Ha valami nem működik"
+
+msgctxt "#30695"
+msgid "ID of this installation"
+msgstr "Ennek a telepítésnek az azonosítója"
+
+msgctxt "#30696"
+msgid "Give this ID when reporting a problem — the log sent from the add-on and any crash report are found by it. It says nothing about who you are."
+msgstr "Add meg ezt az azonosítót, ha hibát jelentesz — ez alapján található meg a bővítményből küldött napló és az összeomlási jelentés. Arról, hogy ki vagy, semmit nem árul el."
+
+msgctxt "#30697"
+msgid "Support the project"
+msgstr "A projekt támogatása"
+
+msgctxt "#30698"
+msgid "PayPal"
+msgstr "PayPal"
+
+msgctxt "#30699"
+msgid "Bitcoin"
+msgstr "Bitcoin"
+
+msgctxt "#30700"
+msgid "Where to ask"
+msgstr "Hol lehet kérdezni"
+
+msgctxt "#30701"
+msgid "Kodi forum"
+msgstr "Kodi fórum"
+
+msgctxt "#30702"
+msgid "Stremio forum"
+msgstr "Stremio fórum"

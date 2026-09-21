@@ -1076,13 +1076,7 @@ msgctxt "#30432"
 msgid "Info"
 msgstr "Info"
 
-msgctxt "#30433"
-msgid "Nokturno website"
-msgstr "Web Nokturno"
 
-msgctxt "#30434"
-msgid "Support the project or follow news here. Besides this Kodi add-on, the Nokturno family also has a Stremio add-on and a Home Assistant integration/card."
-msgstr "Zde jde podpořit projekt nebo sledovat novinky. Rodina Nokturno má kromě doplňku pro Kodi i doplněk pro Stremio a integraci/kartu pro Home Assistant."
 
 msgctxt "#30435"
 msgid "This list is normally built in the background, but the data isn't ready yet. Checking dubbing/subtitles across the enabled sources can take a few minutes…"
@@ -2016,3 +2010,55 @@ msgstr "Přihlášení ke zdrojům (WebShare, Sosáč, Sledujteto, FastShare, Op
 msgctxt "#30688"
 msgid "Synchronisation goes through the dashboard. With Home Assistant, enter the same group code in the integration settings as well."
 msgstr "Synchronizace jede přes dashboard. S Home Assistantem zadej týž kód skupiny i v nastavení integrace."
+
+msgctxt "#30690"
+msgid "Nokturno"
+msgstr "Nokturno"
+
+msgctxt "#30691"
+msgid "Version"
+msgstr "Verze"
+
+msgctxt "#30692"
+msgid "Web"
+msgstr "Web"
+
+msgctxt "#30693"
+msgid "Family"
+msgstr "Rodina"
+
+msgctxt "#30694"
+msgid "When something does not work"
+msgstr "Když něco nefunguje"
+
+msgctxt "#30695"
+msgid "ID of this installation"
+msgstr "ID této instalace"
+
+msgctxt "#30696"
+msgid "Give this ID when reporting a problem — the log sent from the add-on and any crash report are found by it. It says nothing about who you are."
+msgstr "Tohle ID uveď, když hlásíš problém — podle něj se najde log odeslaný z doplňku i hlášení o pádu. O tom, kdo jsi, nic neříká."
+
+msgctxt "#30697"
+msgid "Support the project"
+msgstr "Podpořit projekt"
+
+msgctxt "#30698"
+msgid "PayPal"
+msgstr "PayPal"
+
+msgctxt "#30699"
+msgid "Bitcoin"
+msgstr "Bitcoin"
+
+msgctxt "#30700"
+msgid "Where to ask"
+msgstr "Kde se ptát"
+
+msgctxt "#30701"
+msgid "Kodi forum"
+msgstr "Fórum Kodi"
+
+msgctxt "#30702"
+msgid "Stremio forum"
+msgstr "Fórum Stremio"

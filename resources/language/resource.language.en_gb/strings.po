@@ -1076,13 +1076,7 @@ msgctxt "#30432"
 msgid "Info"
 msgstr ""
 
-msgctxt "#30433"
-msgid "Nokturno website"
-msgstr ""
 
-msgctxt "#30434"
-msgid "Support the project or follow news here. Besides this Kodi add-on, the Nokturno family also has a Stremio add-on and a Home Assistant integration/card."
-msgstr ""
 
 msgctxt "#30435"
 msgid "This list is normally built in the background, but the data isn't ready yet. Checking dubbing/subtitles across the enabled sources can take a few minutes…"
@@ -2014,4 +2008,56 @@ msgstr ""
 
 msgctxt "#30688"
 msgid "Synchronisation goes through the dashboard. With Home Assistant, enter the same group code in the integration settings as well."
+msgstr ""
+
+msgctxt "#30690"
+msgid "Nokturno"
+msgstr ""
+
+msgctxt "#30691"
+msgid "Version"
+msgstr ""
+
+msgctxt "#30692"
+msgid "Web"
+msgstr ""
+
+msgctxt "#30693"
+msgid "Family"
+msgstr ""
+
+msgctxt "#30694"
+msgid "When something does not work"
+msgstr ""
+
+msgctxt "#30695"
+msgid "ID of this installation"
+msgstr ""
+
+msgctxt "#30696"
+msgid "Give this ID when reporting a problem — the log sent from the add-on and any crash report are found by it. It says nothing about who you are."
+msgstr ""
+
+msgctxt "#30697"
+msgid "Support the project"
+msgstr ""
+
+msgctxt "#30698"
+msgid "PayPal"
+msgstr ""
+
+msgctxt "#30699"
+msgid "Bitcoin"
+msgstr ""
+
+msgctxt "#30700"
+msgid "Where to ask"
+msgstr ""
+
+msgctxt "#30701"
+msgid "Kodi forum"
+msgstr ""
+
+msgctxt "#30702"
+msgid "Stremio forum"
 msgstr ""

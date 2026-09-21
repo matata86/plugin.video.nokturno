@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="6.6.0~beta7" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="6.6.0~beta8" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>6.6.0~beta7 – V nastavení synchronizace je Dashboard Nokturna nahoře a Home Assistant pod ním.
+    <news>6.6.0~beta8 – Záložka Info místo tlačítka na web vypisuje verzi, adresu webu, rodinu doplňků, adresy na podporu projektu a obě fóra. Nově je tam i ID této instalace — uveď ho, když hlásíš problém, podle něj se najde odeslaný log i hlášení o pádu.
+6.6.0~beta7 – V nastavení synchronizace je Dashboard Nokturna nahoře a Home Assistant pod ním.
 6.6.0~beta6 – Po přepnutí střediska synchronizace se ukáže i jeho nastavení. Dřív po přepnutí zmizela obě — adresa a klíč Home Assistantu i tlačítka skupiny — a zůstal viset prázdný nadpis. Teď jsou obě sekce vidět pořád a ta, která zrovna neplatí, je jen zašedlá.
 6.6.0~beta5 – Novinky ve verzi teď ukazují i řádky ze stabilní 6.5.13, která vyšla z vlastní větve; samotné opravy z ní beta 4 obsahovala už předtím.
 6.6.0~beta4 – Uložená volba „HA i dashboard“ se opravdu překlopí na dashboard. Beta 2 ji přepsat měla, ale ptala se Kodi na hodnotu, kterou už Kodi neumí načíst, takže zůstávala v nastavení zapsaná a plnila kodi.log hláškou „failed to load value 2 for setting sync_mode“.

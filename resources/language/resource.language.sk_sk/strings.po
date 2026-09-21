@@ -1076,13 +1076,7 @@ msgctxt "#30432"
 msgid "Info"
 msgstr "Info"
 
-msgctxt "#30433"
-msgid "Nokturno website"
-msgstr "Web Nokturno"
 
-msgctxt "#30434"
-msgid "Support the project or follow news here. Besides this Kodi add-on, the Nokturno family also has a Stremio add-on and a Home Assistant integration/card."
-msgstr "Tu sa dá podporiť projekt alebo sledovať novinky. Rodina Nokturno má okrem doplnku pre Kodi aj doplnok pre Stremio a integráciu/kartu pre Home Assistant."
 
 msgctxt "#30435"
 msgid "This list is normally built in the background, but the data isn't ready yet. Checking dubbing/subtitles across the enabled sources can take a few minutes…"
@@ -2016,3 +2010,55 @@ msgstr "Prihlásenie k zdrojom (WebShare, Sosáč, Sledujteto, FastShare, OpenSu
 msgctxt "#30688"
 msgid "Synchronisation goes through the dashboard. With Home Assistant, enter the same group code in the integration settings as well."
 msgstr "Synchronizácia ide cez dashboard. S Home Assistantom zadaj ten istý kód skupiny aj v nastavení integrácie."
+
+msgctxt "#30690"
+msgid "Nokturno"
+msgstr "Nokturno"
+
+msgctxt "#30691"
+msgid "Version"
+msgstr "Verzia"
+
+msgctxt "#30692"
+msgid "Web"
+msgstr "Web"
+
+msgctxt "#30693"
+msgid "Family"
+msgstr "Rodina"
+
+msgctxt "#30694"
+msgid "When something does not work"
+msgstr "Keď niečo nefunguje"
+
+msgctxt "#30695"
+msgid "ID of this installation"
+msgstr "ID tejto inštalácie"
+
+msgctxt "#30696"
+msgid "Give this ID when reporting a problem — the log sent from the add-on and any crash report are found by it. It says nothing about who you are."
+msgstr "Toto ID uveď, keď hlásiš problém — podľa neho sa nájde log odoslaný z doplnku aj hlásenie o páde. O tom, kto si, nič nehovorí."
+
+msgctxt "#30697"
+msgid "Support the project"
+msgstr "Podporiť projekt"
+
+msgctxt "#30698"
+msgid "PayPal"
+msgstr "PayPal"
+
+msgctxt "#30699"
+msgid "Bitcoin"
+msgstr "Bitcoin"
+
+msgctxt "#30700"
+msgid "Where to ask"
+msgstr "Kde sa pýtať"
+
+msgctxt "#30701"
+msgid "Kodi forum"
+msgstr "Fórum Kodi"
+
+msgctxt "#30702"
+msgid "Stremio forum"
+msgstr "Fórum Stremio"
