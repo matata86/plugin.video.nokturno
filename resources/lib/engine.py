@@ -46,6 +46,7 @@ from opensubtitles_api import BLOK as OSUB_BLOK, OpenSubtitlesApi, OpenSubtitles
 from webshare_api import WebshareApi, WebshareApiError, WebshareError, human_size
 
 WS_LIMIT = 25    # kolik souborů brát z fulltextu WebShare
+WS_HIDE_SCORE = -2   # soubor s hlasy (kladné − záporné) ≤ tohle se ve výpisu skryje; ukáže ho až uvolněný fulltext
 HS_LIMIT = 25    # totéž pro HellSpy
 ST_LIMIT = 25    # totéž pro Sledujteto
 FS_LIMIT = 25    # totéž pro FastShare
@@ -811,13 +812,14 @@ class Engine:
         """Klíč 72h cache streamů — nese i otisk zapnutých zdrojů a účtů. Bez něj měl titul po
         zapnutí nového zdroje (nebo změně účtu) 72 h stejný seznam bez něj a Kodi to obcházelo
         ručním `clear_cache()` jen u CZtoru (audit 2026-09-19). `streams5` = oprava filtru
-        (krátké slovo na začátku názvu), `streams6` = otisk zdrojů."""
+        (krátké slovo na začátku názvu), `streams6` = otisk zdrojů, `streams7` = skryté soubory s
+        hlasy ≤ WS_HIDE_SCORE."""
         podpis = {**self.sources(), "ws": self._opt("ws_username").strip(), "st": str(self._opt("st_email") or "").strip(),
                   "fs": str(self._opt("fs_username") or "").strip(),
                   "dav": [str(self._opt(f"dav{n}_url") or "").strip() for n in range(1, 4)],
                   "search": bool(self._opt("search_streams", True)), "cross": bool(self._opt("cross_search", True))}
         otisk = hashlib.sha1(json.dumps(podpis, sort_keys=True, default=str).encode("utf-8")).hexdigest()[:10]
-        return f"streams6:{ctype}:{item_id}:{alt or ''}:{otisk}"
+        return f"streams7:{ctype}:{item_id}:{alt or ''}:{otisk}"
 
     def api_for(self, item_id):
         api = self.sosac if is_sosac_id(item_id) else self.luna
@@ -1519,6 +1521,11 @@ class Engine:
 
         return [q.strip() for q in dict.fromkeys(queries) if q.strip()], relevant
 
+    @staticmethod
+    def _ws_score(f):
+        """Hodnocení souboru z WebShare: kladné hlasy minus záporné (bez hlasů 0)."""
+        return int(f.get("positive") or 0) - int(f.get("negative") or 0)
+
     def _webshare_streams(self, meta, video=None, ctype="movie", alt=None, strict=True, failures=None):
         """Tytéž soubory přímo z WebShare — jejich odkazy fungují i mimo domácí síť.
 
@@ -1546,6 +1553,13 @@ class Engine:
                 continue
             for f in files:
                 if f["ident"] in seen or not relevant(f.get("name") or ""):
+                    continue
+                # hlasy uživatelů WebShare: soubor, který lidé opakovaně hlásí jako špatný, se z běžného
+                # výpisu vynechá. Jediný záporný hlas nestačí (−1) a oblíbené soubory s pár zápory
+                # (+10/−4) zůstávají. Uvolněný fulltext (`strict=False`) ukazuje všechno.
+                if strict and self._ws_score(f) <= WS_HIDE_SCORE:
+                    _LOGGER.debug("WebShare: skrytý soubor s hlasy +%s/−%s: %s",
+                                  f.get("positive"), f.get("negative"), (f.get("name") or "")[:60])
                     continue
                 seen.add(f["ident"])
                 # velikost patří do `detail` — odtud ji `parse_stream` čte (v labelu ji nehledá).

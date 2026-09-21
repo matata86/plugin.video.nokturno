@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="6.6.3" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="6.6.4~beta1" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>6.6.3 – Naposledy zhlédnuté se po synchronizaci ukáže i na druhém zařízení. Zhlédnuté tituly z jiného Kodi dřív přišly bez náhledu a výpis je vynechal; teď se náhled dohledá a synchronizace ho posílá rovnou.
+    <news>6.6.4~beta1 – Streamy z WebShare, které uživatelé opakovaně označili jako špatné (hlasy kladné minus záporné ≤ −2), se z výpisu vynechají. Jeden záporný hlas ani oblíbený soubor s pár zápory (+10/−4) se neskryje. Skryté soubory ukáže „Zobrazit všechny streamy“.
+6.6.3 – Naposledy zhlédnuté se po synchronizaci ukáže i na druhém zařízení. Zhlédnuté tituly z jiného Kodi dřív přišly bez náhledu a výpis je vynechal; teď se náhled dohledá a synchronizace ho posílá rovnou.
 6.6.2 – Stav zdrojů se po otevření menu sám obnoví, když říká „neodpovídá“ nebo když poslední obnova proběhla bez sítě — na mobilu Android utne Kodi na pozadí síť a stav z takové obnovy dřív stál v menu až do další.
 6.6.1 – Stav zdrojů už nehlásí „neodpovídá“ u všeho, když Kodi na pozadí nebo hned po startu chvíli nemá síť (mobil) — uložený stav zůstane a obnova se zopakuje do dvaceti minut. Výpadek sítě při jednom hledání nepřepíše ověřený stav účtu.
 6.6.0 – Synchronizace více Kodi i bez Home Assistanta: střediskem je dashboard Nokturna, který do dat nevidí. První Kodi založí skupinu a ukáže kód, ostatní ho opíšou; kdo má Home Assistant, zadá týž kód i v nastavení integrace a HA je dalším členem skupiny.
