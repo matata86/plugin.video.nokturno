@@ -3,15 +3,22 @@
 Bez závislostí na Kodi — jde testovat samostatně:
     python3 luna_api.py http://192.168.1.10:7126 e1.XXXX
 """
+import errno
 import json
 import re
+import socket
 import threading
+import time
 import unicodedata
+import urllib.error
 import urllib.parse
 import urllib.request
 
 TOKEN_RE = re.compile(r"(e1\.[A-Za-z0-9_\-]+)")
 TIMEOUT = 40
+CONNECT_TIMEOUT = 5      # server, který za pět vteřin nepřijme spojení, neodpoví ani za čtyřicet
+DOWN_TTL = 300           # po nedostupnosti se Luna pět minut nevolá — jinak každý výpis čeká na timeout znovu
+_DOWN_ERRNO = {errno.ETIMEDOUT, errno.ECONNREFUSED, errno.EHOSTUNREACH, errno.ENETUNREACH, errno.ECONNRESET}
 SEARCH_TTL = 12 * 3600   # cache hledání jde smazat ručně — akce „Vymazat cache API“
 STREAM_TTL = 72 * 3600   # ale co je za soubory na WebShare/Sosáči, se skoro nemění —
                          # jen když se streamy skutečně našly, viz Store.cached_if
@@ -90,13 +97,39 @@ class LunaApi:
         return self.cache.cached(url, 0 if self.fresh else self.cache_ttl, lambda: self._get(url))
 
     # --- HTTP -------------------------------------------------------------
+    def _down_key(self):
+        return "nokturno:luna:down:" + self.base
+
     def _get(self, url):
         req = urllib.request.Request(url, headers={"User-Agent": "Nokturno (+https://github.com/matata86/nokturno-core)"})
+        down = self.cache is not None and hasattr(self.cache, "peek_cached")
+        if down and self.cache.peek_cached(self._down_key(), DOWN_TTL) is not None:
+            raise LunaError(f"Luna neodpovídá (adresu {self.base} nedosáhnu, zkusím to znovu za pár minut)")
         try:
+            if down:
+                self._probe_connect()
             with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except Exception as e:  # noqa: BLE001
+            if down and self._is_unreachable(e):
+                self.cache.cached_if(self._down_key(), DOWN_TTL, lambda: {"t": int(time.time())}, fresh=True)
             raise LunaError(f"{e} ({self._bez_tokenu(url)})") from e
+
+    def _probe_connect(self):
+        """Spojení na server se ověří s krátkým limitem; systém jinak čeká na timeout přes 20 s."""
+        parts = urllib.parse.urlsplit(self.base)
+        port = parts.port or (443 if parts.scheme == "https" else 80)
+        with socket.create_connection((parts.hostname, port), timeout=CONNECT_TIMEOUT):
+            pass
+
+    @staticmethod
+    def _is_unreachable(err):
+        """Server je mimo dosah (timeout, odmítnuté spojení, žádná cesta) — ne chyba odpovědi (HTTP 4xx/5xx)."""
+        if isinstance(err, urllib.error.HTTPError):
+            return False
+        reason = getattr(err, "reason", err)
+        return isinstance(reason, (socket.timeout, TimeoutError, ConnectionError)) or \
+            getattr(reason, "errno", None) in _DOWN_ERRNO or isinstance(reason, socket.gaierror)
 
     def _bez_tokenu(self, url):
         """Adresa do chybové hlášky bez tokenu — hláška jde do notifikace Kodi i do

@@ -3304,7 +3304,7 @@ def list_accounts(apis):
     for row in rows:
         if row["level"] == ACC_OFF and row["code"] == "off":
             continue    # zdroj je vypnutý schválně, není co hlásit
-        folder_item(account_line(row), build_url(action=account_action(row)),
+        action_item(account_line(row), build_url(action=account_action(row)),
                     icon="DefaultAddonService.png")
     # ne-složka jako Nastavení pod ní: jako složka by Kodi po kliknutí čekal na
     # výpis adresáře, který `test_sources` nikdy nezavře — po OK v dialogu se
