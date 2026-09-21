@@ -566,9 +566,13 @@ class AccountsChecker:
         return True
 
     def unreachable(self):
-        """Selhal aspoň jeden zdroj tím, že se k němu nešlo dostat?"""
+        """Selhal aspoň jeden zdroj tím, že se k němu nešlo dostat — nebo obnova
+        skončila úplně bez sítě (jádro tehdy stav nechá a zapíše jen značku)?"""
         saved = self.store.reload(accounts_lib.STORE, {}) or {}
-        return any((rec or {}).get("code") == "unreachable" for rec in saved.values())
+        if any((rec or {}).get("code") == "unreachable" for rec in saved.values()):
+            return True
+        znacka = (self.store.reload(accounts_lib.OFFLINE, {}) or {}).get("ts", 0)
+        return bool(znacka) and time.time() - float(znacka) < accounts_lib.OFFLINE_TTL
 
     def warn_subscription(self):
         """Upozornění na končící nebo proběhlé předplatné WebShare — jediný stav,

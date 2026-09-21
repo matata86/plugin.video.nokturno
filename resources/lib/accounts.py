@@ -32,6 +32,8 @@ OK, WARN, FAIL, OFF = "ok", "warn", "fail", "off"
 SOURCES = ("luna", "webshare", "cztor", "fastshare", "sledujteto", "hellspy", "storage")
 
 STORE = "accounts"          # accounts.json v profilu
+OFFLINE = "accounts_offline"   # značka „při poslední obnově nebyla síť" (jen `ts`)
+OFFLINE_TTL = 3600             # jak dlouho značka platí; služba podle ní zkusí obnovu dřív
 TTL = 12 * 3600             # jak dlouho platí uložený záznam; musí být delší než interval
                             # obnovy na pozadí (Kodi `ACCOUNTS_EVERY` 6 h), jinak by v menu
                             # stál stav trvale označený jako zastaralý

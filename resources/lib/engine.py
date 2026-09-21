@@ -714,6 +714,12 @@ class Engine:
         WebShare, 429 z HellSpy. Zadarmo a čerstvěji než obnova na pozadí."""
         try:
             with self.store.updating(accounts_lib.STORE, {}) as data:
+                stary = (data.get(source) or {}).get("code")
+                if record.get("code") == "unreachable" and stary and stary != "unreachable":
+                    # výpadek sítě při jednom hledání (mobil, Wi-Fi při přepnutí)
+                    # není důvod přepsat ověřený stav — to smí až obnova na pozadí
+                    _LOGGER.debug("stav účtu %s: nešlo se připojit, nechávám „%s“", source, stary)
+                    return
                 data[source] = {**record, "ts": time.time()}
         except Exception as err:  # noqa: BLE001 – stav účtů nesmí shodit hledání
             _LOGGER.debug("stav účtu %s se neuložil: %s", source, err)
@@ -772,6 +778,19 @@ class Engine:
                     vysledky[name] = {"level": accounts_lib.FAIL, "code": _account_fail_code(err),
                                       "detail": {"error": str(err)[:120]}}
         now = time.time()
+        # Když se nešlo dostat na žádný zdroj, který po síti opravdu volá, je bez
+        # sítě tohle zařízení, ne ty zdroje — na mobilu typicky Kodi na pozadí
+        # nebo hned po startu. Uložit „neodpovídá" ke všem by v menu přepsalo
+        # dobrý stav šumem, který by tam stál do další obnovy. Stav se nechá
+        # a zapíše se jen značka, podle které služba obnovu zopakuje dřív.
+        sitove = {n: r for n, r in vysledky.items() if n != "hellspy"}
+        if sitove and all(r.get("code") == "unreachable" for r in sitove.values()):
+            _LOGGER.info("stav účtů: bez sítě (%s), uložený stav se nechává", ", ".join(sitove))
+            try:
+                self.store.save(accounts_lib.OFFLINE, {"ts": now})
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.debug("značka bez sítě se neuložila: %s", err)
+            return self.accounts()
         try:
             with self.store.updating(accounts_lib.STORE, {}) as data:
                 for name, rec in vysledky.items():
@@ -779,6 +798,14 @@ class Engine:
         except Exception as err:  # noqa: BLE001
             _LOGGER.debug("stav účtů se neuložil: %s", err)
         return self.accounts()
+
+    def offline_recently(self, within=accounts_lib.OFFLINE_TTL):
+        """Skončila poslední obnova stavu bez sítě? (značka z `refresh_accounts`)"""
+        try:
+            ts = (self.store.reload(accounts_lib.OFFLINE, {}) or {}).get("ts", 0)
+        except Exception:  # noqa: BLE001
+            return False
+        return bool(ts) and time.time() - float(ts) < within
 
     def _streams_cache_key(self, ctype, item_id, alt=None):
         """Klíč 72h cache streamů — nese i otisk zapnutých zdrojů a účtů. Bez něj měl titul po

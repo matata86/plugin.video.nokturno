@@ -5168,3 +5168,15 @@ class TestObnovaPoVypadkuSite(unittest.TestCase):
     def test_vse_v_poradku(self):
         checker = self._checker({"webshare": {"code": "vip"}, "hellspy": {"code": "ok"}})
         self.assertFalse(checker.unreachable())
+
+    def test_obnova_bez_site_zkrati_cekani(self):
+        """Jádro při obnově bez sítě stav nechá a zapíše jen značku — služba ji
+        musí brát jako důvod zkusit to za 20 minut, ne za 6 hodin."""
+        checker = service.AccountsChecker.__new__(service.AccountsChecker)
+        checker.store = mock.Mock()
+        ulozeno = {service.accounts_lib.STORE: {"webshare": {"code": "vip"}},
+                   service.accounts_lib.OFFLINE: {"ts": time.time() - 60}}
+        checker.store.reload.side_effect = lambda name, default=None: ulozeno.get(name, default)
+        self.assertTrue(checker.unreachable())
+        ulozeno[service.accounts_lib.OFFLINE] = {"ts": time.time() - 2 * service.accounts_lib.OFFLINE_TTL}
+        self.assertFalse(checker.unreachable())
