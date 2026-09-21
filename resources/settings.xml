@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <settings version="1">
   <section id="plugin.video.nokturno">
-    <category id="remote_setup" label="30447" help="30448">
-      <group id="1">
+    <!-- Kategorií smí být nejvýš 20: Kodi dává tlačítkům kategorií id -200 + pořadí
+         a od -180 začínají ovládací prvky nastavení. Dvacátá první kategorie by měla
+         id -180, takže šipka doprava ze seznamu kategorií skočí na ni místo do
+         nastavení. Proto je „Nastavit z mobilu“ první skupinou v Přenosu nastavení. -->
+    <category id="transfer" label="30724" help="30588">
+      <group id="1" label="30447">
         <setting id="remote_setup_action" type="action" label="30447" help="30448">
           <level>0</level>
           <constraints>
@@ -12,9 +16,7 @@
           <control format="action" type="button"/>
         </setting>
       </group>
-    </category>
-    <category id="transfer" label="30587" help="30588">
-      <group id="1">
+      <group id="2" label="30587">
         <setting id="transfer_send_action" type="action" label="30589" help="30588">
           <level>0</level>
           <constraints>
@@ -245,11 +247,11 @@
         </setting>
       </group>
     </category>
-    <category id="pt" label="30708">
+    <category id="pt" label="30708" help="30710">
       <group id="1">
         <setting id="pt_enabled" type="boolean" label="30709" help="30710">
           <level>0</level>
-          <default>false</default>
+          <default>true</default>
           <control type="toggle"/>
         </setting>
         <setting id="pt_email" type="string" label="30711" help="30712">

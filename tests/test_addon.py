@@ -4295,7 +4295,9 @@ class TestPrenosNastaveni(unittest.TestCase):
         kategorie = next(c for c in xml.iter("category") if c.get("id") == "transfer")
         akce = [re.search(r"action=(\w+)", s.findtext("data")).group(1)
                 for s in kategorie.iter("setting")]
-        self.assertEqual(akce, ["transfer_send", "transfer_receive",
+        # „Nastavit z mobilu“ je první skupinou téže kategorie — kategorií smí být
+        # nejvýš 20, viz test_kategorii_nejvyse_dvacet
+        self.assertEqual(akce, ["remote_setup", "transfer_send", "transfer_receive",
                                 "transfer_file_save", "transfer_file_load"])
         for name in akce:
             self.assertIn(name, default.MARKS_SKIP)   # čtení videodatabáze tu nemá co dělat
@@ -5300,3 +5302,19 @@ class TestPrehrajto(unittest.TestCase):
 
     def test_stranka_z_mobilu_zna_novou_kategorii(self):
         self.assertIn("pt", default.REMOTE_SETUP_CATEGORIES)
+
+    def test_zdroj_je_po_aktualizaci_zapnuty(self):
+        """Přehraj.to funguje i bez účtu, takže ho má mít každý rovnou zapnutý."""
+        import xml.etree.ElementTree as ET
+        root = ET.parse(ROOT / "resources" / "settings.xml").getroot()
+        volba = next(s for s in root.iter("setting") if s.get("id") == "pt_enabled")
+        self.assertEqual(volba.findtext("default"), "true")
+
+    def test_kategorii_nejvyse_dvacet(self):
+        """Kodi dává tlačítkům kategorií id -200 + pořadí a od -180 začínají ovládací
+        prvky nastavení. Dvacátá první kategorie by tedy měla id -180 a šipka doprava
+        ze seznamu kategorií by místo do nastavení skočila na ni (u nás na Info)."""
+        import xml.etree.ElementTree as ET
+        root = ET.parse(ROOT / "resources" / "settings.xml").getroot()
+        kategorie = [c.get("id") for c in root.iter("category")]
+        self.assertLessEqual(len(kategorie), 20, "víc než 20 kategorií rozbije šipku doprava")
