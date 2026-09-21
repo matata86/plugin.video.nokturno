@@ -5089,6 +5089,16 @@ class TestStavZdrojuPoTestu(unittest.TestCase):
         self.assertTrue(service.AccountsChecker.requested())
         self.assertFalse(service.AccountsChecker.requested())   # podruhé už ne
 
+    def test_vypnuta_luna_se_do_stavu_nedostane(self):
+        """Adresa Luny má výchozí hodnotu, takže `luna_url` je vyplněná vždy —
+        bez `luna_enabled` hlásil stav „Luna: běží, ale chybí token" i u vypnutého
+        zdroje (nahlášeno z Office na `6.6.0~beta11`)."""
+        with mock.patch.object(default, "setting", lambda key, fallback="": {
+                "luna_enabled": "false", "luna_url": "http://192.168.1.10:7126",
+                "token": "abc"}.get(key, fallback)):
+            volby = default.engine_options()
+        self.assertFalse(volby["luna_enabled"])
+
     def test_stejny_literal_v_obou_souborech(self):
         """Plugin a služba se potkávají jen přes tenhle řetězec."""
         self.assertEqual(default.ACCOUNTS_TRIGGER_PROP, service.ACCOUNTS_TRIGGER_PROP)

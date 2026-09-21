@@ -678,6 +678,19 @@ class Engine:
             saved["hellspy"] = {**accounts_lib.hellspy(self.store), "ts": time.time()}
         return accounts_lib.compose(saved, self._account_sources(), ttl=ttl)
 
+    def _luna_konfigurovana(self):
+        """Má se Luna ve stavu zdrojů vůbec objevit?
+
+        Vypnutý přepínač znamená ne, i když adresa v nastavení zůstala — v Kodi
+        má výchozí hodnotu, takže bez téhle podmínky hlásil stav „běží, ale chybí
+        token" každému, kdo Lunu nikdy nezapnul (nahlášeno na `6.6.0~beta11`).
+        Větev, která přepínač neposílá (HA, Stremio), se řídí jen vyplněnými údaji
+        jako dřív.
+        """
+        if not self._opt("luna_enabled", True):
+            return False
+        return bool(self._opt("luna_token").strip() or self._opt("luna_url").strip())
+
     def _account_sources(self):
         """Které zdroje se mají ve stavu vůbec objevit.
 
@@ -689,7 +702,7 @@ class Engine:
         """
         base = self.sources()
         base["cztor"] = bool(self._opt(CONF_CZ_ENABLED, False))
-        base["luna"] = bool(self._opt("luna_token").strip() or self._opt("luna_url").strip())
+        base["luna"] = self._luna_konfigurovana()
         return base
 
     def account_problems(self, ttl=accounts_lib.TTL):
@@ -710,7 +723,7 @@ class Engine:
         Klienti se zakládají tady (bez sítě), samotné dotazy dělá až `refresh_accounts`."""
         chce = (lambda name: True) if only is None else (lambda name: name in set(only))
         checks = {}
-        if chce("luna") and (self._opt("luna_token").strip() or self._opt("luna_url").strip()):
+        if chce("luna") and self._luna_konfigurovana():
             url, token = self._opt("luna_url"), self._opt("luna_token")
             checks["luna"] = lambda: accounts_lib.luna(url, token, deep=deep)
         if chce("webshare") and self._opt("ws_username").strip():
