@@ -993,6 +993,14 @@
       </group>
     </category>
     <category id="info" label="30432">
+      <group id="0">
+        <setting id="info_locked" type="boolean" label="30690">
+          <level>0</level>
+          <default>false</default>
+          <visible>false</visible>
+          <control type="toggle"/>
+        </setting>
+      </group>
       <group id="1" label="30690">
         <setting id="info_version" type="string" label="30691">
           <level>0</level>
@@ -1000,7 +1008,10 @@
           <constraints>
             <allowempty>true</allowempty>
           </constraints>
-          <control type="label"/>
+          <dependencies>
+            <dependency type="enable" setting="info_locked">true</dependency>
+          </dependencies>
+          <control type="edit" format="string"/>
         </setting>
         <setting id="info_web" type="string" label="30692">
           <level>0</level>
@@ -1008,7 +1019,10 @@
           <constraints>
             <allowempty>true</allowempty>
           </constraints>
-          <control type="label"/>
+          <dependencies>
+            <dependency type="enable" setting="info_locked">true</dependency>
+          </dependencies>
+          <control type="edit" format="string"/>
         </setting>
         <setting id="info_family" type="string" label="30693">
           <level>0</level>
@@ -1016,7 +1030,10 @@
           <constraints>
             <allowempty>true</allowempty>
           </constraints>
-          <control type="label"/>
+          <dependencies>
+            <dependency type="enable" setting="info_locked">true</dependency>
+          </dependencies>
+          <control type="edit" format="string"/>
         </setting>
       </group>
       <group id="2" label="30694">
@@ -1026,7 +1043,10 @@
           <constraints>
             <allowempty>true</allowempty>
           </constraints>
-          <control type="label"/>
+          <dependencies>
+            <dependency type="enable" setting="info_locked">true</dependency>
+          </dependencies>
+          <control type="edit" format="string"/>
         </setting>
       </group>
       <group id="3" label="30697">
@@ -1036,7 +1056,10 @@
           <constraints>
             <allowempty>true</allowempty>
           </constraints>
-          <control type="label"/>
+          <dependencies>
+            <dependency type="enable" setting="info_locked">true</dependency>
+          </dependencies>
+          <control type="edit" format="string"/>
         </setting>
         <setting id="info_bitcoin" type="string" label="30699">
           <level>0</level>
@@ -1044,7 +1067,10 @@
           <constraints>
             <allowempty>true</allowempty>
           </constraints>
-          <control type="label"/>
+          <dependencies>
+            <dependency type="enable" setting="info_locked">true</dependency>
+          </dependencies>
+          <control type="edit" format="string"/>
         </setting>
       </group>
       <group id="4" label="30700">
@@ -1054,7 +1080,10 @@
           <constraints>
             <allowempty>true</allowempty>
           </constraints>
-          <control type="label"/>
+          <dependencies>
+            <dependency type="enable" setting="info_locked">true</dependency>
+          </dependencies>
+          <control type="edit" format="string"/>
         </setting>
         <setting id="info_forum_stremio" type="string" label="30702">
           <level>0</level>
@@ -1062,7 +1091,10 @@
           <constraints>
             <allowempty>true</allowempty>
           </constraints>
-          <control type="label"/>
+          <dependencies>
+            <dependency type="enable" setting="info_locked">true</dependency>
+          </dependencies>
+          <control type="edit" format="string"/>
         </setting>
       </group>
     </category>

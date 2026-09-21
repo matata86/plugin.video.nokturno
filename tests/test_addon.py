@@ -156,7 +156,14 @@ class TestNastaveni(unittest.TestCase):
                      "info_paypal", "info_bitcoin", "info_forum_kodi", "info_forum_stremio"):
             self.assertIn('id="%s"' % klic, info)
         self.assertNotIn('format="action"', info, "v Info se nemá na co klikat")
-        self.assertEqual(info.count('<control type="label"/>'), 8)
+        # `<control type="label">` Kodi 21 v nastavení doplňku odmítne (`error reading
+        # <control> tag`) a celá kategorie se pak nevykreslí — ověřeno na Office u bety 9
+        # s `type="string"` i `type="action"`. Read-only řádek se proto dělá jako `edit`,
+        # trvale zašedlý přes `info_locked` (skrytý přepínač, který je vždy false).
+        self.assertNotIn('type="label"', info)
+        self.assertEqual(info.count('<control type="edit" format="string"/>'), 8)
+        self.assertEqual(info.count('<dependency type="enable" setting="info_locked">true</dependency>'), 8)
+        self.assertIn('<setting id="info_locked" type="boolean"', info)
         # verze a id instalace se do settings.xml napsat nedají, plní je plugin
         xbmcaddon.settings.pop("info_version", None)
         xbmcaddon.settings.pop("info_install", None)
