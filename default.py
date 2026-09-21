@@ -67,6 +67,7 @@ from tracks import FILE_CODES, SUBTITLE_FALLBACK, decode_subtitle, subtitle_form
 from trakt_api import TraktApi, TraktError  # noqa: E402
 from webshare_api import SORTS, WebshareApi, WebshareError, human_size  # noqa: E402
 import kodi_marks  # noqa: E402 – vedle default.py, ne kopie jádra (čte videodatabázi Kodi)
+import kodi_sources  # noqa: E402 – vedle default.py, sdílený výčet zdrojů do statistik
 from engine import AUDIO_PROBE_MAX, DEFAULT_RUNTIME_S, Engine, NokturnoError, runtime_minutes  # noqa: E402
 from abort import Aborted  # noqa: E402
 from crash import CrashReporter  # noqa: E402
@@ -3698,18 +3699,8 @@ def prefetch(apis, kind):
 
 def stats_sources():
     """Které zdroje jsou v nastavení aktivní — do statistik, bez účtů a adres.
-    Tentýž výčet skládá služba (`service.stats_context`), tohle je ruční odeslání."""
-    return [name for name, active in (
-        ("luna", on("luna_enabled") and bool(setting("token").strip())),
-        ("sosac", on("sosac_enabled") and bool(setting("streamuj_username").strip())),
-        ("webshare", on("ws_enabled", "false") and bool(setting("ws_username").strip())),
-        ("hellspy", on("hs_enabled", "false")),
-        ("sledujteto", on("st_enabled", "false") and bool(setting("st_email").strip())),
-        ("fastshare", on("fs_enabled", "false") and bool(setting("fs_username").strip())),
-        ("cztor", on("cz_enabled", "false")),
-        ("tmdb", bool(setting("tmdb_api_key").strip())),
-        ("trakt", on("trakt_enabled", "false")),
-    ) if active]
+    Výčet je v `kodi_sources`, protože ho stejně potřebuje i služba."""
+    return kodi_sources.stats_sources(ADDON.getSetting)
 
 
 def stats_send():

@@ -58,6 +58,7 @@ from trakt_api import TraktApi, TraktError  # noqa: E402
 from webshare_api import WebshareApi  # noqa: E402
 import kodi_marks  # noqa: E402 – vedle service.py, čte videodatabázi Kodi
 import kodi_settings  # noqa: E402 – vedle service.py, most do settings.xml
+import kodi_sources  # noqa: E402 – vedle service.py, sdílený výčet zdrojů do statistik
 import setsync  # noqa: E402
 
 PROP = "nokturno.playing"
@@ -1016,24 +1017,8 @@ def stats_context(addon):
         ("iOS", "System.Platform.IOS"), ("tvOS", "System.Platform.TVOS"),
     ) if xbmc.getCondVisibility(cond)), "?")
 
-    def zapnuto(key, default="true"):
-        return (addon.getSetting(key) or default) == "true"
-
-    def vyplneno(key):
-        return bool((addon.getSetting(key) or "").strip())
-
     # jen jestli je zdroj v nastavení aktivní — žádné účty, žádné adresy
-    sources = [name for name, active in (
-        ("luna", zapnuto("luna_enabled") and vyplneno("token")),
-        ("sosac", zapnuto("sosac_enabled") and vyplneno("streamuj_username")),
-        ("webshare", zapnuto("ws_enabled", "false") and vyplneno("ws_username")),
-        ("hellspy", zapnuto("hs_enabled", "false")),
-        ("sledujteto", zapnuto("st_enabled", "false") and vyplneno("st_email")),
-        ("fastshare", zapnuto("fs_enabled", "false") and vyplneno("fs_username")),
-        ("cztor", zapnuto("cz_enabled", "false")),
-        ("tmdb", vyplneno("tmdb_api_key")),
-        ("trakt", zapnuto("trakt_enabled", "false")),
-    ) if active]
+    sources = kodi_sources.stats_sources(addon.getSetting)
     return {
         "version": addon.getAddonInfo("version"),
         "platform": platform,

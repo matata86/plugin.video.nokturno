@@ -40,7 +40,8 @@ sys.argv = ["plugin://plugin.video.nokturno/", "1", ""]
 import default
 import remote_setup
 import transfer                                # noqa: E402
-import service                                # noqa: E402
+import service
+import kodi_sources                                # noqa: E402
 import kodi_marks                             # noqa: E402
 import accounts as accounts_module         # noqa: E402
 from luna_api import LunaError                # noqa: E402
@@ -5327,3 +5328,51 @@ class TestPrehrajto(unittest.TestCase):
         root = ET.parse(ROOT / "resources" / "settings.xml").getroot()
         kategorie = [c.get("id") for c in root.iter("category")]
         self.assertLessEqual(len(kategorie), 20, "víc než 20 kategorií rozbije šipku doprava")
+
+
+class TestZdrojeDoStatistik(unittest.TestCase):
+    """Výčet zdrojů v `kodi_sources` — do 7.4.1 ho měly plugin i služba každý svůj
+    a rozešly se: `prehrajto` a `storage` nehlásil ani jeden, takže na dashboardu
+    vypadaly jako by je nikdo neměl zapnuté."""
+
+    def setUp(self):
+        reset_kodi()
+
+    def test_prehrajto_a_uloziste_se_hlasi(self):
+        xbmcaddon.settings.update(pt_enabled="true", dav2_url="https://nas.example/dav")
+        zdroje = default.stats_sources()
+        self.assertIn("prehrajto", zdroje)
+        self.assertIn("storage", zdroje)
+
+    def test_vypnuty_zdroj_se_nehlasi(self):
+        self.assertNotIn("prehrajto", default.stats_sources())
+        self.assertNotIn("storage", default.stats_sources())
+        self.assertNotIn("cztor", default.stats_sources())
+
+    def test_plugin_a_sluzba_hlasi_totez(self):
+        xbmcaddon.settings.update(pt_enabled="true", cz_enabled="true", hs_enabled="true",
+                                  ws_enabled="true", ws_username="u", dav1_url="https://nas/dav",
+                                  tmdb_api_key="k", trakt_enabled="true")
+        self.assertEqual(default.stats_sources(),
+                         service.stats_context(xbmcaddon.Addon())["sources"])
+
+    def test_ucty_a_adresy_nejdou_ven(self):
+        xbmcaddon.settings.update(ws_enabled="true", ws_username="tajny-ucet",
+                                  dav1_url="https://nas.doma/tajna-cesta")
+        zdroje = default.stats_sources()
+        self.assertIn("webshare", zdroje)
+        self.assertIn("storage", zdroje)
+        for klic in zdroje:
+            self.assertNotIn("tajny", klic)
+            self.assertNotIn("nas.doma", klic)
+
+    def test_vycet_zna_kazdy_zdroj_jadra(self):
+        """Klíče z `Engine.sources()` (odtud je berou HA a Stremio) musí být i tady,
+        jinak je Kodi mlčky vynechá — přesně tak zmizely Přehraj.to a úložiště."""
+        import engine as engine_mod
+        zdroje_jadra = set(engine_mod.Engine.sources(mock.Mock(**{
+            "luna": None, "sosac": None, "storages": [], "prowlarr": None,
+            "_cz_paired": False, "_pt_shared": None, "_opt.return_value": "",
+        })))
+        chybi = zdroje_jadra - set(kodi_sources.SOURCE_KEYS) - {"torrent"}
+        self.assertEqual(chybi, set(), "Kodi nehlásí zdroj, který jádro zná")
