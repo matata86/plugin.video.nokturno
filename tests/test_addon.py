@@ -2957,6 +2957,14 @@ class TestFrontaAZahrivani(unittest.TestCase):
                              ("https://cdn.giganthost/a.mkv", {}))
         res.assert_called_once_with("cz:movie:1:2")
 
+    def test_sluzba_rozklicuje_prehrajto(self):
+        # stejná díra jako u CZtoru: `pt:` služba stahování neznala a skončila „unknown url type: pt“
+        with mock.patch.object(service.PrehrajtoApi, "request",
+                               return_value=("https://cdn.prehraj/a.mp4", {})) as req:
+            self.assertEqual(service.resolve_internal("pt:matrix-1999:66103820811ee", default.STORE),
+                             ("https://cdn.prehraj/a.mp4", {}))
+        req.assert_called_once_with("pt:matrix-1999:66103820811ee")
+
     def test_zahrivani_nastavi_priznak_a_api_cache_jen_zapisuji(self):
         videno = []
         with mock.patch.object(service, "rpc_directory",

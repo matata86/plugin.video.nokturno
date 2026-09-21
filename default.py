@@ -5825,7 +5825,7 @@ def guess_ext(url, name):
 
 
 def enqueue_download(url, name, key, dest_name=None, link=None):
-    """Do fronty jde VNITŘNÍ odkaz (`ws:`, `hs:`, `st:`, `fs:`, `cz:`, `streamuj:`, `dav:`) — služba ho
+    """Do fronty jde VNITŘNÍ odkaz (`ws:`, `hs:`, `st:`, `fs:`, `cz:`, `pt:`, `streamuj:`, `dav:`) — služba ho
     rozklíčuje až ve chvíli stahování (`service.resolve_internal`). Hotový odkaz WebShare
     vyprší za pár hodin: třetí soubor ve frontě nebo cokoli po restartu Kodi dřív končilo
     chybou. `link` je volitelný už rozklíčovaný odkaz jen kvůli odhadu přípony."""

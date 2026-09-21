@@ -43,6 +43,7 @@ from hellspy_api import HellspyApi  # noqa: E402
 from sledujteto_api import SledujtetoApi  # noqa: E402
 from fastshare_api import FastshareApi  # noqa: E402
 from cztor_api import CztorApi  # noqa: E402
+from prehrajto_api import PrehrajtoApi  # noqa: E402
 from sosac_direct import SosacDirect  # noqa: E402
 from stats import COLLECT_URL, Stats  # noqa: E402
 from crash import CRASH_URL, CrashReporter  # noqa: E402
@@ -370,7 +371,7 @@ def safe_filename(name):
 
 
 def resolve_internal(url, store):
-    """Vnitřní odkaz z fronty (`ws:`, `hs:`, `st:`, `fs:`, `cz:`, `streamuj:`, `dav:`) → (odkaz ke stažení, hlavičky).
+    """Vnitřní odkaz z fronty (`ws:`, `hs:`, `st:`, `fs:`, `cz:`, `pt:`, `streamuj:`, `dav:`) → (odkaz ke stažení, hlavičky).
 
     Rozklíčovává se až tady, ve chvíli stahování: podepsané odkazy zdrojů platí jen
     pár hodin a fronta je sekvenční — s hotovým odkazem uloženým při zařazení končil
@@ -396,6 +397,9 @@ def resolve_internal(url, store):
     if url.startswith("cz:"):
         # tokeny párování drží úložiště doplňku (sdílené s pluginem), `playback_url` hraje bez hlaviček
         return CztorApi(store, device_name=f"Nokturno ({xbmc.getInfoLabel('System.FriendlyName') or 'Kodi'})").resolve(url), {}
+    if url.startswith("pt:"):
+        # odkaz CDN je podepsaný a nedrží na IP, hlavičky nechce; s účtem Premium vyjde původní soubor
+        return PrehrajtoApi(s("pt_email"), addon.getSetting("pt_password") if addon else "", cache=store).request(url)
     if url.startswith("streamuj:"):
         return SosacDirect(s("streamuj_username"), s("streamuj_password"), cache=store).resolve(url), {}
     if url.startswith("dav:"):
