@@ -2083,7 +2083,7 @@ msgid "Prehraj.to"
 msgstr ""
 
 msgctxt "#30709"
-msgid "Use Prehraj.to (works for free too)"
+msgid "Use Prehraj.to (works for free without an account)"
 msgstr ""
 
 msgctxt "#30710"

@@ -2084,8 +2084,8 @@ msgid "Prehraj.to"
 msgstr "Přehraj.to"
 
 msgctxt "#30709"
-msgid "Use Prehraj.to (works for free too)"
-msgstr "Používat Přehraj.to (funguje i zdarma)"
+msgid "Use Prehraj.to (works for free without an account)"
+msgstr "Používat Přehraj.to (funguje i zdarma bez účtu)"
 
 msgctxt "#30710"
 msgid "Works without an account too: search is the same, but only the first page of results (32 files) is visible and playback uses a re-encoded 1080p file. A Premium account adds paging and plays the original file, including 4K."
