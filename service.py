@@ -73,6 +73,7 @@ KODI_MARKS_EVERY = 60   # s – „Označit jako zhlédnuté“ ze skinu, viz Ko
 SUB_CHECK_EVERY = 12 * 3600   # jak často se ptát WebShare na stav předplatného
 ACCOUNTS_DELAY = 240      # po startu Kodi napřed skin a widgety, teprve pak stav účtů
 ACCOUNTS_EVERY = 6 * 3600     # pod `accounts.TTL` (12 h), ať v menu nestojí zastaralý stav
+ACCOUNTS_RETRY = 20 * 60      # zdroj, na který se nešlo dostat, zkusit dřív — viz AccountsChecker.tick
 WATCHED_PCT = 0.90
 MIN_RESUME = 90  # s – po takové době přehrávání patří titul do rozkoukaných
 SAVE_EVERY = 30  # s – jak často se za běhu přepisuje pozice rozkoukaného
@@ -543,7 +544,16 @@ class AccountsChecker:
             except Exception as e:  # noqa: BLE001 – stav účtů nesmí shodit službu
                 log(f"obnova stavu zdrojů: {e}", xbmc.LOGWARNING)
                 return
+            if self.unreachable():
+                # bez sítě (na mobilu typicky hned po startu Kodi) by v menu stálo
+                # „neodpovídá" celých šest hodin, i kdyby se síť vrátila za minutu
+                self.next = min(self.next, time.time() + ACCOUNTS_RETRY)
             self.warn_subscription()
+
+    def unreachable(self):
+        """Selhal aspoň jeden zdroj tím, že se k němu nešlo dostat?"""
+        saved = self.store.reload(accounts_lib.STORE, {}) or {}
+        return any((rec or {}).get("code") == "unreachable" for rec in saved.values())
 
         threading.Thread(target=run, daemon=True).start()
 

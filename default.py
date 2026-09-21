@@ -2996,7 +2996,23 @@ def test_sources():
                 lines.append(describe_failure(name, e))
     if ws:
         remember_ws_token(ws)
+    refresh_accounts_after_test()
     xbmcgui.Dialog().ok(L(30170), "\n".join(lines))
+
+
+def refresh_accounts_after_test():
+    """Po „Ověřit zdroje" přepsat i uložený stav pro položku Stav zdrojů v menu.
+
+    Jsou to dvě různé cesty: test se ptá zdrojů živě, kdežto menu čte záznam
+    z `accounts.json`, který platí dvanáct hodin. Když obnova na pozadí padla
+    na vypnutou síť (na mobilu hned po startu Kodi), ukazovalo menu půl dne
+    chyby, zatímco test hned vedle hlásil všechno v pořádku — přesně tohle
+    nahlásil uživatel 2026-09-21. Běží po testu, takže odpovědi jdou z cache
+    klientů a nic se neptá dvakrát."""
+    try:
+        KodiEngine().refresh_accounts()
+    except Exception as e:  # noqa: BLE001 – výsledek testu se musí ukázat i tak
+        log_error(e)
 
 
 # --- Luna: najít v síti a ověřit -------------------------------------------

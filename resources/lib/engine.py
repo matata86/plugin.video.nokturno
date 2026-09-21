@@ -13,6 +13,7 @@ import os
 import re
 import time
 import unicodedata
+import urllib.error
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
@@ -299,13 +300,42 @@ def split_episode_id(item_id):
     return str(item_id), None, None
 
 
+def _server_odpovedel(err):
+    """Odpověděl server, nebo se k němu vůbec nešlo dostat?
+
+    Klienti zdrojů balí obojí do vlastní výjimky (`WebshareError`, `SledujtetoError`…),
+    takže se typ nestačí — rozhoduje příčina v `__cause__`. `HTTPError` je odpověď
+    serveru (a je podtřídou `URLError`, proto se testuje dřív), kdežto `URLError`
+    a `OSError` znamenají DNS, timeout nebo vypnutou síť.
+    """
+    vidano = set()
+    while err is not None and id(err) not in vidano:
+        vidano.add(id(err))
+        if isinstance(err, urllib.error.HTTPError):
+            return True
+        if isinstance(err, (urllib.error.URLError, OSError)):
+            return False
+        err = err.__cause__ or err.__context__
+    return True
+
+
 def _account_fail_code(err):
     """Selhání kontroly účtu → kód. Rozlišuje „účet doplněk odmítl" od „nešlo se zeptat",
-    protože první chce zásah uživatele a druhé jen počkat."""
-    if isinstance(err, (WebshareError, SledujtetoError, FastshareError, CztorError)):
+    protože první chce zásah uživatele a druhé jen počkat.
+
+    Bez rozlišení hlásil doplněk „nesedí jméno nebo heslo" pokaždé, když obnova na
+    pozadí padla na vypnutou síť — typicky na mobilu hned po startu Kodi (nahlásil
+    uživatel 2026-09-21: v menu čtyři zdroje v chybě, „Ověřit zdroje" hned nato
+    všechny v pořádku).
+    """
+    if isinstance(err, WebshareApiError):      # WebShare odpověděl a účet odmítl
+        return "bad_login"
+    if isinstance(err, SledujtetoError) and getattr(err, "status", None):
         return "bad_login"
     if isinstance(err, StorageError):
         return "unreachable"
+    if isinstance(err, (WebshareError, SledujtetoError, FastshareError, CztorError)):
+        return "bad_login" if _server_odpovedel(err) else "unreachable"
     return "error"
 
 
@@ -687,7 +717,9 @@ class Engine:
             def ws_check():
                 api = self.ws
                 if api is None:
-                    raise WebshareError(str(self.ws_error or "přihlášení se nepovedlo"))
+                    # původní výjimka, ne její text — `_account_fail_code` z ní pozná,
+                    # jestli WebShare odmítl účet, nebo jen nebyla síť
+                    raise self.ws_error or WebshareError("přihlášení se nepovedlo")
                 return accounts_lib.webshare(api, warn_days=warn_days)
             checks["webshare"] = ws_check
         if chce("cztor") and self._opt(CONF_CZ_ENABLED, False):

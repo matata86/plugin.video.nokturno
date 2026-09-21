@@ -5058,3 +5058,55 @@ class TestSynchronizaceZMobilu(unittest.TestCase):
         self.assertEqual(podle_id["sync_url"]["enable"], [("sync_enabled", "true"), ("sync_mode", "0")])
         self.assertEqual(podle_id["sync_settings"]["enable"], [("sync_enabled", "true"), ("sync_mode", "1")])
         self.assertEqual(podle_id["sync_watched"]["enable"], ("sync_enabled", "true"))
+
+
+class TestStavZdrojuPoTestu(unittest.TestCase):
+    """„Ověřit zdroje" a položka Stav zdrojů v menu jsou dvě různé cesty: test se ptá
+    zdrojů živě, menu čte `accounts.json` s dvanáctihodinovou platností. Uživatel
+    2026-09-21 viděl v menu čtyři zdroje v chybě a v testu hned vedle všechno
+    v pořádku — po testu se proto uložený stav přepíše."""
+
+    def test_po_testu_se_obnovi_ulozeny_stav(self):
+        obnoveno = []
+
+        class FalesnyEngine:
+            def refresh_accounts(self):
+                obnoveno.append(True)
+
+        with mock.patch.object(default, "KodiEngine", FalesnyEngine):
+            default.refresh_accounts_after_test()
+        self.assertEqual(obnoveno, [True])
+
+    def test_chyba_obnovy_nezabrani_vypisu(self):
+        """Výsledek testu se musí ukázat i tehdy, když obnova spadne."""
+        class RozbityEngine:
+            def refresh_accounts(self):
+                raise RuntimeError("bez sítě")
+
+        with mock.patch.object(default, "KodiEngine", RozbityEngine):
+            default.refresh_accounts_after_test()   # nesmí vyhodit
+
+
+class TestObnovaPoVypadkuSite(unittest.TestCase):
+    """Zdroj, na který se nešlo dostat, se zkusí dřív než za šest hodin — jinak by
+    v menu stálo „neodpovídá" celé odpoledne, i kdyby se síť vrátila za minutu."""
+
+    def _checker(self, ulozeno):
+        checker = service.AccountsChecker.__new__(service.AccountsChecker)
+        checker.store = mock.Mock()
+        checker.store.reload.return_value = ulozeno
+        return checker
+
+    def test_unreachable_zkrati_cekani(self):
+        checker = self._checker({"luna": {"code": "unreachable"}, "webshare": {"code": "vip"}})
+        self.assertTrue(checker.unreachable())
+        self.assertLess(service.ACCOUNTS_RETRY, service.ACCOUNTS_EVERY)
+
+    def test_odmitnuty_ucet_cekani_nezkracuje(self):
+        """Špatné heslo se samo nespraví — nemá smysl se ptát každých dvacet minut."""
+        checker = self._checker({"webshare": {"code": "bad_login"}})
+        self.assertFalse(checker.unreachable())
+
+    def test_vse_v_poradku(self):
+        checker = self._checker({"webshare": {"code": "vip"}, "hellspy": {"code": "ok"}})
+        self.assertFalse(checker.unreachable())
