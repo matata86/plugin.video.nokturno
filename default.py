@@ -1993,10 +1993,20 @@ def migrate_sync_mode():
     přepsání nastavení se dělá bezpodmínečně: volba `2` už v `settings.xml`
     neexistuje a Kodi by na ni spadlo zpátky na výchozí hodnotu.
     """
-    if setting("sync_mode") != SYNC_MODE_BOTH_OLD:
+    # Číst se musí ze souboru, ne přes `getSetting`: volbu `2` už `settings.xml`
+    # nezná, takže ji Kodi odmítne načíst (`failed to load value "2" for setting
+    # sync_mode` při každém spuštění pluginu i služby) a `getSetting` vrátí výchozí
+    # `0`. Podmínka nad ním by tedy nikdy nesedla, migrace by neproběhla a starý
+    # zápis by v souboru zůstal napořád — včetně toho hluku v kodi.log.
+    try:
+        with open(os.path.join(PROFILE, "settings.xml"), encoding="utf-8") as f:
+            ulozeno = f.read()
+    except (IOError, OSError):
+        return
+    if not re.search(r'id="sync_mode"[^>]*>%s</setting>' % SYNC_MODE_BOTH_OLD, ulozeno):
         return
     ADDON.setSetting("sync_mode", SYNC_MODE_RELAY)
-    notify(L(30688, "Synchronizace jede přes dashboard. Máš-li Home Assistant, zadej "
+    notify(L(30688, "Synchronizace jede přes dashboard. S Home Assistantem zadej "
                     "týž kód skupiny i v nastavení integrace."), ms=8000)
 
 

@@ -4837,19 +4837,50 @@ class TestSynchronizaceRelay(unittest.TestCase):
         self.assertEqual((ha.call_count, relay.call_count), (0, 1))
         self.assertIn("settings", relay.call_args[1]["circles"])
 
+    @staticmethod
+    def _zapis_settings_xml(hodnota):
+        """Uloží `sync_mode` do settings.xml v profilu tak, jak to dělá Kodi."""
+        cesta = os.path.join(default.PROFILE, "settings.xml")
+        os.makedirs(default.PROFILE, exist_ok=True)
+        with open(cesta, "w", encoding="utf-8") as f:
+            f.write('<settings version="2">\n'
+                    '    <setting id="sync_enabled" default="true">false</setting>\n'
+                    '    <setting id="sync_mode">%s</setting>\n</settings>\n' % hodnota)
+        return cesta
+
     def test_ulozeny_rezim_oboji_se_preklopi_na_dashboard(self):
         """Kdo měl „2" z bety 1, má dál dashboard — tam mu data opravdu chodí.
         Kartu v HA dohoní kódem skupiny v integraci, o čemž ho zpráva zpraví."""
-        xbmcaddon.settings.update({"sync_mode": "2", "sync_enabled": "true"})
+        self._zapis_settings_xml("2")
+        xbmcaddon.settings.update({"sync_mode": "0", "sync_enabled": "true"})
         default.migrate_sync_mode()
         self.assertEqual(xbmcaddon.settings["sync_mode"], "1")
-        self.assertTrue(xbmcgui.notifications or True)
+
+    def test_migrace_cte_soubor_ne_getsetting(self):
+        """Volbu „2" settings.xml po betě 2 nezná, takže ji Kodi odmítne načíst
+        a `getSetting` vrátí výchozí „0". Podmínka nad ním by nikdy nesedla a
+        starý zápis by v souboru zůstal napořád (plus `failed to load value "2"`
+        v kodi.log při každém spuštění). Nalezeno na Office na 6.6.0~beta3."""
+        self._zapis_settings_xml("2")
+        xbmcaddon.settings.update({"sync_mode": "0"})    # co vrátí Kodi u neznámé hodnoty
+        default.migrate_sync_mode()
+        self.assertEqual(xbmcaddon.settings["sync_mode"], "1",
+                         'migrace se musí spustit i tehdy, když getSetting o „2“ neví')
 
     def test_migrace_nesahne_na_jine_rezimy(self):
         for rezim in ("0", "1"):
+            self._zapis_settings_xml(rezim)
             xbmcaddon.settings.update({"sync_mode": rezim})
             default.migrate_sync_mode()
             self.assertEqual(xbmcaddon.settings["sync_mode"], rezim)
+
+    def test_migrace_bez_settings_xml_nespadne(self):
+        cesta = os.path.join(default.PROFILE, "settings.xml")
+        if os.path.exists(cesta):
+            os.remove(cesta)
+        xbmcaddon.settings.update({"sync_mode": "0"})
+        default.migrate_sync_mode()
+        self.assertEqual(xbmcaddon.settings["sync_mode"], "0")
 
     # --- okruhy nastavení a účtů ---
 
