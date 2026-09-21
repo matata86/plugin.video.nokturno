@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="6.6.0~beta4" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="6.6.0~beta5" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>6.6.0~beta4 – Uložená volba „HA i dashboard“ se opravdu překlopí na dashboard. Beta 2 ji přepsat měla, ale ptala se Kodi na hodnotu, kterou už Kodi neumí načíst, takže zůstávala v nastavení zapsaná a plnila kodi.log hláškou „failed to load value 2 for setting sync_mode“.
+    <news>6.6.0~beta5 – Novinky ve verzi teď ukazují i řádky ze stabilní 6.5.13, která vyšla z vlastní větve; samotné opravy z ní beta 4 obsahovala už předtím.
+6.6.0~beta4 – Uložená volba „HA i dashboard“ se opravdu překlopí na dashboard. Beta 2 ji přepsat měla, ale ptala se Kodi na hodnotu, kterou už Kodi neumí načíst, takže zůstávala v nastavení zapsaná a plnila kodi.log hláškou „failed to load value 2 for setting sync_mode“.
 6.6.0~beta3 – Texty v nastavení, průvodci a hlášeních jsou věcné: doplněk o sobě nemluví v první osobě („Adrese nerozumím“ → „Adresa nemá očekávaný tvar“), zmizely hovorové obraty a sjednotilo se tykání (dřív se u OpenSubtitles vykalo).
 6.6.0~beta3 – Volba střediska synchronizace se jmenuje „Středisko synchronizace“ a hlášky u skupiny říkají, co se stane, ne co si uživatel má myslet.
 6.6.0~beta3 – Adresa pro nastavení z mobilu platí 30 minut; text v doplňku tvrdil 10.
@@ -38,6 +39,7 @@
 6.6.0~beta1 – Synchronizace více Kodi i bez Home Assistanta: střed dělá dashboard, který do dat nevidí. První Kodi založí skupinu a ukáže kód, ostatní ho opíšou.
 6.6.0~beta1 – Zvlášť si zapneš, co se sdílí: zhlédnuto a rozkoukanost, Můj seznam, historie hledání, nastavení doplňku a přihlášení ke zdrojům (poslední dvě jsou vypnuté).
 6.6.0~beta1 – Volby „co se synchronizuje“ platí nově i pro cestu přes Home Assistant; dřív se tam posílalo a přijímalo vždycky všechno.
+6.5.13 – Menu Nastavení, Novinky a Průvodce už nezapisují do logu chybu „GetDirectory failed“ (jen šum, funkce se nemění). Po aktualizaci se statistiky neposílají podruhé do několika minut (server to odmítal jako HTTP 429).
 6.5.12 – U řádku streamu z Luny se ukážou i rozlišení, kodek a titulky ze souboru (dřív chyběly). U českých a slovenských titulů se zvuk označený jen „EN“ ukáže jako odhad „~CZ“.
 6.5.12~beta4 – Stopa zvuku bez jazyka v souboru si nechá jazyk od Luny (po doplnění titulků a rozlišení ze souboru zmizelo „EN“).
 6.5.12~beta3 – U řádku streamu z Luny se ukážou i rozlišení, kodek a titulky ze souboru (dřív chyběly); čtou se přímo z Lunina odkazu, ne z odhadem spárovaného souboru.
