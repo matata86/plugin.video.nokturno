@@ -23975,7 +23975,7 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>7.0.0~beta2 – Přehraj.to je po aktualizaci rovnou zapnuté: zdroj funguje i bez účtu, jen je vidět první strana výsledků (32 souborů) a hraje se překódovaný soubor v 1080p. Šipka doprava v nastavení už neskáče na záložku Info — „Nastavit z mobilu“ je teď první skupinou v kategorii Nastavit z mobilu a přenos.
+    <news>7.0.0~beta2 – Přehraj.to je po aktualizaci rovnou zapnuté: zdroj funguje i zdarma bez účtu, jen je vidět první strana výsledků (32 souborů) a hraje se překódovaný soubor v 1080p. Šipka doprava v nastavení už neskáče na záložku Info — „Nastavit z mobilu“ je teď první skupinou v kategorii Nastavit z mobilu a přenos.
 7.0.0~beta1 – Přehraj.to jako osmý zdroj. Zapni ho v Nastavení → Přehraj.to. Účet není povinný: bez něj je vidět jen první strana výsledků a hraje se překódovaný soubor v 1080p, s účtem Premium je výsledků víc a hraje se původní soubor včetně 4K.
 7.0.0~beta1 – Stav zdrojů umí i Přehraj.to: řekne, jestli jedeš bez účtu, kolik dní zbývá do konce Premium, nebo že server na chvíli omezil dotazy.
 6.6.5 – Nedostupná Luna se po prvním neúspěchu pět minut nevolá a spojení se ověřuje s limitem 5 s (dřív každý výpis čekal přes 20 s na timeout). Řádky ve výpisu Stav zdrojů už nezapisují do logu chybu „GetDirectory failed“. U řádku z Luny se ukážou rozlišení, kodek a titulky ze souboru.
