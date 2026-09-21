@@ -5120,6 +5120,35 @@ class TestStavZdrojuPoTestu(unittest.TestCase):
         self.assertEqual(len(xbmcplugin.ended), 1)
         self.assertFalse(xbmcplugin.ended[-1]["succeeded"])
 
+    def test_menu_pozada_o_obnovu_kdyz_stav_rika_neodpovida(self):
+        """Mobil: obnova na pozadí bez sítě zapsala „neodpovídá" a v popředí to
+        stálo dál — otevřené menu je jediná chvíle se zaručenou sítí."""
+        reset_kodi()
+        engine = mock.Mock(); engine.offline_recently.return_value = False
+        rows = [{"source": "webshare", "code": "unreachable", "age": 900},
+                {"source": "hellspy", "code": "ok", "age": 900}]
+        default.request_accounts_retry(engine, rows)
+        self.assertEqual(xbmcgui.Window(10000).getProperty(default.ACCOUNTS_TRIGGER_PROP), "1")
+
+    def test_cerstve_neodpovida_se_neopakuje_hned(self):
+        """Jinak by každé otevření menu spouštělo obnovu a WebShare dostával dotaz co 5 s."""
+        reset_kodi()
+        engine = mock.Mock(); engine.offline_recently.return_value = False
+        default.request_accounts_retry(engine, [{"source": "webshare", "code": "unreachable", "age": 30}])
+        self.assertEqual(xbmcgui.Window(10000).getProperty(default.ACCOUNTS_TRIGGER_PROP), "")
+
+    def test_znacka_bez_site_spusti_obnovu_z_menu(self):
+        reset_kodi()
+        engine = mock.Mock(); engine.offline_recently.return_value = True
+        default.request_accounts_retry(engine, [{"source": "webshare", "code": "vip", "age": 7200}])
+        self.assertEqual(xbmcgui.Window(10000).getProperty(default.ACCOUNTS_TRIGGER_PROP), "1")
+
+    def test_dobry_stav_obnovu_nespousti(self):
+        reset_kodi()
+        engine = mock.Mock(); engine.offline_recently.return_value = False
+        default.request_accounts_retry(engine, [{"source": "webshare", "code": "vip", "age": 7200}])
+        self.assertEqual(xbmcgui.Window(10000).getProperty(default.ACCOUNTS_TRIGGER_PROP), "")
+
     def test_stejny_literal_v_obou_souborech(self):
         """Plugin a služba se potkávají jen přes tenhle řetězec."""
         self.assertEqual(default.ACCOUNTS_TRIGGER_PROP, service.ACCOUNTS_TRIGGER_PROP)

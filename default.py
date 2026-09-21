@@ -3017,6 +3017,31 @@ def test_sources():
     xbmcgui.Dialog().ok(L(30170), "\n".join(lines))
 
 
+ACCOUNTS_RETRY_AGE = 120   # s; „neodpovídá" mladší než tohle se ještě nezkouší znovu
+
+
+def request_accounts_retry(engine, rows):
+    """Otevřené menu = Kodi v popředí = síť je. Když uložený stav říká „neodpovídá",
+    nebo poslední obnova skončila úplně bez sítě, požádat službu o obnovu hned.
+
+    Na mobilu (Samsung, Android 16) Android utne Kodi na pozadí síť: obnova po
+    startu (`ACCOUNTS_DELAY`) i další po 20 minutách běží přesně ve chvíli, kdy
+    uživatel telefon odložil, a všechny skončí `unreachable` — ověřeno z logu
+    2026-09-21 (DNS `Errno 7` pokaždé 3–4 min po startu služby, v popředí ani
+    jednou). Jediná chvíle, kdy se dá spolehnout na síť, je tahle.
+    """
+    try:
+        opakovat = any(r.get("code") == "unreachable"
+                       and (r.get("age") is None or r["age"] > ACCOUNTS_RETRY_AGE) for r in rows)
+        if not opakovat and engine.offline_recently():
+            stari = [r["age"] for r in rows if r.get("age") is not None]
+            opakovat = not stari or min(stari) > ACCOUNTS_RETRY_AGE
+        if opakovat:
+            xbmcgui.Window(10000).setProperty(ACCOUNTS_TRIGGER_PROP, "1")
+    except Exception as e:  # noqa: BLE001 – menu nesmí spadnout kvůli stavu zdrojů
+        log_error(e)
+
+
 def refresh_accounts_after_test():
     """Po „Ověřit zdroje" požádat službu, ať přepíše i uložený stav pro položku
     Stav zdrojů v menu.
@@ -3870,7 +3895,9 @@ def main_menu(apis):
     # bez problému jen zabíral místo. Čte se z uloženého záznamu (obnovu dělá
     # služba na pozadí), takže menu nezdrží. Souhrn je dlouhý, proto jde i do
     # popisku položky, kde ho skin ukáže celý.
-    rows = engine_of(apis).accounts()
+    engine = engine_of(apis)
+    rows = engine.accounts()
+    request_accounts_retry(engine, rows)
     souhrn = account_summary(rows)
     if souhrn:
         li = xbmcgui.ListItem(label=f"{L(30630, 'Stav zdrojů')}: {souhrn}")

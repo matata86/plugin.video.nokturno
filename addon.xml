@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="6.6.1" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="6.6.2" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>6.6.1 – Stav zdrojů už nehlásí „neodpovídá“ u všeho, když Kodi na pozadí nebo hned po startu chvíli nemá síť (mobil) — uložený stav zůstane a obnova se zopakuje do dvaceti minut. Výpadek sítě při jednom hledání nepřepíše ověřený stav účtu.
+    <news>6.6.2 – Stav zdrojů se po otevření menu sám obnoví, když říká „neodpovídá“ nebo když poslední obnova proběhla bez sítě — na mobilu Android utne Kodi na pozadí síť a stav z takové obnovy dřív stál v menu až do další.
+6.6.1 – Stav zdrojů už nehlásí „neodpovídá“ u všeho, když Kodi na pozadí nebo hned po startu chvíli nemá síť (mobil) — uložený stav zůstane a obnova se zopakuje do dvaceti minut. Výpadek sítě při jednom hledání nepřepíše ověřený stav účtu.
 6.6.0 – Synchronizace více Kodi i bez Home Assistanta: střediskem je dashboard Nokturna, který do dat nevidí. První Kodi založí skupinu a ukáže kód, ostatní ho opíšou; kdo má Home Assistant, zadá týž kód i v nastavení integrace a HA je dalším členem skupiny.
 6.6.0 – Zvlášť si zapneš, co se sdílí: zhlédnuto a rozkoukanost, Můj seznam, historie hledání, nastavení doplňku a přihlášení ke zdrojům (poslední dvě jsou vypnuté). Volby platí i pro cestu přes Home Assistant.
 6.6.0 – Záložka Info vypisuje verzi, adresu webu, rodinu doplňků, obě fóra a ID této instalace (uveď ho, když hlásíš problém). Podpořit projekt otevře okno s QR kódem na stránku podpory a s adresami PayPalu a Bitcoinu.
