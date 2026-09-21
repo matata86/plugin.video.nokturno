@@ -528,7 +528,14 @@ class Store:
                     data = self._read_cached(path, ttl)
                     if data is not _MISSING:
                         return data
-                data = loader()
+                # Kdo čekal na zámek, dostane to, co mezitím stáhl ten první — i když to
+                # neprošlo `ok()` a na disk se nezapsalo. Bez toho by čekající po neúspěchu
+                # spouštěli loader jeden po druhém: při výpadku Wikidat by pět zdrojů
+                # čekalo 5 × 10 s za sebou místo 10 s naráz jako před zámkem (CI 3.8 to
+                # ukázalo na `test_pomaly_zdroj_neblokuje_ostatni`, 4,8 → 12,4 s).
+                if entry[2] is not _MISSING:
+                    return entry[2]
+                data = entry[2] = loader()
                 if not ok(data):
                     return data
                 tmp = self._tmp(path)
@@ -556,13 +563,14 @@ class Store:
         return _MISSING
 
     def _key_lock(self, path):
-        """Zámek na jeden klíč cache; položka `[RLock, počet držitelů]` zmizí, jakmile
-        ji nikdo nedrží — jinak by slovník rostl s každým kdy použitým klíčem. RLock,
-        ne Lock: loader smí (byť neměl) sáhnout na tentýž klíč znovu."""
+        """Zámek na jeden klíč cache; položka `[RLock, počet držitelů, výsledek]` zmizí,
+        jakmile ji nikdo nedrží — jinak by slovník rostl s každým kdy použitým klíčem
+        a výsledek by přežil do dalšího, nesouvisejícího volání. RLock, ne Lock: loader
+        smí (byť neměl) sáhnout na tentýž klíč znovu."""
         with self._key_locks_guard:
             entry = self._key_locks.get(path)
             if entry is None:
-                entry = self._key_locks[path] = [threading.RLock(), 0]
+                entry = self._key_locks[path] = [threading.RLock(), 0, _MISSING]
             entry[1] += 1
             return entry
 
