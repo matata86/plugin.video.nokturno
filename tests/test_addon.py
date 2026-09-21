@@ -165,6 +165,17 @@ class TestNastaveni(unittest.TestCase):
         self.assertEqual(xbmcaddon.settings["info_version"], default._ADDON_VERSION)
         self.assertEqual(xbmcaddon.settings["info_install"], "deadbeef")
 
+    def test_id_instalace_se_opravdu_precte(self):
+        """Beta 8: `install_id()` sahala na `Stats` globálně, jenže ten se v default.py
+        importuje až uvnitř funkcí — `NameError` spadl do `except` a řádek v Info zůstal
+        prázdný. Testy to nechytily, protože si `install_id` mockovaly. Tenhle jde
+        skutečnou cestou."""
+        with tempfile.TemporaryDirectory() as profil:
+            with open(os.path.join(profil, "stats.json"), "w", encoding="utf-8") as f:
+                json.dump({"id": "abc123", "installed": 1}, f)
+            with mock.patch.object(default, "PROFILE", profil):
+                self.assertEqual(default.install_id(), "abc123")
+
     def test_info_zapisuje_jen_pri_zmene(self):
         """Plugin běží při každém kliknutí — `setSetting` sahá na disk."""
         with mock.patch.object(default, "install_id", return_value="deadbeef"):

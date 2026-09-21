@@ -300,8 +300,13 @@ def refresh_info():
 def install_id():
     """Anonymní id instalace ze statistik. Ukazuje se v Info, aby ho uživatel
     mohl uvést při hlášení problému — podle něj se v dashboardu najde jeho
-    odeslaný log i hlášení o pádu."""
+    odeslaný log i hlášení o pádu.
+
+    `Stats` se importuje až tady: na úrovni modulu v `default.py` není (drží se
+    líně kvůli startu pluginu) a globální odkaz by tiše spadl na `NameError`
+    — což se v betě 8 opravdu stalo a řádek v Info zůstal prázdný."""
     try:
+        from stats import Stats
         return Stats(PROFILE).data["id"]
     except Exception:      # noqa: BLE001 – profil bez statistik nesmí shodit start
         return ""
