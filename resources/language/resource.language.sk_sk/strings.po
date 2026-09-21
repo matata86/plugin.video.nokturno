@@ -793,8 +793,8 @@ msgid "Settings saved"
 msgstr "Nastavenia uložené"
 
 msgctxt "#30358"
-msgid "Done! You can change any of this later in the add-on settings."
-msgstr "Hotovo! Čokoľvek z tohto môžeš kedykoľvek zmeniť v Nastaveniach doplnku.\nBez zadaného zdroja budú katalóg a hľadanie fungovať aj tak, len po anglicky."
+msgid "Done. You can change any of this later in the add-on settings."
+msgstr "Hotovo. Všetko sa dá kedykoľvek zmeniť v Nastaveniach doplnku.\nBez zadaného zdroja budú katalóg a hľadanie fungovať aj tak, len po anglicky."
 
 msgctxt "#30359"
 msgid "Run setup wizard"
@@ -1085,16 +1085,16 @@ msgid "Support the project or follow news here. Besides this Kodi add-on, the No
 msgstr "Tu sa dá podporiť projekt alebo sledovať novinky. Rodina Nokturno má okrem doplnku pre Kodi aj doplnok pre Stremio a integráciu/kartu pre Home Assistant."
 
 msgctxt "#30435"
-msgid "This list is normally built in the background, but the data isn't ready yet. Checking dubbing/subtitles across your sources, this can take a few minutes…"
-msgstr "Tento zoznam sa štandardne zostavuje na pozadí, teraz ale nie sú dáta pripravené. Zisťujem dabing/titulky naprieč tvojimi zdrojmi, môže to trvať pár minút…"
+msgid "This list is normally built in the background, but the data isn't ready yet. Checking dubbing/subtitles across the enabled sources can take a few minutes…"
+msgstr "Tento zoznam sa štandardne zostavuje na pozadí, dáta ale zatiaľ nie sú pripravené. Zisťovanie dabingu a titulkov naprieč zapnutými zdrojmi môže trvať pár minút…"
 
 msgctxt "#30436"
-msgid "The list is being built in the background right now, following the progress…"
-msgstr "Zoznam sa práve zostavuje na pozadí, sledujem priebeh…"
+msgid "The list is being built in the background right now…"
+msgstr "Zoznam sa práve zostavuje na pozadí…"
 
 msgctxt "#30437"
-msgid "Data aren't ready — checking dubbing/subtitles across your sources can take a few minutes. Tap to start."
-msgstr "Dáta nie sú pripravené — zistenie dabingu/titulkov naprieč tvojimi zdrojmi môže trvať pár minút. Ťuknutím spustíš."
+msgid "Data aren't ready — checking dubbing/subtitles across the enabled sources can take a few minutes. Tap to start."
+msgstr "Dáta nie sú pripravené — zistenie dabingu a titulkov naprieč zapnutými zdrojmi môže trvať pár minút. Ťuknutím spustíš."
 
 msgctxt "#30438"
 msgid "Started in the background — you'll get a notification when it's ready."
@@ -1154,7 +1154,7 @@ msgstr "Sprievodca ovládačom"
 
 msgctxt "#30452"
 msgid "1. Connect your phone to the same Wi-Fi as this device.[CR]2. Scan the QR code with the camera, or open this address in a browser:"
-msgstr "1. Pripoj mobil k tej istej Wi-Fi ako tento prístroj.[CR]2. Naskenuj QR kód fotoaparátom, alebo otvor v prehliadači adresu:"
+msgstr "1. Pripoj mobil k tej istej Wi-Fi ako toto zariadenie.[CR]2. Naskenuj QR kód fotoaparátom, alebo otvor v prehliadači adresu:"
 
 msgctxt "#30453"
 msgid "Back cancels · the address is valid for 30 minutes and one save"
@@ -1162,7 +1162,7 @@ msgstr "Späť zruší · adresa platí 30 minút a pre jedno uloženie"
 
 msgctxt "#30454"
 msgid "This device has no local network address. Connect it to Wi-Fi or a cable and try again."
-msgstr "Tento prístroj nemá adresu v miestnej sieti. Pripoj ho k Wi-Fi alebo káblom a skús to znova."
+msgstr "Toto zariadenie nemá adresu v miestnej sieti. Pripoj ho k Wi-Fi alebo káblom a skús to znova."
 
 msgctxt "#30455"
 msgid "Couldn't start setup from phone (%s)."
@@ -1189,8 +1189,8 @@ msgid "Saved. The settings are in Kodi, you can close this page."
 msgstr "Uložené. Nastavenia sú v Kodi, stránku môžeš zavrieť."
 
 msgctxt "#30461"
-msgid "filled in — leave empty to keep"
-msgstr "vyplnené — nechaj prázdne bez zmeny"
+msgid "filled in — leave empty to keep the current value"
+msgstr "vyplnené — prázdne pole ponechá pôvodnú hodnotu"
 
 msgctxt "#30462"
 msgid "This address is no longer valid. Start Set up from phone on the TV again."
@@ -1257,8 +1257,8 @@ msgid "No similar titles found"
 msgstr "Žiadne podobné tituly"
 
 msgctxt "#30494"
-msgid "Nothing on in this selection"
-msgstr "V tomto výbere nič nedávajú"
+msgid "No programmes in this selection"
+msgstr "V tomto výbere nie sú žiadne relácie"
 
 msgctxt "#30495"
 msgid "What to show for a stream and in which order"
@@ -1274,7 +1274,7 @@ msgstr "Predvolené poradie"
 
 msgctxt "#30498"
 msgid "Puts back the default items and order. Reopen settings to see the new value."
-msgstr "Vráti predvolené položky a poradie. Novú hodnotu uvidíš po opätovnom otvorení nastavení."
+msgstr "Vráti predvolené položky a poradie. Nová hodnota sa zobrazí po opätovnom otvorení nastavení."
 
 msgctxt "#30499"
 msgid "Top line|Bottom line"
@@ -1337,12 +1337,12 @@ msgid "Choose stream"
 msgstr "Vybrať stream"
 
 msgctxt "#30514"
-msgid "Use the arrows to move details between the top and bottom line of the stream dialog, put what you do not want to see into Do not show. Quality is always the picture on the left."
-msgstr "Šípkami presuň údaje medzi horným a dolným riadkom dialógu výberu streamu, do Nezobrazovať daj, čo nechceš vidieť. Kvalita je vždy obrázok vľavo."
+msgid "Use the arrows to move details between the top and bottom line of the stream dialog; move what should not be shown into Do not show. Quality is always the picture on the left."
+msgstr "Šípkami presuň údaje medzi horným a dolným riadkom dialógu výberu streamu, do Nezobrazovať presuň, čo sa nemá ukazovať. Kvalita je vždy obrázok vľavo."
 
 msgctxt "#30515"
-msgid "On your phone, move the details with arrows between the top and bottom line — easier than typing the order here."
-msgstr "V mobile šípkami presunieš údaje medzi horným a dolným riadkom — pohodlnejšie než písať poradie tu."
+msgid "On the phone the details move with arrows between the top and bottom line. That is easier than typing the order here."
+msgstr "V mobile sa dajú údaje presúvať šípkami medzi horným a dolným riadkom. Je to pohodlnejšie než písať poradie ručne."
 
 msgctxt "#30516"
 msgid "Delete"
@@ -1365,12 +1365,12 @@ msgid "Neither the Luna address nor the token is filled in.[CR]Use “Find Luna 
 msgstr "Nie je vyplnená adresa Luny ani token.[CR]Použi „Nájsť Lunu v sieti“, alebo vlož do poľa Token celú adresu doplnku zo stránky /setup Luny."
 
 msgctxt "#30522"
-msgid "I do not understand the address %s.[CR]Expected something like 192.168.1.10:7126."
-msgstr "Adrese %s nerozumiem.[CR]Čakám tvar ako 192.168.1.10:7126."
+msgid "The address %s is not in the expected format.[CR]Expected something like 192.168.1.10:7126."
+msgstr "Adresa %s nemá očakávaný tvar.[CR]Očakáva sa napríklad 192.168.1.10:7126."
 
 msgctxt "#30523"
-msgid "Nobody answered at %s.[CR][CR]Is the computer running Luna switched on? Is it on the same network as this TV? Try “Find Luna on the network”."
-msgstr "Na adrese %s sa nikto neozval.[CR][CR]Beží počítač, kde je Luna spustená? Je v rovnakej sieti ako táto televízia? Skús „Nájsť Lunu v sieti“."
+msgid "Nobody answered at %s.[CR][CR]Is the computer running Luna switched on? Is it on the same network as this device? Try “Find Luna on the network”."
+msgstr "Na adrese %s sa nikto neozval.[CR][CR]Beží počítač, kde je Luna spustená? Je v rovnakej sieti ako toto zariadenie? Skús „Nájsť Lunu v sieti“."
 
 msgctxt "#30524"
 msgid "Something answers at %s, but it is not Luna.[CR]Check the port — Luna uses 7126 by default."
@@ -1401,8 +1401,8 @@ msgid "Looking for Luna on the local network…"
 msgstr "Hľadám Lunu v miestnej sieti…"
 
 msgctxt "#30531"
-msgid "I did not find Luna on this network.[CR][CR]Is it running on some computer at home? Does it use the default port 7126? If it runs elsewhere or on another port, fill the address in by hand."
-msgstr "V tejto sieti som Lunu nenašiel.[CR][CR]Beží na niektorom počítači v domácnosti? Má predvolený port 7126? Ak beží inde alebo na inom porte, vyplň adresu ručne."
+msgid "Luna was not found on this network.[CR][CR]Is it running on some computer at home? Does it use the default port 7126? If it runs elsewhere or on another port, fill the address in by hand."
+msgstr "V tejto sieti sa Luna nenašla.[CR][CR]Beží na niektorom počítači v domácnosti? Má predvolený port 7126? Ak beží inde alebo na inom porte, vyplň adresu ručne."
 
 msgctxt "#30532"
 msgid "Luna servers found"
@@ -1502,8 +1502,8 @@ msgid "Luna address (or the whole add-on address from /setup)"
 msgstr "Adresa Luny (alebo celá adresa doplnku zo /setup)"
 
 msgctxt "#30557"
-msgid "The saved setup is what gets checked — what you just typed into the field counts only after OK. You can enter a different address right here."
-msgstr "Overuje sa uložené nastavenie — čo si práve prepísal v políčku, sa počíta až po OK. Inú adresu môžeš zadať rovno tu."
+msgid "The saved setup is what gets checked — a value typed into the field counts only after OK. A different address can be entered right here."
+msgstr "Overuje sa uložené nastavenie — hodnota rozpísaná v políčku sa započíta až po OK. Inú adresu je možné zadať rovno tu."
 
 msgctxt "#30558"
 msgid "Show all streams"
@@ -1579,7 +1579,7 @@ msgstr "1. Luna beží na počítači alebo serveri doma (doplnok pre Home Assis
 
 msgctxt "#30576"
 msgid "Luna found: %s[CR]Tap Save to Kodi at the bottom to keep the address."
-msgstr "Luna nájdená: %s[CR]Adresu si necháš klepnutím na Uložiť do Kodi dole."
+msgstr "Luna nájdená: %s[CR]Adresu uložíš tlačidlom Uložiť do Kodi dole."
 
 msgctxt "#30577"
 msgid "No stream found"
@@ -1606,8 +1606,8 @@ msgid "TV program: show programmes that already ended today"
 msgstr "TV program: ukázať aj dnes už skončené relácie"
 
 msgctxt "#30583"
-msgid "Today's TV programme normally hides programmes that have already ended. Turn on to see the whole day."
-msgstr "Dnešný TV program bežne skrýva relácie, ktoré už skončili. Zapni, aby bol vidieť celý deň."
+msgid "Today's TV programme normally hides programmes that have already ended. Turn on to show the whole day."
+msgstr "Dnešný TV program bežne skrýva relácie, ktoré už skončili. Zapnuté ukáže celý deň."
 
 msgctxt "#30584"
 msgid "Finished programmes"
@@ -1647,7 +1647,7 @@ msgstr "Načítať zo súboru"
 
 msgctxt "#30593"
 msgid "On the other Kodi open Settings – Transfer settings – Load from another Kodi and type this code:[CR][CR][B]%s[/B][CR][CR]It works once and expires in %s minutes."
-msgstr "Na druhom Kodi otvor Nastavenia – Prenos nastavenia – Načítať z iného Kodi a zadaj tento kód:[CR][CR][B]%s[/B][CR][CR]Použije sa raz a platí %s minút."
+msgstr "Na druhom Kodi otvor Nastavenia – Prenos nastavení – Načítať z iného Kodi a zadaj tento kód:[CR][CR][B]%s[/B][CR][CR]Použije sa raz a platí %s minút."
 
 msgctxt "#30594"
 msgid "Code from the other Kodi"
@@ -1659,7 +1659,7 @@ msgstr "Prenos sa nepodaril: %s"
 
 msgctxt "#30596"
 msgid "%s settings will be written, from %s.[CR]Already the same: %s · not used here: %s[CR][CR]Current settings will be overwritten. A copy stays in %s."
-msgstr "Zapíše sa %s nastavení z %s.[CR]Už sedí: %s · tu sa nepoužije: %s[CR][CR]Terajšie nastavenie sa prepíše. Kópia zostane v %s."
+msgstr "Zapíše sa %s nastavení z %s.[CR]Zhodné: %s · nepoužije sa: %s[CR][CR]Terajšie nastavenie sa prepíše. Kópia zostane v %s."
 
 msgctxt "#30597"
 msgid "Settings transferred (%s)"
@@ -1698,8 +1698,8 @@ msgid "Because you watched %s"
 msgstr "Pretože si videl: %s"
 
 msgctxt "#30607"
-msgid "Nothing to recommend yet — watch something and come back."
-msgstr "Zatiaľ nemám z čoho odporúčať — niečo si pusť a vráť sa."
+msgid "No recommendations yet — they are built from recently watched titles."
+msgstr "Zatiaľ nie je z čoho odporúčať — zoznam vzniká z naposledy pozretých titulov."
 
 msgctxt "#30608"
 msgid "Random movie"
@@ -1711,7 +1711,7 @@ msgstr "Náhodný seriál"
 
 msgctxt "#30610"
 msgid "Nothing to pick from"
-msgstr "Nemám z čoho losovať"
+msgstr "Nie je z čoho losovať"
 
 msgctxt "#30611"
 msgid "OpenSubtitles"
@@ -1763,11 +1763,11 @@ msgstr "OpenSubtitles sú v nastavení vypnuté."
 
 msgctxt "#30623"
 msgid "The key could not be fetched from the server — try again later."
-msgstr "Kľúč sa nepodarilo získať zo servera — skúste to neskôr."
+msgstr "Kľúč sa nepodarilo získať zo servera — skús to neskôr."
 
 msgctxt "#30624"
 msgid "Sign-in failed — check the username and password."
-msgstr "Prihlásenie sa nepodarilo — skontrolujte meno a heslo."
+msgstr "Prihlásenie sa nepodarilo — skontroluj meno a heslo."
 
 msgctxt "#30625"
 msgid "Subtitles found for the test title: %s"
@@ -1782,8 +1782,8 @@ msgid "Signed in as %s"
 msgstr "Prihlásený ako %s"
 
 msgctxt "#30628"
-msgid "Not signed in — 5 downloads a day for this address."
-msgstr "Bez prihlásenia — 5 stiahnutí denne pre túto adresu."
+msgid "Not signed in — 5 downloads a day for this IP address."
+msgstr "Bez prihlásenia — 5 stiahnutí denne pre túto IP adresu."
 
 msgctxt "#30630"
 msgid "Source status"
@@ -1910,8 +1910,8 @@ msgid "Looking for a title in your preferred language…"
 msgstr "Hľadám titul s preferovaným jazykom…"
 
 msgctxt "#30661"
-msgid "Where your Kodi boxes meet"
-msgstr "Kde sa tvoje Kodi stretávajú"
+msgid "Synchronisation hub"
+msgstr "Stredisko synchronizácie"
 
 msgctxt "#30662"
 msgid "Home Assistant"
@@ -1950,12 +1950,12 @@ msgid "Sync search history"
 msgstr "Synchronizovať históriu hľadania"
 
 msgctxt "#30671"
-msgid "New group created. Type this code on your other Kodi:"
+msgid "The group is set up. Enter this code on the next Kodi:"
 msgstr "Skupina je založená. Na ďalšom Kodi zadaj tento kód:"
 
 msgctxt "#30672"
-msgid "The code lets a new device join for 30 minutes. Keep it — without it nobody can read your data, and it cannot be recovered."
-msgstr "Kód pustí nové zariadenie dovnútra 30 minút. Schovaj si ho — bez neho tvoje dáta nikto neprečíta a nedajú sa obnoviť."
+msgid "The code lets a new device join for 30 minutes. Keep the code — without it the data cannot be read and cannot be recovered."
+msgstr "Kód pustí nové zariadenie dovnútra 30 minút. Kód uschovaj — bez neho dáta nikto neprečíta a nedajú sa obnoviť."
 
 msgctxt "#30673"
 msgid "Type the group code from your first Kodi"
@@ -1970,16 +1970,16 @@ msgid "That code does not look right."
 msgstr "Kód nemá správny tvar."
 
 msgctxt "#30676"
-msgid "No group yet — create one, or join with a code from another Kodi."
+msgid "No group yet — start one, or join with a code from another Kodi."
 msgstr "Zatiaľ žiadna skupina — založ ju, alebo sa pripoj kódom z iného Kodi."
 
 msgctxt "#30677"
 msgid "Leave the group? This Kodi stops synchronising. Nothing already saved here is deleted. The other devices keep the code — to really cut off a removed device, start a new group and join the others with a new code."
-msgstr "Odísť zo skupiny? Toto Kodi sa prestane synchronizovať. Nič uložené sa nezmaže. Ostatným zariadeniam kód zostáva — ak chceš odobraté zariadenie naozaj odrezať, založ novú skupinu a ostatné pripoj novým kódom."
+msgstr "Odísť zo skupiny? Toto Kodi sa prestane synchronizovať. Nič uložené sa nezmaže. Ostatným zariadeniam kód zostáva — odobraté zariadenie sa dá odrezať len založením novej skupiny a pripojením ostatných novým kódom."
 
 msgctxt "#30678"
-msgid "Left the group."
-msgstr "Odišiel si zo skupiny."
+msgid "The group has been left."
+msgstr "Skupina opustená."
 
 msgctxt "#30679"
 msgid "Open joining again"
@@ -1990,8 +1990,8 @@ msgid "Joining is open for 30 minutes."
 msgstr "Pripojenie je otvorené 30 minút."
 
 msgctxt "#30681"
-msgid "The dashboard only stores sealed data it cannot read. The code is the key and never leaves your devices. With Home Assistant, enter the same group code in the integration settings — HA then joins the group as another device and its card stays current."
-msgstr "Dashboard u seba drží len zapečatené dáta, ktoré sám neprečíta. Kód je kľúč a nikdy z tvojich zariadení neodíde. Ak máš Home Assistant, zadaj ten istý kód skupiny aj v nastavení integrácie — HA sa tým stane ďalším členom skupiny a karta v HA zostane aktuálna."
+msgid "The dashboard only stores sealed data it cannot read. The code is the key and never leaves the devices. With Home Assistant, enter the same group code in the integration settings — HA then joins the group as another device and its card stays current."
+msgstr "Dashboard u seba drží len zapečatené dáta, ktoré sám neprečíta. Kód je kľúč a zo zariadení nikdy neodíde. S Home Assistantom zadaj ten istý kód skupiny aj v nastavení integrácie — HA sa tým stane ďalším členom skupiny a karta v HA zostane aktuálna."
 
 msgctxt "#30682"
 msgid "What gets synced"
@@ -2010,9 +2010,9 @@ msgid "Options such as preferred language, stream sorting or enabled sources. Th
 msgstr "Voľby ako preferovaný jazyk, zoradenie streamov alebo zapnuté zdroje. Nezdieľa sa priečinok na sťahovanie ani samotné nastavenie synchronizácie."
 
 msgctxt "#30686"
-msgid "Logins for the sources (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, own storage) and the TMDB key. Passwords travel encrypted and the server cannot read them, but anyone holding the group code can — only give it to your own devices. CZtor and Trakt must be paired on each device separately."
-msgstr "Prihlásenie k zdrojom (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, vlastné úložisko) a kľúč k TMDB. Heslá idú zašifrované a server ich neprečíta, ale kto má kód skupiny, prečíta ich — dávaj ho len svojim zariadeniam. CZtor a Trakt sa musia spárovať na každom zariadení zvlášť."
+msgid "Sign-ins to the sources (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, own storage) and the TMDB key. Passwords travel encrypted and the server cannot read them, but anyone holding the group code can — give the code only to your own devices. CZtor and Trakt must be paired on each device separately."
+msgstr "Prihlásenie k zdrojom (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, vlastné úložisko) a kľúč k TMDB. Heslá idú zašifrované a server ich neprečíta, ale kto má kód skupiny, prečíta ich — kód patrí len vlastným zariadeniam. CZtor a Trakt sa musia spárovať na každom zariadení zvlášť."
 
 msgctxt "#30688"
-msgid "Syncing goes through the dashboard. If you have Home Assistant, enter the same group code in the integration settings too."
-msgstr "Synchronizácia ide cez dashboard. Ak máš Home Assistant, zadaj ten istý kód skupiny aj v nastavení integrácie."
+msgid "Synchronisation goes through the dashboard. With Home Assistant, enter the same group code in the integration settings as well."
+msgstr "Synchronizácia ide cez dashboard. S Home Assistantom zadaj ten istý kód skupiny aj v nastavení integrácie."

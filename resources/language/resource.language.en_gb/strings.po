@@ -793,7 +793,7 @@ msgid "Settings saved"
 msgstr ""
 
 msgctxt "#30358"
-msgid "Done! You can change any of this later in the add-on settings."
+msgid "Done. You can change any of this later in the add-on settings."
 msgstr ""
 
 msgctxt "#30359"
@@ -1085,15 +1085,15 @@ msgid "Support the project or follow news here. Besides this Kodi add-on, the No
 msgstr ""
 
 msgctxt "#30435"
-msgid "This list is normally built in the background, but the data isn't ready yet. Checking dubbing/subtitles across your sources, this can take a few minutes…"
+msgid "This list is normally built in the background, but the data isn't ready yet. Checking dubbing/subtitles across the enabled sources can take a few minutes…"
 msgstr ""
 
 msgctxt "#30436"
-msgid "The list is being built in the background right now, following the progress…"
+msgid "The list is being built in the background right now…"
 msgstr ""
 
 msgctxt "#30437"
-msgid "Data aren't ready — checking dubbing/subtitles across your sources can take a few minutes. Tap to start."
+msgid "Data aren't ready — checking dubbing/subtitles across the enabled sources can take a few minutes. Tap to start."
 msgstr ""
 
 msgctxt "#30438"
@@ -1189,7 +1189,7 @@ msgid "Saved. The settings are in Kodi, you can close this page."
 msgstr ""
 
 msgctxt "#30461"
-msgid "filled in — leave empty to keep"
+msgid "filled in — leave empty to keep the current value"
 msgstr ""
 
 msgctxt "#30462"
@@ -1198,6 +1198,7 @@ msgstr ""
 
 msgctxt "#30463"
 msgid "Invalid value: %s"
+msgstr ""
 
 msgctxt "#30480"
 msgid "Send error reports"
@@ -1256,7 +1257,7 @@ msgid "No similar titles found"
 msgstr ""
 
 msgctxt "#30494"
-msgid "Nothing on in this selection"
+msgid "No programmes in this selection"
 msgstr ""
 
 msgctxt "#30495"
@@ -1336,11 +1337,11 @@ msgid "Choose stream"
 msgstr ""
 
 msgctxt "#30514"
-msgid "Use the arrows to move details between the top and bottom line of the stream dialog, put what you do not want to see into Do not show. Quality is always the picture on the left."
+msgid "Use the arrows to move details between the top and bottom line of the stream dialog; move what should not be shown into Do not show. Quality is always the picture on the left."
 msgstr ""
 
 msgctxt "#30515"
-msgid "On your phone, move the details with arrows between the top and bottom line — easier than typing the order here."
+msgid "On the phone the details move with arrows between the top and bottom line. That is easier than typing the order here."
 msgstr ""
 
 msgctxt "#30516"
@@ -1364,11 +1365,11 @@ msgid "Neither the Luna address nor the token is filled in.[CR]Use “Find Luna 
 msgstr ""
 
 msgctxt "#30522"
-msgid "I do not understand the address %s.[CR]Expected something like 192.168.1.10:7126."
+msgid "The address %s is not in the expected format.[CR]Expected something like 192.168.1.10:7126."
 msgstr ""
 
 msgctxt "#30523"
-msgid "Nobody answered at %s.[CR][CR]Is the computer running Luna switched on? Is it on the same network as this TV? Try “Find Luna on the network”."
+msgid "Nobody answered at %s.[CR][CR]Is the computer running Luna switched on? Is it on the same network as this device? Try “Find Luna on the network”."
 msgstr ""
 
 msgctxt "#30524"
@@ -1400,7 +1401,7 @@ msgid "Looking for Luna on the local network…"
 msgstr ""
 
 msgctxt "#30531"
-msgid "I did not find Luna on this network.[CR][CR]Is it running on some computer at home? Does it use the default port 7126? If it runs elsewhere or on another port, fill the address in by hand."
+msgid "Luna was not found on this network.[CR][CR]Is it running on some computer at home? Does it use the default port 7126? If it runs elsewhere or on another port, fill the address in by hand."
 msgstr ""
 
 msgctxt "#30532"
@@ -1501,7 +1502,7 @@ msgid "Luna address (or the whole add-on address from /setup)"
 msgstr ""
 
 msgctxt "#30557"
-msgid "The saved setup is what gets checked — what you just typed into the field counts only after OK. You can enter a different address right here."
+msgid "The saved setup is what gets checked — a value typed into the field counts only after OK. A different address can be entered right here."
 msgstr ""
 
 msgctxt "#30558"
@@ -1605,7 +1606,7 @@ msgid "TV program: show programmes that already ended today"
 msgstr ""
 
 msgctxt "#30583"
-msgid "Today's TV programme normally hides programmes that have already ended. Turn on to see the whole day."
+msgid "Today's TV programme normally hides programmes that have already ended. Turn on to show the whole day."
 msgstr ""
 
 msgctxt "#30584"
@@ -1697,7 +1698,7 @@ msgid "Because you watched %s"
 msgstr ""
 
 msgctxt "#30607"
-msgid "Nothing to recommend yet — watch something and come back."
+msgid "No recommendations yet — they are built from recently watched titles."
 msgstr ""
 
 msgctxt "#30608"
@@ -1710,6 +1711,7 @@ msgstr ""
 
 msgctxt "#30610"
 msgid "Nothing to pick from"
+msgstr ""
 msgctxt "#30630"
 msgid "Source status"
 msgstr ""
@@ -1863,7 +1865,8 @@ msgid "Signed in as %s"
 msgstr ""
 
 msgctxt "#30628"
-msgid "Not signed in — 5 downloads a day for this address."
+msgid "Not signed in — 5 downloads a day for this IP address."
+msgstr ""
 
 msgctxt "#30651"
 msgid "ends in %s days"
@@ -1906,7 +1909,7 @@ msgid "Looking for a title in your preferred language…"
 msgstr ""
 
 msgctxt "#30661"
-msgid "Where your Kodi boxes meet"
+msgid "Synchronisation hub"
 msgstr ""
 
 msgctxt "#30662"
@@ -1946,11 +1949,11 @@ msgid "Sync search history"
 msgstr ""
 
 msgctxt "#30671"
-msgid "New group created. Type this code on your other Kodi:"
+msgid "The group is set up. Enter this code on the next Kodi:"
 msgstr ""
 
 msgctxt "#30672"
-msgid "The code lets a new device join for 30 minutes. Keep it — without it nobody can read your data, and it cannot be recovered."
+msgid "The code lets a new device join for 30 minutes. Keep the code — without it the data cannot be read and cannot be recovered."
 msgstr ""
 
 msgctxt "#30673"
@@ -1966,7 +1969,7 @@ msgid "That code does not look right."
 msgstr ""
 
 msgctxt "#30676"
-msgid "No group yet — create one, or join with a code from another Kodi."
+msgid "No group yet — start one, or join with a code from another Kodi."
 msgstr ""
 
 msgctxt "#30677"
@@ -1974,7 +1977,7 @@ msgid "Leave the group? This Kodi stops synchronising. Nothing already saved her
 msgstr ""
 
 msgctxt "#30678"
-msgid "Left the group."
+msgid "The group has been left."
 msgstr ""
 
 msgctxt "#30679"
@@ -1986,7 +1989,7 @@ msgid "Joining is open for 30 minutes."
 msgstr ""
 
 msgctxt "#30681"
-msgid "The dashboard only stores sealed data it cannot read. The code is the key and never leaves your devices. With Home Assistant, enter the same group code in the integration settings — HA then joins the group as another device and its card stays current."
+msgid "The dashboard only stores sealed data it cannot read. The code is the key and never leaves the devices. With Home Assistant, enter the same group code in the integration settings — HA then joins the group as another device and its card stays current."
 msgstr ""
 
 msgctxt "#30682"
@@ -2006,9 +2009,9 @@ msgid "Options such as preferred language, stream sorting or enabled sources. Th
 msgstr ""
 
 msgctxt "#30686"
-msgid "Logins for the sources (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, own storage) and the TMDB key. Passwords travel encrypted and the server cannot read them, but anyone holding the group code can — only give it to your own devices. CZtor and Trakt must be paired on each device separately."
+msgid "Sign-ins to the sources (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, own storage) and the TMDB key. Passwords travel encrypted and the server cannot read them, but anyone holding the group code can — give the code only to your own devices. CZtor and Trakt must be paired on each device separately."
 msgstr ""
 
 msgctxt "#30688"
-msgid "Syncing goes through the dashboard. If you have Home Assistant, enter the same group code in the integration settings too."
+msgid "Synchronisation goes through the dashboard. With Home Assistant, enter the same group code in the integration settings as well."
 msgstr ""

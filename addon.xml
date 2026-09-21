@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="6.6.0~beta2" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="6.6.0~beta3" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,10 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>6.6.0~beta2 – Střediska jsou jen dvě: Home Assistant, nebo dashboard. Kdo má obojí, zadá týž kód skupiny i v nastavení integrace v Home Assistantu — HA se tím stane dalším členem skupiny a změny z Kodi mimo domácí síť se k ní dostanou přes dashboard. Uložená volba „HA i dashboard“ se překlopí na dashboard.
+    <news>6.6.0~beta3 – Texty v nastavení, průvodci a hlášeních jsou věcné: doplněk o sobě nemluví v první osobě („Adrese nerozumím“ → „Adresa nemá očekávaný tvar“), zmizely hovorové obraty a sjednotilo se tykání (dřív se u OpenSubtitles vykalo).
+6.6.0~beta3 – Volba střediska synchronizace se jmenuje „Středisko synchronizace“ a hlášky u skupiny říkají, co se stane, ne co si uživatel má myslet.
+6.6.0~beta3 – Adresa pro nastavení z mobilu platí 30 minut; text v doplňku tvrdil 10.
+6.6.0~beta2 – Střediska jsou jen dvě: Home Assistant, nebo dashboard. Kdo má obojí, zadá týž kód skupiny i v nastavení integrace v Home Assistantu — HA se tím stane dalším členem skupiny a změny z Kodi mimo domácí síť se k ní dostanou přes dashboard. Uložená volba „HA i dashboard“ se překlopí na dashboard.
 6.6.0~beta1 – Synchronizace více Kodi i bez Home Assistanta: střed dělá dashboard, který do dat nevidí. První Kodi založí skupinu a ukáže kód, ostatní ho opíšou.
 6.6.0~beta1 – Zvlášť si zapneš, co se sdílí: zhlédnuto a rozkoukanost, Můj seznam, historie hledání, nastavení doplňku a přihlášení ke zdrojům (poslední dvě jsou vypnuté).
 6.6.0~beta1 – Volby „co se synchronizuje“ platí nově i pro cestu přes Home Assistant; dřív se tam posílalo a přijímalo vždycky všechno.

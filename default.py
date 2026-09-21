@@ -2151,7 +2151,7 @@ def sync_create():
         xbmcgui.Dialog().ok(L(30180, "Synchronizace"), f"{L(30188, 'Synchronizace selhala')}: {e}")
         return
     _sync_apply(code)
-    nadpis = L(30679, "Znovu otevřít připojení") if znovu else L(30671, "Skupina je založená. Na dalším Kodi zadej tenhle kód:")
+    nadpis = L(30679, "Znovu otevřít připojení") if znovu else L(30671, "Skupina je založená. Na dalším Kodi zadej tento kód:")
     xbmcgui.Dialog().textviewer(L(30180, "Synchronizace"),
                                 f"{nadpis}[CR][CR][B]{code}[/B][CR][CR]"
                                 f"{L(30680, 'Připojení je otevřené 30 minut.')}[CR]"
@@ -2295,8 +2295,8 @@ def remote_setup_schema(section=None):
                                   else node.get("id"))
                 if field["type"] == "order":   # nápověda z Kodi popisuje zápis `a,b|c`, tady jsou šipky
                     field["help"] = L(30514, "Šipkami přesuň údaje mezi horním a dolním řádkem dialogu výběru "
-                                             "streamu, do Nezobrazovat dej, co nechceš vidět. Kvalita je vždy "
-                                             "obrázek vlevo.")
+                                             "streamu, do Nezobrazovat přesuň, co se nemá ukazovat. Kvalita je "
+                                             "vždy obrázek vlevo.")
                 elif node.get("help"):
                     field["help"] = _plain(L(int(node.get("help"))))
                 dep = node.find("dependencies/dependency[@type='enable']")
@@ -2361,9 +2361,9 @@ class RemoteSetupWindow(xbmcgui.WindowDialog):
         self.addControl(xbmcgui.ControlImage(90, 150, 400, 400, qr_path, aspectRatio=2))
         steps = xbmcgui.ControlTextBox(540, 160, 660, 220, font="font13", textColor="FFE6E1F0")
         self.addControl(steps)
-        steps.setText(L(30452, "1. Připoj mobil ke stejné Wi-Fi jako tenhle přístroj.[CR]"
+        steps.setText(L(30452, "1. Připoj mobil ke stejné Wi-Fi jako toto zařízení.[CR]"
                                "2. Naskenuj QR kód fotoaparátem, nebo otevři v prohlížeči adresu:"))
-        footer = L(30453, "Zpět zruší · adresa platí 10 minut a pro jedno uložení")
+        footer = L(30453, "Zpět zruší · adresa platí 30 minut a pro jedno uložení")
         if xbmc.getCondVisibility("System.Platform.Android"):
             self.link = xbmcgui.ControlButton(540, 400, 700, 60, "[B]%s[/B]" % url, font="font13",
                                               textColor="FFC4B5FD", focusedColor="FFFFFFFF",
@@ -2427,7 +2427,7 @@ def remote_setup(section=None):
     ip = xbmc.getIPAddress()
     if not ip or ip.startswith("127.") or ip == "0.0.0.0":
         xbmcgui.Dialog().ok(L(30447, "Nastavit z mobilu"),
-                            L(30454, "Tenhle přístroj nemá adresu v místní síti. Připoj ho k Wi-Fi nebo kabelem "
+                            L(30454, "Toto zařízení nemá adresu v místní síti. Připoj ho k Wi-Fi nebo kabelem "
                                      "a zkus to znovu."))
         return None
     schema = remote_setup_schema(section)
@@ -2440,8 +2440,8 @@ def remote_setup(section=None):
         "intro": L(30458, "Vyplň, co chceš změnit, a ulož. Nastavení se hned propíše do Kodi."),
         "save": L(30459, "Uložit do Kodi"),
         "saved": L(30460, "Uloženo. Nastavení je v Kodi, stránku můžeš zavřít."),
-        "password_set": L(30461, "vyplněno — nech prázdné beze změny"),
-        "expired": L(30462, "Tahle adresa už neplatí. Na TV spusť Nastavit z mobilu znovu."),
+        "password_set": L(30461, "vyplněno — prázdné pole ponechá původní hodnotu"),
+        "expired": L(30462, "Tato adresa už neplatí. Na TV spusť Nastavit z mobilu znovu."),
         "invalid": L(30463, "Neplatná hodnota: %s").replace("%s", "{}"),
         "order_rows": L(30499, "Horní řádek|Dolní řádek"),
         "order_hidden": L(30500, "Nezobrazovat"),
@@ -2815,7 +2815,7 @@ def setup_wizard(force=False):
             notify(L(30413, "Přidání do TMDb Helperu selhalo"), xbmcgui.NOTIFICATION_ERROR)
 
     dialog.ok(L(30357, "Nastavení uloženo"),
-              L(30358, "Hotovo! Cokoli z tohohle můžeš kdykoli změnit v Nastavení doplňku.[CR]"
+              L(30358, "Hotovo. Vše se dá kdykoli změnit v Nastavení doplňku.[CR]"
                        "Bez zadaného zdroje budou katalog a hledání fungovat i tak, jen anglicky."))
     STORE.save("wizard_done", True)
 
@@ -2915,7 +2915,7 @@ LUNA_DIAG_TEXTS = {
                         "vytáhne sám."),
     "bad_token_format": (30526, "V poli Token není token.[CR][CR]Token začíná „e1.“ a je dlouhý. Otevři "
                                 "%s/setup a zkopíruj celou adresu doplňku."),
-    "bad_token": (30527, "Luna %s běží, ale tenhle token nepřijala.[CR][CR]Vygeneruj si adresu doplňku "
+    "bad_token": (30527, "Luna %s běží, ale tento token nepřijala.[CR][CR]Vygeneruj si adresu doplňku "
                          "znovu na %s/setup a vlož ji celou do pole Token."),
     "main_empty": (30528, "Luna %s odpovídá a hledání na WebShare funguje, ale její hlavní zdroj nic "
                           "nevrací.[CR][CR]Zkontroluj na %s/setup účet WebShare a jestli je token "
@@ -3149,7 +3149,7 @@ def luna_find_remote(values):
     stránce — do nastavení se uloží až tlačítkem Uložit."""
     found = luna_discover()
     if not found:
-        return {"level": "fail", "text": _stranka(L(30531, "V téhle síti jsem Lunu nenašel."))}
+        return {"level": "fail", "text": _stranka(L(30531, "V této síti se Luna nenašla."))}
     return {"level": "ok", "text": _stranka(L(30576, "Luna nalezena: %s") % ", ".join(f["url"] for f in found)),
             "set": {"luna_url": found[0]["url"]}, "link": _luna_setup_link(found[0]["url"])}
 
@@ -3197,7 +3197,7 @@ def os_check():
     api = get_opensubtitles()
     if api is None:
         xbmcgui.Dialog().ok(L(30611, "OpenSubtitles"),
-                    L(30623, "Klíč se nepodařilo získat ze serveru — zkuste to později."))
+                    L(30623, "Klíč se nepodařilo získat ze serveru — zkus to později."))
         return
     radky = []
     try:
@@ -3205,16 +3205,16 @@ def os_check():
     except OpenSubtitlesError as err:
         xbmc.log(f"[{ADDON_ID}] OpenSubtitles účet: {err}", xbmc.LOGINFO)
         xbmcgui.Dialog().ok(L(30611, "OpenSubtitles"),
-                    L(30624, "Přihlášení se nepovedlo — zkontrolujte jméno a heslo."))
+                    L(30624, "Přihlášení se nepovedlo — zkontroluj jméno a heslo."))
         return
     if ucet:
         radky.append(L(30627, "Přihlášen jako %s") % ucet["user"])
         radky.append(L(30626, "Zbývá dnes stažení: %s") % ucet["zbyva"])
     else:
-        radky.append(L(30628, "Bez přihlášení — 5 stažení denně pro tuhle adresu."))
+        radky.append(L(30628, "Bez přihlášení — 5 stažení denně pro tuto IP adresu."))
     nalez = api.hledej(OS_PROBE_ID, ("CZ", "SK"))
     radky.insert(0, L(30621, "OpenSubtitles funguje.") if nalez
-                 else L(30623, "Klíč se nepodařilo získat ze serveru — zkuste to později."))
+                 else L(30623, "Klíč se nepodařilo získat ze serveru — zkus to později."))
     radky.append(L(30625, "Titulků ke zkušebnímu titulu: %s") % len(nalez))
     xbmcgui.Dialog().ok(L(30611, "OpenSubtitles"), "\n".join(radky))
 
@@ -3240,7 +3240,7 @@ def luna_find():
 
     if not found:
         xbmcgui.Dialog().ok(L(30000, "Nokturno"),
-                            L(30531, "V téhle síti jsem Lunu nenašel.[CR][CR]Běží na některém počítači "
+                            L(30531, "V této síti se Luna nenašla.[CR][CR]Běží na některém počítači "
                                      "v domácnosti? Má výchozí port 7126? Pokud běží jinde nebo na jiném "
                                      "portu, vyplň adresu ručně."))
         return
@@ -3314,9 +3314,9 @@ def luna_check(base=None, token=None, kolo=0, ask=False):
     # Zadat adresu je první volba schválně: ověřuje se uložené nastavení, takže
     # hodnota právě přepsaná v políčku (bez OK) se sem jinak nedostane
     volba = xbmcgui.Dialog().yesnocustom(
-        L(30534, "Ověření Luny"), f"{mark}{text}[CR][CR]" + L(30557, "Ověřuje se uložené nastavení — co jsi "
-                                                                    "právě přepsal v políčku, se počítá až po OK. "
-                                                                    "Jinou adresu můžeš zadat rovnou tady."),
+        L(30534, "Ověření Luny"), f"{mark}{text}[CR][CR]" + L(30557, "Ověřuje se uložené nastavení — hodnota "
+                                                                    "rozepsaná v políčku se započítá až po OK. "
+                                                                    "Jinou adresu lze zadat rovnou zde."),
         customlabel=L(30536, "Poslat log"), nolabel=L(30537, "Zavřít"), yeslabel=L(30555, "Zadat adresu"))
     if volba == 1 and kolo < 3:      # Zadat adresu → zkusit znovu s ní
         nova = xbmcgui.Dialog().input(L(30556, "Adresa Luny (nebo celá adresa doplňku ze /setup)"),
@@ -3365,7 +3365,7 @@ def speedtest():
     elapsed = max(time.time() - t0, 0.5)
     if got < 512 * 1024:
         # míň než půl megabajtu je jen šum (pomalé DNS, krátké přerušení) — s tím se nepočítá
-        notify(L(30222, "Stáhlo se moc málo dat, zkus to znovu"), xbmcgui.NOTIFICATION_WARNING, 5000)
+        notify(L(30222, "Stáhlo se příliš málo dat, zkus to znovu"), xbmcgui.NOTIFICATION_WARNING, 5000)
         return
     mbps = got * 8 / elapsed / 1_000_000
     allowed_mbps = round(mbps * (1 - SPEEDTEST_RESERVE), 1)
@@ -3939,8 +3939,8 @@ def lang_catalog_menu(apis, ctype, want):
         folder_item(label, build_url(action="lang_catalog_menu", type=ctype, want=want),
                     icon="DefaultAddonsSearch.png")
     else:
-        folder_item(L(30437, "Data aren't ready — checking dubbing/subtitles across your sources can take a "
-                              "few minutes. Tap to start."),
+        folder_item(L(30437, "Data aren't ready — checking dubbing/subtitles across the enabled sources can take "
+                              "a few minutes. Tap to start."),
                     build_url(action="lang_catalog_trigger", type=ctype, want=want), icon="DefaultAddonsSearch.png")
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
@@ -4190,7 +4190,7 @@ def _build_lang_catalog(apis, ctype):
     if bar:
         bar.create(L(30000, "Nokturno"), L(30435, "This list is normally built in the background, but the "
                                                     "data isn't ready yet. Checking dubbing/subtitles across "
-                                                    "your sources, this can take a few minutes…"))
+                                                    "the enabled sources can take a few minutes…"))
         bar.update(0)
     matched = {"dub": [], "subs": []}
     try:
@@ -5023,7 +5023,7 @@ def list_foryou(apis, ctype):
         add_meta_item(m, ctype)
     if not items:
         # notifikace, ne modál — sem se dá dostat i z widgetu a z JSON-RPC
-        notify(L(30607, "Zatím nemám z čeho doporučovat — něco si pusť a vrať se."),
+        notify(L(30607, "Zatím není z čeho doporučovat — seznam vzniká z naposledy zhlédnutých titulů."),
                xbmcgui.NOTIFICATION_INFO, 4000)
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
@@ -5164,7 +5164,7 @@ def random_title(apis, ctype):
         log_error(f"náhodný titul: {e}")
         meta, genre, has_lang = None, "", True
     if meta is None:
-        notify(L(30610, "Nemám z čeho losovat"), xbmcgui.NOTIFICATION_WARNING, 4000)
+        notify(L(30610, "Není z čeho losovat"), xbmcgui.NOTIFICATION_WARNING, 4000)
         if HANDLE >= 0:
             xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
         return
@@ -5269,7 +5269,7 @@ def list_tv(apis, day="", kind="", channel=""):
         add_meta_item(it["meta"], it["kind"], label=label)
         shown += 1
     if not shown:
-        li = xbmcgui.ListItem(label=f"[COLOR {GREY}]{L(30494, 'V tomhle výběru nic nedávají')}[/COLOR]")
+        li = xbmcgui.ListItem(label=f"[COLOR {GREY}]{L(30494, 'V tomto výběru nejsou žádné pořady')}[/COLOR]")
         xbmcplugin.addDirectoryItem(HANDLE, tv_url(day, kind, channel), li, isFolder=True)
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
