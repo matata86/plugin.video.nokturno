@@ -29,6 +29,8 @@ Dvě vlastnosti serveru, se kterými je nutné počítat:
 * **HTTP 429.** Limit je plovoucí a nepravidelný — dvacet dotazů v dávce projde,
   dvanáct po 1,5 s ne. Po první 429 se zdroj na `RATE_LIMIT_COOLDOWN` přeskakuje,
   stejně jako HellSpy (6.0.2, 6.0.4): opakované dotazy blokaci jen prodlužují.
+  Dotazy z více vláken navíc jdou za sebou po `MIN_GAP` (`_wait_for_slot`) — dřív pět
+  hledání naráz (náhodný titul, zahřívání katalogu) dostalo 429 všechna.
 * **Prázdná odpověď na některé dotazy.** Hledání je jinak citlivé na diakritiku i
   na pořadí slov, ale `okresni prebor` vrátí nula výsledků, zatímco `prebor
   okresni` i `okresni prebo` vrátí plnou stranu. Je to vada jejich indexu u
@@ -38,6 +40,7 @@ Dvě vlastnosti serveru, se kterými je nutné počítat:
 import hashlib
 import html
 import re
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -86,6 +89,16 @@ PREMIUM_RE = re.compile(r"PREMIUM\s*(?:<[^>]*>\s*)*(\d+)\s*dn", re.S)
 RATE_LIMIT_COOLDOWN = 10 * 60
 BLOCK_STORE = "prehrajto_block"
 _blocked_until = 0.0
+
+#: Odstup mezi dvěma dotazy na server, ať jdou vlákna za sebou. Limit Přehraj.to je plovoucí
+#: a hlídá se na adresu — náhodný titul nebo zahřívání katalogu hledá víc titulů naráz
+#: a pět dotazů ve stejné desetině sekundy dostalo 429 (logy z 2026-09-21).
+MIN_GAP = 1.5
+#: Kdo by na svůj termín čekal déle, dotaz vynechá; fronta desítek kandidátů katalogu
+#: by jinak držela vlákna minuty a zdroj by se hlásil jako výpadek celého hledání.
+MAX_QUEUE_WAIT = 8.0
+_gate = threading.Lock()
+_next_slot = 0.0
 
 
 class PrehrajtoError(Exception):
@@ -266,12 +279,31 @@ class PrehrajtoApi:
         except Exception as e:  # noqa: BLE001 – síť, DNS, rozpadlé spojení
             raise PrehrajtoError(str(e)[:120]) from e
 
+    @staticmethod
+    def _wait_for_slot():
+        """Zařadí dotaz do fronty: termíny se rozdávají po `MIN_GAP`, spí se mimo zámek."""
+        global _next_slot
+        with _gate:
+            now = time.time()
+            slot = max(now, _next_slot)
+            if slot - now > MAX_QUEUE_WAIT:
+                err = PrehrajtoError("fronta dotazů je plná, přeskočeno")
+                err.paused = True   # není to chyba serveru — loguje se jen ladicí řádek
+                raise err
+            _next_slot = slot + MIN_GAP
+        if slot > now:
+            time.sleep(slot - now)
+
     def _page(self, path, **kw):
-        pauza = blocked_for(self.cache)
-        if pauza:
-            err = PrehrajtoRateLimited(f"pauza po HTTP 429, zbývá {int(pauza)} s", status=429)
-            err.paused = True
-            raise err
+        def paused():
+            pauza = blocked_for(self.cache)
+            if pauza:
+                err = PrehrajtoRateLimited(f"pauza po HTTP 429, zbývá {int(pauza)} s", status=429)
+                err.paused = True
+                raise err
+        paused()
+        self._wait_for_slot()
+        paused()   # za tu dobu mohla jiná fronta narazit na 429
         resp = self._open(path, **kw)
         try:
             # `replace` — v názvech souborů od uživatelů se občas objeví bajt mimo UTF-8

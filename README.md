@@ -1,6 +1,6 @@
 ![Nokturno](https://raw.githubusercontent.com/matata86/plugin.video.nokturno/main/resources/media/fanart.jpg)
 
-# Nokturno — filmy a seriály z WebShare, Sosáče, Luny, HellSpy, Sledujteto, FastShare a CZtoru pro Kodi
+# Nokturno — filmy a seriály z WebShare, Sosáče, Luny, HellSpy, Sledujteto, FastShare, CZtoru a Přehraj.to pro Kodi
 
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-podpo%C5%99%20autora-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/matata86) [![PayPal](https://img.shields.io/badge/PayPal-paypal.me%2Fmatata86-00457C?logo=paypal&logoColor=white)](https://paypal.me/matata86) [![Bitcoin](https://img.shields.io/badge/Bitcoin-BTC-f7931a?logo=bitcoin&logoColor=white)](#podpora)
 
@@ -18,7 +18,7 @@ Nastavení účtů se dá pohodlně vyplnit **z mobilu** (QR kód na TV) nebo p�
 
 ## Zdroje
 
-Video doplněk pro Kodi (20 Nexus a novější — `InfoTagVideo`, testováno na Kodi 21 Omega, CoreELEC). Sedm rovnocenných zdrojů streamů a vlastní úložiště, každý jde zapnout samostatně:
+Video doplněk pro Kodi (20 Nexus a novější — `InfoTagVideo`, testováno na Kodi 21 Omega, CoreELEC). Osm rovnocenných zdrojů streamů a vlastní úložiště, každý jde zapnout samostatně:
 
 | zdroj | co dává | co potřebuje |
 |---|---|---|
@@ -29,13 +29,14 @@ Video doplněk pro Kodi (20 Nexus a novější — `InfoTagVideo`, testováno na
 | **Sledujteto** (od 3.0.0) | fulltextové hledání na sledujteto.cz a přehrávání; rozlišení, kanály a kodek zvuku posílá přímo jejich API | účet Sledujteto (e-mail + heslo), k přehrání **Premium** |
 | **FastShare** (od 5.1.0) | fulltextové hledání na fastshare.cz a přehrávání; rozlišení a stopáž posílá jejich API, zvuk se dočte z hlavičky souboru (pár set kB z kreditu, jednou za 30 dní) | účet FastShare (jméno + heslo), přehrání z **kreditu** nebo neomezeného tarifu |
 | **CZtor** (od 6.0.0) | předplatný katalog cztor.com; zvuk, titulky a rozlišení rovnou z API | předplatné CZtor, párování PINem (*Nastavení → CZtor → Spárovat PINem*, heslo se nezadává) |
+| **Přehraj.to** (od 7.0.0) | fulltextové hledání na prehraj.to a přehrávání; funguje i **bez účtu** (první strana výsledků, překódované 1080p), s **Premium** se stránkuje a hraje původní soubor; rozlišení a zvuk se dočtou z hlavičky souboru | nic; volitelně účet Přehraj.to (e-mail + heslo, jiný než na Sledujteto), Premium pro původní soubory |
 | **Vlastní úložiště** (od 3.1.0) | tvoje soubory z NAS, Nextcloudu nebo serveru — až tři WebDAV složky; u titulů mezi streamy vždy první, v menu **Moje úložiště** | adresa složky na WebDAV, případně jméno a heslo |
 
-Přihlašovací údaje zůstávají v Kodi — doplněk je posílá jen službě, ke které patří (WebShare, Streamuj, Luna, Sledujteto, FastShare, CZtor).
+Přihlašovací údaje zůstávají v Kodi — doplněk je posílá jen službě, ke které patří (WebShare, Streamuj, Luna, Sledujteto, FastShare, CZtor, Přehraj.to).
 
 ## Co umí
 
-- **Sedm zdrojů + vlastní úložiště** v jednom hledání a jednom výběru streamu (stejný soubor z více zdrojů se sloučí do jednoho řádku)
+- **Osm zdrojů + vlastní úložiště** v jednom hledání a jednom výběru streamu (stejný soubor z více zdrojů se sloučí do jednoho řádku)
 - **Výběr streamu v dialogu** — kvalita, jazyk zvuku i titulků, kanály, kodek, velikost; filtr a zapamatovaný stream u seriálu
 - **Pokračovat ve sledování**, Můj seznam, rozkoukané a zhlédnuté i bez Kodi knihovny; **Trakt.tv** a **Up Next**
 - **Synchronizace více Kodi** (od 6.6.0) — zhlédnuto, Můj seznam, historie, nastavení i přihlášení se sdílí mezi zařízeními **bez Home Assistanta**; server do dat nevidí
@@ -50,7 +51,7 @@ Přihlašovací údaje zůstávají v Kodi — doplněk je posílá jen službě
 - **Přenos nastavení do dalšího Kodi** (od 6.2.0) — kód `NKT-XXXX-XXXX`, obsah šifrovaný, platí 15 minut; nebo přes soubor na USB. CZtor a Trakt se nepřenášejí
 - **Titulky z OpenSubtitles** (od 6.4.0) — doplní české a slovenské titulky, když je zdroje nemají; bez účtu 5 za den, s vlastním 20
 - **Pro Tebe** a **Náhodný film / seriál** (od 6.3.0) — doporučení podle historie zhlédnutého (počítá se v tvém Kodi) a losování titulu v oblíbeném žánru s tvým jazykem
-- **Stav zdrojů v menu** (od 6.3.1) — řádek nahoře se ukáže, jen když je co řešit (předplatné, Luna, HellSpy, Premium, CZtor)
+- **Stav zdrojů v menu** (od 6.3.1) — řádek nahoře se ukáže, jen když je co řešit (předplatné, Luna, HellSpy, Premium, CZtor, Přehraj.to)
 - **Diagnostika Luny** — tlačítka *Najít Lunu v síti* a *Ověřit nastavení Luny*, které řeknou konkrétní příčinu
 - **TV program**, **podobné tituly** a **katalogy z dashboardu** (i s podsložkami)
 - **Sloučené verze streamů** (`×3`), zvuk a titulky podle preferovaného jazyka (čeština, slovenština, angličtina, maďarština), stahování z kontextového menu s navazováním po přerušení
@@ -135,7 +136,7 @@ repozitář nabízí i předchozí vydání.
 
 ## Nastavení zdrojů
 
-Zapni, co máš — jeden, víc, nebo všech sedm (plus vlastní úložiště):
+Zapni, co máš — jeden, víc, nebo všech osm (plus vlastní úložiště):
 
 - **WebShare (přímo)** — jméno + heslo k WebShare (nebo 40znakový salted hash, který používá WebShare doplněk pro Stremio).
 - **Sosáč** — jméno + heslo ke **Streamuj.tv** (přehrávač Sosáče). Katalogy a hledání jdou z veřejných JSON exportů `tv.sosac.to`, streamy ze `streamuj.tv` — stejně jako oficiální Kodi doplněk Sosáče.
@@ -144,6 +145,7 @@ Zapni, co máš — jeden, víc, nebo všech sedm (plus vlastní úložiště):
 - **Sledujteto** — e-mail a heslo v kategorii *Sledujteto*. Hledá se s jakýmkoli účtem, přehrát jde jen s **Premium**; *Nastavení → Pokročilé → Otestovat zdroje* ukáže, jestli je aktivní.
 - **FastShare** — jméno a heslo v kategorii *FastShare*. Hledá se i bez účtu, přehrání se odečte z **kreditu** podle velikosti souboru (pokud nemáš neomezené stahování); *Nastavení → Pokročilé → Otestovat zdroje* ukáže, kolik kreditu zbývá. Soubor chce cookie z přihlášení, Kodi ji posílá samo.
 - **CZtor** — *Nastavení → CZtor → Spárovat PINem*: na TV se ukáže PIN, zadáš ho na `cztor.com/activate`; heslo se do doplňku nezadává.
+- **Přehraj.to** — zapnuté rovnou po instalaci, účet není potřeba. E-mail a heslo (kategorie *Přehraj.to*) přidají další strany výsledků a u **Premium** původní soubor místo překódovaného 1080p. Server omezuje dotazy z jedné adresy (HTTP 429) — doplněk pak zdroj na 10 minut přeskočí; *Nastavení → Pokročilé → Otestovat zdroje* ukáže stav.
 - **Vlastní databáze filmů a seriálů (TMDB)** — nepovinné, ale s klíčem má přednost i před Lunou (viz výš): zdarma klíč z [themoviedb.org](https://www.themoviedb.org/signup) → ikona profilu → *Nastavení* → *API* → *Request an API Key* → *Developer* → krátký formulář → zkopíruj **API Key (v3 auth)** (ne delší "API Read Access Token") do *Nastavení → Vlastní databáze filmů a seriálů*. Bez klíče se použije Luna (je-li dostupná), jinak zdarma veřejný katalog Sosáče a Cinemeta, ale bez českého popisu.
 
 ## Vlastní databáze filmů a seriálů
@@ -155,7 +157,7 @@ Katalog (*Filmy* / *Seriály*) a hledání titulů běžely dřív jen přes Lun
 3. **Veřejný katalog Sosáče** — bez TMDB i Luny, bez účtu, české tituly a žánry, ale bez popisu
 4. **Cinemeta** — poslední záchrana, funguje vždy, ale jen anglicky
 
-Streamy samotné (WebShare/HellSpy/Sledujteto/FastShare/Luna) se pak hledají stejně jako dřív — vlastní databáze řeší jen "co je to za titul", ne odkud stream stáhnout.
+Streamy samotné (WebShare/HellSpy/Sledujteto/FastShare/CZtor/Přehraj.to/Luna) se pak hledají stejně jako dřív — vlastní databáze řeší jen "co je to za titul", ne odkud stream stáhnout.
 
 ## Nokturno v Home Assistantu
 
