@@ -5999,11 +5999,13 @@ class TestKoncerty(unittest.TestCase):
         def menu(self, placement=None, ctype=None):
             return []
 
-        def concerts(self, sources):
-            self.volani.append(("concerts", tuple(sources)))
-            return [{"id": 7, "name": "Pink Floyd", "concerts": 42}]
+        prazdny = False   # server téhle instalaci koncerty nevydává (404 → [])
 
-        def concert_artist(self, artist_id, sources):
+        def concerts(self, sources, install=""):
+            self.volani.append(("concerts", tuple(sources), install))
+            return [] if self.prazdny else [{"id": 7, "name": "Pink Floyd", "concerts": 42}]
+
+        def concert_artist(self, artist_id, sources, install=""):
             self.volani.append(("artist", artist_id, tuple(sources)))
             return {"artist": "Pink Floyd", "concerts": [
                 {"title": "Live in Venice", "year": 1989, "files": [
@@ -6015,6 +6017,10 @@ class TestKoncerty(unittest.TestCase):
 
     def setUp(self):
         reset_kodi()
+        default.STORE.clear_cache()   # „server vydává" se drží hodinu — mezi testy pryč
+        patcher = mock.patch.object(default, "install_id", return_value="inst-office")
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def test_polozka_v_menu_jen_se_zdrojem_koncertu(self):
         default.main_menu({"dash": self.Dash(), "cinemeta": object(), "hs": object()})
@@ -6023,10 +6029,22 @@ class TestKoncerty(unittest.TestCase):
         default.main_menu({"dash": self.Dash(), "cinemeta": object(), "sosac": object()})
         self.assertNotIn({"action": "concerts"}, [params_of(u) for u in xbmcplugin.urls()])
 
+    def test_polozka_v_menu_jen_kdyz_server_vydava(self):
+        """Zkušební provoz: dashboard vydává koncerty jen instalacím ze seznamu, ostatním
+        404 — ty položku v menu nemají. Odpověď se drží hodinu, menu nevolá server pokaždé."""
+        dash = self.Dash()
+        dash.prazdny = True
+        default.main_menu({"dash": dash, "cinemeta": object(), "hs": object()})
+        self.assertNotIn({"action": "concerts"}, [params_of(u) for u in xbmcplugin.urls()])
+        xbmcplugin.reset()
+        default.main_menu({"dash": dash, "cinemeta": object(), "hs": object()})
+        self.assertEqual(len(dash.volani), 1, "druhé otevření menu jde z cache")
+        self.assertEqual(dash.volani[0][2], "inst-office", "server dostane id instalace")
+
     def test_interpreti_a_zdroje_pro_server(self):
         dash = self.Dash()
         default.list_concerts({"dash": dash, "ws": object(), "fs": object(), "pt": object()})
-        self.assertEqual(dash.volani, [("concerts", ("webshare", "fastshare"))])   # pt koncerty neumí
+        self.assertEqual(dash.volani, [("concerts", ("webshare", "fastshare"), "inst-office")])   # pt koncerty neumí
         (_h, url, li, folder), = xbmcplugin.items
         self.assertTrue(folder)
         self.assertEqual(params_of(url), {"action": "concert_artist", "id": "7"})

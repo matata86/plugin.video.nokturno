@@ -1081,6 +1081,7 @@ def list_dash_group(apis, slug, ctype):
     xbmcplugin.endOfDirectory(HANDLE)
 
 
+CONCERTS_MENU_TTL = 3600
 CONCERT_SOURCE_KEYS = (("ws", "webshare"), ("hs", "hellspy"), ("fs", "fastshare"))
 
 
@@ -1090,13 +1091,29 @@ def concert_sources(apis):
     return [name for key, name in CONCERT_SOURCE_KEYS if apis.get(key)]
 
 
+def concerts_available(apis):
+    """Má se položka Koncerty ukázat? Zdroj, který koncerty umí, a server, který je téhle
+    instalaci vydává (zkušební provoz: dashboard má seznam instalací, ostatním vrací 404).
+    Odpověď se drží hodinu (`CONCERTS_MENU_TTL`), ať otevření menu nestojí dotaz."""
+    dash = apis.get("dash")
+    sources = concert_sources(apis)
+    if not (dash and sources):
+        return False
+    try:
+        stav = STORE.cached("nokturno:concerts:menu", CONCERTS_MENU_TTL,
+                            lambda: {"ok": bool(dash.concerts(sources, install=install_id()))})
+    except Exception:      # noqa: BLE001 – výpadek serveru menu nezdrží
+        return False
+    return bool(stav and stav.get("ok"))
+
+
 def list_concerts(apis):
     """Katalog koncertů z dashboardu: interpreti, u každého počet koncertů dostupných
     v uživatelových zdrojích. Koncert nemá IMDb id, jde tedy mimo běžné tituly —
     server drží hotové vnitřní odkazy a klient je jen přehraje (`play_ref`)."""
     dash = apis.get("dash")
     sources = concert_sources(apis)
-    rows = dash.concerts(sources) if dash and sources else []
+    rows = dash.concerts(sources, install=install_id()) if dash and sources else []
     xbmcplugin.setPluginCategory(HANDLE, L(30750, "Koncerty"))
     set_content("videos")
     if not rows:
@@ -1115,7 +1132,7 @@ def list_concert_artist(apis, artist_id):
     zapnutých zdrojů; ostatní soubory téhož koncertu jdou do `alts` a `play_ref` je
     zkusí, když první selže (tentýž vzorec jako sloučené verze u filmů)."""
     dash = apis.get("dash")
-    data = dash.concert_artist(artist_id, concert_sources(apis)) if dash else None
+    data = dash.concert_artist(artist_id, concert_sources(apis), install=install_id()) if dash else None
     set_content("videos")
     if not data or not data["concerts"]:
         notify(L(30751, "Koncerty teď nejsou dostupné"), xbmcgui.NOTIFICATION_WARNING, 4000)
@@ -4270,7 +4287,7 @@ def main_menu(apis):
     folder_item(L(30483, "TV program"), build_url(action="tv"), icon="DefaultAddonPVRClient.png")
     # koncerty jsou jen ve fulltextových zdrojích (WebShare, HellSpy, FastShare) — bez nich
     # by server neměl co vrátit, tak položka bez nich ani není
-    if concert_sources(apis):
+    if concerts_available(apis):
         folder_item(L(30750, "Koncerty"), build_url(action="concerts"), icon="DefaultMusicVideos.png")
     # jako Pokračovat výš: na čisté instalaci nevede do prázdna. Podmínka musí pokrýt
     # obojí, co je uvnitř — Můj seznam i Naposledy zhlédnuté (to je schované až tam).
