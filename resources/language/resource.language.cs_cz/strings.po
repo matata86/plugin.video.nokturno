@@ -2203,3 +2203,32 @@ msgstr "Nejdřív musíš souhlasit s podmínkami použití. Otevřít nastaven�
 msgctxt "#30740"
 msgid "Open the settings"
 msgstr "Otevřít nastavení"
+
+
+msgctxt "#30741"
+msgid "Unavailable streams: %s — hidden"
+msgstr "Nedostupné streamy: %s — skryto"
+
+msgctxt "#30742"
+msgid "Pause source"
+msgstr "Uspat zdroj"
+
+msgctxt "#30743"
+msgid "10 minutes"
+msgstr "10 minut"
+
+msgctxt "#30744"
+msgid "1 hour"
+msgstr "1 hodina"
+
+msgctxt "#30745"
+msgid "12 hours"
+msgstr "12 hodin"
+
+msgctxt "#30746"
+msgid "Cancel pause"
+msgstr "Zrušit uspání"
+
+msgctxt "#30747"
+msgid "%s paused for %s"
+msgstr "%s uspán na %s"

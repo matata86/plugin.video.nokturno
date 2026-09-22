@@ -21,6 +21,7 @@ from datetime import datetime
 
 from abort import Aborted, check as check_stop, gather, never
 import accounts as accounts_lib
+import deadhost
 from const import (CONF_CZ_ENABLED, CONF_HS_ENABLED, CONF_PT_ENABLED, DEFAULT_SORT, LANGS,
                         SORT_ORDERS)
 from cinemeta_api import CinemetaApi, CinemetaError
@@ -65,6 +66,10 @@ AUDIO_TTL = 30 * 24 * 3600    # obsah souboru se nemění, stačí zjistit jedno
 # soubor, bez něj překódovaný (jiné rozlišení, jiná délka), ident je přitom stejný.
 # Vlastní úložiště a torrenty ne — patří jednomu uživateli a přišly z jeho adresy.
 SHARED_MEDIA = ("ws:", "hs:", "fs:", "cz:")
+# label z `ostatni()`/`primary()` → klíč zdroje pro `accounts.paused_for()` (uspání z UI)
+PAUSE_KEYS = {"WebShare": "webshare", "HellSpy": "hellspy", "Sledujteto": "sledujteto",
+              "FastShare": "fastshare", "Přehraj.to": "prehrajto", "CZtor": "cztor",
+              "Sosáč": "sosac", "Luna": "luna"}
 WS_RETRY_S = 60              # po selhání loginu WebShare zkusit znovu až za minutu
 ORIG_MEMO_S = 300             # original_titles() se za jeden výpis počítá jednou, ne pětkrát
 ORIG_MEMO_FAIL_S = 30         # po výpadku Wikidat jen tak dlouho, aby to pokrylo jeden výpis
@@ -806,6 +811,8 @@ class Engine:
         if chce("prehrajto") and self.pt is not None:
             api = self.pt
             checks["prehrajto"] = lambda: accounts_lib.prehrajto(api, self.store)
+        if chce("sosac") and self.sosac is not None:
+            checks["sosac"] = lambda: accounts_lib.sosac()   # nikdy se neptá po síti
         if chce("hellspy") and self._opt(CONF_HS_ENABLED, False):
             checks["hellspy"] = lambda: accounts_lib.hellspy(self.store)   # nikdy se neptá po síti
         if chce("storage") and self.storages:
@@ -843,7 +850,7 @@ class Engine:
         # a zapíše se jen značka, podle které služba obnovu zopakuje dřív.
         # Zdroje, které odpověděly bez jediného dotazu na síť, o stavu sítě nic neříkají:
         # HellSpy se neptá nikdy, Přehraj.to bez účtu taky ne (a s pauzou po 429 ani s ním).
-        bez_site = {"hellspy"}
+        bez_site = {"hellspy", "sosac"}
         if (vysledky.get("prehrajto") or {}).get("code") in ("anonymous", "paused"):
             bez_site.add("prehrajto")
         sitove = {n: r for n, r in vysledky.items() if n not in bez_site}
@@ -1658,15 +1665,32 @@ class Engine:
         return str(stream.get("url") or "")
 
     def _media_from_file(self, url):
-        """Co se o souboru dá přečíst z jeho hlavičky. Prázdné, když to nejde."""
+        """Co se o souboru dá přečíst z jeho hlavičky. Prázdné, když to nejde.
+
+        `unreachable=True` ve výsledku znamená, že soubor teď nešel stáhnout vůbec
+        (viz `mediainfo.probe`) — hostitele, na kterém leží, si pak `_fill_audio`
+        na chvíli pamatuje jako mrtvého (`deadhost`), ať se u dalšího streamu ze
+        stejného stroje nečeká na timeout znovu.
+        """
         def load():
             if self.should_stop():
-                return {}   # doběh na pozadí po `PROBE_DEADLINE` — hostitel končí, nezačínat
+                return {}   # doběh na pozadí po `PROBE_DEADLINE` — hostitel končí, nezačínat; není to selhání
             try:
-                return probe_media(self.resolve(url))
+                adresa = self.resolve(url)
+            except Exception as err:  # noqa: BLE001 – vypršelý odkaz, odhlášený účet, mrtvý zdroj
+                _LOGGER.debug("hlavička %s: %s", url[:28], err)
+                return {"unreachable": True}
+            host = deadhost.host_of(adresa)
+            if deadhost.is_dead(host, self.store):
+                return {"unreachable": True}
+            try:
+                info = probe_media(adresa)
             except Exception as err:  # noqa: BLE001 – čtení hlavičky je bonus, nikdy nesmí shodit výpis
                 _LOGGER.debug("hlavička %s: %s", url[:28], err)
-                return {}
+                return {"unreachable": True}
+            if info.get("unreachable"):
+                deadhost.mark_dead(host, self.store)
+            return info
         # `probe()` při selhání vrací slovník s nulami — ten se nesmí pamatovat 30 dní,
         # jinak stream po jednom timeoutu měsíc nemá zvuk ani rozlišení
         store = self.shared if url.startswith(SHARED_MEDIA) else self.store
@@ -1783,6 +1807,11 @@ class Engine:
         self.last_timings["hlaviček nedočteno"] = len(todo) - len(results)
         self._probe_in_background(rest)
         for stream, info in ((s, results.get(id(s))) for s in todo):
+            if info is None:
+                continue        # nedočteno v PROBE_DEADLINE — neznámé, ne mrtvé
+            if info.get("unreachable"):
+                stream["_dead"] = True
+                continue
             if not info:
                 continue
             text = describe_media(info)
@@ -1831,6 +1860,18 @@ class Engine:
         if len(kept) != len(streams):
             self.last_timings["špatná délka"] = len(streams) - len(kept)
         return kept
+
+    def _drop_dead(self, streams):
+        """Streamy, jejichž soubor teď nejde stáhnout, do běžného výpisu nepatří.
+
+        Příznak dává `_fill_audio()` z hlavičky, která se čte tak jako tak — dotaz
+        navíc to nestojí. Stream, na který se v `PROBE_DEADLINE` nedošlo, příznak
+        nemá a zůstává: neznámé není totéž co mrtvé.
+        """
+        kept = [s for s in streams if not s.get("_dead")]
+        if len(kept) != len(streams):
+            self.last_timings["nedostupné"] = len(streams) - len(kept)
+        return kept if kept else streams
 
     def _ensure_bitrate(self, streams, meta_or_video):
         """Datový tok a délka má mít úplně každý stream, ne jen ten, co je zdroj sám řekl.
@@ -2692,6 +2733,8 @@ class Engine:
             primary_label = "Sosáč" if is_sosac_id(base_id) else "Luna"
 
             def primary():
+                if accounts_lib.paused_for(self.store, "sosac" if is_sosac_id(base_id) else "luna") > 0:
+                    return []   # uspání je volba uživatele, ne výpadek — nejde do failures
                 try:
                     api = self.api_for(base_id)
                     return api.streams(ctype, item_id, include_search=include_search) if isinstance(api, LunaApi) \
@@ -2736,7 +2779,10 @@ class Engine:
                 if probe_audio:
                     ulohy.append((SUBS_TASK, lambda: self._webshare_subtitles(m, video, ctype, alt)))
                     ulohy.append((OSUB_TASK, lambda: self._opensubtitles_subtitles(m, video, ctype)))
-                return ulohy
+                # ručně uspaný zdroj (menu „Uspat zdroj") se nevolá vůbec — SUBS_TASK/OSUB_TASK
+                # nejsou v PAUSE_KEYS, takže titulky projdou vždy
+                return [(label, fetch) for label, fetch in ulohy
+                        if label not in PAUSE_KEYS or accounts_lib.paused_for(self.store, PAUSE_KEYS[label]) <= 0]
 
             def bezpecne(label, fetch):
                 try:
@@ -2953,6 +2999,8 @@ class Engine:
         timings["hlavičky"] = since(mark)
         if probe_audio:
             assume_origin_language(with_audio, (meta or {}).get("country"))
+        if strict:
+            with_audio = self._drop_dead(with_audio)
         ordered = self._finish(sort, with_audio, video or meta)
         if on_progress and done[0] < total:
             done[0] = total

@@ -30,7 +30,7 @@ from luna_api import diagnose as luna_diagnose
 OK, WARN, FAIL, OFF = "ok", "warn", "fail", "off"
 
 #: Pořadí, v jakém se stav skládá do hlášky — nejdřív to, co uživatel platí.
-SOURCES = ("luna", "webshare", "cztor", "fastshare", "sledujteto", "prehrajto", "hellspy", "storage")
+SOURCES = ("luna", "sosac", "webshare", "cztor", "fastshare", "sledujteto", "prehrajto", "hellspy", "storage")
 
 STORE = "accounts"          # accounts.json v profilu
 OFFLINE = "accounts_offline"   # značka „při poslední obnově nebyla síť" (jen `ts`)
@@ -44,6 +44,47 @@ LOW_CREDIT_GB = 1.0         # kredit FastShare pod tímhle je varování
 
 #: Které kódy znamenají, že uživatel musí něco udělat. Menu podle toho mlčí, nebo se ozve.
 BAD = (WARN, FAIL)
+
+# --- ruční uspání zdroje (nedostupné streamy, „Uspat zdroj" v menu) ---------
+
+PAUSE_STORE = "source_pause"          # source_pause.json v profilu
+PAUSE_CHOICES = (600, 3600, 12 * 3600)   # 10 min, 1 h, 12 h — nabídka pro UI
+
+
+def _load_pause(store):
+    # kopie: `Store.load()` vrací objekt ze své paměti a `pause()` ho mění —
+    # bez kopie by neúspěšný zápis nechal v paměti jiný stav než na disku
+    try:
+        return dict(store.load(PAUSE_STORE, {}) or {})
+    except (OSError, ValueError, TypeError):
+        return {}
+
+
+def pause(store, source, seconds):
+    """Uspí zdroj na `seconds` (`<= 0` uspání zruší)."""
+    data = _load_pause(store)
+    if seconds <= 0:
+        data.pop(source, None)
+    else:
+        data[source] = time.time() + seconds
+    now = time.time()
+    data = {s: until for s, until in data.items() if until > now}
+    try:
+        store.save(PAUSE_STORE, data)
+    except OSError:
+        pass
+
+
+def paused_for(store, source):
+    """Kolik sekund ještě zdroj nevolat (0 = lze)."""
+    until = float(_load_pause(store).get(source) or 0)
+    return max(0.0, until - time.time())
+
+
+def paused(store):
+    """`{zdroj: zbývající sekundy}` jen pro ty, co ještě běží."""
+    now = time.time()
+    return {s: until - now for s, until in _load_pause(store).items() if until > now}
 
 
 def _zaznam(level, code, **detail):
@@ -109,6 +150,16 @@ def cztor(client, warn_days=WARN_DAYS, deep=False):
         if days <= warn_days:
             return _zaznam(WARN, "expires_soon", **detail)
     return _zaznam(OK, "ok", **detail)
+
+
+def sosac(cache=None):
+    """Sosáč **bez jediného dotazu na síť**. O účtu Streamuj se dá bez přihlášení
+    říct jen to, že je vyplněný — a to už znamená `sources()["sosac"]`, takže zdroj
+    bez účtu se ve stavu vůbec neobjeví. Řádek je tu hlavně proto, aby šel zdroj
+    z menu uspat, když jeho servery zrovna nedávají soubory (měřeno 2026-09-22:
+    hratelných 20 % titulů).
+    """
+    return _zaznam(OK, "ok")
 
 
 def sledujteto(api):

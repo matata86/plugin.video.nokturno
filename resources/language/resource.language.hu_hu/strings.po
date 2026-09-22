@@ -2201,3 +2201,32 @@ msgstr "Először el kell fogadnod a felhasználási feltételeket. Megnyitod a 
 msgctxt "#30740"
 msgid "Open the settings"
 msgstr "Beállítások megnyitása"
+
+
+msgctxt "#30741"
+msgid "Unavailable streams: %s — hidden"
+msgstr "Elérhetetlen streamek: %s — elrejtve"
+
+msgctxt "#30742"
+msgid "Pause source"
+msgstr "Forrás szüneteltetése"
+
+msgctxt "#30743"
+msgid "10 minutes"
+msgstr "10 perc"
+
+msgctxt "#30744"
+msgid "1 hour"
+msgstr "1 óra"
+
+msgctxt "#30745"
+msgid "12 hours"
+msgstr "12 óra"
+
+msgctxt "#30746"
+msgid "Cancel pause"
+msgstr "Szüneteltetés törlése"
+
+msgctxt "#30747"
+msgid "%s paused for %s"
+msgstr "%s szüneteltetve: %s"

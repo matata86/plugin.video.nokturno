@@ -2545,7 +2545,10 @@ class TestTitulkyAZvuk(unittest.TestCase):
              mock.patch.object(default, "resolve_url", return_value="https://cdn/x.mkv"), \
              mock.patch.object(default, "local_subtitles", return_value=["/tmp/nokturno-1.cze.srt"]) as local:
             default.play({}, "movie", "tt1")
-        local.assert_called_once_with({}, ["ws:sub"])
+        # apis dostane klíč "engine" o volání dřív než dřív (2026-09-22: `play()` čte
+        # `engine_of(apis).last_timings` kvůli detekci nedostupných streamů) — na
+        # obsahu `apis` tady nezáleží, jen na tom, že se předá dál beze změny
+        local.assert_called_once_with(mock.ANY, ["ws:sub"])
         _handle, succeeded, li = xbmcplugin.resolved[0]
         self.assertTrue(succeeded)
         self.assertEqual(li.subtitles, ["/tmp/nokturno-1.cze.srt"])
@@ -5460,6 +5463,49 @@ class TestStavZdrojuPoTestu(unittest.TestCase):
         self.assertIn("action=accounts_refresh", rpc.call_args[0][0])
 
 
+class TestUspaniZdroje(unittest.TestCase):
+    """„Uspat zdroj" ve Stavu zdrojů (2026-09-22, detekce nedostupných streamů) —
+    dialog zapíše pauzu, adresář se zavře i s handle ≥ 0 (stejná past jako
+    `test_sources` na `6.6.0~beta11`), a řádek uspaného zdroje ve výpisu to pozná."""
+
+    def setUp(self):
+        reset_kodi()
+        xbmcaddon.settings.clear()
+
+    def test_zapise_pauzu_a_zavre_adresar_s_handlem(self):
+        # handle ≥ 0 simuluje odkaz uložený v oblíbených — adresář se musí zavřít,
+        # jinak se točí kolečko navěky (stejná past jako `test_sources` na `6.6.0~beta11`)
+        with mock.patch.object(default, "HANDLE", 5):
+            with mock.patch.object(xbmcgui.Dialog, "select", return_value=1):
+                default.router("?action=source_pause&source=webshare")
+        self.assertGreater(default.accounts_paused_for(default.STORE, "webshare"), 0)
+        self.assertEqual(len(xbmcplugin.ended), 1)
+        self.assertFalse(xbmcplugin.ended[-1]["succeeded"])
+
+    def test_zruseni_uspani(self):
+        default.accounts_pause(default.STORE, "hellspy", 600)
+        with mock.patch.object(xbmcgui.Dialog, "select", return_value=len(default.SOURCE_PAUSE_CHOICES)):
+            default.source_pause("hellspy")
+        self.assertEqual(default.accounts_paused_for(default.STORE, "hellspy"), 0)
+
+    def test_radek_uspaneho_zdroje_nese_zbyvajici_cas(self):
+        default.accounts_pause(default.STORE, "webshare", 600)
+        with mock.patch.object(default, "engine_of") as engine_of:
+            engine_of.return_value.accounts.return_value = [
+                {"source": "webshare", "level": "ok", "code": "vip", "detail": {"until": "2026-12-01"}}]
+            default.list_accounts({})
+        radky = [li.label for _h, _u, li, _f in xbmcplugin.items]
+        self.assertTrue(any("m)" in r for r in radky), radky)
+
+    def test_kontextove_menu_nese_uspat_zdroj(self):
+        with mock.patch.object(default, "engine_of") as engine_of:
+            engine_of.return_value.accounts.return_value = [
+                {"source": "webshare", "level": "ok", "code": "vip", "detail": {"until": "2026-12-01"}}]
+            default.list_accounts({})
+        li = next(li for _h, _u, li, _f in xbmcplugin.items if li.label.startswith(default.WS_TAG))
+        self.assertTrue(any("source_pause" in cmd for _label, cmd in li.context))
+
+
 class TestObnovaPoVypadkuSite(unittest.TestCase):
     """Zdroj, na který se nešlo dostat, se zkusí dřív než za šest hodin — jinak by
     v menu stálo „neodpovídá" celé odpoledne, i kdyby se síť vrátila za minutu."""
@@ -5851,3 +5897,36 @@ class TestPrehraniPadneNaJinyZdroj(unittest.TestCase):
              mock.patch.object(default, "resolve_url", side_effect=FastshareError("nestačí kredit (0 MB)")):
             with self.assertRaises(FastshareError):
                 default.play({}, "movie", "tt1")
+
+
+class TestNotifikaceONedostupnychStreamech(unittest.TestCase):
+    """Detekce nedostupných streamů (2026-09-22): `play()` po hledání upozorní na
+    skryté streamy stejně jako na přeskočený zdroj — notifikací, nikdy modálem
+    (widget, TMDb Helper i JSON-RPC by ho neměly kdo zavřít)."""
+
+    def setUp(self):
+        reset_kodi()
+
+    def test_notifikace_vznikne_z_last_timings(self):
+        streams = [{"url": "ws:1", "label": "Film.mkv", "source": "ws"}]
+        fake_engine = mock.Mock()
+        fake_engine.last_timings = {"nedostupné": 2}
+        with mock.patch.object(default, "load_meta", return_value=({"name": "Film", "year": 2020}, None)), \
+             mock.patch.object(default, "collect_streams", return_value=streams), \
+             mock.patch.object(default, "resolve_url", return_value="https://cdn/x.mkv"), \
+             mock.patch.object(default, "engine_of", return_value=fake_engine):
+            default.play({}, "movie", "tt1")
+        self.assertTrue(xbmcgui.notifications, "skryté streamy musí jít jako notifikace")
+        self.assertEqual(xbmcgui.oks, [], "nikdy modál — widget/JSON-RPC by ho neměly kdo zavřít")
+        self.assertTrue(any("2" in msg for _h, msg, _i in xbmcgui.notifications))
+
+    def test_bez_nedostupnych_streamu_zadna_notifikace_navic(self):
+        streams = [{"url": "ws:1", "label": "Film.mkv", "source": "ws"}]
+        fake_engine = mock.Mock()
+        fake_engine.last_timings = {}
+        with mock.patch.object(default, "load_meta", return_value=({"name": "Film", "year": 2020}, None)), \
+             mock.patch.object(default, "collect_streams", return_value=streams), \
+             mock.patch.object(default, "resolve_url", return_value="https://cdn/x.mkv"), \
+             mock.patch.object(default, "engine_of", return_value=fake_engine):
+            default.play({}, "movie", "tt1")
+        self.assertEqual(xbmcgui.notifications, [])

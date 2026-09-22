@@ -392,15 +392,18 @@ def probe(url, opener=None):
 
     Vrací `{"audio": [...], "subs": [jazyky], "height": int}`; prázdné hodnoty
     tam, kde se nic zjistit nedá. Nikdy nevyhodí výjimku — když to nejde, vrátí
-    prázdno a doplněk se chová jako dřív.
+    prázdno a doplněk se chová jako dřív. Nešlo-li se na soubor vůbec dostat
+    (síť, server bez Range, vypršelý odkaz) nebo neposlal nic, výsledek nese
+    navíc `unreachable=True` — na rozdíl od nerozpoznaného kontejneru nebo
+    poškozené hlavičky, kde se soubor stáhnout dá, jen mu nerozumíme.
     """
     empty = {"audio": [], "subs": [], "width": 0, "height": 0, "duration": 0, "size": 0}
     try:
         head, total_size = fetch_sized(url, length=HEAD, opener=opener)
     except Exception:  # noqa: BLE001 – síť, server bez Range, vypršelý odkaz
-        return empty
+        return dict(empty, unreachable=True)
     if not head:
-        return empty
+        return dict(empty, unreachable=True)
     try:
         if head[:4] == b"\x1a\x45\xdf\xa3":
             tracks, duration = _from_mkv(head)

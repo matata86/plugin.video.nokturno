@@ -55,7 +55,9 @@ from cztor_api import CztorApi, CztorError  # noqa: E402
 from prehrajto_api import PrehrajtoApi, PrehrajtoError  # noqa: E402
 from storage_api import SLOTS as STORAGE_SLOTS, StorageApi, StorageError, parse_ref  # noqa: E402
 from accounts import (FAIL as ACC_FAIL, OFF as ACC_OFF, OK as ACC_OK,  # noqa: E402
-                      WARN as ACC_WARN, problems as accounts_problems)
+                      WARN as ACC_WARN, problems as accounts_problems,
+                      PAUSE_CHOICES, pause as accounts_pause,
+                      paused as accounts_paused, paused_for as accounts_paused_for)
 from store import WATCHED_MAX, Store, migrate_profile  # noqa: E402
 from source_errors import describe_failure, summarize as summarize_failures  # noqa: E402
 from sync import sync_once  # noqa: E402
@@ -1100,12 +1102,14 @@ def folder_item(label, url, icon=None, context=None):
     xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
 
 
-def action_item(label, url, icon=None):
+def action_item(label, url, icon=None, context=None):
     """Položka, která jen spustí akci s dialogem (nastavení, novinky, průvodce). Není složka —
     Kodi ji po kliknutí spustí s handle −1, takže se nekreslí žádný výpis a do kodi.log
     nepadá `GetDirectory - Error getting …` (to hlásí každý `endOfDirectory(succeeded=False)`)."""
     li = xbmcgui.ListItem(label=label)
     li.setArt({"icon": icon or ICON})
+    if context:
+        li.addContextMenuItems(context)
     xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=False)
 
 
@@ -3359,8 +3363,9 @@ def luna_diag_text(result, base=""):
 ACCOUNT_COLORS = {ACC_FAIL: "FFFF6B6B", ACC_WARN: "FFFFC14E", ACC_OK: "FF6FD18A", ACC_OFF: "FF9A9A9A"}
 
 # Jméno zdroje tak, jak ho uživatel zná ze seznamu streamů (obarvené stejně).
-ACCOUNT_TAGS = {"luna": LUNA_TAG, "webshare": WS_TAG, "cztor": CZ_TAG, "fastshare": FS_TAG,
-                "sledujteto": ST_TAG, "prehrajto": PT_TAG, "hellspy": HS_TAG, "storage": DAV_TAG}
+ACCOUNT_TAGS = {"luna": LUNA_TAG, "sosac": SOSAC_TAG, "webshare": WS_TAG, "cztor": CZ_TAG,
+                "fastshare": FS_TAG, "sledujteto": ST_TAG, "prehrajto": PT_TAG, "hellspy": HS_TAG,
+                "storage": DAV_TAG}
 
 # (zdroj, kód) → (id řetězce, český fallback). `%s` se dosazuje z `detail`, viz
 # `ACCOUNT_ARGS`. Luna má vlastní sadu už od 5.2.30 (`LUNA_DIAG_SHORT`), tady se
@@ -3386,6 +3391,8 @@ ACCOUNT_TEXTS = {
     ("prehrajto", "no_premium"): (30717, "účet bez Premium — méně výsledků a jen 1080p"),
     ("prehrajto", "anonymous"): (30718, "bez účtu — jen první strana výsledků"),
     ("prehrajto", "paused"): (30719, "pozastaveno na %s min (HTTP 429)"),
+    # Sosáč se na nic neptá, řádek je tu kvůli uspání zdroje — text sdílí s HellSpy
+    ("sosac", "ok"): (30645, "v pořádku"),
     ("hellspy", "ok"): (30645, "v pořádku"),
     # 429 od HellSpy = blokace sítě uživatele, ne limit dotazů (viz `source_errors`)
     ("hellspy", "paused"): (30646, "odmítá tuto síť (HTTP 429) — VPN nebo mobilní data? Zkusí se za %s min"),
@@ -3525,11 +3532,17 @@ def list_accounts(apis):
     rows = engine.accounts()
     # nadpis obrazovky — 30630 se uvolnilo ze štítku položky v menu (viz main_menu)
     xbmcplugin.setPluginCategory(HANDLE, L(30630, "Stav zdrojů"))
+    paused = accounts_paused(STORE)
     for row in rows:
         if row["level"] == ACC_OFF and row["code"] == "off":
             continue    # zdroj je vypnutý schválně, není co hlásit
-        action_item(account_line(row), build_url(action=account_action(row)),
-                    icon="DefaultAddonService.png")
+        label = account_line(row)
+        zbyva = paused.get(row["source"])
+        if zbyva:
+            label += f" [COLOR {GREY}]({int(zbyva // 60) + 1}m)[/COLOR]"
+        ctx = [(L(30742, "Uspat zdroj"), runplugin(action="source_pause", source=row["source"]))]
+        action_item(label, build_url(action=account_action(row)),
+                    icon="DefaultAddonService.png", context=ctx)
     # ne-složka jako Nastavení pod ní: jako složka by Kodi po kliknutí čekal na
     # výpis adresáře, který `test_sources` nikdy nezavře — po OK v dialogu se
     # točilo kolečko navěky (nahlášeno z mobilu na `6.6.0~beta11`)
@@ -5863,8 +5876,14 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
                                       SearchProgress(bar, Engine.STREAM_SOURCE_STEPS + AUDIO_PROBE_MAX), errors=errors)
         finally:
             bar.close()
+        dead = engine_of(apis).last_timings.get("nedostupné")
         if errors:
-            notify(skipped_notice(errors), xbmcgui.NOTIFICATION_WARNING, 7000)
+            text = skipped_notice(errors)
+            if dead:
+                text = f"{text} · {Lf(30741, dead)}"
+            notify(text, xbmcgui.NOTIFICATION_WARNING, 7000)
+        elif dead:
+            notify(Lf(30741, dead), xbmcgui.NOTIFICATION_WARNING, 7000)
         if not streams:
             if not errors:
                 notify(L(30102))
@@ -6224,6 +6243,29 @@ def trakt_logout():
     notify(L(30098))
 
 
+# volby dialogu „Uspat zdroj": (sekundy, id řetězce, český fallback)
+SOURCE_PAUSE_CHOICES = list(zip(PAUSE_CHOICES, (30743, 30744, 30745), ("10 minut", "1 hodina", "12 hodin")))
+
+
+def source_pause(source):
+    """Dialog „Uspat zdroj" nad řádkem ve Stavu zdrojů — zapíše pauzu do `accounts.pause()`,
+    kterou jádro čte v `raw_streams()` (`accounts.paused_for`), ať se nedostupný zdroj
+    přestane hledat, dokud pauza neskončí."""
+    labels = [L(sid, fallback) for _s, sid, fallback in SOURCE_PAUSE_CHOICES]
+    if accounts_paused_for(STORE, source) > 0:
+        labels.append(L(30746, "Zrušit uspání"))
+    choice = xbmcgui.Dialog().select(L(30742, "Uspat zdroj"), labels)
+    if choice < 0:
+        return
+    if choice < len(SOURCE_PAUSE_CHOICES):
+        seconds, sid, fallback = SOURCE_PAUSE_CHOICES[choice]
+        accounts_pause(STORE, source, seconds)
+        notify(Lf(30747, ACCOUNT_TAGS.get(source, source), L(sid, fallback)))
+    else:
+        accounts_pause(STORE, source, 0)
+        notify(L(30746, "Zrušit uspání"))
+
+
 # --- router ---------------------------------------------------------------------
 
 def router(query):
@@ -6257,6 +6299,7 @@ def router(query):
         "stats_send": stats_send,
         "log_send": log_send,
         "test_sources": lambda: _tlacitko(test_sources),
+        "source_pause": lambda: _tlacitko(lambda: source_pause(p["source"])),
         "remote_setup": lambda: remote_setup_action(p.get("section")),
         "transfer_send": lambda: (transfer_send(),
                                   xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
@@ -6437,7 +6480,7 @@ MARKS_SKIP = frozenset((
     "history_remove", "history_clear", "remove_progress", "search", "search_new", "downloads",
     "download_remove", "download_retry", "trakt_auth", "trakt_logout", "cztor_pair",
     "cztor_status", "cztor_logout", "clear_cache", "stats_send", "log_send", "website_info",
-    "test_sources", "remote_setup", "stream_layout_reset", "setup_wizard", "sub_status",
+    "test_sources", "source_pause", "remote_setup", "stream_layout_reset", "setup_wizard", "sub_status",
     "luna_check", "luna_find", "os_check", "speedtest", "update_repos", "tmdbhelper_player", "sync_now",
     "sync_create", "sync_join", "sync_leave",
     "whats_new", "ha_files", "settings", "transfer_send", "transfer_receive",
