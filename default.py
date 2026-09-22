@@ -4485,13 +4485,16 @@ def search_menu(kind):
         folder_item(q, build_url(action="search_run", type=kind, q=q), icon="DefaultAddonsSearch.png",
                     context=[(L(30042), runplugin(action="history_remove", type=kind, q=q))])
     if history:
-        folder_item(L(30041), build_url(action="history_clear", type=kind), icon="DefaultVideoDeleted.png")
+        # ne-složka: vymazání není výpis, Kodi ji spustí s handle −1 (viz action_item)
+        action_item(L(30041), build_url(action="history_clear", type=kind), icon="DefaultVideoDeleted.png")
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
 def search_new(apis, kind):
     query = xbmcgui.Dialog().input(search_title(kind), type=xbmcgui.INPUT_ALPHANUM)
     if not query:
+        # zrušený dialog = Kodi zůstane v menu hledání; `succeeded=True` by ho navedlo
+        # do prázdné složky. Řádek `GetDirectory - Error getting …` v logu je cena za to.
         xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
         return
     search_run(apis, kind, query)
@@ -4835,9 +4838,10 @@ def history_remove(kind, query):
 
 
 def history_clear(kind):
+    # adresář nezavírá — položka je ne-složka (handle −1) jako u `history_remove`;
+    # ze staré oblíbené položky s handle ≥ 0 ho zavře `_tlacitko` v routeru
     for k in (("any", "movie", "series") if kind == "any" else (kind,)):
         STORE.clear_history(k)
-    xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
     xbmc.executebuiltin("Container.Refresh")
 
 
@@ -6047,7 +6051,7 @@ def router(query):
     # akce bez seznamu (RunPlugin) a bez API
     simple = {
         "history_remove": lambda: history_remove(p["type"], p.get("q", "")),
-        "history_clear": lambda: history_clear(p["type"]),
+        "history_clear": lambda: _tlacitko(lambda: history_clear(p["type"])),
         "toggle_watched": lambda: toggle_watched(p["id"]),
         "remove_progress": lambda: remove_progress(p["id"], p.get("series")),
         "search": lambda: search_menu(p.get("type") or p.get("kind") or "any"),

@@ -2877,6 +2877,37 @@ class TestTlacitkaZVypisu(unittest.TestCase):
             default.router("action=luna_check")
         self.assertEqual(xbmcplugin.ended, [])
 
+    def test_vymazat_historii_neni_slozka(self):
+        """Vymazání není výpis — jako složka by Kodi po kliknutí čekalo na adresář a zapsalo
+        `GetDirectory - Error getting …action=history_clear` (log uživatele, 2026-09-22)."""
+        reset_kodi()
+        default.STORE.add_history("movie", "Matrix")
+        try:
+            with mock.patch.object(default, "HANDLE", 7):
+                default.search_menu("movie")
+        finally:
+            default.STORE.clear_history("movie")
+        polozky = {params_of(url).get("action"): folder for _h, url, _li, folder in xbmcplugin.items}
+        self.assertIs(polozky["history_clear"], False)
+        self.assertIs(polozky["search_new"], True, "nové hledání kreslí výsledky, složka zůstává")
+
+    def test_history_clear_bez_handle_nic_nezavira(self):
+        reset_kodi()
+        default.STORE.add_history("movie", "Matrix")
+        with mock.patch.object(default, "HANDLE", -1):
+            default.router("action=history_clear&type=movie")
+        self.assertEqual(default.STORE.history("movie"), [])
+        self.assertEqual(xbmcplugin.ended, [], "s handle −1 není co zavírat, jinak error v logu")
+        self.assertIn("Container.Refresh", xbmc.builtins)
+
+    def test_history_clear_ze_stare_oblibene_polozky_zavre(self):
+        """Odkaz `?action=history_clear` uložený jako oblíbená položka přijde s handle ≥ 0."""
+        reset_kodi()
+        with mock.patch.object(default, "HANDLE", 7):
+            default.router("action=history_clear&type=movie")
+        self.assertEqual(xbmcplugin.ended,
+                         [{"handle": 7, "succeeded": False, "cacheToDisc": False, "updateListing": False}])
+
     def test_vyjimka_adresar_stejne_zavre(self):
         xbmcplugin.ended.clear()
         with mock.patch.object(default, "HANDLE", 7):

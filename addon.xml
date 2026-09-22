@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="7.4.2" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="7.4.4" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>7.4.2 – Anonymní statistiky hlásí i Přehraj.to, CZtor a vlastní úložiště. Do teď se přehled zdrojů na serveru o těchto třech vůbec nedozvěděl, takže v něm vypadaly, jako by je nikdo neměl zapnuté. Posílají se dál jen názvy zdrojů, nikdy účty ani adresy.
+    <news>7.4.4 – Oprava: „Vymazat historii“ v hledání zapisovalo do protokolu Kodi chybu, i když se historie v pořádku vymazala. Položka je teď tlačítko, ne složka — chování stejné, protokol čistý.
+7.4.2 – Anonymní statistiky hlásí i Přehraj.to, CZtor a vlastní úložiště. Do teď se přehled zdrojů na serveru o těchto třech vůbec nedozvěděl, takže v něm vypadaly, jako by je nikdo neměl zapnuté. Posílají se dál jen názvy zdrojů, nikdy účty ani adresy.
 7.4.1 – Oprava: při výpadku Wikidat nebo Cinemety čekalo hledání na každý zdroj zvlášť (až 5× timeout za sebou) místo jednou — souběžné dotazy na týž údaj teď dostanou výsledek prvního i při neúspěchu.
 7.4.0 – Rychlejší první otevření titulu: údaje o souborech (zvuk, rozlišení, velikost), které už někdo jiný přečetl, si doplněk vezme ze serveru jedním dotazem místo čtení každého souboru zvlášť. Jen se zapnutými statistikami; při výpadku serveru se čte jako dřív.
 7.3.2 – HellSpy: hláška „HTTP 429“ teď říká, co znamená — HellSpy odmítá tvoji síť (VPN, mobilní data), ne že by doplněk posílal moc dotazů. Stav zdrojů v menu píše totéž a zkusí to znovu za 10 minut. Souběžné dotazy na stejný titul se slévají do jednoho.
