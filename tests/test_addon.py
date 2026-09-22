@@ -2793,13 +2793,21 @@ class TestObsahZDashboardu(unittest.TestCase):
         self.assertIn({"action": "catalog", "type": "movie", "catalog": "vanoce", "src": "dash"}, rows)
         self.assertIn({"action": "tv"}, rows)
         ikona = next(li for _h, u, li, _f in xbmcplugin.items if "vanoce" in u).art["icon"]
-        self.assertTrue(ikona.endswith("icon-vanoce.png"))
+        self.assertTrue(ikona.endswith(os.path.join("icons", "tree.png")), ikona)
         xbmcplugin.reset()
         default.browse_menu({"dash": FakeDash(self.MENU)}, "series")
         self.assertIn("sagy", {params_of(u).get("catalog") for u in xbmcplugin.urls()})
         xbmcplugin.reset()
         default.browse_menu({"dash": FakeDash(self.MENU)}, "movie")
         self.assertNotIn("sagy", {params_of(u).get("catalog") for u in xbmcplugin.urls()})
+
+    def test_katalogy_z_dashboardu_jsou_v_menu_nahore(self):
+        """Sezónní katalog má být první, co uživatel ve Filmech vidí — ne až pod
+        vlastními seznamy doplňku (přání uživatele 2026-09-22)."""
+        menu = [{"slug": "vanoce", "title": "Vánoce", "kind": "movie", "placement": "browse", "icon": "christmas"}]
+        default.browse_menu({"dash": FakeDash(menu), "cinemeta": object()}, "movie")
+        rows = [params_of(u) for u in xbmcplugin.urls()]
+        self.assertEqual(rows[0].get("catalog"), "vanoce")
 
     def test_slozka_s_podkategoriemi_vede_na_dalsi_vypis(self):
         menu = [{"slug": "vanoce", "title": "Vánoce", "kind": "movie", "placement": "root", "icon": "christmas",
@@ -3163,19 +3171,27 @@ class TestUdrzbaKodi(unittest.TestCase):
         self.assertLess(default._vkey("3.2.0~beta1"), default._vkey("3.2.0"))
         self.assertEqual(default._vkey("3.1.12"), build_repo.version_key("3.1.12"))
 
-    def test_ikony_katalogu_existuji(self):
+    def test_ikony_menu_jsou_vlastni_sada(self):
         import dash_api
-        vlastni = {k: v for k, v in default.DASH_ICONS.items() if os.sep in v}
-        for klic, cesta in vlastni.items():
-            self.assertTrue(os.path.exists(cesta), f"chybí obrázek ikony {klic}: {cesta}")
+        import sys
+        sys.path.insert(0, str(ROOT / "tools"))
+        import make_icons
         # whitelist serveru a mapa klienta musí sedět, jinak se ikona tiše zahodí
         self.assertEqual(set(dash_api.ICONS), set(default.DASH_ICONS))
+        # každá ikona z menu i z katalogů existuje jako soubor a má recept v generátoru
+        pouzite = set(re.findall(r'icon_path\("([a-z-]+)"\)', (ROOT / "default.py").read_text(encoding="utf-8")))
+        self.assertIn("search", pouzite)
+        for name in pouzite:
+            self.assertIn(name, make_icons.ICONS, f"{name} chybí v tools/make_icons.py")
+            self.assertTrue(os.path.exists(default.icon_path(name)), f"chybí obrázek {name}")
+        # ze skinu se už nebere nic — sada je v jednom stylu (2026-09-22)
+        self.assertEqual([], re.findall(r'"Default[A-Za-z0-9]+\.png"', (ROOT / "default.py").read_text(encoding="utf-8")))
 
     def test_zip_bez_balastu_a_build_hlida_novinky(self):
         for f in ("lists", "tests"):
             self.assertIn(f, build_repo.EXCLUDE)
-        # ikony katalogů se z doplňku kreslí, v zipu být musí (icon-vanoce.png z něj dřív vypadla)
-        self.assertNotIn("icon-vanoce.png", build_repo.EXCLUDE)
+        # vánoční varianta ikony doplňku se nikde nekreslí, do zipu nepatří
+        self.assertIn("icon-vanoce.png", build_repo.EXCLUDE)
         # engine.py je importuje — v zipu chybět nesmí (dřív byly vyjmuté jako „jen HA")
         self.assertFalse({"prowlarr.py", "qbittorrent.py", "engine.py"} & build_repo.EXCLUDE)
         build_repo.check(ET.parse(ROOT / "addon.xml").getroot().get("version"))   # aktuální stav projde
