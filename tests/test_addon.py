@@ -2161,6 +2161,44 @@ class TestLangCatalog(unittest.TestCase):
         self.assertEqual(xbmcgui.Window(10000).getProperty(prop), "")
 
 
+class TestLangCatalogClassifyLangs(unittest.TestCase):
+    """`_build_lang_catalog()` volá `engine.classify_langs()` (jádro, 2026-09-22),
+    ne `raw_streams()` — kolo zdrojů v jádru smí skončit na prvním dabingu a
+    Přehraj.to bez účtu se do hromadné klasifikace vůbec nezapojí; doplněk dostane
+    jen zařazení `{"k": "dub"|"subs"|"", "n": ...}`."""
+
+    def setUp(self):
+        reset_kodi()
+        default.STORE.clear_cache()
+        self.engine = default.KodiEngine()
+
+    def kandidati(self, n, ctype="movie"):
+        return [{"id": f"sosacd_m_{i}", "type": ctype, "name": f"Film {i}", "year": "2026"} for i in range(n)]
+
+    def test_pouziva_classify_langs_ne_raw_streams(self):
+        cand = self.kandidati(3)
+
+        def classify_langs(ctype, item_id, **kw):
+            return {
+                "sosacd_m_0": {"k": "dub", "n": 3},
+                "sosacd_m_1": {"k": "subs", "n": 1},
+                "sosacd_m_2": {"k": "", "n": 0},
+            }[item_id]
+        self.engine.classify_langs = classify_langs
+        self.engine.raw_streams = mock.Mock(side_effect=AssertionError("raw_streams se nemá volat přímo"))
+        apis = {"engine": self.engine, "sosac_db": FakeSosacDb(cand), "luna": None}
+
+        xbmcplugin.reset()
+        default.list_lang_catalog(apis, "movie", "dub")
+        self.assertEqual({params_of(u).get("id") for u in xbmcplugin.urls()}, {"sosacd_m_0"})
+
+        xbmcplugin.reset()
+        default.list_lang_catalog(apis, "movie", "subs")
+        self.assertEqual({params_of(u).get("id") for u in xbmcplugin.urls()}, {"sosacd_m_1"})
+
+        self.engine.raw_streams.assert_not_called()
+
+
 class TestLangCatalogMenu(unittest.TestCase):
     """`lang_catalog_menu()` (2026-09-15) — vstupní bod z menu Filmy/Seriály.
     Na rozdíl od `list_lang_catalog()` nespouští drahý živý přepočet automaticky,

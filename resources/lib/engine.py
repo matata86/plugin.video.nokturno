@@ -100,6 +100,11 @@ SOURCE_DEADLINE = 20.0
 # `/stream/` na produkci byl 31,4 s. Druhé kolo tedy dostane, co ze zbytku zbylo, nejméně
 # ale `MIN_ROUND_DEADLINE`, ať se rychlému zdroji nezavřou dveře těsně před cílem.
 MIN_ROUND_DEADLINE = 2.0
+# Kolik se drží zařazení titulu pro jazykové katalogy (`classify_langs()`) — dub/subs/nic.
+# S `probe_audio=False` se streamy schválně necachují (neověřené hlavičky by na 72 h
+# zablokovaly skutečný dialog streamů), takže by bez týhle cache zahřívání po 6 h
+# pokaždé znovu prohledalo všech ~60 kandidátů od nuly.
+LANG_CLASS_TTL = 24 * 3600
 # kolik dalších názvů (originál, anglický, český/slovenský z Wikidat) jde do fulltextových dotazů;
 # každý je u každého zdroje další HTTP dotaz (až 10 variant × 5 zdrojů = 45 dotazů na titul)
 MAX_TITLE_VARIANTS = 3
@@ -2437,6 +2442,33 @@ class Engine:
             stream["_loose"] = True
         return found
 
+    def classify_langs(self, ctype, item_id, codes=("CZ", "SK"), ttl=LANG_CLASS_TTL):
+        """Zařazení titulu pro jazykové katalogy: `{"k": "dub"|"subs"|"", "n": počet streamů}`.
+
+        „dub" = některý zdroj má zvuk v `codes`, „subs" = jen titulky, „" = nic. Dabing má
+        přednost, takže kolo zdrojů smí skončit hned, jak ho někdo nabídne (`stop_when`);
+        u titulků se dojede celé, jinak by titul s dabingem u pomalejšího zdroje skončil
+        v titulkovém seznamu.
+
+        Výsledek se drží `ttl` (24 h). Ukládá se jen když zdroje vůbec něco vrátily (`ok`) —
+        prázdno může být dočasný výpadek a má se zkusit znovu. Klíč nese otisk zapnutých
+        zdrojů a účtů (`_streams_cache_key`), takže po zapnutí nového zdroje se přepočítá.
+        """
+        want = set(codes)
+        key = f"langclass1:{self._streams_cache_key(ctype, item_id)}"
+
+        def _spocitat():
+            streams = self.raw_streams(
+                ctype, item_id, strict=True, probe_audio=False,
+                stop_when=lambda st: any(set(s.get("langs") or []) & want for s in st or []))
+            langs, subs = set(), set()
+            for s in streams:
+                langs.update(s.get("langs") or [])
+                subs.update(s.get("subs") or [])
+            return {"k": "dub" if langs & want else "subs" if subs & want else "", "n": len(streams)}
+
+        return self.store.cached_if(key, ttl, _spocitat, ok=lambda d: bool(d.get("n")))
+
     # stavy qBittorrentu → co z toho má karta ukázat
     QBIT_STATES = {
         "downloading": "running", "forcedDL": "running", "metaDL": "running",
@@ -2577,7 +2609,7 @@ class Engine:
 
     def raw_streams(self, ctype, item_id, alt=None, series_id=None, on_progress=None, failures=None,
                     strict=True, meta_video=None, probe_audio=True, on_source_done=None,
-                    on_audio_progress=None):
+                    on_audio_progress=None, stop_when=None):
         """Seřazené streamy titulu ze všech dostupných zdrojů — surové slovníky.
 
         `probe_audio=False`: vynechá `_fill_audio()` (čtení hlaviček souborů) — pro
@@ -2615,6 +2647,13 @@ class Engine:
         (`_fill_audio` — zdaleka nejdelší fáze) po každém dočteném, i jednou předem s
         `done=0` a skutečným `total` (obvykle nižším než limit). Na rozdíl od `on_progress`
         (přepočtené na jediné souhrnné procento) jde jen o tuhle fázi — pro „ověřuji 5/12“.
+
+        `stop_when(streams)`, je-li dán, se volá po každém dokončeném zdroji s jeho streamy
+        (už prohnanými `parse_stream()`, takže `langs`/`subs` jsou k dispozici) — vrátí-li
+        pravdu, na zbývající zdroje se přestane čekat (`gather(on_done=...)`). Pro hromadnou
+        klasifikaci jazykových katalogů (`classify_langs()`), kde stačí první nalezený
+        dabing. S cachovanou cestou (`strict and probe_audio`) se **ignoruje** — neúplný
+        výsledek se nesmí dostat do 72h cache streamů.
         """
         failures = [] if failures is None else failures
         total = self.STREAM_SOURCE_STEPS + AUDIO_PROBE_MAX
@@ -2678,16 +2717,22 @@ class Engine:
             def ostatni(m):
                 """Zdroje, které hledají podle názvu z `m`, a nakonec titulky z WebShare —
                 ty jen s `probe_audio` (hromadná klasifikace katalogu je nikdy nepoužije,
-                a byly to necachované dotazy za každou variantu názvu)."""
+                a byly to necachované dotazy za každou variantu názvu). Přehraj.to bez
+                účtu jede přes HTML scraping s plovoucím 429 a do klasifikace nepřidá nic
+                navíc (jazyk se u něj stejně jen hádá z názvu souboru) — hromadné ověřování
+                katalogu ho proto vynechá úplně, stejně jako titulky. S Premium účtem
+                (JSON API, bez 429) zůstává."""
                 ulohy = [
                     ("Luna" if is_sosac_id(base_id) else "Sosáč", lambda: cross(ctype, item_id, m, alt, failures)),
                     ("WebShare", lambda: self._webshare_streams(m, video, ctype, alt, strict, failures)),
                     ("HellSpy", lambda: self._hellspy_streams(m, video, ctype, alt, strict, failures)),
                     ("Sledujteto", lambda: self._sledujteto_streams(m, video, ctype, alt, strict, failures)),
                     ("FastShare", lambda: self._fastshare_streams(m, video, ctype, alt, strict, failures)),
-                    ("Přehraj.to", lambda: self._prehrajto_streams(m, video, ctype, alt, strict, failures)),
-                    ("CZtor", lambda: self._cztor_streams(m, video, ctype, alt, failures)),
                 ]
+                if probe_audio or getattr(self.pt, "_account", False):
+                    ulohy.append(("Přehraj.to",
+                                  lambda: self._prehrajto_streams(m, video, ctype, alt, strict, failures)))
+                ulohy.append(("CZtor", lambda: self._cztor_streams(m, video, ctype, alt, failures)))
                 if probe_audio:
                     ulohy.append((SUBS_TASK, lambda: self._webshare_subtitles(m, video, ctype, alt)))
                     ulohy.append((OSUB_TASK, lambda: self._opensubtitles_subtitles(m, video, ctype)))
@@ -2702,6 +2747,10 @@ class Engine:
                         failures.append((label, err))
                     return []
 
+            # neúplný výsledek se nikdy nesmí uložit do 72h cache streamů — proto se
+            # `stop_when` bere v potaz jen mimo cachovanou cestu (viz `_fetch_streams()` volání níž)
+            stop_when_ = None if (strict and probe_audio) else stop_when
+
             def kolo(ulohy):
                 """Jedna souběžná dávka: vrátí `{label: výsledek}`. Zdroje jsou nezávislé
                 a každý má vlastní timeouty (15–40 s) — za sebou byl studený výpis 8–15
@@ -2711,7 +2760,12 @@ class Engine:
 
                 Rozpočet `SOURCE_DEADLINE` je společný pro všechna kola a měří se od
                 `mark`, ne od začátku tohohle volání — druhé kolo tedy nezačíná znovu
-                od nuly."""
+                od nuly.
+
+                `stop_when_`, je-li dán, ukončí čekání hned, jak některý zdroj nabídne
+                dost (`gather(on_done=...)` — viz jeho docstring). Zdroje, na které se
+                nečekalo, se zapíšou jako prázdné se značkou `"stop"`, ne jako výpadek
+                (`failures` se pro ně neplní) — nedoběhly ze záměru, ne z chyby."""
                 zbytek = SOURCE_DEADLINE - (time.monotonic() - mark)
                 # minimum nesmí přerůst samotný rozpočet — jinak by malý `SOURCE_DEADLINE`
                 # (test, nebo kdyby ho někdo stáhl) čekání naopak prodloužil
@@ -2719,20 +2773,32 @@ class Engine:
                 pool = ThreadPoolExecutor(max_workers=len(ulohy))
                 futures = [pool.submit(bezpecne, label, fetch) for label, fetch in ulohy]
                 label_by_future = dict(zip(futures, (label for label, _fetch in ulohy)))
+                stopped = [False]
 
                 def hotovo(future):
                     label = label_by_future[future]
                     timings["zdroje"][label] = since(mark)
                     tick()
+                    streams = future.result()
                     if on_source_done and label not in SUBS_TASKS:
-                        on_source_done(label, len(future.result()))
+                        on_source_done(label, len(streams))
+                    if stop_when_ and label not in SUBS_TASKS:
+                        for stream in streams:
+                            parse_stream(stream)
+                        if stop_when_(streams):
+                            stopped[0] = True
+                            return True
+                    return False
                 out = {}
                 for future in gather(pool, futures, self.should_stop, on_done=hotovo, deadline=zbytek):
                     label = label_by_future[future]
-                    if future.done():
+                    if future.done() and not future.cancelled():
                         out[label] = future.result()
                         continue
                     out[label] = []
+                    if stopped[0]:
+                        timings["zdroje"][label] = "stop"
+                        continue
                     timings["zdroje"][label] = f">{zbytek:.0f}s"
                     if label not in SUBS_TASKS:
                         _LOGGER.info("streamy %s: %s neodpověděl do %.0f s, bere se bez něj", item_id, label,

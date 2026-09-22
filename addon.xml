@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="7.6.5" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="7.6.6" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>7.6.5 – Vlastní ikony menu z 7.6.0–7.6.4 zrušené, zpět na ikony ze skinu — nevyhovovaly. Katalogy z dashboardu zůstávají nahoře v menu Filmů a Seriálů.
+    <news>7.6.6 – Seznamy „Nově přidané s CZ dabingem/titulky“ se staví rychleji a šetrněji k serverům zdrojů. U každého titulu se zdrojů ptá dál všech najednou, ale jakmile kterýkoli nabídne český nebo slovenský dabing, na zbytek se už nečeká a jde se na další titul. Přehraj.to se do tohohle hromadného ověřování zapojí jen s účtem — bez něj z něj jazyk stejně nepozná a jeho server odmítal časté dotazy. Zařazení titulu se navíc pamatuje den, takže obnova na pozadí (každých 6 hodin) už na zdroje většinou vůbec nesáhne.
+7.6.5 – Vlastní ikony menu z 7.6.0–7.6.4 zrušené, zpět na ikony ze skinu — nevyhovovaly. Katalogy z dashboardu zůstávají nahoře v menu Filmů a Seriálů.
 7.6.4 – Ikony menu mají tmavý kruh na pozadí. Bílá silueta na průhledném pozadí byla i po opravě 7.6.3 málo vidět na některých skinech (Arctic Fuse ji kreslí i jako zvětšený náhled) — kruh dá kontrast bez ohledu na barvu podkladu.
 7.6.3 – Ikony v menu vypadaly na skinu Arctic Fuse rozbitě — položky Filmů, Seriálů a spol. nesly ikonu i jako velký náhledový obrázek (thumb), který Arctic Fuse zvětšuje do dlaždice. Bílá silueta na průhledném pozadí v ní vypadala jako prázdné místo. Ikona teď nese jen malý obrázek u položky, náhled si skin dokreslí sám.
 7.6.2 – Oprava: když vybraný stream nešel přehrát, doplněk to vzdal, i když tentýž film ležel na dalších zdrojích. Stávalo se to hlavně u FastShare s vyčerpaným kreditem, u vypršelého účtu nebo u smazaného souboru — chyba se objevila i po opakovaném pokusu, protože nové hledání zase vybralo tentýž zdroj. Teď se po neúspěchu zkusí další nalezené streamy a přehrávání naskočí z toho, který funguje.

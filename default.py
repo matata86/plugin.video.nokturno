@@ -217,7 +217,6 @@ FORYOU_PAGES = 5   # z kolika stránek katalogu se losuje „Náhodný film" (v�
 RANDOM_CANDIDATES = 8   # kolik titulů se u „Náhodného filmu" ověřuje na preferovaný jazyk
 RANDOM_BUDGET_S = 15.0  # na celé ověřování; pak se vezme cokoli (lepší titul bez CZ než čekání)
 RANDOM_WORKERS = 4
-CZECH_LANGS = {"CZ", "SK"}
 SOSAC_TAG = "[COLOR FFE0A040]Sosáč[/COLOR]"
 HS_TAG = "[COLOR FFFF8A6B]HellSpy[/COLOR]"
 ST_TAG = "[COLOR FF4DD0C0]Sledujteto[/COLOR]"
@@ -4360,14 +4359,18 @@ def list_lang_catalog(apis, ctype, want):
     (ten u filmů jazyk rozliší jen napůl spolehlivě, viz cache staleness; u seriálů
     vůbec) se jazyk ověřuje živě: kandidáti jsou surové „nově přidané" ze Sosáče,
     ale co je doopravdy dabing/titulky se zjišťuje stejně jako v detailu titulu —
-    přes `Engine.raw_streams()` napříč VŠEMI zdroji, které má uživatel zapnuté (jeden
-    zdroj tvrdí anglicky s anglickými titulky neznamená, že jiný zdroj nemá dabing).
-    Sosáč/Luna mají jazyk přímo v popisku (levné), WebShare/HellSpy/Sledujteto/
-    FastShare ho jádro odhadne z názvu (taky levné, jen text) — `probe_audio=False`
-    ale vynechá poslední, nejdražší krok, čtení hlaviček souboru přes síť
-    (`_fill_audio`), který by u desítek titulů byl neúnosně pomalý (odhad z popisku/
-    názvu stačí na klasifikaci ano/ne, nemusí být ověřený jako ve skutečném dialogu
-    streamů).
+    přes `Engine.classify_langs()` napříč VŠEMI zdroji, které má uživatel zapnuté
+    (jeden zdroj tvrdí anglicky s anglickými titulky neznamená, že jiný zdroj nemá
+    dabing). Sosáč/Luna mají jazyk přímo v popisku (levné), WebShare/HellSpy/
+    Sledujteto/FastShare ho jádro odhadne z názvu (taky levné, jen text) —
+    `probe_audio=False` ale vynechá poslední, nejdražší krok, čtení hlaviček
+    souboru přes síť (`_fill_audio`), který by u desítek titulů byl neúnosně
+    pomalý (odhad z popisku/názvu stačí na klasifikaci ano/ne, nemusí být ověřený
+    jako ve skutečném dialogu streamů). Kolo zdrojů navíc skončí hned, jak některý
+    nabídne CZ/SK dabing (přednost před titulky) — Přehraj.to bez účtu se do
+    téhle hromadné klasifikace vůbec nezapojuje (viz `ostatni()` v jádru) a
+    zařazení kandidáta se drží 24 h, takže zahřívání po 6 h většinou vůbec
+    nesáhne na síť.
 
     Rychlost ověřena na Office (30/30 do minuty s `probe_audio=False`) — teď už se
     seznam cachuje na `LANG_CATALOG_TTL` (8 h, stejně jako ostatní katalogy) a
@@ -4589,7 +4592,10 @@ def _build_lang_catalog(apis, ctype):
                 return None, time.time() - t_item, err
 
         def raw_streams_for(cand):
-            return engine.raw_streams(cand.get("type") or "movie", cand["id"], strict=True, probe_audio=False)
+            # `classify_langs()` v jádru: kolo zdrojů skončí hned, jak některý nabídne
+            # CZ/SK dabing (dabing má přednost), a zařazení se drží 24 h — zahřívání
+            # po 6 h tak většinou vůbec nesáhne na síť.
+            return engine.classify_langs(cand.get("type") or "movie", cand["id"])
 
         with ThreadPoolExecutor(max_workers=LANG_CATALOG_WORKERS) as pool:
             for start in range(0, len(cands), LANG_CATALOG_WORKERS):
@@ -4602,21 +4608,15 @@ def _build_lang_catalog(apis, ctype):
                     _diag(f"{ctype}: přerušeno po {start} kandidátech, Kodi končí")
                     raise Aborted()
                 batch = cands[start:start + LANG_CATALOG_WORKERS]
-                for j, (cand, (streams, took, err)) in enumerate(zip(batch, pool.map(_probe, batch))):
+                for j, (cand, (res, took, err)) in enumerate(zip(batch, pool.map(_probe, batch))):
                     i = start + j
                     if err is not None:
                         _diag(f"  [{i}] {cand.get('id')}: chyba za {took:.1f} s ({err})")
                         continue
-                    _diag(f"  [{i}] {cand.get('id')}: {len(streams)} streamů za {took:.1f} s")
-                    langs, subs = set(), set()
-                    for s in streams:
-                        langs.update(s.get("langs") or [])
-                        subs.update(s.get("subs") or [])
-                    has_dub = bool(langs & CZECH_LANGS)
-                    has_subs = bool(subs & CZECH_LANGS)
-                    if has_dub and len(matched["dub"]) < LANG_CATALOG_TARGET:
+                    _diag(f"  [{i}] {cand.get('id')}: {res['n']} streamů, {res['k'] or '–'} za {took:.1f} s")
+                    if res["k"] == "dub" and len(matched["dub"]) < LANG_CATALOG_TARGET:
                         matched["dub"].append(cand)
-                    if has_subs and not has_dub and len(matched["subs"]) < LANG_CATALOG_TARGET:
+                    elif res["k"] == "subs" and len(matched["subs"]) < LANG_CATALOG_TARGET:
                         matched["subs"].append(cand)
                 win.setProperty(progress_prop, f"{len(matched['dub'])}/{LANG_CATALOG_TARGET}|"
                                                 f"{len(matched['subs'])}/{LANG_CATALOG_TARGET}")
