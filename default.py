@@ -612,6 +612,38 @@ def alts_param(stream):
     return "|".join(a["url"] for a in stream.get("_alts") or [] if a.get("url")) or None
 
 
+# Kolik streamů se při přehrání zkusí, než to doplněk vzdá. Zdroj umí selhat celý —
+# vyčerpaný kredit FastShare, vypršelý účet, výpadek — a do 7.6.1 tím spadlo celé
+# přehrání, i když tentýž film ležel na dalších zdrojích (log uživatele 2026-09-22:
+# 11 nalezených streamů, vybraný a jeho jediná sloučená kopie obě z FastShare
+# s kreditem 0 MB → „FastShare: na soubor 7.6 GB nestačí kredit“ a konec). Strop je
+# tu proto, že každý pokus je dotaz do zdroje: u opravdu mrtvého se jinak čeká na
+# tolik timeoutů, kolik je streamů.
+PLAY_FALLBACKS = 5
+
+
+def play_candidates(chosen, streams, limit=PLAY_FALLBACKS):
+    """Dvojice (odkaz, stream) k přehrání v pořadí: zvolený stream, jeho sloučené
+    kopie, pak ostatní nálezy i s jejich kopiemi. Stream u odkazu je ten, ze kterého
+    se po úspěchu berou titulky a jazyky — u sloučené kopie je to ona, ne rodič."""
+    poradi, videne = [], set()
+
+    def pridat(stream):
+        for s in [stream] + list(stream.get("_alts") or []):
+            url = s.get("url")
+            if url and url not in videne:
+                videne.add(url)
+                poradi.append((url, s))
+
+    pridat(chosen)
+    for s in streams or []:
+        if len(poradi) >= limit:
+            break
+        if s is not chosen:
+            pridat(s)
+    return poradi[:max(limit, 1)]
+
+
 def resolve_first(apis, urls):
     """Rozklíčovat první odkaz, který jde — sloučené verze jsou tentýž film jinde. Vrátí
     (reference, odkaz); když nejde žádný, vyhodí chybu toho prvního."""
@@ -5807,6 +5839,7 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
     # Pokračovat, widget) pak jede stejně bez ptaní; klíč je seriál, ne díl
     pref_key = (series_id or split_episode_id(item_id)[0]) if video else None
     resolved_path = None
+    streams = []
     if url:
         try:
             # sloučené verze (`alts`) jsou tentýž film jinde — zkusí se, než se hledá znovu
@@ -5864,9 +5897,11 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
     title = (video or {}).get("title") or display_name(meta)
     # label i InfoTag: při přímém otevření (JSON-RPC, widgety) nemá Kodi původní položku seznamu
     if not resolved_path:
-        used, resolved_path = resolve_first(apis, [chosen["url"]] + [a["url"] for a in chosen.get("_alts") or []])
+        # nejen zvolený stream a jeho sloučené kopie, ale i další nálezy — viz PLAY_FALLBACKS
+        poradi = play_candidates(chosen, streams)
+        used, resolved_path = resolve_first(apis, [u for u, _ in poradi])
         if used != chosen["url"]:
-            chosen = next(a for a in chosen["_alts"] if a["url"] == used)
+            chosen = next(s for u, s in poradi if u == used)
     li = xbmcgui.ListItem(label=title, path=resolved_path)
     li.setArt(art_for(meta, video))
     fill_info(li, meta, "series" if video else ctype, video=video)

@@ -46,6 +46,7 @@ import kodi_marks                             # noqa: E402
 import accounts as accounts_module         # noqa: E402
 from luna_api import LunaError                # noqa: E402
 from webshare_api import WebshareError        # noqa: E402
+from fastshare_api import FastshareError     # noqa: E402
 
 sys.path.insert(0, str(ROOT / "tools"))
 import build_repo                             # noqa: E402
@@ -5763,3 +5764,60 @@ class TestTisiLog(unittest.TestCase):
             syncer._log_vysledek("HA", False, 0, 0, "timed out")
             syncer._log_vysledek("", False, 0, 0, "timed out")
         self.assertEqual([l for _, l in urovne], [xbmc.LOGWARNING, xbmc.LOGWARNING])
+
+
+class TestPrehraniPadneNaJinyZdroj(unittest.TestCase):
+    """Log uživatele 2026-09-22 (dashboard, id 110): přehrání skončilo chybou
+    „FastShare: na soubor 7.6 GB nestačí kredit (0 MB)“, přestože hledání našlo
+    11 streamů z pěti zdrojů. Vybraný stream i jeho jediná sloučená kopie byly
+    obě z FastShare, kde má uživatel kredit 0 — a `play()` do 7.6.1 zkoušela
+    jen je. Zdroj umí selhat celý (vyčerpaný kredit, vypršelý účet, výpadek),
+    takže se po nich musí zkusit i ostatní nálezy."""
+
+    def setUp(self):
+        reset_kodi()
+
+    def test_poradi_kandidatu_je_zvoleny_pak_kopie_pak_ostatni(self):
+        alt = {"url": "fs:2", "source": "fs"}
+        chosen = {"url": "fs:1", "source": "fs", "_alts": [alt]}
+        jiny = {"url": "ws:9", "source": "ws"}
+        poradi = default.play_candidates(chosen, [chosen, jiny])
+        self.assertEqual([u for u, _ in poradi], ["fs:1", "fs:2", "ws:9"])
+        self.assertIs(poradi[1][1], alt, "u sloučené kopie patří metadata jí, ne rodiči")
+
+    def test_kandidati_se_neopakuji_a_maji_strop(self):
+        chosen = {"url": "hs:1", "source": "hs"}
+        # týž stream je i v seznamu nálezů — nesmí se zkoušet dvakrát
+        ostatni = [chosen] + [{"url": f"ws:{i}", "source": "ws"} for i in range(10)]
+        poradi = default.play_candidates(chosen, ostatni)
+        self.assertEqual(len(poradi), default.PLAY_FALLBACKS)
+        self.assertEqual(len({u for u, _ in poradi}), default.PLAY_FALLBACKS)
+        self.assertEqual(poradi[0][0], "hs:1")
+
+    def test_mrtvy_zdroj_neshodi_prehrani(self):
+        streams = [{"url": "fs:1", "label": "Film.2160p.mkv", "source": "fs",
+                    "_alts": [{"url": "fs:2", "label": "Film.1080p.mkv", "source": "fs"}]},
+                   {"url": "hs:9", "label": "Film.1080p.CZ.mkv", "source": "hs"}]
+
+        def resolve(apis, url):
+            if url.startswith("fs:"):
+                raise FastshareError("na soubor 7.6 GB nestačí kredit (0 MB)")
+            return "https://cdn/" + url
+
+        with mock.patch.object(default, "load_meta", return_value=({"name": "Film", "year": 2026}, None)), \
+             mock.patch.object(default, "collect_streams", return_value=streams), \
+             mock.patch.object(default, "resolve_url", side_effect=resolve):
+            default.play({}, "movie", "tt33365126")
+        self.assertEqual(len(xbmcplugin.resolved), 1)
+        _handle, succeeded, li = xbmcplugin.resolved[0]
+        self.assertTrue(succeeded, "přehrání spadlo, i když stream z jiného zdroje byl k dispozici")
+        self.assertEqual(li.path, "https://cdn/hs:9")
+
+    def test_kdyz_nejde_zadny_stream_zustava_chyba(self):
+        streams = [{"url": "fs:1", "label": "Film.mkv", "source": "fs"},
+                   {"url": "fs:2", "label": "Film2.mkv", "source": "fs"}]
+        with mock.patch.object(default, "load_meta", return_value=({"name": "Film", "year": 2026}, None)), \
+             mock.patch.object(default, "collect_streams", return_value=streams), \
+             mock.patch.object(default, "resolve_url", side_effect=FastshareError("nestačí kredit (0 MB)")):
+            with self.assertRaises(FastshareError):
+                default.play({}, "movie", "tt1")
