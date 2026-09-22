@@ -1,6 +1,6 @@
 ![Nokturno](https://raw.githubusercontent.com/matata86/plugin.video.nokturno/main/resources/media/fanart.jpg)
 
-# Nokturno — filmy a seriály z WebShare, Sosáče, Luny, HellSpy, Sledujteto, FastShare, CZtoru a Přehraj.to pro Kodi
+# Nokturno — přehrávač vlastního úložiště pro Kodi, volitelně i z WebShare, Sosáče, Luny, HellSpy, Sledujteto, FastShare, CZtoru a Přehraj.to
 
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-podpo%C5%99%20autora-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/matata86) [![PayPal](https://img.shields.io/badge/PayPal-paypal.me%2Fmatata86-00457C?logo=paypal&logoColor=white)](https://paypal.me/matata86) [![Bitcoin](https://img.shields.io/badge/Bitcoin-BTC-f7931a?logo=bitcoin&logoColor=white)](#podpora)
 
@@ -18,25 +18,25 @@ Nastavení účtů se dá pohodlně vyplnit **z mobilu** (QR kód na TV) nebo p�
 
 ## Zdroje
 
-Video doplněk pro Kodi (20 Nexus a novější — `InfoTagVideo`, testováno na Kodi 21 Omega, CoreELEC). Osm rovnocenných zdrojů streamů a vlastní úložiště, každý jde zapnout samostatně:
+Video doplněk pro Kodi (20 Nexus a novější — `InfoTagVideo`, testováno na Kodi 21 Omega, CoreELEC). Nokturno je především přehrávač **tvého vlastního úložiště** (NAS, Nextcloud, server); osm dalších zdrojů streamů z internetu je volitelná doplňková služba, každý jde zapnout samostatně:
 
 | zdroj | co dává | co potřebuje |
 |---|---|---|
-| **WebShare přímo** | hledání souborů na WebShare a přehrávání, bez dalšího serveru | účet WebShare (jméno + heslo) |
-| **Sosáč** | katalogy Sosáče (nejpopulárnější, nově přidané, žánry), filmy i seriály s epizodami, CZ dabing, CZ titulky ze streamuj | účet **Streamuj.tv** (jméno + heslo) — nic víc; katalogy jsou veřejné, k Sosáči se nepřihlašuje, Stremio není potřeba |
-| **Luna: Absolute Cinema** | TMDB katalogy (trendy, populární, podle roku, žánru…), streamy z WebShare s rozpoznanou kvalitou a jazyky | běžící server [Luna](https://stremio.cz/d/47-luna-absolute-cinema-addon-pro-prehravani-sifrovaneho-obsahu-z-webshare) v LAN (např. jako [addon Home Assistantu](https://github.com/matata86/ha-addons)) |
-| **HellSpy** | fulltextové hledání souborů na hellspy.to a přehrávání původních souborů | nic, rozhraní je veřejné |
-| **Sledujteto** (od 3.0.0) | fulltextové hledání na sledujteto.cz a přehrávání; rozlišení, kanály a kodek zvuku posílá přímo jejich API | účet Sledujteto (e-mail + heslo), k přehrání **Premium** |
-| **FastShare** (od 5.1.0) | fulltextové hledání na fastshare.cz a přehrávání; rozlišení a stopáž posílá jejich API, zvuk se dočte z hlavičky souboru (pár set kB z kreditu, jednou za 30 dní) | účet FastShare (jméno + heslo), přehrání z **kreditu** nebo neomezeného tarifu |
-| **CZtor** (od 6.0.0) | předplatný katalog cztor.com; zvuk, titulky a rozlišení rovnou z API | předplatné CZtor, párování PINem (*Nastavení → CZtor → Spárovat PINem*, heslo se nezadává) |
-| **Přehraj.to** (od 7.0.0) | fulltextové hledání na prehraj.to a přehrávání; funguje i **bez účtu** (první strana výsledků, překódované 1080p), s **Premium** se stránkuje a hraje původní soubor; rozlišení a zvuk se dočtou z hlavičky souboru | nic; volitelně účet Přehraj.to (e-mail + heslo, jiný než na Sledujteto), Premium pro původní soubory |
 | **Vlastní úložiště** (od 3.1.0) | tvoje soubory z NAS, Nextcloudu nebo serveru — až tři WebDAV složky; u titulů mezi streamy vždy první, v menu **Moje úložiště** | adresa složky na WebDAV, případně jméno a heslo |
+| **WebShare přímo** (volitelně) | hledání souborů na WebShare a přehrávání, bez dalšího serveru | účet WebShare (jméno + heslo) |
+| **Sosáč** (volitelně) | katalogy Sosáče (nejpopulárnější, nově přidané, žánry), filmy i seriály s epizodami, CZ dabing, CZ titulky ze streamuj | účet **Streamuj.tv** (jméno + heslo) — nic víc; katalogy jsou veřejné, k Sosáči se nepřihlašuje, Stremio není potřeba |
+| **Luna: Absolute Cinema** (volitelně) | TMDB katalogy (trendy, populární, podle roku, žánru…), streamy z WebShare s rozpoznanou kvalitou a jazyky | běžící server [Luna](https://stremio.cz/d/47-luna-absolute-cinema-addon-pro-prehravani-sifrovaneho-obsahu-z-webshare) v LAN (např. jako [addon Home Assistantu](https://github.com/matata86/ha-addons)) |
+| **HellSpy** (volitelně) | fulltextové hledání souborů na hellspy.to a přehrávání původních souborů | nic, rozhraní je veřejné |
+| **Sledujteto** (volitelně, od 3.0.0) | fulltextové hledání na sledujteto.cz a přehrávání; rozlišení, kanály a kodek zvuku posílá přímo jejich API | účet Sledujteto (e-mail + heslo), k přehrání **Premium** |
+| **FastShare** (volitelně, od 5.1.0) | fulltextové hledání na fastshare.cz a přehrávání; rozlišení a stopáž posílá jejich API, zvuk se dočte z hlavičky souboru (pár set kB z kreditu, jednou za 30 dní) | účet FastShare (jméno + heslo), přehrání z **kreditu** nebo neomezeného tarifu |
+| **CZtor** (volitelně, od 6.0.0) | předplatný katalog cztor.com; zvuk, titulky a rozlišení rovnou z API | předplatné CZtor, párování PINem (*Nastavení → CZtor → Spárovat PINem*, heslo se nezadává) |
+| **Přehraj.to** (volitelně, od 7.0.0) | fulltextové hledání na prehraj.to a přehrávání; funguje i **bez účtu** (první strana výsledků, překódované 1080p), s **Premium** se stránkuje a hraje původní soubor; rozlišení a zvuk se dočtou z hlavičky souboru | nic; volitelně účet Přehraj.to (e-mail + heslo, jiný než na Sledujteto), Premium pro původní soubory |
 
 Přihlašovací údaje zůstávají v Kodi — doplněk je posílá jen službě, ke které patří (WebShare, Streamuj, Luna, Sledujteto, FastShare, CZtor, Přehraj.to).
 
 ## Co umí
 
-- **Osm zdrojů + vlastní úložiště** v jednom hledání a jednom výběru streamu (stejný soubor z více zdrojů se sloučí do jednoho řádku)
+- **Vlastní úložiště + osm volitelných zdrojů** v jednom hledání a jednom výběru streamu (stejný soubor z více zdrojů se sloučí do jednoho řádku)
 - **Výběr streamu v dialogu** — kvalita, jazyk zvuku i titulků, kanály, kodek, velikost; filtr a zapamatovaný stream u seriálu
 - **Pokračovat ve sledování**, Můj seznam, rozkoukané a zhlédnuté i bez Kodi knihovny; **Trakt.tv** a **Up Next**
 - **Synchronizace více Kodi** (od 6.6.0) — zhlédnuto, Můj seznam, historie, nastavení i přihlášení se sdílí mezi zařízeními **bez Home Assistanta**; server do dat nevidí
@@ -96,7 +96,7 @@ a díly z výpisů i widgetů Nokturna se z detailu přehrají i bez TMDb Helper
 
 ## Předpoklady
 
-Katalog a hledání titulů fungují i úplně bez nastavení (vlastní databáze, viz výš). Pro skutečné streamy je ale potřeba aspoň jeden zdroj z tabulky výše — účet WebShare, účet Sosáče, server Luna v LAN, nebo prostě zapnout HellSpy (veřejný, nic nepotřebuje).
+Katalog a hledání titulů fungují i úplně bez nastavení (vlastní databáze, viz výš). Vlastní úložiště potřebuje jen adresu WebDAV složky. Volitelné zdroje z internetu chtějí aspoň jeden z tabulky výše — účet WebShare, účet Sosáče, server Luna v LAN, nebo prostě zapnout HellSpy (veřejný, nic nepotřebuje).
 
 ## Instalace
 
@@ -136,7 +136,7 @@ repozitář nabízí i předchozí vydání.
 
 ## Nastavení zdrojů
 
-Zapni, co máš — jeden, víc, nebo všech osm (plus vlastní úložiště):
+Vlastní úložiště nastavíš v kategorii *Vlastní úložiště* (adresa WebDAV složky). Volitelné zdroje z internetu zapni, co máš — jeden, víc, nebo všech osm:
 
 - **WebShare (přímo)** — jméno + heslo k WebShare (nebo 40znakový salted hash, který používá WebShare doplněk pro Stremio).
 - **Sosáč** — jméno + heslo ke **Streamuj.tv** (přehrávač Sosáče). Katalogy a hledání jdou z veřejných JSON exportů `tv.sosac.to`, streamy ze `streamuj.tv` — stejně jako oficiální Kodi doplněk Sosáče.
