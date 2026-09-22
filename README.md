@@ -284,6 +284,21 @@ doplněk zobrazí notifikaci s důvodem. Nahlášené logy vidí administrátor 
 [dashboardu statistik](https://github.com/matata86/plugin.video.nokturno/wiki/Reseni-problemu#jak-nahlásit-chybu),
 starší 30 dní se mažou automaticky.
 
+## Právní upozornění
+
+Nokturno je především přehrávač a správce **vlastního úložiště** — obsah, který
+si sami nahrajete a zpřístupníte (např. přes WebDAV), přehrává napřímo. Jako
+doplňkovou službu si můžete volitelně napojit i některé veřejně dostupné
+vyhledávače třetích stran (WebShare, Sosáč, HellSpy, Sledujteto, FastShare,
+Přehraj.to, CZtor, Luna, OpenSubtitles) — v tom případě je Nokturno jen
+technické rozhraní, samo žádný obsah nehostuje, neukládá ani neposkytuje.
+
+Doplněk smíte používat jen k obsahu, ke kterému máte zákonné oprávnění, licenci
+nebo jiný právní titul. Při prvním spuštění se právní upozornění ukáže
+k odsouhlasení (Nastavení → Podmínky použití, úplně první kategorie — přepínač
+jde kdykoli vypnout i znovu zapnout), plný text i kam nahlásit nelegální obsah
+u jednotlivých zdrojů je i na <https://nokturno.tailf0014.ts.net/terms>.
+
 ## Licence
 
 Zdrojový kód je veřejně čitelný pro transparentnost a instalaci přes oficiální
