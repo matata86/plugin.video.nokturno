@@ -3115,8 +3115,8 @@ def setup_wizard(force=False):
         # obešlo (přání uživatele 2026-09-22: souhlas patří i do samotného průvodce).
         dialog.textviewer(L(30728, "Legal notice"), terms_text())
         if not dialog.yesno(L(30728, "Legal notice"),
-                            L(30739, "You have to agree to the terms of use first. Open the settings now?"),
-                            yeslabel=L(30740, "Open the settings"), nolabel=L(30732, "I don't agree")):
+                            L(30749, "Do you agree to the terms of use above?"),
+                            yeslabel=L(30748, "I agree"), nolabel=L(30732, "I don't agree")):
             return
         ADDON.setSetting("terms_ok", "true")
         if not terms_accepted():   # zápis se nepovedl (souběžná změna nastavení) — nepokračovat naslepo

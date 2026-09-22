@@ -2231,3 +2231,11 @@ msgstr ""
 msgctxt "#30747"
 msgid "%s paused for %s"
 msgstr ""
+
+msgctxt "#30748"
+msgid "I agree"
+msgstr ""
+
+msgctxt "#30749"
+msgid "Do you agree to the terms of use above?"
+msgstr ""

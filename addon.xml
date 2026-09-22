@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="7.9.1" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="7.9.2" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>7.9.1 – Oprava zastaralého docstringu u průvodce prvním nastavením (kosmetika, bez funkční změny).
+    <news>7.9.2 – Oprava tlačítka souhlasu s podmínkami v Průvodci prvním nastavením (7.9.0): tvrdilo „Otevřít nastavení", ale ve skutečnosti jen rovnou zapsalo souhlas a pokračovalo v průvodci. Nově „Souhlasím" / „Souhlasíš s podmínkami použití výše?" — stejný text jako na stránce „Nastavit z mobilu".
+7.9.1 – Oprava zastaralého docstringu u průvodce prvním nastavením (kosmetika, bez funkční změny).
 7.9.0 – Souhlas s podmínkami použití jde dát i ze stránky „Nastavit z mobilu“ (přepínač a tlačítko „Přečíst podmínky“ v nové sekci) a je teď vlastním krokem přímo v Průvodci prvním nastavením, ne jen v Nastavení doplňku.
 7.7.0 – Nedostupné streamy se skrývají samy. Měřeno: ze streamovacích serverů Sosáče (streamuj.tv) třetina zrovna nebrala spojení, ale streamy z nich stály v dialogu výběru na svém místě, jako by fungovaly, a selhaly až po stisku Přehrát. Doplněk teď hlavičku souboru, kterou stejně čte kvůli zvuku a rozlišení, umí poznat jako nedostupnou — takový stream ze seznamu zmizí (uvidíš ho přes „Zobrazit všechny streamy“) a další stream ze stejného serveru se dalších deset minut ani nezkouší. Nová notifikace po hledání hlásí, kolik streamů se skrylo. Ve Stavu zdrojů navíc přibylo tlačítko „Uspat zdroj“ (10 minut / 1 hodina / 12 hodin) — pro chvíli, kdy je celý zdroj rozbitý a nechceš na něj čekat u každého titulu.
 7.6.6 – Seznamy „Nově přidané s CZ dabingem/titulky“ se staví rychleji a šetrněji k serverům zdrojů. U každého titulu se zdrojů ptá dál všech najednou, ale jakmile kterýkoli nabídne český nebo slovenský dabing, na zbytek se už nečeká a jde se na další titul. Přehraj.to se do tohohle hromadného ověřování zapojí jen s účtem — bez něj z něj jazyk stejně nepozná a jeho server odmítal časté dotazy. Zařazení titulu se navíc pamatuje den, takže obnova na pozadí (každých 6 hodin) už na zdroje většinou vůbec nesáhne.

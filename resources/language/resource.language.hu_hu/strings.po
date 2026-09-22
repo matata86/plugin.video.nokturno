@@ -2230,3 +2230,11 @@ msgstr "Szüneteltetés törlése"
 msgctxt "#30747"
 msgid "%s paused for %s"
 msgstr "%s szüneteltetve: %s"
+
+msgctxt "#30748"
+msgid "I agree"
+msgstr "Elfogadom"
+
+msgctxt "#30749"
+msgid "Do you agree to the terms of use above?"
+msgstr "Elfogadod a fenti felhasználási feltételeket?"

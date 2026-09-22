@@ -2232,3 +2232,11 @@ msgstr "Zrušiť uspatie"
 msgctxt "#30747"
 msgid "%s paused for %s"
 msgstr "%s uspaný na %s"
+
+msgctxt "#30748"
+msgid "I agree"
+msgstr "Súhlasím"
+
+msgctxt "#30749"
+msgid "Do you agree to the terms of use above?"
+msgstr "Súhlasíš s podmienkami použitia vyššie?"
