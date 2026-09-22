@@ -4,7 +4,11 @@
     <!-- Kategorií smí být nejvýš 20: Kodi dává tlačítkům kategorií id -200 + pořadí
          a od -180 začínají ovládací prvky nastavení. Dvacátá první kategorie by měla
          id -180, takže šipka doprava ze seznamu kategorií skočí na ni místo do
-         nastavení. Proto je „Nastavit z mobilu“ první skupinou v Přenosu nastavení. -->
+         nastavení (ověřeno na Office 2026-09-21, viz dokumentace.md § Pasti).
+         `settings.xml` je zároveň registr, ze kterého čtou tři funkce (stránka
+         z mobilu `remote_setup_schema()`, přenos nastavení `transfer.exportable()`,
+         synchronizace `kodi_settings.shared_defaults()`) — nová kategorie proto
+         znamená sloučit dvě staré, ne jen přidat. -->
     <category id="transfer" label="30724" help="30588">
       <group id="1" label="30447">
         <setting id="remote_setup_action" type="action" label="30447" help="30448">
@@ -51,8 +55,8 @@
         </setting>
       </group>
     </category>
-    <category id="ws" label="30050">
-      <group id="1">
+    <category id="sources" label="30726">
+      <group id="ws" label="30050">
         <setting id="ws_enabled" type="boolean" label="30051" help="30300">
           <level>0</level>
           <default>false</default>
@@ -127,9 +131,39 @@
           </control>
         </setting>
       </group>
-    </category>
-    <category id="sosac" label="30030">
-      <group id="1">
+      <group id="pt" label="30708">
+        <setting id="pt_enabled" type="boolean" label="30709" help="30710">
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle"/>
+        </setting>
+        <setting id="pt_email" type="string" label="30711" help="30712">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="pt_enabled">true</dependency>
+          </dependencies>
+          <control type="edit" format="string">
+          </control>
+        </setting>
+        <setting id="pt_password" type="string" label="30713" help="30714">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="pt_enabled">true</dependency>
+          </dependencies>
+          <control type="edit" format="string">
+            <hidden>true</hidden>
+          </control>
+        </setting>
+      </group>
+      <group id="sosac" label="30030">
         <setting id="sosac_enabled" type="boolean" label="30031" help="30304">
           <level>0</level>
           <default>true</default>
@@ -169,18 +203,14 @@
           <control type="toggle"/>
         </setting>
       </group>
-    </category>
-    <category id="hs" label="30194">
-      <group id="1">
+      <group id="hs" label="30194">
         <setting id="hs_enabled" type="boolean" label="30195" help="30196">
           <level>0</level>
           <default>true</default>
           <control type="toggle"/>
         </setting>
       </group>
-    </category>
-    <category id="st" label="30367">
-      <group id="1">
+      <group id="st" label="30367">
         <setting id="st_enabled" type="boolean" label="30368" help="30369">
           <level>0</level>
           <default>false</default>
@@ -212,9 +242,7 @@
           </control>
         </setting>
       </group>
-    </category>
-    <category id="fs" label="30417">
-      <group id="1">
+      <group id="fs" label="30417">
         <setting id="fs_enabled" type="boolean" label="30418" help="30419">
           <level>0</level>
           <default>false</default>
@@ -246,43 +274,7 @@
           </control>
         </setting>
       </group>
-    </category>
-    <category id="pt" label="30708" help="30710">
-      <group id="1">
-        <setting id="pt_enabled" type="boolean" label="30709" help="30710">
-          <level>0</level>
-          <default>true</default>
-          <control type="toggle"/>
-        </setting>
-        <setting id="pt_email" type="string" label="30711" help="30712">
-          <level>0</level>
-          <default></default>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <dependencies>
-            <dependency type="enable" setting="pt_enabled">true</dependency>
-          </dependencies>
-          <control type="edit" format="string">
-          </control>
-        </setting>
-        <setting id="pt_password" type="string" label="30713" help="30714">
-          <level>0</level>
-          <default></default>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <dependencies>
-            <dependency type="enable" setting="pt_enabled">true</dependency>
-          </dependencies>
-          <control type="edit" format="string">
-            <hidden>true</hidden>
-          </control>
-        </setting>
-      </group>
-    </category>
-    <category id="cz" label="30560" help="30562">
-      <group id="1">
+      <group id="cz" label="30560">
         <setting id="cz_enabled" type="boolean" label="30561" help="30562">
           <level>0</level>
           <default>false</default>
@@ -322,9 +314,7 @@
           <control format="action" type="button"/>
         </setting>
       </group>
-    </category>
-    <category id="luna" label="30001">
-      <group id="1">
+      <group id="luna" label="30001">
         <setting id="luna_enabled" type="boolean" label="30014" help="30308">
           <level>0</level>
           <default>true</default>
@@ -363,6 +353,7 @@
             <dependency type="enable" setting="luna_enabled">true</dependency>
           </dependencies>
           <control type="edit" format="string">
+            <hidden>true</hidden>
           </control>
         </setting>
         <setting id="luna_check_action" type="action" label="30539" help="30541">
@@ -383,6 +374,62 @@
             <dependency type="enable" setting="luna_enabled">true</dependency>
           </dependencies>
           <control type="toggle"/>
+        </setting>
+      </group>
+      <group id="osub" label="30611">
+        <setting id="os_enabled" type="boolean" label="30613" help="30614">
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle"/>
+        </setting>
+        <setting id="os_username" type="string" label="30615" help="30616">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="os_enabled" operator="is">true</dependency>
+          </dependencies>
+          <control type="edit" format="string">
+            <heading>30615</heading>
+          </control>
+        </setting>
+        <setting id="os_password" type="string" label="30617" help="30618">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="os_enabled" operator="is">true</dependency>
+          </dependencies>
+          <control type="edit" format="string">
+            <hidden>true</hidden>
+            <heading>30617</heading>
+          </control>
+        </setting>
+        <setting id="os_check" type="action" label="30619" help="30620">
+          <level>0</level>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="os_enabled" operator="is">true</dependency>
+          </dependencies>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=os_check)</data>
+          <control type="button" format="action"/>
+        </setting>
+      </group>
+      <group id="database" label="30332">
+        <setting id="tmdb_api_key" type="string" label="30333" help="30334">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+          </control>
         </setting>
       </group>
     </category>
@@ -505,19 +552,6 @@
         </setting>
       </group>
     </category>
-    <category id="database" label="30332">
-      <group id="1">
-        <setting id="tmdb_api_key" type="string" label="30333" help="30334">
-          <level>0</level>
-          <default></default>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <control type="edit" format="string">
-          </control>
-        </setting>
-      </group>
-    </category>
     <category id="playback" label="30004">
       <group id="1">
         <setting id="pref_lang" type="integer" label="30110" help="30313">
@@ -610,6 +644,22 @@
           <control type="toggle"/>
         </setting>
       </group>
+      <group id="downloads" label="30071">
+        <setting id="download_dir" type="path" label="30087" help="30323">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+            <writable>true</writable>
+            <sources>
+              <source>files</source>
+            </sources>
+          </constraints>
+          <control type="button" format="path">
+            <heading>30087</heading>
+          </control>
+        </setting>
+      </group>
     </category>
     <category id="streamlist" label="30201" help="30207">
       <group id="1">
@@ -638,68 +688,6 @@
           </constraints>
           <data>RunPlugin(plugin://plugin.video.nokturno/?action=stream_layout_reset)</data>
           <control type="button" format="action"/>
-        </setting>
-      </group>
-    </category>
-    <category id="osub" label="30611" help="30612">
-      <group id="1">
-        <setting id="os_enabled" type="boolean" label="30613" help="30614">
-          <level>0</level>
-          <default>true</default>
-          <control type="toggle"/>
-        </setting>
-        <setting id="os_username" type="string" label="30615" help="30616">
-          <level>0</level>
-          <default></default>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <dependencies>
-            <dependency type="enable" setting="os_enabled" operator="is">true</dependency>
-          </dependencies>
-          <control type="edit" format="string">
-            <heading>30615</heading>
-          </control>
-        </setting>
-        <setting id="os_password" type="string" label="30617" help="30618">
-          <level>0</level>
-          <default></default>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <dependencies>
-            <dependency type="enable" setting="os_enabled" operator="is">true</dependency>
-          </dependencies>
-          <control type="edit" format="string">
-            <hidden>true</hidden>
-            <heading>30617</heading>
-          </control>
-        </setting>
-        <setting id="os_check" type="action" label="30619" help="30620">
-          <level>0</level>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <data>RunPlugin(plugin://plugin.video.nokturno/?action=os_check)</data>
-          <control type="button" format="action"/>
-        </setting>
-      </group>
-    </category>
-    <category id="downloads" label="30071">
-      <group id="1">
-        <setting id="download_dir" type="path" label="30087" help="30323">
-          <level>0</level>
-          <default></default>
-          <constraints>
-            <allowempty>true</allowempty>
-            <writable>true</writable>
-            <sources>
-              <source>files</source>
-            </sources>
-          </constraints>
-          <control type="button" format="path">
-            <heading>30087</heading>
-          </control>
         </setting>
       </group>
     </category>
@@ -781,6 +769,43 @@
           <control format="string" type="spinner"/>
         </setting>
       </group>
+      <group id="3" label="30662">
+        <setting id="sync_url" type="string" label="30182" help="30327">
+          <level>0</level>
+          <default>http://homeassistant.local:8123</default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable">
+              <and>
+                <condition setting="sync_enabled" operator="is">true</condition>
+                <condition setting="sync_mode" operator="is">0</condition>
+              </and>
+            </dependency>
+          </dependencies>
+          <control type="edit" format="string">
+          </control>
+        </setting>
+        <setting id="sync_key" type="string" label="30183" help="30328">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable">
+              <and>
+                <condition setting="sync_enabled" operator="is">true</condition>
+                <condition setting="sync_mode" operator="is">0</condition>
+              </and>
+            </dependency>
+          </dependencies>
+          <control type="edit" format="string">
+            <hidden>true</hidden>
+          </control>
+        </setting>
+      </group>
       <group id="2" label="30663">
         <setting id="sync_create_action" type="action" label="30665" help="30672">
           <level>0</level>
@@ -846,42 +871,6 @@
           </dependencies>
           <data>RunPlugin(plugin://plugin.video.nokturno/?action=sync_leave)</data>
           <control format="action" type="button"/>
-        </setting>
-      </group>
-      <group id="3" label="30662">
-        <setting id="sync_url" type="string" label="30182" help="30327">
-          <level>0</level>
-          <default>http://homeassistant.local:8123</default>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <dependencies>
-            <dependency type="enable">
-              <and>
-                <condition setting="sync_enabled" operator="is">true</condition>
-                <condition setting="sync_mode" operator="is">0</condition>
-              </and>
-            </dependency>
-          </dependencies>
-          <control type="edit" format="string">
-          </control>
-        </setting>
-        <setting id="sync_key" type="string" label="30183" help="30328">
-          <level>0</level>
-          <default></default>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <dependencies>
-            <dependency type="enable">
-              <and>
-                <condition setting="sync_enabled" operator="is">true</condition>
-                <condition setting="sync_mode" operator="is">0</condition>
-              </and>
-            </dependency>
-          </dependencies>
-          <control type="edit" format="string">
-          </control>
         </setting>
       </group>
       <group id="4" label="30682">
@@ -977,7 +966,7 @@
       </group>
     </category>
     <category id="advanced" label="30105" help="30329">
-      <group id="1">
+      <group id="1" label="30727">
         <setting id="wizard_action" type="action" label="30359">
           <level>0</level>
           <constraints>
@@ -1027,9 +1016,7 @@
           <control format="action" type="button"/>
         </setting>
       </group>
-    </category>
-    <category id="info" label="30432">
-      <group id="1" label="30690">
+      <group id="info1" label="30690">
         <setting id="info_web" type="action" label="30692">
           <level>0</level>
           <constraints>
@@ -1045,7 +1032,7 @@
           <control type="button" format="action"/>
         </setting>
       </group>
-      <group id="2" label="30694">
+      <group id="info2" label="30694">
         <setting id="info_install" type="action" label="30691">
           <level>0</level>
           <constraints>
@@ -1055,7 +1042,7 @@
           <control type="button" format="action"/>
         </setting>
       </group>
-      <group id="3" label="30697">
+      <group id="info3" label="30697">
         <setting id="info_donate" type="action" label="30698">
           <level>0</level>
           <constraints>
@@ -1065,7 +1052,7 @@
           <control type="button" format="action"/>
         </setting>
       </group>
-      <group id="4" label="30700">
+      <group id="info4" label="30700">
         <setting id="info_forum_kodi" type="action" label="30701">
           <level>0</level>
           <constraints>

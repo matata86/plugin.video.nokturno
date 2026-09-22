@@ -1794,9 +1794,6 @@ msgctxt "#30611"
 msgid "OpenSubtitles"
 msgstr ""
 
-msgctxt "#30612"
-msgid "Subtitles from opensubtitles.com for titles your sources have none for."
-msgstr ""
 
 msgctxt "#30613"
 msgid "Look for subtitles on OpenSubtitles"
@@ -2148,4 +2145,12 @@ msgstr ""
 
 msgctxt "#30725"
 msgid "rejects network"
+msgstr ""
+
+msgctxt "#30726"
+msgid "Sources and accounts"
+msgstr ""
+
+msgctxt "#30727"
+msgid "Maintenance"
 msgstr ""

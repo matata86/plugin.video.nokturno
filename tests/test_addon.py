@@ -151,10 +151,13 @@ class TestNastaveni(unittest.TestCase):
         <control> tag`) a přeskočí celou kategorii, `title` se nevykreslí vůbec
         a `edit` šel přepsat (zašedlý `edit` byl zase na TV nečitelný) — všechno
         ověřeno na Office u bety 9. Hodnoty proto nese popisek tlačítka a klikací
-        jsou jen dva řádky, které se do popisku napsat nedají."""
+        jsou jen dva řádky, které se do popisku napsat nedají.
+
+        Od 9kategoriové reorganizace (2026-09-22) je „Info“ čtveřice skupin
+        `info1`–`info4` uvnitř kategorie „advanced“, ne vlastní kategorie."""
         xml = (ROOT / "resources" / "settings.xml").read_text(encoding="utf-8")
-        info = xml[xml.index('<category id="info"'):]
-        info = info[:info.index("</category>")]
+        info = xml[xml.index('<group id="info1"'):]
+        info = info[:info.index("    </category>")]
         self.assertNotIn('type="string"', info, "textové pole jde přepsat")
         self.assertNotIn('type="label"', info)
         self.assertNotIn('type="edit"', info)
@@ -4179,10 +4182,18 @@ class TestPrenosNastaveni(unittest.TestCase):
         self.assertNotIn("sync_key", payload["settings"])
         self.assertTrue(payload["source"].startswith("Kodi "))
 
-    def test_cztor_jde_jen_jako_priznak(self):
+    def test_cztor_jde_jako_priznak_i_hodnota(self):
+        # Do 9kategoriové reorganizace nastavení (2026-09-22) byla kategorie „cz“ mimo
+        # REMOTE_SETUP_CATEGORIES, takže se cz_enabled nikdy nedostalo do settings —
+        # jen jako příznak. Teď je CZtor skupina uvnitř „sources“, která whitelistovaná
+        # je, takže cz_enabled cestuje i jako hodnota. Token párování (jádro ho nezná,
+        # drží ho jen store.py) se nepřenáší — cílové Kodi bude mít CZtor zapnutý,
+        # ale nespárovaný, a přesně na to příznak nabízí párování.
         payload = default.transfer_payload()
         self.assertEqual(payload["flags"], {"cztor": True})
-        self.assertNotIn("cz_", "".join(payload["settings"]))
+        self.assertEqual(payload["settings"]["cz_enabled"], "true")
+        for action in ("cz_pair_action", "cz_status_action", "cz_logout_action"):
+            self.assertNotIn(action, payload["settings"], "tlačítka akcí do přenosu nepatří")
 
     def test_neulozena_polozka_jde_s_vychozi_hodnotou(self):
         del xbmcaddon.settings["pref_lang"]
@@ -4703,9 +4714,11 @@ class TestOpenSubtitles(unittest.TestCase):
     """Titulky z OpenSubtitles v doplňku — nastavení, tlačítko v něm a otisk souboru."""
 
     def test_nastaveni_ma_kategorii(self):
+        # od 9kategoriové reorganizace (2026-09-22) je OpenSubtitles skupina uvnitř
+        # kategorie „sources“, ne vlastní kategorie
         strom = ET.parse(ROOT / "resources" / "settings.xml")
-        kategorie = {c.get("id") for c in strom.iter("category")}
-        self.assertIn("osub", kategorie)
+        skupiny = {g.get("id") for g in strom.iter("group")}
+        self.assertIn("osub", skupiny)
         volby = {s.get("id") for s in strom.iter("setting")}
         self.assertTrue({"os_enabled", "os_username", "os_password", "os_check"} <= volby)
 
@@ -5328,21 +5341,25 @@ class TestPrehrajto(unittest.TestCase):
         self.assertIn("7", default.account_line(row, color=False))
 
     def test_nastaveni_ma_vlastni_kategorii_a_vsechny_preklady(self):
+        # od 9kategoriové reorganizace (2026-09-22) je Přehraj.to skupina uvnitř
+        # kategorie „sources“, ne vlastní kategorie
         import xml.etree.ElementTree as ET
         root = ET.parse(ROOT / "resources" / "settings.xml").getroot()
-        kategorie = {c.get("id"): c for c in root.iter("category")}
-        self.assertIn("pt", kategorie)
-        ids = {s.get("id") for s in kategorie["pt"].iter("setting")}
+        skupiny = {g.get("id"): g for g in root.iter("group")}
+        self.assertIn("pt", skupiny)
+        ids = {s.get("id") for s in skupiny["pt"].iter("setting")}
         self.assertEqual(ids, {"pt_enabled", "pt_email", "pt_password"})
         # e-mail i heslo mají smysl jen se zapnutým přepínačem
-        for setting in kategorie["pt"].iter("setting"):
+        for setting in skupiny["pt"].iter("setting"):
             if setting.get("id") == "pt_enabled":
                 continue
             zavislosti = [d.get("setting") for d in setting.iter("dependency")]
             self.assertIn("pt_enabled", zavislosti)
 
     def test_stranka_z_mobilu_zna_novou_kategorii(self):
-        self.assertIn("pt", default.REMOTE_SETUP_CATEGORIES)
+        # sources je jediná kategorie, „pt“ je teď jedna z jejích rozpadlých sekcí
+        schema = default.remote_setup_schema()
+        self.assertIn("pt", {s["id"] for s in schema})
 
     def test_zdroj_je_po_aktualizaci_zapnuty(self):
         """Přehraj.to funguje i bez účtu, takže ho má mít každý rovnou zapnutý."""
@@ -5359,6 +5376,48 @@ class TestPrehrajto(unittest.TestCase):
         root = ET.parse(ROOT / "resources" / "settings.xml").getroot()
         kategorie = [c.get("id") for c in root.iter("category")]
         self.assertLessEqual(len(kategorie), 20, "víc než 20 kategorií rozbije šipku doprava")
+
+
+class TestDevetKategorii(unittest.TestCase):
+    """2026-09-22: 20 kategorií (strop Kodi vyčerpaný) → 9. Osm zdrojů + OpenSubtitles
+    a TMDB slité do „sources“ (10 skupin), Stahování skupinou v Přehrávání, Info
+    čtyřmi skupinami v Pokročilých. Žádné id volby se neměnilo — profilový
+    settings.xml je plochý seznam <setting id>, kategorie ani skupiny v něm nejsou,
+    takže migrace není potřeba."""
+
+    def test_devet_kategorii(self):
+        root = ET.parse(ROOT / "resources" / "settings.xml").getroot()
+        kategorie = [c.get("id") for c in root.iter("category")]
+        self.assertEqual(kategorie, ["transfer", "sources", "storage", "playback",
+                                     "streamlist", "trakt", "sync", "stats", "advanced"])
+
+    def test_zadne_id_volby_nezmizelo(self):
+        # getSetting() u existující instalace vrátí u zrušeného id tiše výchozí
+        # hodnotu (viz kodi-zrusena-volba-migrace) — proto id volby při
+        # přeskládání kategorií zůstávají stejná
+        root = ET.parse(ROOT / "resources" / "settings.xml").getroot()
+        volby = {s.get("id") for s in root.iter("setting")}
+        self.assertEqual(len(volby), 100)
+        for ocekavane in ("ws_enabled", "pt_email", "sosac_enabled", "hs_enabled",
+                          "st_enabled", "fs_enabled", "cz_enabled", "luna_url",
+                          "os_enabled", "tmdb_api_key", "download_dir", "info_donate"):
+            self.assertIn(ocekavane, volby)
+
+    def test_stranka_z_mobilu_rozpadne_zdroje_na_sekce(self):
+        # bez REMOTE_SETUP_SPLIT by „sources“ byla jedna sekce s 35 poli
+        schema = default.remote_setup_schema()
+        ids = [s["id"] for s in schema]
+        for zdroj in ("ws", "pt", "sosac", "hs", "st", "fs", "cz", "luna", "osub", "database"):
+            self.assertIn(zdroj, ids)
+        self.assertNotIn("sources", ids)
+
+    def test_stahovani_neni_na_mobilu_orphan_nadpis(self):
+        # download_dir je type="path" a na mobilu se nevyplňuje (chce se vybrat
+        # v Kodi) — skupina „Stahování“ v Přehrávání proto nesmí přidat prázdný
+        # nadpis bez jediného pole pod ním
+        schema = default.remote_setup_schema("playback")
+        labels = [f["label"] for f in schema[0]["fields"] if f.get("type") == "heading"]
+        self.assertNotIn(default._plain(default.L(30071, "Stahování")), labels)
 
 
 class TestZdrojeDoStatistik(unittest.TestCase):

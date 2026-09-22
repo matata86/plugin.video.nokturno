@@ -2347,10 +2347,14 @@ def accounts_set():
 
 # --- Nastavit z mobilu -----------------------------------------------------------------
 
-# kategorie nastavení, které jdou vyplnit z mobilu; Pokročilé a Info jsou jen tlačítka akcí,
+# kategorie nastavení, které jdou vyplnit z mobilu; Pokročilé jsou jen tlačítka akcí,
 # Stahování chce cestu vybranou v Kodi
-REMOTE_SETUP_CATEGORIES = ("ws", "sosac", "hs", "st", "fs", "pt", "luna", "storage", "database", "playback",
-                           "streamlist", "trakt", "sync", "stats")
+REMOTE_SETUP_CATEGORIES = ("sources", "storage", "playback", "streamlist", "trakt", "sync", "stats")
+# kategorie, jejíž skupiny se na stránce z mobilu ukážou jako samostatné sekce (ne jako
+# nadpisy uvnitř jedné) — "sources" slučuje deset dřívějších kategorií zdrojů/účtů do
+# jedné kvůli stropu 20 kategorií v settings.xml, ale na mobilu má vypadat pořád jako
+# deset rozbalovacích sekcí, ne jedna s 35 poli
+REMOTE_SETUP_SPLIT = ("sources",)
 REMOTE_SETUP_TIMEOUT = 1800
 # tlačítka z settings.xml, která mají na stránce z mobilu vlastní akci: id → (akce, pole, která čte)
 REMOTE_SETUP_ACTIONS = {"luna_find_action": ("luna_find", ["luna_url"]),
@@ -2364,90 +2368,116 @@ def _plain(text):
     return KODI_TAG_RE.sub(" ", text or "").strip()
 
 
+def _group_fields(group):
+    """Pole jedné skupiny `<group>` v `settings.xml`, ve tvaru pro formulář z mobilu."""
+    fields = []
+    if group.get("id") == "luna":
+        fields.append({"type": "info", "label": L(30574, "Jak nastavit Lunu"),
+                       "help": L(30575, "").replace("[CR]", "\n")})
+    for node in group.findall("setting"):
+        kind, control = node.get("type"), node.find("control")
+        field = {"id": node.get("id")}
+        if node.get("id") == "sync_code":
+            # Skupina už je: kód se jen ukáže, aby se dal opsat na další Kodi —
+            # je to zároveň šifrovací klíč a přepsat ho omylem by tohle Kodi
+            # ze skupiny vyřadilo. Skupina ještě není: pole na opsání kódu
+            # z prvního Kodi, služba se podle něj připojí do pěti minut.
+            # Zakládání a opuštění zůstává na televizi (`sync_create`/`sync_leave`).
+            kod = setting("sync_code").strip()
+            if kod:
+                fields.append({"type": "info", "label": _plain(L(30664, "Kód skupiny")), "help": kod})
+                continue
+            field["type"] = "text"
+            field["default"] = ""
+            field["label"] = _plain(L(30664, "Kód skupiny"))
+            field["help"] = _plain(L(30707, "Kód z prvního Kodi, na kterém jsi skupinu založil. "
+                                            "Zapni Synchronizaci, jako středisko zvol Dashboard "
+                                            "Nokturna a ulož — toto Kodi se připojí do pěti minut."))
+            field["enable"] = [("sync_enabled", "true"), ("sync_mode", "1")]
+            fields.append(field)
+            continue
+        if node.get("id") in REMOTE_SETUP_ACTIONS:
+            field["type"] = "action"
+            field["action"], field["inputs"] = REMOTE_SETUP_ACTIONS[node.get("id")]
+        elif node.get("id") == "stream_layout":
+            field["type"] = "order"
+            field["items"] = [(key, L(label, key)) for key, label in STREAM_PART_LABELS]
+        elif kind == "boolean":
+            field["type"] = "bool"
+        elif kind == "string":
+            field["type"] = ("password" if control is not None and control.find("hidden") is not None
+                             else "text")
+        elif kind == "integer" and node.find("constraints/options") is not None:
+            field["type"] = "choice"
+            field["options"] = [(opt.text, _plain(L(int(opt.get("label")), opt.text)) if opt.get("label")
+                                 else opt.text) for opt in node.find("constraints/options")]
+        elif kind == "integer" and node.find("constraints/maximum") is not None:
+            low = int(node.findtext("constraints/minimum") or 0)
+            step = int(node.findtext("constraints/step") or 1)
+            high = int(node.findtext("constraints/maximum"))
+            field["type"] = "choice"
+            field["options"] = [(str(v), str(v)) for v in range(low, high + 1, step)]
+        else:
+            continue
+        field["default"] = (node.findtext("default") or "").strip()
+        field["label"] = (_plain(L(int(node.get("label")), node.get("id"))) if node.get("label")
+                          else node.get("id"))
+        if field["type"] == "order":   # nápověda z Kodi popisuje zápis `a,b|c`, tady jsou šipky
+            field["help"] = L(30514, "Šipkami přesuň údaje mezi horním a dolním řádkem dialogu výběru "
+                                     "streamu, do Nezobrazovat přesuň, co se nemá ukazovat. Kvalita je "
+                                     "vždy obrázek vlevo.")
+        elif node.get("help"):
+            field["help"] = _plain(L(int(node.get("help"))))
+        dep = node.find("dependencies/dependency[@type='enable']")
+        if dep is not None and dep.get("setting"):
+            field["enable"] = (dep.get("setting"), (dep.text or "").strip())
+        elif dep is not None:   # <and> s víc podmínkami (sekce Synchronizace)
+            podminky = [(c.get("setting"), (c.text or "").strip())
+                        for c in dep.findall("and/condition") if c.get("setting")]
+            if podminky:
+                field["enable"] = podminky
+        fields.append(field)
+    return fields
+
+
 def remote_setup_schema(section=None):
     """Formulář pro mobil přímo ze `settings.xml` — nová položka nastavení se na stránce
     objeví sama. Popisky a nápověda jdou z `strings.po` v jazyce Kodi. `section` = jen jedna
-    kategorie (tlačítko Nastavit z mobilu přímo v ní, např. Výběr streamu)."""
+    kategorie (tlačítko Nastavit z mobilu přímo v ní, např. Výběr streamu).
+
+    `REMOTE_SETUP_SPLIT` kategorie (dnes jen „sources“, sloučené kvůli stropu 20 kategorií
+    v settings.xml) rozpadne na jednu sekci stránky za skupinu, aby na mobilu zůstalo vidět
+    deset rozbalovacích bloků zdrojů, ne jeden s 35 poli. Ostatní kategorie mají skupiny dál
+    jako nadpisy uvnitř jedné sekce."""
     import xml.etree.ElementTree as ET
     root = ET.parse(os.path.join(ADDON_PATH, "resources", "settings.xml")).getroot()
     sections = []
     for category in root.iter("category"):
-        if category.get("id") not in REMOTE_SETUP_CATEGORIES or section and category.get("id") != section:
+        cat_id = category.get("id")
+        if cat_id not in REMOTE_SETUP_CATEGORIES or section and cat_id != section:
             continue
         groups = category.findall("group")
+        if cat_id in REMOTE_SETUP_SPLIT:
+            for group in groups:
+                fields = _group_fields(group)
+                if not fields:
+                    continue
+                label = (_plain(L(int(group.get("label")), group.get("id"))) if group.get("label")
+                         else group.get("id"))
+                sections.append({"id": group.get("id"), "label": label, "fields": fields,
+                                 "open": not sections})
+            continue
         fields = []
         for group in groups:
+            group_fields = _group_fields(group)
+            if not group_fields:
+                continue
             if group.get("label") and len(groups) > 1:
                 fallback = f"Úložiště {group.get('id')}"
                 fields.append({"type": "heading", "label": _plain(L(int(group.get("label")), fallback))})
-            if category.get("id") == "luna" and group is groups[0]:
-                fields.append({"type": "info", "label": L(30574, "Jak nastavit Lunu"),
-                               "help": L(30575, "").replace("[CR]", "\n")})
-            for node in group.findall("setting"):
-                kind, control = node.get("type"), node.find("control")
-                field = {"id": node.get("id")}
-                if node.get("id") == "sync_code":
-                    # Skupina už je: kód se jen ukáže, aby se dal opsat na další Kodi —
-                    # je to zároveň šifrovací klíč a přepsat ho omylem by tohle Kodi
-                    # ze skupiny vyřadilo. Skupina ještě není: pole na opsání kódu
-                    # z prvního Kodi, služba se podle něj připojí do pěti minut.
-                    # Zakládání a opuštění zůstává na televizi (`sync_create`/`sync_leave`).
-                    kod = setting("sync_code").strip()
-                    if kod:
-                        fields.append({"type": "info", "label": _plain(L(30664, "Kód skupiny")), "help": kod})
-                        continue
-                    field["type"] = "text"
-                    field["default"] = ""
-                    field["label"] = _plain(L(30664, "Kód skupiny"))
-                    field["help"] = _plain(L(30707, "Kód z prvního Kodi, na kterém jsi skupinu založil. "
-                                                    "Zapni Synchronizaci, jako středisko zvol Dashboard "
-                                                    "Nokturna a ulož — toto Kodi se připojí do pěti minut."))
-                    field["enable"] = [("sync_enabled", "true"), ("sync_mode", "1")]
-                    fields.append(field)
-                    continue
-                if node.get("id") in REMOTE_SETUP_ACTIONS:
-                    field["type"] = "action"
-                    field["action"], field["inputs"] = REMOTE_SETUP_ACTIONS[node.get("id")]
-                elif node.get("id") == "stream_layout":
-                    field["type"] = "order"
-                    field["items"] = [(key, L(label, key)) for key, label in STREAM_PART_LABELS]
-                elif kind == "boolean":
-                    field["type"] = "bool"
-                elif kind == "string":
-                    field["type"] = ("password" if control is not None and control.find("hidden") is not None
-                                     else "text")
-                elif kind == "integer" and node.find("constraints/options") is not None:
-                    field["type"] = "choice"
-                    field["options"] = [(opt.text, _plain(L(int(opt.get("label")), opt.text)) if opt.get("label")
-                                         else opt.text) for opt in node.find("constraints/options")]
-                elif kind == "integer" and node.find("constraints/maximum") is not None:
-                    low = int(node.findtext("constraints/minimum") or 0)
-                    step = int(node.findtext("constraints/step") or 1)
-                    high = int(node.findtext("constraints/maximum"))
-                    field["type"] = "choice"
-                    field["options"] = [(str(v), str(v)) for v in range(low, high + 1, step)]
-                else:
-                    continue
-                field["default"] = (node.findtext("default") or "").strip()
-                field["label"] = (_plain(L(int(node.get("label")), node.get("id"))) if node.get("label")
-                                  else node.get("id"))
-                if field["type"] == "order":   # nápověda z Kodi popisuje zápis `a,b|c`, tady jsou šipky
-                    field["help"] = L(30514, "Šipkami přesuň údaje mezi horním a dolním řádkem dialogu výběru "
-                                             "streamu, do Nezobrazovat přesuň, co se nemá ukazovat. Kvalita je "
-                                             "vždy obrázek vlevo.")
-                elif node.get("help"):
-                    field["help"] = _plain(L(int(node.get("help"))))
-                dep = node.find("dependencies/dependency[@type='enable']")
-                if dep is not None and dep.get("setting"):
-                    field["enable"] = (dep.get("setting"), (dep.text or "").strip())
-                elif dep is not None:   # <and> s víc podmínkami (sekce Synchronizace)
-                    podminky = [(c.get("setting"), (c.text or "").strip())
-                                for c in dep.findall("and/condition") if c.get("setting")]
-                    if podminky:
-                        field["enable"] = podminky
-                fields.append(field)
+            fields.extend(group_fields)
         if fields:
-            sections.append({"id": category.get("id"), "label": _plain(L(int(category.get("label")))),
+            sections.append({"id": cat_id, "label": _plain(L(int(category.get("label")))),
                              "fields": fields, "open": not sections})
     return sections
 
@@ -3372,7 +3402,10 @@ def luna_find_remote(values):
 
 def luna_check_remote(values):
     """Ověřit Lunu ze stránky „Nastavit z mobilu“ s tím, co je právě ve formuláři."""
-    base, token = values.get("luna_url", ""), values.get("token", "")
+    base = values.get("luna_url", "")
+    # token je teď skryté pole (heslo se na stránku nikdy neposílá, viz remote_setup.py) —
+    # prázdné odeslání neznamená „smaž token“, ale „nikdo ho nepřepsal“
+    token = values.get("token") or setting("token")
     try:
         result = luna_diagnose(base, token)
     except Exception as e:  # noqa: BLE001 – ať akce nikdy nespadne bez vysvětlení

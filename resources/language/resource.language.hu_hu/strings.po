@@ -1708,9 +1708,6 @@ msgctxt "#30611"
 msgid "OpenSubtitles"
 msgstr "OpenSubtitles"
 
-msgctxt "#30612"
-msgid "Subtitles from opensubtitles.com for titles your sources have none for."
-msgstr "Feliratok az opensubtitles.com oldalról azokhoz a címekhez, amelyekhez a források nem kínálnak."
 
 msgctxt "#30613"
 msgid "Look for subtitles on OpenSubtitles"
@@ -2147,3 +2144,11 @@ msgstr "Beállítás telefonról és átvitel"
 msgctxt "#30725"
 msgid "rejects network"
 msgstr "elutasítja a hálózatot"
+
+msgctxt "#30726"
+msgid "Sources and accounts"
+msgstr "Források és fiókok"
+
+msgctxt "#30727"
+msgid "Maintenance"
+msgstr "Karbantartás"

@@ -1711,9 +1711,6 @@ msgctxt "#30611"
 msgid "OpenSubtitles"
 msgstr "OpenSubtitles"
 
-msgctxt "#30612"
-msgid "Subtitles from opensubtitles.com for titles your sources have none for."
-msgstr "Titulky z opensubtitles.com pre tituly, ku ktorým ich zdroje nemajú."
 
 msgctxt "#30613"
 msgid "Look for subtitles on OpenSubtitles"
@@ -2150,3 +2147,11 @@ msgstr "Nastaviť z mobilu a prenos"
 msgctxt "#30725"
 msgid "rejects network"
 msgstr "odmieta sieť"
+
+msgctxt "#30726"
+msgid "Sources and accounts"
+msgstr "Zdroje a účty"
+
+msgctxt "#30727"
+msgid "Maintenance"
+msgstr "Údržba"
