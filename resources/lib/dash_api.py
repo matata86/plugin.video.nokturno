@@ -14,6 +14,9 @@ Tři veřejné endpointy, které server skládá sám z TMDB (klient nic nedohle
 * `GET /similar?kind=&id=` — podobné tituly pro uživatele bez vlastního TMDB klíče.
 * `GET /tv-program?date=&kind=&channel=` — filmy a seriály v české a slovenské TV,
   jen ty, které server spároval s TMDB (mají `tt…` id).
+* `GET /concerts?sources=` + `GET /concerts/{id}?sources=` — katalog koncertů: interpreti a pod nimi
+  koncerty se soubory jako hotové vnitřní odkazy (`ws:`/`hs:`/`fs:`). Koncert nemá IMDb id,
+  proto jde mimo běžné katalogy; klient pošle zapnuté zdroje a dostane jen to, co umí přehrát.
 * `GET /os-key` — klíč k API OpenSubtitles pro titulky (`lib/opensubtitles_api.py`).
   Klíč je vázaný na aplikaci, ne na uživatele, a denní kvóta se počítá na IP toho,
   kdo stahuje — proto ho dostane klient a volá OpenSubtitles přímo, ne přes nás.
@@ -57,6 +60,9 @@ MEDIA_MAX = 50         # identů na jeden dotaz (server víc odmítne)
 MEDIA_IDENT_RE = re.compile(r"^(ws|hs|fs|cz):[A-Za-z0-9:_./=-]{1,120}$")
 KINDS = ("movie", "series")
 PLACEMENTS = ("root", "browse")
+CONCERTS_TTL = 6 * 3600
+CONCERT_SOURCES = ("webshare", "hellspy", "fastshare")
+CONCERT_REF_RE = re.compile(r"^(ws|hs|fs):[A-Za-z0-9:_./=-]{1,160}$")
 # ikony, které klient umí přeložit na obrázek — neznámá se zahodí na výchozí
 ICONS = ("", "movies", "series", "star", "top", "new", "family", "christmas", "halloween", "calendar", "trophy",
          "fairytale", "comedy", "romance", "animation")
@@ -289,6 +295,56 @@ class DashApi:
         # jen tvar, který dává `mediainfo.probe()` — server je cizí vstup jako každý jiný
         return {i: v for i, v in hits.items() if i in idents and isinstance(v, dict)
                 and (v.get("audio") or v.get("height") or v.get("size"))}
+
+    # --- koncerty --------------------------------------------------------------------
+
+    def concerts(self, sources):
+        """Interpreti s koncerty v zapnutých zdrojích (`GET /concerts?sources=`). Server
+        klíčuje koncert názvem, ne IMDb id, a soubor nese hotový vnitřní odkaz
+        (`ws:`/`hs:`/`fs:`), který klient rovnou předá `Engine.resolve()`. Zdroje jdou do
+        klíče cache — jiná sada zapnutých zdrojů = jiný seznam."""
+        srcs = ",".join(sorted(s for s in sources if s in CONCERT_SOURCES))
+
+        def fetch():
+            data = self._get("/concerts", sources=srcs)
+            return data.get("artists") if isinstance(data, dict) and isinstance(data.get("artists"), list) else None
+
+        out = []
+        for a in self._load(f"nokturno:dash:concerts:{srcs}", CONCERTS_TTL, fetch) or []:
+            if isinstance(a, dict) and isinstance(a.get("id"), int) and a["id"] > 0:
+                name = _text(a.get("name"), MAX_TITLE)
+                if name:
+                    out.append({"id": a["id"], "name": name, "concerts": int(a.get("concerts") or 0)})
+        return out
+
+    def concert_artist(self, artist_id, sources):
+        """Koncerty jednoho interpreta i se soubory — jen odkazy známého tvaru."""
+        if not isinstance(artist_id, int) or artist_id <= 0:
+            return None
+        srcs = ",".join(sorted(s for s in sources if s in CONCERT_SOURCES))
+
+        def fetch():
+            data = self._get(f"/concerts/{artist_id}", sources=srcs)
+            return data if isinstance(data, dict) and isinstance(data.get("concerts"), list) else None
+
+        data = self._load(f"nokturno:dash:concerts:{artist_id}:{srcs}", CONCERTS_TTL, fetch)
+        if not data:
+            return None
+        concerts = []
+        for c in data["concerts"]:
+            if not isinstance(c, dict):
+                continue
+            files = [{"source": f["source"], "ref": f["ref"], "name": _text(f.get("name"), 200),
+                      "size": int(f.get("size") or 0), "duration": int(f.get("duration") or 0)}
+                     for f in (c.get("files") or []) if isinstance(f, dict)
+                     and f.get("source") in CONCERT_SOURCES and isinstance(f.get("ref"), str)
+                     and CONCERT_REF_RE.match(f["ref"])]
+            title = _text(c.get("title"), 200)
+            if files and title:
+                year = c.get("year") if isinstance(c.get("year"), int) else None
+                concerts.append({"title": title, "year": year, "files": files})
+        artist = data.get("artist") if isinstance(data.get("artist"), dict) else {}
+        return {"artist": _text(artist.get("name"), MAX_TITLE), "concerts": concerts}
 
 
 if __name__ == "__main__":

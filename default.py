@@ -1081,6 +1081,86 @@ def list_dash_group(apis, slug, ctype):
     xbmcplugin.endOfDirectory(HANDLE)
 
 
+CONCERT_SOURCE_KEYS = (("ws", "webshare"), ("hs", "hellspy"), ("fs", "fastshare"))
+
+
+def concert_sources(apis):
+    """Zapnuté zdroje, které umí koncerty (server podle nich vybírá) — jméno tak, jak ho zná
+    dashboard. Vypnutý zdroj je v `apis` None (`get_webshare` a spol.)."""
+    return [name for key, name in CONCERT_SOURCE_KEYS if apis.get(key)]
+
+
+def list_concerts(apis):
+    """Katalog koncertů z dashboardu: interpreti, u každého počet koncertů dostupných
+    v uživatelových zdrojích. Koncert nemá IMDb id, jde tedy mimo běžné tituly —
+    server drží hotové vnitřní odkazy a klient je jen přehraje (`play_ref`)."""
+    dash = apis.get("dash")
+    sources = concert_sources(apis)
+    rows = dash.concerts(sources) if dash and sources else []
+    xbmcplugin.setPluginCategory(HANDLE, L(30750, "Koncerty"))
+    set_content("videos")
+    if not rows:
+        notify(L(30751, "Koncerty teď nejsou dostupné"), xbmcgui.NOTIFICATION_WARNING, 4000)
+        xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+        return
+    for a in rows:
+        li = xbmcgui.ListItem(label=a["name"], label2=str(a["concerts"]))
+        li.setArt({"icon": "DefaultMusicArtists.png"})
+        xbmcplugin.addDirectoryItem(HANDLE, build_url(action="concert_artist", id=a["id"]), li, isFolder=True)
+    xbmcplugin.endOfDirectory(HANDLE)
+
+
+def list_concert_artist(apis, artist_id):
+    """Koncerty jednoho interpreta. Položka = koncert, klik pustí největší soubor ze
+    zapnutých zdrojů; ostatní soubory téhož koncertu jdou do `alts` a `play_ref` je
+    zkusí, když první selže (tentýž vzorec jako sloučené verze u filmů)."""
+    dash = apis.get("dash")
+    data = dash.concert_artist(artist_id, concert_sources(apis)) if dash else None
+    set_content("videos")
+    if not data or not data["concerts"]:
+        notify(L(30751, "Koncerty teď nejsou dostupné"), xbmcgui.NOTIFICATION_WARNING, 4000)
+        xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+        return
+    xbmcplugin.setPluginCategory(HANDLE, data["artist"] or L(30750, "Koncerty"))
+    for c in data["concerts"]:
+        files = c["files"]
+        first = files[0]
+        title = f"{data['artist']} – {c['title']}" + (f" ({c['year']})" if c["year"] else "")
+        li = xbmcgui.ListItem(label=title, label2=human_size(first["size"]) if first["size"] else "")
+        li.setArt({"icon": "DefaultMusicVideos.png"})
+        tag = li.getVideoInfoTag()
+        tag.setTitle(title)
+        if c["year"]:
+            tag.setYear(c["year"])
+        if first["duration"]:
+            tag.setDuration(first["duration"])
+        # v popisu všechny soubory: zdroj, velikost a syrový název — ať jde poznat, co se pustí
+        tag.setPlot("\n".join(f"{SOURCE_TAGS.get(f['ref'].split(':', 1)[0], '')} {human_size(f['size'])}  {f['name']}"
+                              for f in files))
+        li.setProperty("IsPlayable", "true")
+        url = build_url(action="play_ref", ref=first["ref"], name=title,
+                        alts="|".join(f["ref"] for f in files[1:]) or None)
+        xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=False)
+    xbmcplugin.endOfDirectory(HANDLE)
+
+
+def play_ref(apis, ref, name="", alts=""):
+    """Přehrát vnitřní odkaz (`ws:`/`hs:`/`fs:`) bez titulu — koncerty. Když první nejde
+    (smazaný soubor, vypršelý účet), zkusí se další kopie téhož koncertu z `alts`."""
+    try:
+        used, link = resolve_first(apis, [ref] + [a for a in (alts or "").split("|") if a])
+    except Errors as e:
+        notify(str(e) or L(30102), xbmcgui.NOTIFICATION_ERROR, 6000)
+        xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
+        return
+    li = xbmcgui.ListItem(label=name or used, path=link)
+    li.getVideoInfoTag().setTitle(name or used)
+    kind = used.split(":", 1)[0]
+    STORE.remember_item(used, {"type": kind, "id": used, "title": name or used, "art": {}})
+    mark_playing(used, name, kind=kind)
+    xbmcplugin.setResolvedUrl(HANDLE, True, li)
+
+
 IMDB_ID_RE = re.compile(r"^tt\d{5,10}$")
 
 
@@ -4188,6 +4268,10 @@ def main_menu(apis):
     # sezónní a tematické katalogy zapnuté na dashboardu (bez vydání nové verze)
     dash_catalog_items(apis, "root")
     folder_item(L(30483, "TV program"), build_url(action="tv"), icon="DefaultAddonPVRClient.png")
+    # koncerty jsou jen ve fulltextových zdrojích (WebShare, HellSpy, FastShare) — bez nich
+    # by server neměl co vrátit, tak položka bez nich ani není
+    if concert_sources(apis):
+        folder_item(L(30750, "Koncerty"), build_url(action="concerts"), icon="DefaultMusicVideos.png")
     # jako Pokračovat výš: na čisté instalaci nevede do prázdna. Podmínka musí pokrýt
     # obojí, co je uvnitř — Můj seznam i Naposledy zhlédnuté (to je schované až tam).
     # První přidaný titul řádek rozsvítí hned, `toggle_fav()` volá Container.Refresh.
@@ -6411,6 +6495,12 @@ def router(query):
             list_similar(apis, p.get("type", "movie"), p.get("id", ""))
         elif action == "tv":
             list_tv(apis, p.get("date", ""), p.get("kind", ""), p.get("channel", ""))
+        elif action == "concerts":
+            list_concerts(apis)
+        elif action == "concert_artist":
+            list_concert_artist(apis, int(p.get("id") or 0))
+        elif action == "play_ref":
+            play_ref(apis, p.get("ref", ""), p.get("name", ""), p.get("alts", ""))
         elif action == "genres":
             list_genres(apis, p["type"], p["catalog"], p.get("src", "luna"), show_all=not p.get("noall"))
         elif action == "dash_group":

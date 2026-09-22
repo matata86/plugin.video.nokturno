@@ -5985,3 +5985,85 @@ class TestNotifikaceONedostupnychStreamech(unittest.TestCase):
              mock.patch.object(default, "engine_of", return_value=fake_engine):
             default.play({}, "movie", "tt1")
         self.assertEqual(xbmcgui.notifications, [])
+
+
+class TestKoncerty(unittest.TestCase):
+    """2026-09-22 (7.10.0~beta1): katalog koncertů z dashboardu — položka v menu jen se
+    zdrojem, který koncerty umí; interpret → koncerty; klik hraje první soubor, ostatní
+    kopie jdou do `alts` pro `play_ref`."""
+
+    class Dash:
+        def __init__(self):
+            self.volani = []
+
+        def menu(self, placement=None, ctype=None):
+            return []
+
+        def concerts(self, sources):
+            self.volani.append(("concerts", tuple(sources)))
+            return [{"id": 7, "name": "Pink Floyd", "concerts": 42}]
+
+        def concert_artist(self, artist_id, sources):
+            self.volani.append(("artist", artist_id, tuple(sources)))
+            return {"artist": "Pink Floyd", "concerts": [
+                {"title": "Live in Venice", "year": 1989, "files": [
+                    {"source": "webshare", "ref": "ws:abc", "name": "PF Venice.avi", "size": 2 * 1024 ** 3, "duration": 0},
+                    {"source": "hellspy", "ref": "hs:1:h", "name": "PF Venice.mkv", "size": 1_000_000_000, "duration": 5400}]},
+                {"title": "Pulse", "year": None, "files": [
+                    {"source": "fastshare", "ref": "fs:9:s:1", "name": "Pulse.mp4", "size": 6_000_000_000, "duration": 0}]},
+            ]}
+
+    def setUp(self):
+        reset_kodi()
+
+    def test_polozka_v_menu_jen_se_zdrojem_koncertu(self):
+        default.main_menu({"dash": self.Dash(), "cinemeta": object(), "hs": object()})
+        self.assertIn({"action": "concerts"}, [params_of(u) for u in xbmcplugin.urls()])
+        xbmcplugin.reset()
+        default.main_menu({"dash": self.Dash(), "cinemeta": object(), "sosac": object()})
+        self.assertNotIn({"action": "concerts"}, [params_of(u) for u in xbmcplugin.urls()])
+
+    def test_interpreti_a_zdroje_pro_server(self):
+        dash = self.Dash()
+        default.list_concerts({"dash": dash, "ws": object(), "fs": object(), "pt": object()})
+        self.assertEqual(dash.volani, [("concerts", ("webshare", "fastshare"))])   # pt koncerty neumí
+        (_h, url, li, folder), = xbmcplugin.items
+        self.assertTrue(folder)
+        self.assertEqual(params_of(url), {"action": "concert_artist", "id": "7"})
+        self.assertEqual((li.getLabel(), li.label2), ("Pink Floyd", "42"))
+
+    def test_bez_zdroje_se_server_nevola(self):
+        dash = self.Dash()
+        default.list_concerts({"dash": dash, "sosac": object()})
+        self.assertEqual(dash.volani, [])
+        self.assertEqual(xbmcplugin.urls(), [])
+        self.assertTrue(xbmcplugin.ended[-1]["succeeded"])
+
+    def test_koncert_hraje_prvni_soubor_a_ostatni_jdou_do_alts(self):
+        default.list_concert_artist({"dash": self.Dash(), "ws": object(), "hs": object()}, 7)
+        items = xbmcplugin.items
+        self.assertEqual(len(items), 2)
+        _h, url, li, folder = items[0]
+        self.assertFalse(folder)
+        self.assertEqual(li.getProperty("IsPlayable"), "true")
+        self.assertEqual(params_of(url), {"action": "play_ref", "ref": "ws:abc", "name": "Pink Floyd – Live in Venice (1989)",
+                                          "alts": "hs:1:h"})
+        self.assertEqual(li.label2, "2.0 GB")
+        self.assertNotIn("alts", params_of(items[1][1]))   # jediný soubor → bez alts
+        self.assertEqual(xbmcplugin.categories[-1], "Pink Floyd")
+
+    def test_play_ref_zkusi_dalsi_kopii_a_oznaci_prehravani(self):
+        with mock.patch.object(default, "resolve_first", return_value=("hs:1:h", "http://cdn/x.mkv")) as rf, \
+             mock.patch.object(default, "mark_playing") as mp:
+            default.play_ref({"hs": object()}, "ws:abc", "Pink Floyd – Live in Venice (1989)", "hs:1:h")
+        self.assertEqual(rf.call_args.args[1], ["ws:abc", "hs:1:h"])
+        self.assertEqual(mp.call_args.args[0], "hs:1:h")
+        self.assertEqual(mp.call_args.kwargs["kind"], "hs")
+        _h, ok, li = xbmcplugin.resolved[-1]
+        self.assertTrue(ok)
+        self.assertEqual(li.path, "http://cdn/x.mkv")
+
+    def test_play_ref_bez_odkazu_neprehraje(self):
+        with mock.patch.object(default, "resolve_first", side_effect=default.NokturnoError("nic")):
+            default.play_ref({}, "ws:abc", "x", "")
+        self.assertFalse(xbmcplugin.resolved[-1][1])

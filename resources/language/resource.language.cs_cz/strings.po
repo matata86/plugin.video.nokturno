@@ -2240,3 +2240,11 @@ msgstr "Souhlasím"
 msgctxt "#30749"
 msgid "Do you agree to the terms of use above?"
 msgstr "Souhlasíš s podmínkami použití výše?"
+
+msgctxt "#30750"
+msgid "Concerts"
+msgstr "Koncerty"
+
+msgctxt "#30751"
+msgid "Concerts are not available right now"
+msgstr "Koncerty teď nejsou dostupné"

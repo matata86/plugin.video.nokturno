@@ -2239,3 +2239,11 @@ msgstr ""
 msgctxt "#30749"
 msgid "Do you agree to the terms of use above?"
 msgstr ""
+
+msgctxt "#30750"
+msgid "Concerts"
+msgstr ""
+
+msgctxt "#30751"
+msgid "Concerts are not available right now"
+msgstr ""
