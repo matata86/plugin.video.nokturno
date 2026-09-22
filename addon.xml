@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="7.10.0~beta1" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="8.0.0~beta1" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,7 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>7.10.0~beta1 – Nová položka menu „Koncerty“: katalog hudebních koncertů z WebShare, HellSpy a FastShare, sestavený serverem (300 interpretů, svět i CZ/SK). Interpret → koncerty → klik hraje rovnou největší soubor z tvých zapnutých zdrojů, další kopie téhož koncertu se zkusí samy, když první nejde. Bez IMDb id, mimo Filmy/Seriály.
+    <news>8.0.0~beta1 – Nová položka menu „Koncerty“: katalog hudebních koncertů z WebShare, HellSpy a FastShare, sestavený serverem (300 interpretů, svět i CZ/SK). Interpret → koncerty → klik hraje rovnou největší soubor z tvých zapnutých zdrojů, další kopie téhož koncertu se zkusí samy, když první nejde. Bez IMDb id, mimo Filmy/Seriály.
 7.9.2 – Oprava tlačítka souhlasu s podmínkami v Průvodci prvním nastavením (7.9.0): tvrdilo „Otevřít nastavení", ale ve skutečnosti jen rovnou zapsalo souhlas a pokračovalo v průvodci. Nově „Souhlasím" / „Souhlasíš s podmínkami použití výše?" — stejný text jako na stránce „Nastavit z mobilu".
 7.9.1 – Oprava zastaralého docstringu u průvodce prvním nastavením (kosmetika, bez funkční změny).
 7.9.0 – Souhlas s podmínkami použití jde dát i ze stránky „Nastavit z mobilu“ (přepínač a tlačítko „Přečíst podmínky“ v nové sekci) a je teď vlastním krokem přímo v Průvodci prvním nastavením, ne jen v Nastavení doplňku.
