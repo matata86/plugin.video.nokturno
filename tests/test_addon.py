@@ -237,6 +237,7 @@ class TestPravniUpozorneni(unittest.TestCase):
         reset_kodi()
         self.addCleanup(lambda: default.STORE.save("terms_accepted", default.TERMS_VERSION))
         default.STORE.save("terms_accepted", "")
+        default.STORE.save("terms_migrated", "")
         xbmcaddon.settings["terms_ok"] = "false"
 
     def _v_ui(self):
@@ -330,6 +331,24 @@ class TestPravniUpozorneni(unittest.TestCase):
             default.migrate_terms()
         self.assertNotEqual(xbmcaddon.settings.get("terms_ok"), "true")
         self.assertFalse(default.terms_accepted())
+
+    def test_rucni_vypnuti_prepinace_drzi(self):
+        """Kdo souhlas jednou dal a pak přepínač vypnul, nesmí dál hledat — ani uložený
+        souhlas v profilu, ani grandfathering staré instalace ho nesmí zase zapnout."""
+        with mock.patch.object(default, "_PRIOR_SEEN_VERSION", "5.2.7"):
+            default.migrate_terms()                      # první spuštění: stará instalace
+            self.assertTrue(default.terms_accepted())
+            xbmcaddon.settings["terms_ok"] = "false"     # uživatel souhlas v nastavení zruší
+            self.assertFalse(default.terms_accepted())
+            default.migrate_terms()                      # každé další spuštění pluginu
+            default.migrate_terms()
+        self.assertEqual(xbmcaddon.settings["terms_ok"], "false")
+        self.assertFalse(default.terms_accepted())
+        with mock.patch.object(xbmcgui.Dialog, "textviewer"), \
+                mock.patch.object(xbmcgui.Dialog, "yesno", return_value=False), \
+                mock.patch.object(default, "router") as router:
+            default.main("action=search_run&q=matrix")
+        router.assert_not_called()
 
     def test_sluzba_bez_souhlasu_nesaha_na_zdroje(self):
         """Služba běží mimo plugin (zahřívání, prefetch, obnova stavu účtů, stahování)

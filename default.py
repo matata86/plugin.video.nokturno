@@ -403,6 +403,8 @@ def terms_accepted():
     v `settings.xml` by z ní bylo další pole navíc; zaškrtnutí platí vždy pro aktuální
     `TERMS_VERSION` a zapíše se při prvním přečtení."""
     if ADDON.getSetting("terms_ok") != "true":
+        if STORE.load("terms_accepted", ""):
+            STORE.save("terms_accepted", "")   # vzatý zpět; jinak by ho migrace zase zapnula
         return False
     if STORE.load("terms_accepted", "") != TERMS_VERSION:
         STORE.save("terms_accepted", TERMS_VERSION)
@@ -412,7 +414,14 @@ def terms_accepted():
 def migrate_terms():
     """Souhlas se z profilu (bety `7.6.0~beta1`–`~beta3`) překlopí do přepínače a starší
     instalace se odsouhlasí sama (`_existing_install`). Opačným směrem: po věcné změně
-    textu (vyšší `TERMS_VERSION`) se přepínač vypne, aby ho uživatel potvrdil znovu."""
+    textu (vyšší `TERMS_VERSION`) se přepínač vypne, aby ho uživatel potvrdil znovu.
+
+    Běží **jednou za verzi textu** (značka `terms_migrated`). Bez toho by uložený souhlas
+    v profilu zapínal přepínač po každém kliknutí, takže ruční vypnutí by nikdy nedrželo
+    a doplněk by hledal dál."""
+    if STORE.load("terms_migrated", "") == TERMS_VERSION:
+        return
+    STORE.save("terms_migrated", TERMS_VERSION)
     ulozena = STORE.load("terms_accepted", "")
     if ADDON.getSetting("terms_ok") == "true":
         if ulozena and ulozena != TERMS_VERSION:
