@@ -5589,8 +5589,11 @@ class TestOsmKategorii(unittest.TestCase):
     def test_osm_kategorii(self):
         root = ET.parse(ROOT / "resources" / "settings.xml").getroot()
         kategorie = [c.get("id") for c in root.iter("category")]
-        self.assertEqual(kategorie, ["terms", "storage", "sources", "transfer", "playback",
-                                     "streamlist", "sync", "stats", "advanced"])
+        # Podmínky použití jsou od 2026-09-22 poslední, ne první: souhlas se dává
+        # jednou, kdežto přes první kategorii se roluje pokaždé. Pořadí kategorií
+        # nemá na souhlas vliv — `terms_accepted()` čte hodnotu, ne pozici.
+        self.assertEqual(kategorie, ["storage", "sources", "transfer", "playback",
+                                     "streamlist", "sync", "stats", "advanced", "terms"])
 
     def test_zadne_id_volby_nezmizelo(self):
         # getSetting() u existující instalace vrátí u zrušeného id tiše výchozí
@@ -5709,3 +5712,54 @@ class TestKorenMenu(unittest.TestCase):
         zdroj = (ROOT / "default.py").read_text(encoding="utf-8")
         self.assertNotIn("def list_catalogs", zdroj)
         self.assertNotIn('action == "catalogs"', zdroj)
+
+
+class TestTisiLog(unittest.TestCase):
+    """2026-09-22 (logy z dashboardu, id 103–109): doplněk plnil kodi.log řádky,
+    které uživateli ani nám nic neřeknou — a v odeslaném logu vypadají jako
+    porucha. Stejná třída nálezu jako 6.2.2 (warning „Zdroj tohoto titulu není
+    nastavený" přes 900 řádků) a 6.2.7 (`GetDirectory` u prefetch)."""
+
+    def test_diag_nejde_do_logu_jako_warning(self):
+        # do 60 kandidátů = desítky řádků na každé zahřátí (každých 6 h)
+        zaznamy = []
+        with mock.patch.object(default.xbmc, "log", side_effect=lambda m, l=None: zaznamy.append((m, l))):
+            default._diag("movie: 60 kandidátů za 0.2 s")
+        self.assertEqual(len(zaznamy), 1)
+        self.assertEqual(zaznamy[0][1], default.xbmc.LOGDEBUG)
+
+    def test_stejne_selhani_synchronizace_varuje_jen_jednou(self):
+        """Kolo běží po SYNC_EVERY — nedostupné středisko jinak zapíše warning
+        pořád dokola (288 řádků denně u instalace s neplatnou adresou HA)."""
+        syncer = service.Syncer(object())
+        urovne = []
+        with mock.patch.object(service, "log", side_effect=lambda m, l=None: urovne.append((m, l))):
+            duvod = "<urlopen error [Errno 7] No address associated with hostname>"
+            syncer._log_vysledek("HA", False, 0, 0, duvod)
+            syncer._log_vysledek("HA", False, 0, 0, duvod)
+            syncer._log_vysledek("HA", False, 0, 0, duvod)
+        self.assertEqual([l for _, l in urovne],
+                         [xbmc.LOGWARNING, xbmc.LOGDEBUG, xbmc.LOGDEBUG])
+        self.assertIn("neproběhl", urovne[0][0])
+
+    def test_jiny_duvod_i_navrat_do_provozu_se_hlasi(self):
+        syncer = service.Syncer(object())
+        zaznamy = []
+        with mock.patch.object(service, "log", side_effect=lambda m, l=None: zaznamy.append((m, l))):
+            syncer._log_vysledek("HA", False, 0, 0, "timed out")
+            syncer._log_vysledek("HA", False, 0, 0, "HTTP 401")   # jiná příčina = nový warning
+            syncer._log_vysledek("HA", True, 3, 2, "")
+            syncer._log_vysledek("HA", True, 0, 0, "")            # už běží, žádné „znovu funguje"
+        self.assertEqual([l for _, l in zaznamy],
+                         [xbmc.LOGWARNING, xbmc.LOGWARNING, xbmc.LOGINFO, xbmc.LOGINFO, xbmc.LOGINFO])
+        self.assertIn("znovu funguje", zaznamy[2][0])
+        self.assertIn("odesláno 3, přijato 2", zaznamy[3][0])
+
+    def test_obe_strediska_maji_vlastni_pamet(self):
+        # relay nesmí umlčet warning o HA a naopak
+        syncer = service.Syncer(object())
+        urovne = []
+        with mock.patch.object(service, "log", side_effect=lambda m, l=None: urovne.append((m, l))):
+            syncer._log_vysledek("HA", False, 0, 0, "timed out")
+            syncer._log_vysledek("", False, 0, 0, "timed out")
+        self.assertEqual([l for _, l in urovne], [xbmc.LOGWARNING, xbmc.LOGWARNING])

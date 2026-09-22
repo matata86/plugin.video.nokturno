@@ -9,23 +9,6 @@
          z mobilu `remote_setup_schema()`, přenos nastavení `transfer.exportable()`,
          synchronizace `kodi_settings.shared_defaults()`) — nová kategorie proto
          znamená sloučit dvě staré, ne jen přidat. -->
-    <category id="terms" label="30735">
-      <group id="1" label="30728">
-        <setting id="terms_ok" type="boolean" label="30736" help="30730">
-          <level>0</level>
-          <default>false</default>
-          <control type="toggle"/>
-        </setting>
-        <setting id="terms_show_action" type="action" label="30738">
-          <level>0</level>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <data>RunPlugin(plugin://plugin.video.nokturno/?action=info_terms)</data>
-          <control format="action" type="button"/>
-        </setting>
-      </group>
-    </category>
     <category id="storage" label="30374" help="30375">
       <group id="1" label="30376">
         <setting id="dav1_url" type="string" label="30379" help="30380">
@@ -1091,6 +1074,23 @@
           </constraints>
           <data>RunPlugin(plugin://plugin.video.nokturno/?action=info_terms)</data>
           <control type="button" format="action"/>
+        </setting>
+      </group>
+    </category>
+    <category id="terms" label="30735">
+      <group id="1" label="30728">
+        <setting id="terms_ok" type="boolean" label="30736" help="30730">
+          <level>0</level>
+          <default>false</default>
+          <control type="toggle"/>
+        </setting>
+        <setting id="terms_show_action" type="action" label="30738">
+          <level>0</level>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=info_terms)</data>
+          <control format="action" type="button"/>
         </setting>
       </group>
     </category>

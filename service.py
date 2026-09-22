@@ -616,6 +616,8 @@ class Syncer:
         self.store = store
         self.next = time.time() + SYNC_FIRST   # první výměna krátce po startu
         self.lock = threading.Lock()
+        # poslední nahlášený důvod selhání pro každé středisko — viz `_log_vysledek`
+        self.last_fail = {}
 
     # nastavení a účty umí jen relay (viz `default.sync_circles`) a jsou výchozím
     # stavem vypnuté — sdílení přihlášení má být vědomé rozhodnutí
@@ -650,6 +652,25 @@ class Syncer:
             xbmcgui.Window(10000).clearProperty("nokturno.ws_token")
         log("synchronizace přepsala nastavení: " + ", ".join(sorted(zapsano)), xbmc.LOGINFO)
 
+    def _log_vysledek(self, kde, ok, pushed, pulled, why):
+        """Warning jen při **změně** stavu, opakované stejné selhání do ladicího logu.
+
+        Kolo běží po SYNC_EVERY, takže nedostupné středisko jinak zapíše warning
+        pořád dokola (u jedné instalace 288 řádků `sync (HA) neproběhl: <urlopen
+        error [Errno 7] No address associated with hostname>` denně, 2026-09-22).
+        Informace, že něco nejde, je v logu potřeba jednou — ne v každém kole.
+        """
+        znacka = f"sync ({kde})" if kde else "sync"
+        if ok:
+            if self.last_fail.pop(kde, None):
+                log(f"{znacka}: znovu funguje", xbmc.LOGINFO)
+            log(f"{znacka}: odesláno {pushed}, přijato {pulled}", xbmc.LOGINFO)
+            return
+        nove = self.last_fail.get(kde) != why
+        self.last_fail[kde] = why
+        log(f"{znacka} neproběhl: {why}",
+            xbmc.LOGWARNING if nove else xbmc.LOGDEBUG)
+
     def tick(self, force=False):
         addon = fresh_addon()
         if addon is None or addon.getSetting("sync_enabled") != "true":
@@ -680,17 +701,13 @@ class Syncer:
                     ok, pushed, pulled, why = sync_once(
                         self.store, url, key, jmeno,
                         circles=tuple(o for o in circles if o not in self.RELAY_ONLY))
-                    log(f"sync (HA): odesláno {pushed}, přijato {pulled}" if ok
-                        else f"sync (HA) neproběhl: {why}",
-                        xbmc.LOGINFO if ok else xbmc.LOGWARNING)
+                    self._log_vysledek("HA", ok, pushed, pulled, why)
                 if code:
                     ok, pushed, pulled, why = syncbox.sync_once(
                         self.store, code, circles=circles, name=jmeno,
                         settings=self._settings_values(addon, circles),
                         on_settings=lambda zmeny: self._write_settings(addon, zmeny))
-                    log(f"sync: odesláno {pushed}, přijato {pulled}" if ok
-                        else f"sync neproběhl: {why}",
-                        xbmc.LOGINFO if ok else xbmc.LOGWARNING)
+                    self._log_vysledek("", ok, pushed, pulled, why)
             finally:
                 self.lock.release()
         threading.Thread(target=run, daemon=True).start()

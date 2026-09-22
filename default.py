@@ -398,7 +398,7 @@ TERMS_FREE = ("info_terms", "settings")
 
 
 def terms_accepted():
-    """Souhlas drží **přepínač v nastavení** (první kategorie, `terms_ok`) — uživatel ho
+    """Souhlas drží **přepínač v nastavení** (kategorie Podmínky použití, `terms_ok`) — uživatel ho
     musí vidět a umět vzít zpět. Verze odsouhlaseného textu zůstává v profilu, protože
     v `settings.xml` by z ní bylo další pole navíc; zaškrtnutí platí vždy pro aktuální
     `TERMS_VERSION` a zapíše se při prvním přečtení."""
@@ -4386,9 +4386,11 @@ def list_lang_catalog(apis, ctype, want):
 
 
 def _diag(msg):
-    # DOČASNÉ (2026-09-15) – měření, kde přesně „Nově přidané s CZ dabingem/titulky"
-    # ztrácí čas; smazat, až bude jasné, co je pomalé.
-    xbmc.log(f"[{ADDON_ID}/DIAG] {msg}", xbmc.LOGWARNING)
+    # Měření, kde „Nově přidané s CZ dabingem/titulky" ztrácí čas (2026-09-15).
+    # LOGDEBUG, ne LOGWARNING: do 60 kandidátů = desítky řádků na každé zahřátí
+    # (každých 6 h), a logy uživatelů z dashboardu pak vypadají jako porucha —
+    # stejná třída šumu jako 6.2.2 a 6.2.7. Kdo měří, zapne ladicí log Kodi.
+    xbmc.log(f"[{ADDON_ID}/DIAG] {msg}", xbmc.LOGDEBUG)
 
 
 def _lang_lock_age(win, prop):
