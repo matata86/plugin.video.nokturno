@@ -1102,7 +1102,7 @@ def similar_context(ctype, item_id):
 
 def folder_item(label, url, icon=None, context=None):
     li = xbmcgui.ListItem(label=label)
-    li.setArt({"icon": icon or ICON, "thumb": icon or ICON})
+    li.setArt({"icon": icon or ICON})
     if context:
         li.addContextMenuItems(context)
     xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
@@ -1113,7 +1113,7 @@ def action_item(label, url, icon=None):
     Kodi ji po kliknutí spustí s handle −1, takže se nekreslí žádný výpis a do kodi.log
     nepadá `GetDirectory - Error getting …` (to hlásí každý `endOfDirectory(succeeded=False)`)."""
     li = xbmcgui.ListItem(label=label)
-    li.setArt({"icon": icon or ICON, "thumb": icon or ICON})
+    li.setArt({"icon": icon or ICON})
     xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=False)
 
 
@@ -4130,7 +4130,7 @@ def main_menu(apis):
         # vždycky jen výsek; popis složky ten skin nekreslí vůbec, takže záloha
         # neexistuje. Význam „něco je špatně“ nese ikona. Stejná bitva jako v 6.3.7.
         li = xbmcgui.ListItem(label=souhrn)
-        li.setArt({"icon": icon_path("warning"), "thumb": icon_path("warning")})
+        li.setArt({"icon": icon_path("warning")})
         tag = li.getVideoInfoTag()
         # v popisu všechno a na vlastních řádcích — do štítku se vejdou jen dva zdroje
         tag.setPlot("\n".join(account_line(r) for r in accounts_problems(rows)))
@@ -4235,7 +4235,7 @@ def browse_menu(apis, ctype):
     # modál neotevře a widget ani JSON-RPC se sem nedostanou (vzor `tv_pick`).
     nahodny = xbmcgui.ListItem(label=L(30609, "Náhodný seriál") if ctype == "series"
                                else L(30608, "Náhodný film"))
-    nahodny.setArt({"icon": icon_path("random"), "thumb": icon_path("random")})
+    nahodny.setArt({"icon": icon_path("random")})
     xbmcplugin.addDirectoryItem(HANDLE, build_url(action="random", type=ctype), nahodny, isFolder=False)
     xbmcplugin.endOfDirectory(HANDLE)
 
@@ -5642,7 +5642,7 @@ def list_tv(apis, day="", kind="", channel=""):
         picks = (("ended", f"{L(30584, 'Skončené pořady')}: {state}", icon_path("ended")),) + picks
     for field, label, icon in picks:
         li = xbmcgui.ListItem(label=f"[B]{label}[/B]")
-        li.setArt({"icon": icon, "thumb": icon})
+        li.setArt({"icon": icon})
         xbmcplugin.addDirectoryItem(HANDLE, build_url(action="tv_pick", field=field, date=day or None,
                                                       kind=kind or None, channel=channel or None),
                                     li, isFolder=False)
