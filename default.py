@@ -2349,7 +2349,7 @@ def accounts_set():
 
 # kategorie nastavení, které jdou vyplnit z mobilu; Pokročilé jsou jen tlačítka akcí,
 # Stahování chce cestu vybranou v Kodi
-REMOTE_SETUP_CATEGORIES = ("sources", "storage", "playback", "streamlist", "trakt", "sync", "stats")
+REMOTE_SETUP_CATEGORIES = ("sources", "storage", "playback", "streamlist", "sync", "stats")
 # kategorie, jejíž skupiny se na stránce z mobilu ukážou jako samostatné sekce (ne jako
 # nadpisy uvnitř jedné) — "sources" slučuje deset dřívějších kategorií zdrojů/účtů do
 # jedné kvůli stropu 20 kategorií v settings.xml, ale na mobilu má vypadat pořád jako
@@ -3376,6 +3376,8 @@ def list_accounts(apis):
     JSON-RPC neměl kdo zavřít a zablokoval by i vypínání Kodi."""
     engine = engine_of(apis)
     rows = engine.accounts()
+    # nadpis obrazovky — 30630 se uvolnilo ze štítku položky v menu (viz main_menu)
+    xbmcplugin.setPluginCategory(HANDLE, L(30630, "Stav zdrojů"))
     for row in rows:
         if row["level"] == ACC_OFF and row["code"] == "off":
             continue    # zdroj je vypnutý schválně, není co hlásit
@@ -3968,7 +3970,11 @@ def main_menu(apis):
     request_accounts_retry(engine, rows)
     souhrn = account_summary(rows)
     if souhrn:
-        li = xbmcgui.ListItem(label=f"{L(30630, 'Stav zdrojů')}: {souhrn}")
+        # bez prefixu „Stav zdrojů: “ (13 znaků) — Arctic Fuse má na řádek zhruba
+        # čtyřicet znaků a delší text si roluje pod rukama, takže z věty je vidět
+        # vždycky jen výsek; popis složky ten skin nekreslí vůbec, takže záloha
+        # neexistuje. Význam „něco je špatně“ nese ikona. Stejná bitva jako v 6.3.7.
+        li = xbmcgui.ListItem(label=souhrn)
         li.setArt({"icon": "DefaultIconWarning.png", "thumb": "DefaultIconWarning.png"})
         tag = li.getVideoInfoTag()
         # v popisu všechno a na vlastních řádcích — do štítku se vejdou jen dva zdroje
@@ -3998,7 +4004,11 @@ def main_menu(apis):
     # sezónní a tematické katalogy zapnuté na dashboardu (bez vydání nové verze)
     dash_catalog_items(apis, "root")
     folder_item(L(30483, "TV program"), build_url(action="tv"), icon="DefaultAddonPVRClient.png")
-    folder_item(L(30060), build_url(action="favourites"), icon="DefaultFavourites.png")
+    # jako Pokračovat výš: na čisté instalaci nevede do prázdna. Podmínka musí pokrýt
+    # obojí, co je uvnitř — Můj seznam i Naposledy zhlédnuté (to je schované až tam).
+    # První přidaný titul řádek rozsvítí hned, `toggle_fav()` volá Container.Refresh.
+    if STORE.favourites() or STORE.recently_watched(1):
+        folder_item(L(30060), build_url(action="favourites"), icon="DefaultFavourites.png")
     if apis.get("dav"):
         folder_item(L(30387, "Moje úložiště"), build_url(action="dav_browse"), icon="DefaultHardDisk.png")
     if setting("download_dir") or sync_targets():
@@ -4071,22 +4081,6 @@ def browse_menu(apis, ctype):
                                else L(30608, "Náhodný film"))
     nahodny.setArt({"icon": "DefaultAddonsUpdates.png", "thumb": "DefaultAddonsUpdates.png"})
     xbmcplugin.addDirectoryItem(HANDLE, build_url(action="random", type=ctype), nahodny, isFolder=False)
-    xbmcplugin.endOfDirectory(HANDLE)
-
-
-def list_catalogs(apis, ctype, src):
-    api = apis[src]
-    if api is None:
-        raise LunaError(L(30104))
-    for c in api.catalogs(ctype):
-        # Luna má hledání jako vlastní katalog `search.movie`/`search.series` — ten
-        # do procházení nepatří. Cinemeta narozdíl od Luny umí `search=` extra i na
-        # běžných katalozích (`top`, `imdbRating`), takže se pozná jen podle id.
-        if c["id"].startswith("search"):
-            continue
-        action = "genres" if c["genres"] else "catalog"
-        folder_item(c["name"], build_url(action=action, type=ctype, catalog=c["id"], src=src),
-                   icon="DefaultVideoPlaylists.png")
     xbmcplugin.endOfDirectory(HANDLE)
 
 
@@ -6187,8 +6181,6 @@ def router(query):
             list_accounts(apis)
         elif action == "accounts_refresh":
             accounts_refresh(apis)
-        elif action == "catalogs":
-            list_catalogs(apis, p["type"], p.get("src", "luna"))
         elif action == "browse":
             browse_menu(apis, p.get("type", "movie"))
         elif action == "foryou":

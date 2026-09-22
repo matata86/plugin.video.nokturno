@@ -1155,8 +1155,11 @@ class TestRouter(unittest.TestCase):
     def test_hlavni_menu_se_zdroji(self):
         default.router("")
         akce = [params_of(u).get("action") for u in xbmcplugin.urls()]
-        for a in ("search", "browse", "favourites", "settings"):
+        for a in ("search", "browse", "settings"):
             self.assertIn(a, akce)
+        # od 7.5.0~beta2 se „Můj seznam“ ukáže jen s obsahem (viz TestKorenMenu) —
+        # čistý profil ho tu právem nemá
+        self.assertNotIn("favourites", akce)
         self.assertEqual(akce.count("browse"), 2)
         self.assertFalse(xbmcplugin.ended[-1]["cacheToDisc"], "menu se mění podle stavu, do cache nepatří")
 
@@ -4571,11 +4574,12 @@ class TestStavZdroju(unittest.TestCase):
         self.assertFalse([p for p in popisky if "Stav zdrojů" in p])
 
     def test_menu_s_problemem_ma_polozku_prvni(self):
+        # od 7.5.0~beta2 bez prefixu „Stav zdrojů: “ (roloval se na TV, viz 6.3.7) —
+        # položku pozná podle cíle (action=accounts), ne podle textu štítku
         rows = [self._row("webshare", "fail", "expired")]
         with mock.patch.object(default.KodiEngine, "accounts", lambda self, **kw: rows):
             default.router("")
         prvni = xbmcplugin.items[0]
-        self.assertIn("Stav zdrojů", prvni[2].getLabel())
         self.assertIn("WebShare", prvni[2].getLabel())
         self.assertIn("action=accounts", prvni[1])
 
@@ -5378,18 +5382,20 @@ class TestPrehrajto(unittest.TestCase):
         self.assertLessEqual(len(kategorie), 20, "víc než 20 kategorií rozbije šipku doprava")
 
 
-class TestDevetKategorii(unittest.TestCase):
-    """2026-09-22: 20 kategorií (strop Kodi vyčerpaný) → 9. Osm zdrojů + OpenSubtitles
-    a TMDB slité do „sources“ (10 skupin), Stahování skupinou v Přehrávání, Info
-    čtyřmi skupinami v Pokročilých. Žádné id volby se neměnilo — profilový
-    settings.xml je plochý seznam <setting id>, kategorie ani skupiny v něm nejsou,
-    takže migrace není potřeba."""
+class TestOsmKategorii(unittest.TestCase):
+    """2026-09-22: 20 kategorií (strop Kodi vyčerpaný) → 9 (beta1). Osm zdrojů +
+    OpenSubtitles a TMDB slité do „sources“ (10 skupin), Stahování skupinou
+    v Přehrávání, Info čtyřmi skupinami v Pokročilých. Beta2: Trakt.tv (účet
+    s přihlášením) se přestěhoval z vlastní kategorie do skupiny v „sources“ —
+    8 kategorií, 11 skupin. Žádné id volby se neměnilo — profilový settings.xml
+    je plochý seznam <setting id>, kategorie ani skupiny v něm nejsou, takže
+    migrace není potřeba."""
 
-    def test_devet_kategorii(self):
+    def test_osm_kategorii(self):
         root = ET.parse(ROOT / "resources" / "settings.xml").getroot()
         kategorie = [c.get("id") for c in root.iter("category")]
         self.assertEqual(kategorie, ["transfer", "sources", "storage", "playback",
-                                     "streamlist", "trakt", "sync", "stats", "advanced"])
+                                     "streamlist", "sync", "stats", "advanced"])
 
     def test_zadne_id_volby_nezmizelo(self):
         # getSetting() u existující instalace vrátí u zrušeného id tiše výchozí
@@ -5407,7 +5413,7 @@ class TestDevetKategorii(unittest.TestCase):
         # bez REMOTE_SETUP_SPLIT by „sources“ byla jedna sekce s 35 poli
         schema = default.remote_setup_schema()
         ids = [s["id"] for s in schema]
-        for zdroj in ("ws", "pt", "sosac", "hs", "st", "fs", "cz", "luna", "osub", "database"):
+        for zdroj in ("ws", "pt", "sosac", "hs", "st", "fs", "cz", "luna", "osub", "database", "trakt"):
             self.assertIn(zdroj, ids)
         self.assertNotIn("sources", ids)
 
@@ -5466,3 +5472,45 @@ class TestZdrojeDoStatistik(unittest.TestCase):
         })))
         chybi = zdroje_jadra - set(kodi_sources.SOURCE_KEYS) - {"torrent"}
         self.assertEqual(chybi, set(), "Kodi nehlásí zdroj, který jádro zná")
+
+
+class TestKorenMenu(unittest.TestCase):
+    """2026-09-22: Trakt do „Zdroje a účty“, Můj seznam podmíněně, kratší štítek
+    stavu zdrojů, mrtvá `list_catalogs` pryč."""
+
+    def setUp(self):
+        reset_kodi()
+        default.STORE.save("wizard_done", True)
+        default.STORE.save("favourites", [])
+        default.STORE.save("watched", {})
+
+    def test_trakt_je_skupina_ve_zdrojich(self):
+        # účet s přihlášením patří ke zbylým účtům; id skupiny musí zůstat "trakt",
+        # protože podle něj vzniká sekce stránky z mobilu
+        root = ET.parse(ROOT / "resources" / "settings.xml").getroot()
+        self.assertNotIn("trakt", {c.get("id") for c in root.iter("category")})
+        zdroje = next(c for c in root.iter("category") if c.get("id") == "sources")
+        skupina = next(g for g in zdroje.findall("group") if g.get("id") == "trakt")
+        self.assertEqual(skupina.get("label"), "30090")
+        self.assertEqual({s.get("id") for s in skupina.iter("setting")},
+                         {"trakt_enabled", "trakt_client_id", "trakt_client_secret",
+                          "trakt_auth_action", "trakt_logout_action"})
+        self.assertNotIn("trakt", default.REMOTE_SETUP_CATEGORIES)
+
+    def test_muj_seznam_se_neukaze_prazdny(self):
+        # čistý profil: ani oblíbené, ani naposledy zhlédnuté
+        self.assertFalse(default.STORE.favourites())
+        self.assertFalse(default.STORE.recently_watched(1))
+        default.router("")
+        akce = [params_of(u).get("action") for u in xbmcplugin.urls()]
+        self.assertNotIn("favourites", akce)
+
+    def test_stitek_stavu_zdroju_nema_prefix(self):
+        # „Stav zdrojů: “ je 13 znaků navíc na řádku, kam se vejde ~40
+        zdroj = (ROOT / "default.py").read_text(encoding="utf-8")
+        self.assertNotIn('f"{L(30630', zdroj, "prefix ve štítku položky je zpět")
+
+    def test_mrtva_cesta_catalogs_je_pryc(self):
+        zdroj = (ROOT / "default.py").read_text(encoding="utf-8")
+        self.assertNotIn("def list_catalogs", zdroj)
+        self.assertNotIn('action == "catalogs"', zdroj)

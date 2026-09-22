@@ -432,6 +432,60 @@
           </control>
         </setting>
       </group>
+      <group id="trakt" label="30090">
+        <setting id="trakt_enabled" type="boolean" label="30091" help="30324">
+          <level>0</level>
+          <default>false</default>
+          <control type="toggle"/>
+        </setting>
+        <setting id="trakt_client_id" type="string" label="30092" help="30325">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="trakt_enabled">true</dependency>
+          </dependencies>
+          <control type="edit" format="string">
+          </control>
+        </setting>
+        <setting id="trakt_client_secret" type="string" label="30093" help="30326">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="trakt_enabled">true</dependency>
+          </dependencies>
+          <control type="edit" format="string">
+            <hidden>true</hidden>
+          </control>
+        </setting>
+        <setting id="trakt_auth_action" type="action" label="30100">
+          <level>0</level>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="trakt_enabled">true</dependency>
+          </dependencies>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=trakt_auth)</data>
+          <control format="action" type="button"/>
+        </setting>
+        <setting id="trakt_logout_action" type="action" label="30098">
+          <level>0</level>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="trakt_enabled">true</dependency>
+          </dependencies>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=trakt_logout)</data>
+          <control format="action" type="button"/>
+        </setting>
+      </group>
     </category>
     <category id="storage" label="30374" help="30375">
       <group id="1" label="30376">
@@ -688,62 +742,6 @@
           </constraints>
           <data>RunPlugin(plugin://plugin.video.nokturno/?action=stream_layout_reset)</data>
           <control type="button" format="action"/>
-        </setting>
-      </group>
-    </category>
-    <category id="trakt" label="30090">
-      <group id="1">
-        <setting id="trakt_enabled" type="boolean" label="30091" help="30324">
-          <level>0</level>
-          <default>false</default>
-          <control type="toggle"/>
-        </setting>
-        <setting id="trakt_client_id" type="string" label="30092" help="30325">
-          <level>0</level>
-          <default></default>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <dependencies>
-            <dependency type="enable" setting="trakt_enabled">true</dependency>
-          </dependencies>
-          <control type="edit" format="string">
-          </control>
-        </setting>
-        <setting id="trakt_client_secret" type="string" label="30093" help="30326">
-          <level>0</level>
-          <default></default>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <dependencies>
-            <dependency type="enable" setting="trakt_enabled">true</dependency>
-          </dependencies>
-          <control type="edit" format="string">
-            <hidden>true</hidden>
-          </control>
-        </setting>
-        <setting id="trakt_auth_action" type="action" label="30100">
-          <level>0</level>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <dependencies>
-            <dependency type="enable" setting="trakt_enabled">true</dependency>
-          </dependencies>
-          <data>RunPlugin(plugin://plugin.video.nokturno/?action=trakt_auth)</data>
-          <control format="action" type="button"/>
-        </setting>
-        <setting id="trakt_logout_action" type="action" label="30098">
-          <level>0</level>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <dependencies>
-            <dependency type="enable" setting="trakt_enabled">true</dependency>
-          </dependencies>
-          <data>RunPlugin(plugin://plugin.video.nokturno/?action=trakt_logout)</data>
-          <control format="action" type="button"/>
         </setting>
       </group>
     </category>
