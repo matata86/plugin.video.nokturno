@@ -2155,3 +2155,27 @@ msgstr "Zdroje a účty"
 msgctxt "#30727"
 msgid "Maintenance"
 msgstr "Údržba"
+
+msgctxt "#30728"
+msgid "Legal notice"
+msgstr "Právne upozornenie"
+
+msgctxt "#30729"
+msgid "Nokturno is only a technical interface to content; it does not host, store or provide any content itself. It surfaces links from publicly available third-party services (WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna, OpenSubtitles) and from storage you configure yourself.\n\nUse the add-on only for content you have a legal right, licence, or other legal title to access. Searching for, accessing, or playing copyrighted content without the rightsholders' consent is prohibited.\n\nThe add-on is provided \"as is\", with no warranty of functionality, availability, or legality of third-party sources. Responsibility for how it is used lies solely with the user. The operator reserves the right to restrict or terminate access at any time."
+msgstr "Nokturno je len technické rozhranie k obsahu, obsah sám nehostuje, neukladá ani neposkytuje. Sprístupňuje odkazy z verejne dostupných služieb tretích strán (WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Prehraj.to, CZtor, Luna, OpenSubtitles) a z úložiska, ktoré si sami nastavíte.\n\nDoplnok smiete používať len na obsah, ku ktorému máte zákonné oprávnenie, licenciu alebo iný právny titul. Vyhľadávanie, sprístupňovanie alebo prehrávanie autorsky chráneného obsahu bez súhlasu nositeľov práv je zakázané.\n\nDoplnok je poskytovaný „tak, ako je“, bez záruky funkčnosti, dostupnosti ani legálnosti zdrojov tretích strán. Za spôsob použitia nesie zodpovednosť výhradne používateľ. Prevádzkovateľ si vyhradzuje právo kedykoľvek obmedziť alebo ukončiť prístup."
+
+msgctxt "#30730"
+msgid "I confirm I will use the add-on only for content I have the right to access, and I agree to the terms of use."
+msgstr "Potvrdzujem, že budem doplnok používať iba na obsah, ku ktorému mám právo prístupu, a súhlasím s podmienkami použitia."
+
+msgctxt "#30731"
+msgid "I agree"
+msgstr "Súhlasím"
+
+msgctxt "#30732"
+msgid "I don't agree"
+msgstr "Nesúhlasím"
+
+msgctxt "#30733"
+msgid "First accept the legal notice in the Nokturno menu."
+msgstr "Najprv v menu Nokturna odsúhlas právne upozornenie."

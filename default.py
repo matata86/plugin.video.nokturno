@@ -378,6 +378,56 @@ def install_id():
 
 migrate_on_start()
 
+# Zvednout jen při věcné změně právního upozornění (ne u překlepu) — starší souhlas
+# pak přestane platit a uživatel ho musí znovu potvrdit.
+TERMS_VERSION = "1"
+
+
+def terms_accepted():
+    return STORE.load("terms_accepted", "") == TERMS_VERSION
+
+
+def terms_text():
+    return L(30729, "Nokturno is only a technical interface to content; it does not host, store or provide "
+                    "any content itself. It surfaces links from publicly available third-party services "
+                    "(WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna, OpenSubtitles) "
+                    "and from storage you configure yourself.\n\n"
+                    "Use the add-on only for content you have a legal right, licence, or other legal title to "
+                    "access. Searching for, accessing, or playing copyrighted content without the "
+                    "rightsholders' consent is prohibited.\n\n"
+                    "The add-on is provided \"as is\", with no warranty of functionality, availability, or "
+                    "legality of third-party sources. Responsibility for how it is used lies solely with the "
+                    "user. The operator reserves the right to restrict or terminate access at any time.")
+
+
+def info_terms():
+    """Tlačítko v kategorii Info: plný text právního upozornění, kdykoli k nahlédnutí."""
+    xbmcgui.Dialog().textviewer(L(30728, "Legal notice"), terms_text())
+
+
+def ensure_terms():
+    """Musí proběhnout dřív, než plugin cokoli vyhledá nebo přehraje. Modál (`yesno`) jen
+    z UI průchodu (`browsing_nokturno`) — z widgetu nebo JSON-RPC by zasekl přehrávání
+    i vypínání Kodi jako každý jiný modál v cestě, kterou nikdo neklikl (viz CLAUDE.md).
+    Odtud bez UI se akce jen tiše odmítne, dokud uživatel souhlas nedá v menu Nokturna —
+    žádné obcházení odsouhlasení spuštěním z widgetu."""
+    if terms_accepted():
+        return True
+    if not browsing_nokturno():
+        notify(L(30733, "First accept the legal notice in the Nokturno menu."), xbmcgui.NOTIFICATION_WARNING, 6000)
+        return False
+    dialog = xbmcgui.Dialog()
+    dialog.textviewer(L(30728, "Legal notice"), terms_text())
+    accepted = dialog.yesno(
+        L(30728, "Legal notice"),
+        L(30730, "I confirm I will use the add-on only for content I have the right to access, and I agree "
+                 "to the terms of use."),
+        yeslabel=L(30731, "I agree"), nolabel=L(30732, "I don't agree"))
+    if accepted:
+        STORE.save("terms_accepted", TERMS_VERSION)
+        return True
+    return False
+
 
 def note_lang_catalog_open(ctype):
     """Zapamatuje, že uživatel seznam s jazykem otevřel — podle toho se rozhoduje,
@@ -6137,6 +6187,7 @@ def router(query):
         "sync_now": sync_now,
         "info_install": lambda: _tlacitko(info_install),
         "info_donate": lambda: _tlacitko(info_donate),
+        "info_terms": lambda: _tlacitko(info_terms),
         "whats_new": whats_new,
         "ha_files": list_ha_files,
         "settings": lambda: (xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False) if HANDLE >= 0 else None,
@@ -6314,6 +6365,9 @@ def main(query):
         # — ta běží na úrovni modulu, tedy dřív, než je tahle funkce definovaná
         migrate_sync_mode()
         action = dict(urllib.parse.parse_qsl(query.lstrip("?"))).get("action") or ""
+        if action != "info_terms" and not ensure_terms():
+            _close(action)
+            return
         if action not in MARKS_SKIP:
             adopt_kodi_marks()
         router(query)

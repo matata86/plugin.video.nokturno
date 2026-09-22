@@ -53,6 +53,11 @@ import build_repo                             # noqa: E402
 HANDLE = 1
 LANG_DIR = ROOT / "resources" / "language"
 
+# Právní upozornění při prvním spuštění (viz `default.ensure_terms`) by jinak blokovalo
+# router ve všech testech, které se souhlasem vůbec nesouvisí — testy pro tuhle
+# konkrétní funkci si stav podle potřeby samy nastaví/vynulují.
+default.STORE.save("terms_accepted", default.TERMS_VERSION)
+
 
 def tearDownModule():
     shutil.rmtree(_PROFILE, ignore_errors=True)
@@ -161,10 +166,10 @@ class TestNastaveni(unittest.TestCase):
         self.assertNotIn('type="string"', info, "textové pole jde přepsat")
         self.assertNotIn('type="label"', info)
         self.assertNotIn('type="edit"', info)
-        self.assertEqual(info.count('<control type="button" format="action"/>'), 6)
-        self.assertEqual(info.count("<data>"), 2)      # jen verze s id a příspěvek
+        self.assertEqual(info.count('<control type="button" format="action"/>'), 7)
+        self.assertEqual(info.count("<data>"), 3)      # verze s id, příspěvek a právní upozornění
         for klic in ("info_web", "info_family", "info_install", "info_donate",
-                     "info_forum_kodi", "info_forum_stremio"):
+                     "info_forum_kodi", "info_forum_stremio", "info_terms"):
             self.assertIn('id="%s"' % klic, info)
 
     def test_info_ukaze_verzi_a_id(self):
@@ -217,6 +222,66 @@ class TestNastaveni(unittest.TestCase):
         # obě sekce se pořád musí řídit střediskem, jen přes `enable`
         self.assertEqual(xml.count('<condition setting="sync_mode" operator="is">0</condition>'), 2)
         self.assertGreaterEqual(xml.count('<condition setting="sync_mode" operator="is">1</condition>'), 4)
+
+
+class TestPravniUpozorneni(unittest.TestCase):
+    """Právní upozornění při prvním spuštění (viz `default.ensure_terms`) — souhlas
+    se ukládá do `Store`, modál jen v UI průchodu, z widgetu/JSON-RPC se akce tiše
+    odmítne, ať to nejde obejít."""
+
+    def setUp(self):
+        reset_kodi()
+        self.addCleanup(lambda: default.STORE.save("terms_accepted", default.TERMS_VERSION))
+        default.STORE.save("terms_accepted", "")
+
+    def test_bez_souhlasu_a_mimo_ui_se_akce_odmitne_bez_modalu(self):
+        xbmc.cond_visible.discard("Window.IsMedia")   # browsing_nokturno() = False (widget/JSON-RPC)
+        with mock.patch.object(xbmcgui.Dialog, "yesno") as yesno:
+            self.assertFalse(default.ensure_terms())
+        yesno.assert_not_called()
+        self.assertEqual(len(xbmcgui.notifications), 1)
+        self.assertFalse(default.terms_accepted())
+
+    def test_v_ui_prijeti_ulozi_souhlas(self):
+        xbmc.cond_visible.add("Window.IsMedia")
+        xbmc.info_labels["Container.PluginName"] = default.ADDON_ID
+        with mock.patch.object(xbmcgui.Dialog, "textviewer") as textviewer, \
+                mock.patch.object(xbmcgui.Dialog, "yesno", return_value=True) as yesno:
+            self.assertTrue(default.ensure_terms())
+        textviewer.assert_called_once()
+        yesno.assert_called_once()
+        self.assertTrue(default.terms_accepted())
+        # druhé volání se souhlasem uloženým už žádný dialog neotvírá
+        with mock.patch.object(xbmcgui.Dialog, "yesno") as yesno2:
+            self.assertTrue(default.ensure_terms())
+        yesno2.assert_not_called()
+
+    def test_v_ui_odmitnuti_souhlas_neulozi(self):
+        xbmc.cond_visible.add("Window.IsMedia")
+        xbmc.info_labels["Container.PluginName"] = default.ADDON_ID
+        with mock.patch.object(xbmcgui.Dialog, "textviewer"), \
+                mock.patch.object(xbmcgui.Dialog, "yesno", return_value=False):
+            self.assertFalse(default.ensure_terms())
+        self.assertFalse(default.terms_accepted())
+
+    def test_main_bez_souhlasu_nezavola_router(self):
+        xbmc.cond_visible.add("Window.IsMedia")
+        xbmc.info_labels["Container.PluginName"] = default.ADDON_ID
+        with mock.patch.object(xbmcgui.Dialog, "textviewer"), \
+                mock.patch.object(xbmcgui.Dialog, "yesno", return_value=False), \
+                mock.patch.object(default, "router") as router:
+            default.main("action=favourites")
+        router.assert_not_called()
+        self.assertEqual(len(xbmcplugin.ended), 1)
+        self.assertFalse(xbmcplugin.ended[0]["succeeded"])
+
+    def test_info_terms_obejde_branu(self):
+        """Tlačítko v Nastavení → Info musí jít otevřít i před odsouhlasením."""
+        with mock.patch.object(xbmcgui.Dialog, "textviewer") as textviewer, \
+                mock.patch.object(default, "router", wraps=default.router):
+            default.main("action=info_terms")
+        textviewer.assert_called_once()
+        self.assertFalse(default.terms_accepted(), "otevření textu samo o sobě není souhlas")
 
 
 class TestAddonXml(unittest.TestCase):
@@ -5413,7 +5478,7 @@ class TestOsmKategorii(unittest.TestCase):
         # přeskládání kategorií zůstávají stejná
         root = ET.parse(ROOT / "resources" / "settings.xml").getroot()
         volby = {s.get("id") for s in root.iter("setting")}
-        self.assertEqual(len(volby), 100)
+        self.assertEqual(len(volby), 101)   # +1: info_terms (právní upozornění, 2026-09-22)
         for ocekavane in ("ws_enabled", "pt_email", "sosac_enabled", "hs_enabled",
                           "st_enabled", "fs_enabled", "cz_enabled", "luna_url",
                           "os_enabled", "tmdb_api_key", "download_dir", "info_donate"):

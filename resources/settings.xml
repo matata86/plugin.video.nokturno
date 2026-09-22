@@ -1066,6 +1066,16 @@
           <control type="button" format="action"/>
         </setting>
       </group>
+      <group id="info5" label="30728">
+        <setting id="info_terms" type="action" label="30728">
+          <level>0</level>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=info_terms)</data>
+          <control type="button" format="action"/>
+        </setting>
+      </group>
     </category>
   </section>
 </settings>
