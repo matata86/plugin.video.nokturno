@@ -2500,7 +2500,7 @@ def accounts_set():
 
 # kategorie nastavení, které jdou vyplnit z mobilu; Pokročilé jsou jen tlačítka akcí,
 # Stahování chce cestu vybranou v Kodi
-REMOTE_SETUP_CATEGORIES = ("sources", "storage", "playback", "streamlist", "sync", "stats")
+REMOTE_SETUP_CATEGORIES = ("terms", "sources", "storage", "playback", "streamlist", "sync", "stats")
 # kategorie, jejíž skupiny se na stránce z mobilu ukážou jako samostatné sekce (ne jako
 # nadpisy uvnitř jedné) — "sources" slučuje deset dřívějších kategorií zdrojů/účtů do
 # jedné kvůli stropu 20 kategorií v settings.xml, ale na mobilu má vypadat pořád jako
@@ -2509,7 +2509,8 @@ REMOTE_SETUP_SPLIT = ("sources",)
 REMOTE_SETUP_TIMEOUT = 1800
 # tlačítka z settings.xml, která mají na stránce z mobilu vlastní akci: id → (akce, pole, která čte)
 REMOTE_SETUP_ACTIONS = {"luna_find_action": ("luna_find", ["luna_url"]),
-                        "luna_check_action": ("luna_check", ["luna_url", "token"])}
+                        "luna_check_action": ("luna_check", ["luna_url", "token"]),
+                        "terms_show_action": ("terms_show", [])}
 STREAM_PART_LABELS = (("langs", 30501), ("size", 30502), ("video", 30503), ("audio", 30504), ("bitrate", 30505),
                       ("length", 30506), ("subs", 30507), ("source", 30508), ("file", 30509))
 KODI_TAG_RE = re.compile(r"\[/?(?:B|I|CR|COLOR|UPPERCASE|LOWERCASE|CAPITALIZE|LIGHT)[^\]]*\]")
@@ -2774,7 +2775,8 @@ def remote_setup(section=None):
         "action_failed": L(30580, "Spojení s televizí se přerušilo — na TV spusť Nastavit z mobilu znovu."),
     }
     server = _remote_setup().SetupServer(schema, values, texts, actions={"luna_find": luna_find_remote,
-                                                        "luna_check": luna_check_remote})
+                                                        "luna_check": luna_check_remote,
+                                                        "terms_show": terms_show_remote})
     try:
         server.start()
     except OSError as e:
@@ -3103,6 +3105,19 @@ def setup_wizard(force=False):
             STORE.save("wizard_done", True)
             return
     dialog = xbmcgui.Dialog()
+    if not terms_accepted():
+        # dnes už negde jinam projít — router (`main()`) žádnou akci mimo `TERMS_FREE`
+        # nepustí bez `ensure_terms()`, takže se sem dostane jen s odsouhlaseným textem.
+        # Vlastní krok tu zůstává jako pojistka, kdyby se to spuštění průvodce jednou
+        # obešlo (přání uživatele 2026-09-22: souhlas patří i do samotného průvodce).
+        dialog.textviewer(L(30728, "Legal notice"), terms_text())
+        if not dialog.yesno(L(30728, "Legal notice"),
+                            L(30739, "You have to agree to the terms of use first. Open the settings now?"),
+                            yeslabel=L(30740, "Open the settings"), nolabel=L(30732, "I don't agree")):
+            return
+        ADDON.setSetting("terms_ok", "true")
+        if not terms_accepted():   # zápis se nepovedl (souběžná změna nastavení) — nepokračovat naslepo
+            return
     while True:
         # úvodní volba (přání uživatele 2026-09-16): z mobilu, průvodce ovladačem, nebo přeskočit
         choice = dialog.yesnocustom(
@@ -3591,6 +3606,12 @@ def _luna_setup_link(base):
 def _stranka(text):
     """Text z `strings.po` pro webovou stránku: `[CR]` na nový řádek, ostatní Kodi značky pryč."""
     return _plain(text.replace("[CR]", "\n"))
+
+
+def terms_show_remote(values):
+    """Tlačítko „Přečíst podmínky“ ve Stavu zdrojů z mobilu — stejný text jako `info_terms()`
+    na TV, jen na stránce místo v modálu."""
+    return {"level": "ok", "text": _stranka(terms_text())}
 
 
 def os_check():

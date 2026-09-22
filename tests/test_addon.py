@@ -374,6 +374,59 @@ class TestPravniUpozorneni(unittest.TestCase):
             self.assertFalse(default.terms_accepted())
 
 
+class TestSouhlasZMobiluAPruvodce(unittest.TestCase):
+    """2026-09-22: souhlas s podmínkami použití musí jít dát i ze stránky „Nastavit
+    z mobilu" a v samotném průvodci prvním nastavením — dřív šel jen přes přepínač
+    v Nastavení doplňku."""
+
+    def setUp(self):
+        reset_kodi()
+
+    def test_kategorie_terms_je_ve_schematu_pro_mobil(self):
+        schema = default.remote_setup_schema()
+        terms = next(s for s in schema if s["id"] == "terms")
+        fields = {f["id"]: f for f in terms["fields"] if f.get("type") != "action" or "id" in f}
+        prepinac = next(f for f in terms["fields"] if f.get("id") == "terms_ok")
+        self.assertEqual(prepinac["type"], "bool")
+        tlacitko = next(f for f in terms["fields"] if f.get("id") == "terms_show_action")
+        self.assertEqual(tlacitko["type"], "action")
+        self.assertEqual(tlacitko["action"], "terms_show")
+
+    def test_tlacitko_precist_podminky_vrati_plny_text(self):
+        vysledek = default.terms_show_remote({})
+        self.assertEqual(vysledek["level"], "ok")
+        self.assertIn("Nokturno", vysledek["text"])
+        self.assertNotIn("[CR]", vysledek["text"])
+
+    def test_pruvodce_bez_souhlasu_ukaze_text_a_ceka_na_odpoved(self):
+        xbmcaddon.settings["terms_ok"] = "false"
+        with mock.patch.object(xbmcgui.Dialog, "textviewer") as textviewer, \
+                mock.patch.object(xbmcgui.Dialog, "yesno", return_value=False) as yesno, \
+                mock.patch.object(xbmcgui.Dialog, "yesnocustom") as volba:
+            default.setup_wizard(force=True)
+        textviewer.assert_called_once()
+        yesno.assert_called_once()
+        volba.assert_not_called()   # nesouhlas ukončí průvodce dřív, než se cokoli ptá dál
+        self.assertFalse(default.terms_accepted())
+
+    def test_pruvodce_se_souhlasem_pokracuje_a_zapne_prepinac(self):
+        xbmcaddon.settings["terms_ok"] = "false"
+        with mock.patch.object(xbmcgui.Dialog, "textviewer"), \
+                mock.patch.object(xbmcgui.Dialog, "yesno", return_value=True), \
+                mock.patch.object(xbmcgui.Dialog, "yesnocustom", return_value=1) as volba:
+            default.setup_wizard(force=True)
+        volba.assert_called_once()   # po souhlasu pokračuje na úvodní volbu průvodce
+        self.assertEqual(xbmcaddon.settings["terms_ok"], "true")
+        self.assertTrue(default.terms_accepted())
+
+    def test_pruvodce_uz_odsouhlaseny_krok_neukazuje(self):
+        xbmcaddon.settings["terms_ok"] = "true"
+        with mock.patch.object(xbmcgui.Dialog, "textviewer") as textviewer, \
+                mock.patch.object(xbmcgui.Dialog, "yesnocustom", return_value=1):
+            default.setup_wizard(force=True)
+        textviewer.assert_not_called()
+
+
 class TestAddonXml(unittest.TestCase):
     def setUp(self):
         self.root = ET.parse(ROOT / "addon.xml").getroot()
@@ -4090,6 +4143,7 @@ class TestPruvodceLuna(unittest.TestCase):
 
     def wizard(self, found, vlozeno=""):
         """Průvodcem projde jen krok Luny: na ostatní otázky odpoví Ne."""
+        xbmcaddon.settings["terms_ok"] = "true"   # test kroku Luny, ne souhlasu s podmínkami
         headings = []
 
         def yesno(self, heading, *a, **kw):
@@ -4118,6 +4172,7 @@ class TestPruvodceLuna(unittest.TestCase):
         self.assertEqual(xbmcaddon.settings.get("token"), "e1.abc")
 
     def test_sken_bez_site_pruvodce_neshodí(self):
+        xbmcaddon.settings["terms_ok"] = "true"   # test skenu Luny, ne souhlasu s podmínkami
         with mock.patch.object(xbmcgui.Dialog, "yesnocustom", lambda *a, **kw: 1), \
                 mock.patch.object(xbmcgui.Dialog, "yesno", lambda self, heading, *a, **kw: "Luna" in heading), \
                 mock.patch.object(default, "luna_discover", side_effect=OSError("bez sítě")):
