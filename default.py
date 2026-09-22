@@ -1035,20 +1035,13 @@ def set_content(content):
         xbmcplugin.addSortMethod(HANDLE, method, "%L", LABEL2_MASKS.get(method, label2))
 
 
-def icon_path(name):
-    """Ikona ze sady doplňku (`tools/make_icons.py`) — jeden styl napříč menu.
-    Sada skinu je malá a v každém skinu jiná: žánrovou ikonu má jednu pro všechny
-    žánry a sezónní žádnou, takže půlka položek nesla obrázek bez vztahu k obsahu."""
-    return os.path.join(ADDON_PATH, "resources", "media", "icons", name + ".png")
-
-
 # ikony, které smí poslat dashboard (`dash_api.ICONS`) → naše sada
 DASH_ICONS = {
-    "": icon_path("all"), "movies": icon_path("movies"), "series": icon_path("series"),
-    "star": icon_path("star"), "top": icon_path("toprated"), "new": icon_path("newadded"),
-    "halloween": icon_path("pumpkin"), "calendar": icon_path("calendar-star"), "trophy": icon_path("toprated"),
-    "christmas": icon_path("tree"), "fairytale": icon_path("crown"), "comedy": icon_path("masks"),
-    "romance": icon_path("heart"), "family": icon_path("family"), "animation": icon_path("paw"),
+    "": "DefaultVideoPlaylists.png", "movies": "DefaultMovies.png", "series": "DefaultTVShows.png",
+    "star": "DefaultFavourites.png", "top": "DefaultMusicTop100.png", "new": "DefaultRecentlyAddedMovies.png",
+    "halloween": "DefaultAddonVideo.png", "calendar": "DefaultYear.png", "trophy": "DefaultMusicTop100.png",
+    "christmas": "DefaultYear.png", "fairytale": "DefaultMovies.png", "comedy": "DefaultMovies.png",
+    "romance": "DefaultMovies.png", "family": "DefaultAddonVideo.png", "animation": "DefaultMovies.png",
 }
 
 
@@ -3537,12 +3530,12 @@ def list_accounts(apis):
         if row["level"] == ACC_OFF and row["code"] == "off":
             continue    # zdroj je vypnutý schválně, není co hlásit
         action_item(account_line(row), build_url(action=account_action(row)),
-                    icon=icon_path("accounts"))
+                    icon="DefaultAddonService.png")
     # ne-složka jako Nastavení pod ní: jako složka by Kodi po kliknutí čekal na
     # výpis adresáře, který `test_sources` nikdy nezavře — po OK v dialogu se
     # točilo kolečko navěky (nahlášeno z mobilu na `6.6.0~beta11`)
-    action_item(L(30167, "Ověřit zdroje"), build_url(action="test_sources"), icon=icon_path("check"))
-    action_item(L(30392, "Nastavení"), build_url(action="settings"), icon=icon_path("settings"))
+    action_item(L(30167, "Ověřit zdroje"), build_url(action="test_sources"), icon="DefaultAddonProgram.png")
+    action_item(L(30392, "Nastavení"), build_url(action="settings"), icon="DefaultAddonProgram.png")
     # bez cache na disk — stav se mění, zpět do menu by jinak ukázalo starý výpis
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
@@ -4112,8 +4105,8 @@ def main_menu(apis):
         # bez zdroje je průvodce jediné, co dává smysl — dřív tu byla jen položka Nastavení
         # a kdo průvodce jednou přeskočil, neměl jak zjistit, že existuje
         action_item(L(30359, "Průvodce nastavením"), build_url(action="setup_wizard"),
-                    icon=icon_path("wizard"))
-        action_item(L(30107), build_url(action="settings"), icon=icon_path("settings"))
+                    icon="DefaultAddonProgram.png")
+        action_item(L(30107), build_url(action="settings"), icon="DefaultAddonProgram.png")
         xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
         return
     # Stav zdrojů úplně nahoře, ale jen když je co hlásit — jinak by tu u všech
@@ -4130,7 +4123,7 @@ def main_menu(apis):
         # vždycky jen výsek; popis složky ten skin nekreslí vůbec, takže záloha
         # neexistuje. Význam „něco je špatně“ nese ikona. Stejná bitva jako v 6.3.7.
         li = xbmcgui.ListItem(label=souhrn)
-        li.setArt({"icon": icon_path("warning")})
+        li.setArt({"icon": "DefaultIconWarning.png"})
         tag = li.getVideoInfoTag()
         # v popisu všechno a na vlastních řádcích — do štítku se vejdou jen dva zdroje
         tag.setPlot("\n".join(account_line(r) for r in accounts_problems(rows)))
@@ -4140,35 +4133,35 @@ def main_menu(apis):
     # i vypínání Kodi (viz pravidlo v CLAUDE.md)
     if not accounts_set():   # i po přeskočení: bez účtu nemá doplněk co ukázat
         action_item(L(30359, "Průvodce nastavením"), build_url(action="setup_wizard"),
-                    icon=icon_path("wizard"))
+                    icon="DefaultAddonProgram.png")
     fresh = unseen_changelog()
     if fresh:
         action_item(f"{L(30192, 'Novinky ve verzi')} {fresh[0][0]}",
-                    build_url(action="whats_new"), icon=icon_path("news"))
+                    build_url(action="whats_new"), icon="DefaultAddonRepository.png")
     # vlastní ikony místo jedné a té samé ikony doplňku u každé položky — jména
     # standardní sady Kodi (dodává je aktivní skin, žádný soubor navíc v doplňku)
     # Jedno hledání, jedny Filmy a jedny Seriály — dřív tu byly Filmy/Seriály zvlášť za
     # každý zdroj katalogu (Luna, Sosáč, databáze), každé s vlastními podkategoriemi.
     # Který zdroj stojí za kterým seznamem, rozhoduje až `browse_menu`.
     folder_item(L(30150, "Hledat"), build_url(action="search", type="any"),
-               icon=icon_path("search"), context=[(L(30106), runplugin(action="clear_cache"))])
+               icon="DefaultAddonsSearch.png", context=[(L(30106), runplugin(action="clear_cache"))])
     if STORE.in_progress() or STORE.recently_watched(1):
-        folder_item(L(30063), build_url(action="continue"), icon=icon_path("continue"))
-    folder_item(L(30012), build_url(action="browse", type="movie"), icon=icon_path("movies"))
-    folder_item(L(30013), build_url(action="browse", type="series"), icon=icon_path("series"))
+        folder_item(L(30063), build_url(action="continue"), icon="DefaultInProgressShows.png")
+    folder_item(L(30012), build_url(action="browse", type="movie"), icon="DefaultMovies.png")
+    folder_item(L(30013), build_url(action="browse", type="series"), icon="DefaultTVShows.png")
     # sezónní a tematické katalogy zapnuté na dashboardu (bez vydání nové verze)
     dash_catalog_items(apis, "root")
-    folder_item(L(30483, "TV program"), build_url(action="tv"), icon=icon_path("tvguide"))
+    folder_item(L(30483, "TV program"), build_url(action="tv"), icon="DefaultAddonPVRClient.png")
     # jako Pokračovat výš: na čisté instalaci nevede do prázdna. Podmínka musí pokrýt
     # obojí, co je uvnitř — Můj seznam i Naposledy zhlédnuté (to je schované až tam).
     # První přidaný titul řádek rozsvítí hned, `toggle_fav()` volá Container.Refresh.
     if STORE.favourites() or STORE.recently_watched(1):
-        folder_item(L(30060), build_url(action="favourites"), icon=icon_path("mylist"))
+        folder_item(L(30060), build_url(action="favourites"), icon="DefaultFavourites.png")
     if apis.get("dav"):
-        folder_item(L(30387, "Moje úložiště"), build_url(action="dav_browse"), icon=icon_path("storage"))
+        folder_item(L(30387, "Moje úložiště"), build_url(action="dav_browse"), icon="DefaultHardDisk.png")
     if setting("download_dir") or sync_targets():
-        folder_item(L(30391, "Stažené"), build_url(action="downloads"), icon=icon_path("downloads"))
-    action_item(L(30392, "Nastavení"), build_url(action="settings"), icon=icon_path("settings"))
+        folder_item(L(30391, "Stažené"), build_url(action="downloads"), icon="DefaultHardDisk.png")
+    action_item(L(30392, "Nastavení"), build_url(action="settings"), icon="DefaultAddonProgram.png")
     # bez cache na disk — položky se mění podle stavu (Novinky, Pokračovat), zpět do
     # menu z podsložky by jinak Kodi ukázalo starý výpis i s už přečtenými Novinkami
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
@@ -4204,17 +4197,17 @@ def browse_menu(apis, ctype):
     # vzorů se čte z profilu (`watched`), žádná síť, takže kreslení menu to nezdrží.
     if foryou_seeds(apis, ctype, limit=1):
         folder_item(L(30605, "Pro Tebe"), build_url(action="foryou", type=ctype),
-                    icon=icon_path("foryou"))
+                    icon="DefaultAddonsRecentlyUpdated.png")
     rows = [
-        (L(30398, "Populární na TMDB"), "genres", pick("popular", f"tmdb.top_{kind}", "top"), icon_path("popular")),
+        (L(30398, "Populární na TMDB"), "genres", pick("popular", f"tmdb.top_{kind}", "top"), "DefaultMovies.png"),
         (L(30393, "Nejsledovanější tento týden"), "catalog", ("trend", TREND_CATALOG_ID, None),
-         icon_path("trending")),
+         "DefaultFavourites.png"),
         (L(30399, "Nejlépe hodnocené"), "genres", pick("top_rated", f"tmdb.top_rated_{kind}", "imdbRating"),
-         icon_path("toprated")),
+         "DefaultMusicTop100.png"),
         (L(30394, "Nově přidané s CZ dabingem"), "lang_catalog", ("dub", None, None)
-         if sosac else None, icon_path("newadded")),
+         if sosac else None, "DefaultRecentlyAddedMovies.png"),
         (L(30401, "Nově přidané s CZ titulky"), "lang_catalog", ("subs", None, None)
-         if sosac else None, icon_path("newadded")),
+         if sosac else None, "DefaultRecentlyAddedMovies.png"),
     ]
     for label, action, target, icon in rows:
         if not target:
@@ -4235,7 +4228,7 @@ def browse_menu(apis, ctype):
     # modál neotevře a widget ani JSON-RPC se sem nedostanou (vzor `tv_pick`).
     nahodny = xbmcgui.ListItem(label=L(30609, "Náhodný seriál") if ctype == "series"
                                else L(30608, "Náhodný film"))
-    nahodny.setArt({"icon": icon_path("random")})
+    nahodny.setArt({"icon": "DefaultAddonsUpdates.png"})
     xbmcplugin.addDirectoryItem(HANDLE, build_url(action="random", type=ctype), nahodny, isFolder=False)
     xbmcplugin.endOfDirectory(HANDLE)
 
@@ -4258,11 +4251,11 @@ def list_genres(apis, ctype, cid, src, show_all=True):
         return
     if show_all and not cat["genre_required"]:
         folder_item(L(30020), build_url(action="catalog", type=ctype, catalog=cid, src=src),
-                   icon=icon_path("all"))
+                   icon="DefaultVideoPlaylists.png")
     for g in cat["genres"]:
         folder_item(GENRE_LABELS.get(g, genre_label(g)),
                     build_url(action="catalog", type=ctype, catalog=cid, genre=g, src=src),
-                    icon=icon_path("genre"))
+                    icon="DefaultGenre.png")
     xbmcplugin.endOfDirectory(HANDLE)
 
 
@@ -4282,7 +4275,7 @@ def list_catalog(apis, ctype, cid, src, genre=None, search=None, skip=0):
     # z dashboardu přijdou celé najednou, „Další“ by vedlo do prázdné složky
     if len(metas) >= PAGE // 2 and src not in ("trend", "dash"):
         folder_item(L(30021), build_url(action="catalog", type=ctype, catalog=cid, src=src, genre=genre,
-                                        search=search, skip=skip + len(metas)), icon=icon_path("more"))
+                                        search=search, skip=skip + len(metas)), icon="DefaultFolder.png")
     # widget a výpis v Nokturnu mívají stejnou adresu, položky se ale liší podle okna (add_playable)
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
@@ -4323,11 +4316,11 @@ def lang_catalog_menu(apis, ctype, want):
         if progress:
             label = f"{label} ({progress})"
         folder_item(label, build_url(action="lang_catalog_menu", type=ctype, want=want),
-                    icon=icon_path("tap"))
+                    icon="DefaultAddonsSearch.png")
     else:
         folder_item(L(30437, "Data aren't ready — checking dubbing/subtitles across the enabled sources can take "
                               "a few minutes. Tap to start."),
-                    build_url(action="lang_catalog_trigger", type=ctype, want=want), icon=icon_path("tap"))
+                    build_url(action="lang_catalog_trigger", type=ctype, want=want), icon="DefaultAddonsSearch.png")
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
@@ -4358,7 +4351,7 @@ def lang_catalog_trigger(apis, ctype, want):
     if progress:
         label = f"{label} ({progress})"
     folder_item(label, build_url(action="lang_catalog_menu", type=ctype, want=want),
-                icon=icon_path("tap"))
+                icon="DefaultAddonsSearch.png")
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
@@ -4664,14 +4657,14 @@ def search_history(kind):
 
 def search_menu(kind):
     """Složka hledání: nové hledání + historie dotazů."""
-    folder_item(L(30040), build_url(action="search_new", type=kind), icon=icon_path("search"))
+    folder_item(L(30040), build_url(action="search_new", type=kind), icon="DefaultAddonsSearch.png")
     history = search_history(kind)
     for q in history:
-        folder_item(q, build_url(action="search_run", type=kind, q=q), icon=icon_path("search"),
+        folder_item(q, build_url(action="search_run", type=kind, q=q), icon="DefaultAddonsSearch.png",
                     context=[(L(30042), runplugin(action="history_remove", type=kind, q=q))])
     if history:
         # ne-složka: vymazání není výpis, Kodi ji spustí s handle −1 (viz action_item)
-        action_item(L(30041), build_url(action="history_clear", type=kind), icon=icon_path("clear"))
+        action_item(L(30041), build_url(action="history_clear", type=kind), icon="DefaultVideoDeleted.png")
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
@@ -4854,9 +4847,9 @@ def search_run(apis, kind, query, offset=0):
         if movies and series:
             set_content("files")
             folder_item(f"{L(30012)} ({len(movies)})", build_url(action="search_run", type="movie", q=raw_query),
-                       icon=icon_path("movies"))
+                       icon="DefaultMovies.png")
             folder_item(f"{L(30013)} ({len(series)})", build_url(action="search_run", type="series", q=raw_query),
-                       icon=icon_path("series"))
+                       icon="DefaultTVShows.png")
             for e in errors:
                 log_error(e)
             xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
@@ -4887,10 +4880,10 @@ def search_run(apis, kind, query, offset=0):
         # fulltext nepatří a běžné hledání by jen zdržoval.
         if apis.get("ws"):
             folder_item(L(30045), build_url(action="search_run", type="ws", q=query),
-                       icon=icon_path("search"))
+                       icon="DefaultAddonsSearch.png")
         if apis.get("hs"):
             folder_item(L(30197, "Hledat na HellSpy"), build_url(action="search_run", type="hs", q=query),
-                       icon=icon_path("search"))
+                       icon="DefaultAddonsSearch.png")
     for e in errors:
         log_error(e)
     if errors:
@@ -4905,7 +4898,7 @@ def search_run(apis, kind, query, offset=0):
             notify(skipped_notice(errors), xbmcgui.NOTIFICATION_WARNING, 7000)
             li = xbmcgui.ListItem(label=f"[COLOR {WARN_COLOR}]{L(30360, 'Zdroj neodpověděl')}[/COLOR]: "
                                   + describe_errors(errors).replace("\n", " · "))
-            li.setArt({"icon": icon_path("error")})
+            li.setArt({"icon": "DefaultIconError.png"})
             xbmcplugin.addDirectoryItem(HANDLE, build_url(action="settings"), li, isFolder=False)
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
@@ -4924,7 +4917,7 @@ def list_ws_results(apis, query, offset=0):
         add_ws_file(f)
     if offset + len(files) < total and files:
         folder_item(L(30021), build_url(action="search_run", type="ws", q=query, offset=offset + len(files)),
-                   icon=icon_path("more"))
+                   icon="DefaultFolder.png")
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
@@ -4940,7 +4933,7 @@ def list_hs_results(apis, query, offset=0):
     # dokud chodí plná dávka
     if len(files) == HS_PAGE:
         folder_item(L(30021), build_url(action="search_run", type="hs", q=query, offset=offset + len(files)),
-                   icon=icon_path("more"))
+                   icon="DefaultFolder.png")
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
@@ -4967,7 +4960,7 @@ def list_dav_browse(apis, slot=0, path=""):
         raise StorageError(L(30104))
     if not slot:
         for api in storages:
-            folder_item(api.name, build_url(action="dav_browse", slot=api.slot), icon=icon_path("storage"))
+            folder_item(api.name, build_url(action="dav_browse", slot=api.slot), icon="DefaultHardDisk.png")
         xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
         return
     api = next((s for s in storages if s.slot == slot), storages[0])
@@ -4985,7 +4978,7 @@ def list_dav_browse(apis, slot=0, path=""):
     for name in sorted(folders, key=str.casefold):
         count = folders[name]
         folder_item(f"{name}  [COLOR FF9A9A9A]{count}[/COLOR]",
-                    build_url(action="dav_browse", slot=api.slot, path=prefix + name), icon=icon_path("folder"))
+                    build_url(action="dav_browse", slot=api.slot, path=prefix + name), icon="DefaultFolder.png")
     if files:
         set_content("movies")
     for f in sorted(files, key=lambda f: f["name"].casefold()):
@@ -5008,7 +5001,7 @@ def list_dav_results(apis, query, offset=0):
         add_dav_file(api, f)
     if offset + WS_PAGE < len(rows):
         folder_item(L(30021), build_url(action="search_run", type="dav", q=query, offset=offset + WS_PAGE),
-                   icon=icon_path("more"))
+                   icon="DefaultFolder.png")
     if errors:
         notify(skipped_notice(errors), xbmcgui.NOTIFICATION_WARNING, 7000)
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
@@ -5118,9 +5111,9 @@ def list_favourites():
         if snap:
             add_snapshot_item(key, snap)
     # z hlavního menu sem — patří k „mým“ titulům a synchronizuje se s nimi
-    folder_item(L(30064), build_url(action="recent"), icon=icon_path("recent"))
+    folder_item(L(30064), build_url(action="recent"), icon="DefaultRecentlyAddedMovies.png")
     if sync_targets():
-        folder_item(L(30184, "Synchronizovat teď"), build_url(action="sync_now"), icon=icon_path("sync"))
+        folder_item(L(30184, "Synchronizovat teď"), build_url(action="sync_now"), icon="DefaultAddonsUpdates.png")
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
@@ -5325,7 +5318,7 @@ def similar_item(ctype, item_id):
     """Složka „Podobné tituly“ na konci seznamu streamů filmu a sezón seriálu."""
     if IMDB_ID_RE.match(str(item_id or "")):
         folder_item(L(30482, "Podobné tituly"), build_url(action="similar", type=ctype, id=item_id),
-                    icon=icon_path("similar"))
+                    icon="DefaultVideoPlaylists.png")
 
 
 def foryou_seeds(apis, ctype, limit=foryou.SEEDS):
@@ -5633,13 +5626,13 @@ def list_tv(apis, day="", kind="", channel=""):
     channel_name = next((c["name"] for c in data["channels"] if c["slug"] == channel), "") or L(30487, "Všechny stanice")
     kind_name = {"": L(30488, "Filmy i seriály"), "movie": L(30012), "series": L(30013)}.get(kind, "")
     picks = (
-        ("day", f"{L(30484, 'Den')}: {tv_day_label(day, data.get('today'))}", icon_path("calendar")),
-        ("channel", f"{L(30485, 'Stanice')}: {channel_name}", icon_path("channel")),
-        ("kind", f"{L(30486, 'Typ')}: {kind_name}", icon_path("genre")),
+        ("day", f"{L(30484, 'Den')}: {tv_day_label(day, data.get('today'))}", "DefaultYear.png"),
+        ("channel", f"{L(30485, 'Stanice')}: {channel_name}", "DefaultAddonPVRClient.png"),
+        ("kind", f"{L(30486, 'Typ')}: {kind_name}", "DefaultGenre.png"),
     )
     if day == data.get("today"):   # dnes: přepínač skončených pořadů úplně první
         state = L(30585, "ukázané") if on("tv_show_ended", "false") else L(30586, "skryté")
-        picks = (("ended", f"{L(30584, 'Skončené pořady')}: {state}", icon_path("ended")),) + picks
+        picks = (("ended", f"{L(30584, 'Skončené pořady')}: {state}", "DefaultInProgressShows.png"),) + picks
     for field, label, icon in picks:
         li = xbmcgui.ListItem(label=f"[B]{label}[/B]")
         li.setArt({"icon": icon})
@@ -6070,7 +6063,7 @@ def list_downloads():
     # jen režim Home Assistant — soubory stahuje a podepsané odkazy vydává HA,
     # slepý relay žádné nemá (a „adresa“ v jeho nastavení není server, jen značka)
     if sync_settings() and not sync_via_relay():
-        folder_item(L(30190, "Staženo v HA"), build_url(action="ha_files"), icon=icon_path("ha"))
+        folder_item(L(30190, "Staženo v HA"), build_url(action="ha_files"), icon="DefaultNetwork.png")
     set_content("videos")
     status_labels = {"queued": L(30078), "running": L(30079), "done": L(30080), "error": L(30081), "cancel": L(30082)}
     for d in STORE.downloads():
