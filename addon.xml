@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="7.6.0~beta3" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="7.6.0~beta4" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>7.6.0~beta3 – Celé menu má vlastní sadu ikon v jednom stylu: Pokračovat ve sledování, Můj seznam, Stažené, Podobné tituly i sezónní katalogy poznáš podle obrázku, který k nim opravdu patří — dřív je Kodi kreslilo tím, co měl zrovna po ruce aktivní vzhled, takže třeba všech pět podkategorií Vánoc mělo tutéž masku. Katalogy z Nokturna (Vánoce, Film pro dnešní den) jsou nově nahoře v menu Filmů a Seriálů, ne až pod ostatními seznamy.
+    <news>7.6.0~beta4 – CZtor: ověřeno ručně přes prohlížeč, žádná samostatná DMCA stránka neexistuje (jen obecný kontaktní formulář). Odkaz upřesněn na cztor.com/kontakt.
+7.6.0~beta3 – Celé menu má vlastní sadu ikon v jednom stylu: Pokračovat ve sledování, Můj seznam, Stažené, Podobné tituly i sezónní katalogy poznáš podle obrázku, který k nim opravdu patří — dřív je Kodi kreslilo tím, co měl zrovna po ruce aktivní vzhled, takže třeba všech pět podkategorií Vánoc mělo tutéž masku. Katalogy z Nokturna (Vánoce, Film pro dnešní den) jsou nově nahoře v menu Filmů a Seriálů, ne až pod ostatními seznamy.
 7.6.0~beta2 – Právní upozornění přeformulované: doplněk je především přehrávač vlastního úložiště, vyhledávače třetích stran jsou jen volitelná doplňková služba. Přidán seznam, kam nahlásit nelegální obsah u jednotlivých zdrojů. Kvůli věcné změně textu musí souhlas znovu potvrdit i kdo odsouhlasil betu 1.
 7.6.0~beta1 – Právní upozornění: doplněk je jen technické rozhraní k obsahu, ke kterému musíš mít právo přístupu. Při prvním spuštění se ukáže k odsouhlasení, kdykoli je i v Nastavení → Info. Kdo doplněk používal už dřív, má souhlas automaticky — nikdo starý nemusí nic doklikávat, jen nové instalace.
 7.5.1 – Sezónní katalogy z Nokturna mají vlastní ikony: Vánoce, Pohádky, Komedie, Romantické, Rodinné a Animované jde v menu rozeznat na první pohled. Vánoční ikona se navíc do doplňku vůbec nebalila, takže u složky Vánoce žádná nebyla.

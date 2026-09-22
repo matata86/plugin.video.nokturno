@@ -427,7 +427,7 @@ def terms_text():
                      "Sledujteto: sledujteto.cz/nahlasit-nelegalni-soubor\n"
                      "FastShare: fastshare.cz/abuse\n"
                      "Přehraj.to: prehrajto.cz/nahlasit-nelegalni-soubor\n"
-                     "CZtor: contact via cztor.com\n"
+                     "CZtor: contact via cztor.com/kontakt\n"
                      "OpenSubtitles: copyright@opensubtitles.org (DMCA)"))
 
 
