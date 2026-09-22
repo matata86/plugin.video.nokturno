@@ -3088,10 +3088,13 @@ def _wizard_accounts(dialog):
 
 
 def setup_wizard(force=False):
-    """Průvodce prvním nastavením — nabídne se sám při prvním otevření doplňku,
-    ať uživatel nemusí sám hledat, co a kde v nastavení vyplnit. Jde přeskočit
-    (`Přeskočit` na úvodní obrazovce), nebo si ho kdykoli znovu pustit ručně
-    z Nastavení → Pokročilé (`force=True`, běží bez ohledu na to, že už proběhl).
+    """Průvodce prvním nastavením — na čisté instalaci se ukáže jako první položka
+    kořenového menu (`main_menu()`), ať uživatel nemusí sám hledat, co a kde
+    v nastavení vyplnit. Samo od sebe (bez kliknutí) se nespouští — modální dialog
+    v cestě, kterou otevírají widgety a JSON-RPC, by blokoval i vypínání Kodi
+    (audit 2026-09-14, viz `CLAUDE.md`). Jde přeskočit, nebo si ho kdykoli znovu
+    pustit ručně z Nastavení → Pokročilé (`force=True`, běží bez ohledu na to,
+    že už proběhl).
     """
     if not force:
         if STORE.load("wizard_done", False):
