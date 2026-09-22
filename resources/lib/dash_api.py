@@ -58,7 +58,8 @@ MEDIA_IDENT_RE = re.compile(r"^(ws|hs|fs|cz):[A-Za-z0-9:_./=-]{1,120}$")
 KINDS = ("movie", "series")
 PLACEMENTS = ("root", "browse")
 # ikony, které klient umí přeložit na obrázek — neznámá se zahodí na výchozí
-ICONS = ("", "movies", "series", "star", "top", "new", "family", "christmas", "halloween", "calendar", "trophy")
+ICONS = ("", "movies", "series", "star", "top", "new", "family", "christmas", "halloween", "calendar", "trophy",
+         "fairytale", "comedy", "romance", "animation")
 MAX_TITLE = 60
 MAX_DEPTH = 3       # kolik úrovní menu se ze serveru vezme (složka → složka → katalog)
 MAX_CHILDREN = 60   # kolik podkategorií na jedné úrovni

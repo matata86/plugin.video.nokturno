@@ -888,12 +888,21 @@ def set_content(content):
         xbmcplugin.addSortMethod(HANDLE, method, "%L", LABEL2_MASKS.get(method, label2))
 
 
+def media_path(*parts):
+    return os.path.join(ADDON_PATH, "resources", "media", *parts)
+
+
 # ikony, které smí poslat dashboard (`dash_api.ICONS`) → obrázky ze sady Kodi / doplňku
 DASH_ICONS = {
     "": "DefaultVideoPlaylists.png", "movies": "DefaultMovies.png", "series": "DefaultTVShows.png",
     "star": "DefaultFavourites.png", "top": "DefaultMusicTop100.png", "new": "DefaultRecentlyAddedMovies.png",
-    "family": "DefaultAddonVideo.png", "christmas": os.path.join(ADDON.getAddonInfo("path"), "resources", "media", "icon-vanoce.png"),
     "halloween": "DefaultAddonVideo.png", "calendar": "DefaultYear.png", "trophy": "DefaultMusicTop100.png",
+    # vlastní piktogramy (`tools/make_catalog_icons.py`) — Kodi má jen obecné ikony, takže
+    # podkategorie jedné složky by jinak vypadaly všechny stejně
+    "christmas": media_path("icon-vanoce.png"),
+    "fairytale": media_path("catalog", "fairytale.png"), "comedy": media_path("catalog", "comedy.png"),
+    "romance": media_path("catalog", "romance.png"), "family": media_path("catalog", "family.png"),
+    "animation": media_path("catalog", "animation.png"),
 }
 
 

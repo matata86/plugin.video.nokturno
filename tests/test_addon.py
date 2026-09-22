@@ -3068,9 +3068,19 @@ class TestUdrzbaKodi(unittest.TestCase):
         self.assertLess(default._vkey("3.2.0~beta1"), default._vkey("3.2.0"))
         self.assertEqual(default._vkey("3.1.12"), build_repo.version_key("3.1.12"))
 
+    def test_ikony_katalogu_existuji(self):
+        import dash_api
+        vlastni = {k: v for k, v in default.DASH_ICONS.items() if os.sep in v}
+        for klic, cesta in vlastni.items():
+            self.assertTrue(os.path.exists(cesta), f"chybí obrázek ikony {klic}: {cesta}")
+        # whitelist serveru a mapa klienta musí sedět, jinak se ikona tiše zahodí
+        self.assertEqual(set(dash_api.ICONS), set(default.DASH_ICONS))
+
     def test_zip_bez_balastu_a_build_hlida_novinky(self):
-        for f in ("lists", "icon-vanoce.png", "tests"):
+        for f in ("lists", "tests"):
             self.assertIn(f, build_repo.EXCLUDE)
+        # ikony katalogů se z doplňku kreslí, v zipu být musí (icon-vanoce.png z něj dřív vypadla)
+        self.assertNotIn("icon-vanoce.png", build_repo.EXCLUDE)
         # engine.py je importuje — v zipu chybět nesmí (dřív byly vyjmuté jako „jen HA")
         self.assertFalse({"prowlarr.py", "qbittorrent.py", "engine.py"} & build_repo.EXCLUDE)
         build_repo.check(ET.parse(ROOT / "addon.xml").getroot().get("version"))   # aktuální stav projde
