@@ -205,21 +205,25 @@ def make_fanart(path):
     logo = mark("", "url(#gold)", scale=1).resize((620, 620), Image.LANCZOS)
     sky.paste(logo, (1150, 230), logo)
 
-    dr.text((170, 368), "Nokturno", font=font("InterDisplay-Bold.otf", 152), fill=(243, 196, 118))
-    # Zdroje jsou na dvou řádcích: na jeden se od osmi zdrojů vejdou jen tak
-    # malým písmem, že je na televizi přes fanart nikdo nepřečte. Písmo se pořád
-    # zmenšuje, dokud se delší z řádků nevejde vedle značky.
-    radky = ("WebShare  ·  Sosáč  ·  Sledujteto  ·  FastShare",
-             "HellSpy  ·  CZtor  ·  Přehraj.to  ·  Luna  ·  Home Assistant")
-    size = 46
-    while size > 26:
+    dr.text((170, 330), "Nokturno", font=font("InterDisplay-Bold.otf", 152), fill=(243, 196, 118))
+    # Hlavní řádek je vlastní úložiště — to je, kvůli čemu doplněk vznikl a co hraje
+    # bez cizího účtu. Vyhledávače pod ním drobněji a se slovem „volitelně“, ať je
+    # z obrázku na první pohled vidět, co je služba doplňku a co jen doplňková možnost.
+    dr.text((177, 520), "Tvoje vlastní úložiště  ·  WebDAV",
+            font=font("InterDisplay-Bold.otf", 52), fill=(255, 255, 255))
+    radky = ("volitelně i veřejné vyhledávače třetích stran:",
+             "WebShare · Sosáč · Sledujteto · FastShare · HellSpy · CZtor · Přehraj.to · Luna")
+    size = 34
+    while size > 20:
         f = font("InterDisplay-Medium.otf", size)
         if max(dr.textlength(r, font=f) for r in radky) <= 950:
             break
         size -= 2
     f = font("InterDisplay-Medium.otf", size)
     for i, radek in enumerate(radky):
-        dr.text((177, 566 + i * (size + 16)), radek, font=f, fill=(163, 176, 218))
+        dr.text((177, 616 + i * (size + 14)), radek, font=f, fill=(163, 176, 218))
+    dr.text((177, 730), "Kodi  ·  Home Assistant  ·  Stremio",
+            font=font("InterDisplay-Medium.otf", 38), fill=(203, 212, 240))
     sky.save(path, quality=92, subsampling=0)
 
 
@@ -331,6 +335,44 @@ def make_release_700(path):
     sky.save(path)
 
 
+def make_social(path):
+    """Obrázek k příspěvkům na fórech a Facebooku (1200×630, poměr `RELEASE`). Říká to,
+    co doplněk opravdu je: přehrávač vlastního úložiště, a teprve pod tím volitelné
+    vyhledávače. Starší obrázky slibovaly „filmy a seriály z úschoven“ jako hlavní
+    službu, což neodpovídá ani právnímu upozornění, ani tomu, čím Nokturno je."""
+    W, H = RELEASE
+    sky = render(f'<rect width="{W}" height="{H}" fill="url(#sky)"/>', W, H, scale=1).convert("RGB")
+    q = 4
+    glow = Image.new("RGB", (W // q, H // q), (0, 0, 0))
+    ImageDraw.Draw(glow).ellipse([c / q for c in (640, -120, 1340, 560)], fill=(32, 42, 96))
+    sky = ImageChops.add(sky, glow.filter(ImageFilter.GaussianBlur(24)).resize((W, H), Image.BICUBIC))
+    dr = ImageDraw.Draw(sky, "RGBA")
+    for x, y, r, o in [(1130, 60, 3, 90), (1010, 40, 2, 60), (1150, 560, 3, 70), (60, 600, 2, 55),
+                       (960, 600, 2, 45), (1170, 320, 2, 60), (40, 40, 2, 50), (800, 30, 2, 42)]:
+        dr.ellipse((x - r, y - r, x + r, y + r), fill=(255, 255, 255, o))
+    logo = mark("", "url(#gold)", scale=1).resize((250, 250), Image.LANCZOS)
+    sky.paste(logo, (905, 60), logo)
+    gold, dim, bila = (243, 196, 118), (163, 176, 218), (255, 255, 255)
+
+    dr.text((70, 60), "Nokturno", font=font("InterDisplay-Bold.otf", 104), fill=gold)
+    dr.text((74, 190), "Přehrávač tvého vlastního úložiště", font=font("InterDisplay-Bold.otf", 46), fill=bila)
+    f = font("InterDisplay-Bold.otf", 46)
+    tw = dr.textlength("WebDAV", font=f)
+    dr.rounded_rectangle((74, 262, 74 + tw + 60, 336), radius=37, fill=gold)
+    dr.text((104, 272), "WebDAV", font=f, fill=(20, 28, 66))
+    dr.text((74 + tw + 92, 282), "NAS, Nextcloud, vlastní server",
+            font=font("InterDisplay-Medium.otf", 32), fill=bila)
+
+    dr.line((74, 380, 1130, 380), fill=(90, 106, 168), width=2)
+    dr.text((74, 400), "volitelně i veřejné vyhledávače třetích stran",
+            font=font("InterDisplay-Medium.otf", 30), fill=dim)
+    dr.text((74, 444), "WebShare · Sosáč · Sledujteto · FastShare · HellSpy · CZtor · Přehraj.to · Luna",
+            font=font("InterDisplay-Medium.otf", 26), fill=dim)
+    dr.text((74, 520), "Kodi  ·  Home Assistant  ·  Stremio",
+            font=font("InterDisplay-Medium.otf", 40), fill=(203, 212, 240))
+    sky.save(path)
+
+
 SUPPORT = (1600, 700)
 BTC = "bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc"
 
@@ -422,6 +464,9 @@ if __name__ == "__main__":
     elif sys.argv[1:] == ["6.6.0"]:
         make_release_660(os.path.join(ROOT, ".github", "nokturno-6.6.0-novinky.png"))
         print(".github/nokturno-6.6.0-novinky.png hotovo")
+    elif sys.argv[1:] == ["social"]:
+        make_social(os.path.join(ROOT, ".github", "nokturno-uloziste.png"))
+        print(".github/nokturno-uloziste.png hotovo")
     elif sys.argv[1:] == ["podpora"]:
         make_support(os.path.join(ROOT, ".github", "podpora.png"))
         print(".github/podpora.png hotovo")

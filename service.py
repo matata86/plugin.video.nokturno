@@ -421,7 +421,7 @@ class Downloader(threading.Thread):
         self.requeue_running()
         while not self.monitor.abortRequested():
             job = next((d for d in self.store.downloads() if d.get("status") == "queued"), None)
-            if job:
+            if job and terms_ok():
                 self.download(job)
             if self.monitor.waitForAbort(POLL):
                 break
@@ -828,12 +828,28 @@ def rpc(method, **params):
         return None
 
 
+def terms_ok():
+    """Souhlas s podmínkami (přepínač `terms_ok`, první kategorie nastavení).
+
+    Bez něj nesmí doplněk sáhnout na zdroje ani z pozadí. Plugin si brání sám
+    (`ensure_terms()` v `main()`), ale z JSON-RPC by jen bliklo oznámení — zahřívání
+    katalogů, prefetch a obnova stavu účtů by se o to pokoušely dál každých pár hodin.
+    """
+    addon = fresh_addon()
+    return addon is not None and addon.getSetting("terms_ok") == "true"
+
+
 def rpc_directory(url):
+    """Jediná cesta služby do pluginu — proto tu sedí brána souhlasu."""
+    if not terms_ok():
+        return
     xbmc.executeJSONRPC(json.dumps({"jsonrpc": "2.0", "id": 1, "method": "Files.GetDirectory",
                                     "params": {"directory": url, "media": "video"}}))
 
 
 def warm_caches(monitor, what="all"):
+    if not terms_ok():
+        return
     try:
         if what in ("all", "catalogs"):
             # plugin během zahřívání cache API jen zapisuje: jinak by warm-up s TTL rovným

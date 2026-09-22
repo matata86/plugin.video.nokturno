@@ -393,8 +393,34 @@ TERMS_VERSION = "2"
 FIRST_TERMS_VERSION = "2"
 
 
+# akce, které brána souhlasu pustí vždy: vedou k samotnému odsouhlasení
+TERMS_FREE = ("info_terms", "settings")
+
+
 def terms_accepted():
-    return STORE.load("terms_accepted", "") == TERMS_VERSION
+    """Souhlas drží **přepínač v nastavení** (první kategorie, `terms_ok`) — uživatel ho
+    musí vidět a umět vzít zpět. Verze odsouhlaseného textu zůstává v profilu, protože
+    v `settings.xml` by z ní bylo další pole navíc; zaškrtnutí platí vždy pro aktuální
+    `TERMS_VERSION` a zapíše se při prvním přečtení."""
+    if ADDON.getSetting("terms_ok") != "true":
+        return False
+    if STORE.load("terms_accepted", "") != TERMS_VERSION:
+        STORE.save("terms_accepted", TERMS_VERSION)
+    return True
+
+
+def migrate_terms():
+    """Souhlas se z profilu (bety `7.6.0~beta1`–`~beta3`) překlopí do přepínače a starší
+    instalace se odsouhlasí sama (`_existing_install`). Opačným směrem: po věcné změně
+    textu (vyšší `TERMS_VERSION`) se přepínač vypne, aby ho uživatel potvrdil znovu."""
+    ulozena = STORE.load("terms_accepted", "")
+    if ADDON.getSetting("terms_ok") == "true":
+        if ulozena and ulozena != TERMS_VERSION:
+            ADDON.setSetting("terms_ok", "false")
+        return
+    if ulozena == TERMS_VERSION or _existing_install():
+        STORE.save("terms_accepted", TERMS_VERSION)
+        ADDON.setSetting("terms_ok", "true")
 
 
 def _existing_install():
@@ -437,30 +463,26 @@ def info_terms():
 
 
 def ensure_terms():
-    """Musí proběhnout dřív, než plugin cokoli vyhledá nebo přehraje. Modál (`yesno`) jen
-    z UI průchodu (`browsing_nokturno`) — z widgetu nebo JSON-RPC by zasekl přehrávání
-    i vypínání Kodi jako každý jiný modál v cestě, kterou nikdo neklikl (viz CLAUDE.md).
-    Odtud bez UI se akce jen tiše odmítne, dokud uživatel souhlas nedá v menu Nokturna —
-    žádné obcházení odsouhlasení spuštěním z widgetu."""
+    """Musí proběhnout dřív, než plugin cokoli vyhledá nebo přehraje. Bez souhlasu se
+    z UI nabídne otevření nastavení (přepínač je tam první kategorie), odjinud —
+    z widgetu nebo JSON-RPC — jen oznámení: modál v cestě, kterou nikdo neklikl, by
+    zasekl přehrávání i vypínání Kodi (viz CLAUDE.md). Souhlas tedy nejde dát jinde
+    než v nastavení, takže ho nelze obejít spuštěním z widgetu."""
     if terms_accepted():
-        return True
-    if _existing_install():
-        STORE.save("terms_accepted", TERMS_VERSION)
         return True
     if not browsing_nokturno():
         notify(L(30733, "First accept the legal notice in the Nokturno menu."), xbmcgui.NOTIFICATION_WARNING, 6000)
         return False
     dialog = xbmcgui.Dialog()
     dialog.textviewer(L(30728, "Legal notice"), terms_text())
-    accepted = dialog.yesno(
-        L(30728, "Legal notice"),
-        L(30730, "I confirm I will use the add-on only for content I have the right to access, and I agree "
-                 "to the terms of use."),
-        yeslabel=L(30731, "I agree"), nolabel=L(30732, "I don't agree"))
-    if accepted:
-        STORE.save("terms_accepted", TERMS_VERSION)
-        return True
-    return False
+    if not dialog.yesno(L(30728, "Legal notice"),
+                        L(30739, "You have to agree to the terms of use first. Open the settings now?"),
+                        yeslabel=L(30740, "Open the settings"), nolabel=L(30732, "I don't agree")):
+        return False
+    global ADDON
+    ADDON.openSettings()            # přepínač je první kategorie, otevře se rovnou na něm
+    ADDON = xbmcaddon.Addon()       # čerstvá instance, jinak by se četla hodnota z doby před dialogem
+    return terms_accepted()
 
 
 def note_lang_catalog_open(ctype):
@@ -6398,8 +6420,11 @@ def main(query):
         # zrušená volba střediska „HA i dashboard"; patří sem, ne do `migrate_on_start`
         # — ta běží na úrovni modulu, tedy dřív, než je tahle funkce definovaná
         migrate_sync_mode()
+        migrate_terms()
         action = dict(urllib.parse.parse_qsl(query.lstrip("?"))).get("action") or ""
-        if action != "info_terms" and not ensure_terms():
+        # do nastavení a k textu podmínek se uživatel musí dostat i bez souhlasu — jinak
+        # by neměl kde ho dát (přepínač je první kategorie nastavení)
+        if action not in TERMS_FREE and not ensure_terms():
             _close(action)
             return
         if action not in MARKS_SKIP:

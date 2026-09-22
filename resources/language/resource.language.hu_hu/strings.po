@@ -1075,7 +1075,6 @@ msgid "Info"
 msgstr "Infó"
 
 
-
 msgctxt "#30435"
 msgid "This list is normally built in the background, but the data isn't ready yet. Checking dubbing/subtitles across the enabled sources can take a few minutes…"
 msgstr "Ez a lista általában a háttérben épül fel, de az adatok még nincsenek készen. A szinkron és a felirat ellenőrzése a bekapcsolt forrásokban eltarthat pár percig…"
@@ -2158,16 +2157,12 @@ msgid "Legal notice"
 msgstr "Jogi nyilatkozat"
 
 msgctxt "#30729"
-msgid "Nokturno is only a technical interface to content; it does not host, store or provide any content itself. It surfaces links from publicly available third-party services (WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna, OpenSubtitles) and from storage you configure yourself.\n\nUse the add-on only for content you have a legal right, licence, or other legal title to access. Searching for, accessing, or playing copyrighted content without the rightsholders' consent is prohibited.\n\nThe add-on is provided \"as is\", with no warranty of functionality, availability, or legality of third-party sources. Responsibility for how it is used lies solely with the user. The operator reserves the right to restrict or terminate access at any time."
+msgid "Nokturno is primarily a player and manager for your own storage — content you upload and expose yourself (e.g. via WebDAV) is played directly. As an optional add-on service, you may connect some publicly available third-party search engines (WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna, OpenSubtitles) — in that case Nokturno is only a technical interface; it does not host, store, or provide any content itself.\n\nUse the add-on only for content you have a legal right, licence, or other legal title to access. Searching for, accessing, or playing copyrighted content without the rightsholders' consent is prohibited.\n\nThe add-on is provided \"as is\", with no warranty of functionality, availability, or legality of third-party sources. Responsibility for how it is used lies solely with the user. The operator reserves the right to restrict or terminate access at any time."
 msgstr "A Nokturno elsősorban a saját tárhelyéhez készült lejátszó és kezelő — az Ön által feltöltött és megosztott tartalmat (pl. WebDAV-on keresztül) közvetlenül lejátssza. Kiegészítő szolgáltatásként opcionálisan csatlakoztathat néhány nyilvánosan elérhető, harmadik féltől származó keresőt is (WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna, OpenSubtitles) — ebben az esetben a Nokturno csak technikai felület, maga nem tárol, nem ment és nem szolgáltat semmilyen tartalmat.\n\nA kiegészítőt csak olyan tartalomhoz használja, amelyhez jogszerű jogosultsága, licence vagy más jogcíme van. Szerzői joggal védett tartalom keresése, elérése vagy lejátszása a jogtulajdonosok hozzájárulása nélkül tilos.\n\nA kiegészítő „ahogy van” alapon kerül biztosításra, működésre, elérhetőségre és a harmadik féltől származó források jogszerűségére vonatkozó garancia nélkül. A használat módjáért kizárólag a felhasználó felel. Az üzemeltető fenntartja a jogot a hozzáférés bármikori korlátozására vagy megszüntetésére."
 
 msgctxt "#30730"
 msgid "I confirm I will use the add-on only for content I have the right to access, and I agree to the terms of use."
 msgstr "Megerősítem, hogy a kiegészítőt csak olyan tartalomhoz használom, amelyhez jogom van hozzáférni, és elfogadom a használati feltételeket."
-
-msgctxt "#30731"
-msgid "I agree"
-msgstr "Elfogadom"
 
 msgctxt "#30732"
 msgid "I don't agree"
@@ -2181,3 +2176,28 @@ msgstr "Előbb fogadd el a jogi nyilatkozatot a Nokturno menüben."
 msgctxt "#30734"
 msgid "Where to report illegal content at each source:\nWebShare: abuse@webshare.cz\nSosáč / Streamuj.tv: streamuj.tv/advertise (DMCA)\nHellSpy: hellspy.to/contact\nSledujteto: sledujteto.cz/nahlasit-nelegalni-soubor\nFastShare: fastshare.cz/abuse\nPřehraj.to: prehrajto.cz/nahlasit-nelegalni-soubor\nCZtor: contact via cztor.com/kontakt\nOpenSubtitles: copyright@opensubtitles.org (DMCA)"
 msgstr "Hol jelenthető be jogsértő tartalom az egyes forrásoknál:\nWebShare: abuse@webshare.cz\nSosáč / Streamuj.tv: streamuj.tv/advertise (DMCA)\nHellSpy: hellspy.to/contact\nSledujteto: sledujteto.cz/nahlasit-nelegalni-soubor\nFastShare: fastshare.cz/abuse\nPřehraj.to: prehrajto.cz/nahlasit-nelegalni-soubor\nCZtor: kapcsolat: cztor.com/kontakt\nOpenSubtitles: copyright@opensubtitles.org (DMCA)"
+
+
+msgctxt "#30735"
+msgid "Terms of use"
+msgstr "Felhasználási feltételek"
+
+
+msgctxt "#30736"
+msgid "I agree to the terms of use"
+msgstr "Elfogadom a felhasználási feltételeket"
+
+
+msgctxt "#30738"
+msgid "Show the terms"
+msgstr "Feltételek megjelenítése"
+
+
+msgctxt "#30739"
+msgid "You have to agree to the terms of use first. Open the settings now?"
+msgstr "Először el kell fogadnod a felhasználási feltételeket. Megnyitod a beállításokat?"
+
+
+msgctxt "#30740"
+msgid "Open the settings"
+msgstr "Beállítások megnyitása"

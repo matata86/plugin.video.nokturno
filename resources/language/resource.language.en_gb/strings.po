@@ -715,7 +715,6 @@ msgid "Vítej v Nokturnu"
 msgstr ""
 
 
-
 msgctxt "#30339"
 msgid "Skip"
 msgstr ""
@@ -1075,7 +1074,6 @@ msgstr ""
 msgctxt "#30432"
 msgid "Info"
 msgstr ""
-
 
 
 msgctxt "#30435"
@@ -2167,10 +2165,6 @@ msgctxt "#30730"
 msgid "I confirm I will use the add-on only for content I have the right to access, and I agree to the terms of use."
 msgstr ""
 
-msgctxt "#30731"
-msgid "I agree"
-msgstr ""
-
 msgctxt "#30732"
 msgid "I don't agree"
 msgstr ""
@@ -2182,4 +2176,29 @@ msgstr ""
 
 msgctxt "#30734"
 msgid "Where to report illegal content at each source:\nWebShare: abuse@webshare.cz\nSosáč / Streamuj.tv: streamuj.tv/advertise (DMCA)\nHellSpy: hellspy.to/contact\nSledujteto: sledujteto.cz/nahlasit-nelegalni-soubor\nFastShare: fastshare.cz/abuse\nPřehraj.to: prehrajto.cz/nahlasit-nelegalni-soubor\nCZtor: contact via cztor.com/kontakt\nOpenSubtitles: copyright@opensubtitles.org (DMCA)"
+msgstr ""
+
+
+msgctxt "#30735"
+msgid "Terms of use"
+msgstr ""
+
+
+msgctxt "#30736"
+msgid "I agree to the terms of use"
+msgstr ""
+
+
+msgctxt "#30738"
+msgid "Show the terms"
+msgstr ""
+
+
+msgctxt "#30739"
+msgid "You have to agree to the terms of use first. Open the settings now?"
+msgstr ""
+
+
+msgctxt "#30740"
+msgid "Open the settings"
 msgstr ""

@@ -9,49 +9,139 @@
          z mobilu `remote_setup_schema()`, přenos nastavení `transfer.exportable()`,
          synchronizace `kodi_settings.shared_defaults()`) — nová kategorie proto
          znamená sloučit dvě staré, ne jen přidat. -->
-    <category id="transfer" label="30724" help="30588">
-      <group id="1" label="30447">
-        <setting id="remote_setup_action" type="action" label="30447" help="30448">
+    <category id="terms" label="30735">
+      <group id="1" label="30728">
+        <setting id="terms_ok" type="boolean" label="30736" help="30730">
+          <level>0</level>
+          <default>false</default>
+          <control type="toggle"/>
+        </setting>
+        <setting id="terms_show_action" type="action" label="30738">
           <level>0</level>
           <constraints>
             <allowempty>true</allowempty>
           </constraints>
-          <data>RunPlugin(plugin://plugin.video.nokturno/?action=remote_setup)</data>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=info_terms)</data>
           <control format="action" type="button"/>
         </setting>
       </group>
-      <group id="2" label="30587">
-        <setting id="transfer_send_action" type="action" label="30589" help="30588">
+    </category>
+    <category id="storage" label="30374" help="30375">
+      <group id="1" label="30376">
+        <setting id="dav1_url" type="string" label="30379" help="30380">
           <level>0</level>
+          <default></default>
           <constraints>
             <allowempty>true</allowempty>
           </constraints>
-          <data>RunPlugin(plugin://plugin.video.nokturno/?action=transfer_send)</data>
-          <control format="action" type="button"/>
+          <control type="edit" format="string">
+          </control>
         </setting>
-        <setting id="transfer_receive_action" type="action" label="30590" help="30588">
+        <setting id="dav1_username" type="string" label="30381" help="30382">
           <level>0</level>
+          <default></default>
           <constraints>
             <allowempty>true</allowempty>
           </constraints>
-          <data>RunPlugin(plugin://plugin.video.nokturno/?action=transfer_receive)</data>
-          <control format="action" type="button"/>
+          <control type="edit" format="string">
+          </control>
         </setting>
-        <setting id="transfer_file_save_action" type="action" label="30591" help="30588">
+        <setting id="dav1_password" type="string" label="30383" help="30382">
           <level>0</level>
+          <default></default>
           <constraints>
             <allowempty>true</allowempty>
           </constraints>
-          <data>RunPlugin(plugin://plugin.video.nokturno/?action=transfer_file_save)</data>
-          <control format="action" type="button"/>
+          <control type="edit" format="string">
+            <hidden>true</hidden>
+          </control>
         </setting>
-        <setting id="transfer_file_load_action" type="action" label="30592" help="30588">
+        <setting id="dav1_name" type="string" label="30384" help="30385">
           <level>0</level>
+          <default></default>
           <constraints>
             <allowempty>true</allowempty>
           </constraints>
-          <data>RunPlugin(plugin://plugin.video.nokturno/?action=transfer_file_load)</data>
-          <control format="action" type="button"/>
+          <control type="edit" format="string">
+          </control>
+        </setting>
+      </group>
+      <group id="2" label="30377">
+        <setting id="dav2_url" type="string" label="30379" help="30380">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+          </control>
+        </setting>
+        <setting id="dav2_username" type="string" label="30381" help="30382">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+          </control>
+        </setting>
+        <setting id="dav2_password" type="string" label="30383" help="30382">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+            <hidden>true</hidden>
+          </control>
+        </setting>
+        <setting id="dav2_name" type="string" label="30384" help="30385">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+          </control>
+        </setting>
+      </group>
+      <group id="3" label="30378">
+        <setting id="dav3_url" type="string" label="30379" help="30380">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+          </control>
+        </setting>
+        <setting id="dav3_username" type="string" label="30381" help="30382">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+          </control>
+        </setting>
+        <setting id="dav3_password" type="string" label="30383" help="30382">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+            <hidden>true</hidden>
+          </control>
+        </setting>
+        <setting id="dav3_name" type="string" label="30384" help="30385">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="edit" format="string">
+          </control>
         </setting>
       </group>
     </category>
@@ -487,122 +577,49 @@
         </setting>
       </group>
     </category>
-    <category id="storage" label="30374" help="30375">
-      <group id="1" label="30376">
-        <setting id="dav1_url" type="string" label="30379" help="30380">
+    <category id="transfer" label="30724" help="30588">
+      <group id="1" label="30447">
+        <setting id="remote_setup_action" type="action" label="30447" help="30448">
           <level>0</level>
-          <default></default>
           <constraints>
             <allowempty>true</allowempty>
           </constraints>
-          <control type="edit" format="string">
-          </control>
-        </setting>
-        <setting id="dav1_username" type="string" label="30381" help="30382">
-          <level>0</level>
-          <default></default>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <control type="edit" format="string">
-          </control>
-        </setting>
-        <setting id="dav1_password" type="string" label="30383" help="30382">
-          <level>0</level>
-          <default></default>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <control type="edit" format="string">
-            <hidden>true</hidden>
-          </control>
-        </setting>
-        <setting id="dav1_name" type="string" label="30384" help="30385">
-          <level>0</level>
-          <default></default>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <control type="edit" format="string">
-          </control>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=remote_setup)</data>
+          <control format="action" type="button"/>
         </setting>
       </group>
-      <group id="2" label="30377">
-        <setting id="dav2_url" type="string" label="30379" help="30380">
+      <group id="2" label="30587">
+        <setting id="transfer_send_action" type="action" label="30589" help="30588">
           <level>0</level>
-          <default></default>
           <constraints>
             <allowempty>true</allowempty>
           </constraints>
-          <control type="edit" format="string">
-          </control>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=transfer_send)</data>
+          <control format="action" type="button"/>
         </setting>
-        <setting id="dav2_username" type="string" label="30381" help="30382">
+        <setting id="transfer_receive_action" type="action" label="30590" help="30588">
           <level>0</level>
-          <default></default>
           <constraints>
             <allowempty>true</allowempty>
           </constraints>
-          <control type="edit" format="string">
-          </control>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=transfer_receive)</data>
+          <control format="action" type="button"/>
         </setting>
-        <setting id="dav2_password" type="string" label="30383" help="30382">
+        <setting id="transfer_file_save_action" type="action" label="30591" help="30588">
           <level>0</level>
-          <default></default>
           <constraints>
             <allowempty>true</allowempty>
           </constraints>
-          <control type="edit" format="string">
-            <hidden>true</hidden>
-          </control>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=transfer_file_save)</data>
+          <control format="action" type="button"/>
         </setting>
-        <setting id="dav2_name" type="string" label="30384" help="30385">
+        <setting id="transfer_file_load_action" type="action" label="30592" help="30588">
           <level>0</level>
-          <default></default>
           <constraints>
             <allowempty>true</allowempty>
           </constraints>
-          <control type="edit" format="string">
-          </control>
-        </setting>
-      </group>
-      <group id="3" label="30378">
-        <setting id="dav3_url" type="string" label="30379" help="30380">
-          <level>0</level>
-          <default></default>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <control type="edit" format="string">
-          </control>
-        </setting>
-        <setting id="dav3_username" type="string" label="30381" help="30382">
-          <level>0</level>
-          <default></default>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <control type="edit" format="string">
-          </control>
-        </setting>
-        <setting id="dav3_password" type="string" label="30383" help="30382">
-          <level>0</level>
-          <default></default>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <control type="edit" format="string">
-            <hidden>true</hidden>
-          </control>
-        </setting>
-        <setting id="dav3_name" type="string" label="30384" help="30385">
-          <level>0</level>
-          <default></default>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <control type="edit" format="string">
-          </control>
+          <data>RunPlugin(plugin://plugin.video.nokturno/?action=transfer_file_load)</data>
+          <control format="action" type="button"/>
         </setting>
       </group>
     </category>

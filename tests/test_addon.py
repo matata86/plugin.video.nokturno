@@ -57,6 +57,7 @@ LANG_DIR = ROOT / "resources" / "language"
 # router ve všech testech, které se souhlasem vůbec nesouvisí — testy pro tuhle
 # konkrétní funkci si stav podle potřeby samy nastaví/vynulují.
 default.STORE.save("terms_accepted", default.TERMS_VERSION)
+xbmcaddon.settings["terms_ok"] = "true"
 
 
 def tearDownModule():
@@ -66,6 +67,9 @@ def tearDownModule():
 def reset_kodi():
     for m in (xbmc, xbmcaddon, xbmcgui, xbmcplugin):
         m.reset()
+    # přepínač souhlasu (`default.terms_accepted`) je od 7.6.0~beta4 v nastavení a reset
+    # stubu ho vymaže; bez něj by brána v `main()` zablokovala router úplně všude
+    xbmcaddon.settings["terms_ok"] = "true"
 
 
 def params_of(url):
@@ -225,14 +229,19 @@ class TestNastaveni(unittest.TestCase):
 
 
 class TestPravniUpozorneni(unittest.TestCase):
-    """Právní upozornění při prvním spuštění (viz `default.ensure_terms`) — souhlas
-    se ukládá do `Store`, modál jen v UI průchodu, z widgetu/JSON-RPC se akce tiše
-    odmítne, ať to nejde obejít."""
+    """Souhlas s podmínkami: od 7.6.0~beta4 ho drží přepínač `terms_ok` v nastavení
+    (první kategorie). Bez něj plugin nic nevydá — z UI nabídne otevřít nastavení,
+    z widgetu/JSON-RPC se akce tiše odmítne, ať to nejde obejít."""
 
     def setUp(self):
         reset_kodi()
         self.addCleanup(lambda: default.STORE.save("terms_accepted", default.TERMS_VERSION))
         default.STORE.save("terms_accepted", "")
+        xbmcaddon.settings["terms_ok"] = "false"
+
+    def _v_ui(self):
+        xbmc.cond_visible.add("Window.IsMedia")
+        xbmc.info_labels["Container.PluginName"] = default.ADDON_ID
 
     def test_bez_souhlasu_a_mimo_ui_se_akce_odmitne_bez_modalu(self):
         xbmc.cond_visible.discard("Window.IsMedia")   # browsing_nokturno() = False (widget/JSON-RPC)
@@ -242,31 +251,43 @@ class TestPravniUpozorneni(unittest.TestCase):
         self.assertEqual(len(xbmcgui.notifications), 1)
         self.assertFalse(default.terms_accepted())
 
-    def test_v_ui_prijeti_ulozi_souhlas(self):
-        xbmc.cond_visible.add("Window.IsMedia")
-        xbmc.info_labels["Container.PluginName"] = default.ADDON_ID
+    def test_v_ui_vede_do_nastaveni_a_zaskrtnuti_plati(self):
+        self._v_ui()
+        # uživatel v otevřeném nastavení přepínač zapne
+        def zaskrtni():
+            xbmcaddon.settings["terms_ok"] = "true"
         with mock.patch.object(xbmcgui.Dialog, "textviewer") as textviewer, \
-                mock.patch.object(xbmcgui.Dialog, "yesno", return_value=True) as yesno:
+                mock.patch.object(xbmcgui.Dialog, "yesno", return_value=True) as yesno, \
+                mock.patch.object(xbmcaddon.Addon, "openSettings", side_effect=zaskrtni) as otevri:
             self.assertTrue(default.ensure_terms())
         textviewer.assert_called_once()
         yesno.assert_called_once()
-        self.assertTrue(default.terms_accepted())
-        # druhé volání se souhlasem uloženým už žádný dialog neotvírá
+        otevri.assert_called_once()
+        self.assertEqual(default.STORE.load("terms_accepted", ""), default.TERMS_VERSION)
+        # podruhé už se žádné okno neotevírá
         with mock.patch.object(xbmcgui.Dialog, "yesno") as yesno2:
             self.assertTrue(default.ensure_terms())
         yesno2.assert_not_called()
 
-    def test_v_ui_odmitnuti_souhlas_neulozi(self):
-        xbmc.cond_visible.add("Window.IsMedia")
-        xbmc.info_labels["Container.PluginName"] = default.ADDON_ID
+    def test_v_ui_bez_zaskrtnuti_souhlas_neplati(self):
+        self._v_ui()
         with mock.patch.object(xbmcgui.Dialog, "textviewer"), \
-                mock.patch.object(xbmcgui.Dialog, "yesno", return_value=False):
+                mock.patch.object(xbmcgui.Dialog, "yesno", return_value=True), \
+                mock.patch.object(xbmcaddon.Addon, "openSettings"):
+            self.assertFalse(default.ensure_terms())   # nastavení otevřené, přepínač nezapnutý
+        self.assertFalse(default.terms_accepted())
+
+    def test_v_ui_odmitnuti_nastaveni_neotevre(self):
+        self._v_ui()
+        with mock.patch.object(xbmcgui.Dialog, "textviewer"), \
+                mock.patch.object(xbmcgui.Dialog, "yesno", return_value=False), \
+                mock.patch.object(xbmcaddon.Addon, "openSettings") as otevri:
             self.assertFalse(default.ensure_terms())
+        otevri.assert_not_called()
         self.assertFalse(default.terms_accepted())
 
     def test_main_bez_souhlasu_nezavola_router(self):
-        xbmc.cond_visible.add("Window.IsMedia")
-        xbmc.info_labels["Container.PluginName"] = default.ADDON_ID
+        self._v_ui()
         with mock.patch.object(xbmcgui.Dialog, "textviewer"), \
                 mock.patch.object(xbmcgui.Dialog, "yesno", return_value=False), \
                 mock.patch.object(default, "router") as router:
@@ -275,43 +296,62 @@ class TestPravniUpozorneni(unittest.TestCase):
         self.assertEqual(len(xbmcplugin.ended), 1)
         self.assertFalse(xbmcplugin.ended[0]["succeeded"])
 
-    def test_info_terms_obejde_branu(self):
-        """Tlačítko v Nastavení → Info musí jít otevřít i před odsouhlasením."""
-        with mock.patch.object(xbmcgui.Dialog, "textviewer") as textviewer, \
-                mock.patch.object(default, "router", wraps=default.router):
+    def test_cesta_k_souhlasu_obejde_branu(self):
+        """Text podmínek i samotné nastavení musí jít otevřít bez souhlasu — jinak
+        by uživatel neměl kde přepínač zapnout."""
+        with mock.patch.object(xbmcgui.Dialog, "textviewer") as textviewer:
             default.main("action=info_terms")
         textviewer.assert_called_once()
         self.assertFalse(default.terms_accepted(), "otevření textu samo o sobě není souhlas")
+        with mock.patch.object(default, "ensure_terms") as brana:
+            default.main("action=settings")
+        brana.assert_not_called()
 
     def test_existujici_instalace_se_odsouhlasi_sama(self):
         """Instalace s jiným `seen_version` na disku (běžela už před touhle verzí)
-        se odsouhlasí bez dialogu — nikdo starý nic doklikávat nemusí."""
-        xbmc.cond_visible.discard("Window.IsMedia")   # i mimo UI, grandfather nepotřebuje dialog
-        with mock.patch.object(default, "_PRIOR_SEEN_VERSION", "5.2.7"), \
-                mock.patch.object(xbmcgui.Dialog, "yesno") as yesno:
-            self.assertTrue(default.ensure_terms())
-        yesno.assert_not_called()
+        má přepínač zapnutý rovnou — nikdo starý nic doklikávat nemusí."""
+        with mock.patch.object(default, "_PRIOR_SEEN_VERSION", "5.2.7"):
+            default.migrate_terms()
+        self.assertEqual(xbmcaddon.settings["terms_ok"], "true")
         self.assertTrue(default.terms_accepted())
+
+    def test_souhlas_z_profilu_se_preklopi_do_prepinace(self):
+        """Kdo odsouhlasil v betách 1–3 (souhlas ležel jen v profilu), nemá po
+        aktualizaci přepínač prázdný."""
+        default.STORE.save("terms_accepted", default.TERMS_VERSION)
+        with mock.patch.object(default, "_PRIOR_SEEN_VERSION", ""):
+            default.migrate_terms()
+        self.assertEqual(xbmcaddon.settings["terms_ok"], "true")
 
     def test_nova_instalace_bez_prior_seen_version_se_neodsouhlasi_sama(self):
         """Prázdné `_PRIOR_SEEN_VERSION` (čerstvý profil) grandfathering nespouští —
-        nová instalace musí projít dialogem jako dřív."""
-        xbmc.cond_visible.discard("Window.IsMedia")
+        nová instalace musí přepínač zapnout ručně."""
         with mock.patch.object(default, "_PRIOR_SEEN_VERSION", ""):
-            self.assertFalse(default.ensure_terms())
+            default.migrate_terms()
+        self.assertNotEqual(xbmcaddon.settings.get("terms_ok"), "true")
         self.assertFalse(default.terms_accepted())
 
-    def test_budouci_verze_textu_grandfathering_neobchazi(self):
-        """Zvednutí `TERMS_VERSION` nad `FIRST_TERMS_VERSION` (další věcná změna textu
-        po prvním vydání) musí i existující instalaci přinutit odsouhlasit znovu —
-        grandfather platí jen pro tu úplně první verzi."""
-        xbmc.cond_visible.discard("Window.IsMedia")
+    def test_sluzba_bez_souhlasu_nesaha_na_zdroje(self):
+        """Služba běží mimo plugin (zahřívání, prefetch, obnova stavu účtů, stahování)
+        a `Files.GetDirectory` by jinak jen bliklo oznámení a jelo dál každých pár hodin."""
+        with mock.patch.object(xbmc, "executeJSONRPC") as rpc:
+            service.rpc_directory("plugin://plugin.video.nokturno/?action=prefetch&kind=next")
+        rpc.assert_not_called()
+        xbmcaddon.settings["terms_ok"] = "true"
+        with mock.patch.object(xbmc, "executeJSONRPC", return_value="{}") as rpc:
+            service.rpc_directory("plugin://plugin.video.nokturno/?action=prefetch&kind=next")
+        rpc.assert_called_once()
+
+    def test_budouci_verze_textu_prepinac_vypne(self):
+        """Věcná změna textu (vyšší `TERMS_VERSION`) musí souhlas zneplatnit i tomu,
+        kdo ho už jednou dal — grandfather platí jen pro tu úplně první verzi."""
+        xbmcaddon.settings["terms_ok"] = "true"
+        default.STORE.save("terms_accepted", default.TERMS_VERSION)
         with mock.patch.object(default, "_PRIOR_SEEN_VERSION", "5.2.7"), \
-                mock.patch.object(default, "TERMS_VERSION", "3"), \
-                mock.patch.object(xbmcgui.Dialog, "yesno") as yesno:
-            self.assertFalse(default.ensure_terms())
-        yesno.assert_not_called()   # mimo UI, ale hlavně se to neodsouhlasilo samo
-        self.assertFalse(default.terms_accepted())
+                mock.patch.object(default, "TERMS_VERSION", "3"):
+            default.migrate_terms()
+            self.assertEqual(xbmcaddon.settings["terms_ok"], "false")
+            self.assertFalse(default.terms_accepted())
 
 
 class TestAddonXml(unittest.TestCase):
@@ -2569,7 +2609,7 @@ class TestNastavitZMobilu(unittest.TestCase):
     def test_formular_ze_settings_xml(self):
         schema = default.remote_setup_schema()
         ids = [s["id"] for s in schema]
-        self.assertEqual(ids[0], "ws")
+        self.assertEqual(ids[0], "storage")   # vlastní úložiště nahoře (2026-09-22)
         self.assertNotIn("advanced", ids)
         self.assertNotIn("info", ids)
         fields = {f["id"]: f for s in schema for f in s["fields"] if f.get("type") not in ("heading", "info", "action")}
@@ -3170,6 +3210,21 @@ class TestUdrzbaKodi(unittest.TestCase):
         self.assertEqual([v for v, _t in default.parse_news("3.2.0~beta1 – x\n3.1.12 – y", since="3.1.12")], ["3.2.0~beta1"])
         self.assertLess(default._vkey("3.2.0~beta1"), default._vkey("3.2.0"))
         self.assertEqual(default._vkey("3.1.12"), build_repo.version_key("3.1.12"))
+
+    def test_msgid_sedi_napric_jazyky(self):
+        """Překlad u čísla, jehož `msgid` se rozešel s angličtinou, se tiše přestane
+        udržovat (2026-09-22: #30729 měl v překladech text z bety 1)."""
+        import re
+
+        def msgid(soubor):
+            t = (LANG_DIR / soubor / "strings.po").read_text(encoding="utf-8")
+            return {m.group(1): m.group(2) for m in re.finditer(r'msgctxt "#(\d+)"\nmsgid "((?:[^"\\]|\\.)*)"', t)}
+
+        en = msgid("resource.language.en_gb")
+        for jazyk in ("resource.language.cs_cz", "resource.language.sk_sk", "resource.language.hu_hu"):
+            for cislo, text in msgid(jazyk).items():
+                if cislo in en:
+                    self.assertEqual(text, en[cislo], f"{jazyk} #{cislo}")
 
     def test_ikony_menu_jsou_vlastni_sada(self):
         import dash_api
@@ -5515,7 +5570,7 @@ class TestOsmKategorii(unittest.TestCase):
     def test_osm_kategorii(self):
         root = ET.parse(ROOT / "resources" / "settings.xml").getroot()
         kategorie = [c.get("id") for c in root.iter("category")]
-        self.assertEqual(kategorie, ["transfer", "sources", "storage", "playback",
+        self.assertEqual(kategorie, ["terms", "storage", "sources", "transfer", "playback",
                                      "streamlist", "sync", "stats", "advanced"])
 
     def test_zadne_id_volby_nezmizelo(self):
@@ -5524,7 +5579,7 @@ class TestOsmKategorii(unittest.TestCase):
         # přeskládání kategorií zůstávají stejná
         root = ET.parse(ROOT / "resources" / "settings.xml").getroot()
         volby = {s.get("id") for s in root.iter("setting")}
-        self.assertEqual(len(volby), 101)   # +1: info_terms (právní upozornění, 2026-09-22)
+        self.assertEqual(len(volby), 103)   # +2: terms_ok a terms_show_action (souhlas, 2026-09-22)
         for ocekavane in ("ws_enabled", "pt_email", "sosac_enabled", "hs_enabled",
                           "st_enabled", "fs_enabled", "cz_enabled", "luna_url",
                           "os_enabled", "tmdb_api_key", "download_dir", "info_donate"):
