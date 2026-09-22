@@ -302,11 +302,12 @@ class TestPravniUpozorneni(unittest.TestCase):
         self.assertFalse(default.terms_accepted())
 
     def test_budouci_verze_textu_grandfathering_neobchazi(self):
-        """Zvednutí `TERMS_VERSION` (věcná změna textu) musí i existující instalaci
-        přinutit odsouhlasit znovu — grandfather platí jen pro verzi "1"."""
+        """Zvednutí `TERMS_VERSION` nad `FIRST_TERMS_VERSION` (další věcná změna textu
+        po prvním vydání) musí i existující instalaci přinutit odsouhlasit znovu —
+        grandfather platí jen pro tu úplně první verzi."""
         xbmc.cond_visible.discard("Window.IsMedia")
         with mock.patch.object(default, "_PRIOR_SEEN_VERSION", "5.2.7"), \
-                mock.patch.object(default, "TERMS_VERSION", "2"), \
+                mock.patch.object(default, "TERMS_VERSION", "3"), \
                 mock.patch.object(xbmcgui.Dialog, "yesno") as yesno:
             self.assertFalse(default.ensure_terms())
         yesno.assert_not_called()   # mimo UI, ale hlavně se to neodsouhlasilo samo

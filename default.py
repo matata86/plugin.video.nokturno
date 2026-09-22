@@ -384,7 +384,13 @@ migrate_on_start()
 
 # Zvednout jen při věcné změně právního upozornění (ne u překlepu) — starší souhlas
 # pak přestane platit a uživatel ho musí znovu potvrdit.
-TERMS_VERSION = "1"
+TERMS_VERSION = "2"
+
+# Verze, se kterou právní upozornění vůbec poprvé vyšlo do stabilního vydání — jen ona
+# se grandfatherí (viz `_existing_install`). Nikdy neměnit zpětně: i kdyby se text ještě
+# před stabilním vydáním znovu upravil (další zvednutí TERMS_VERSION), tahle konstanta
+# zůstává ukotvená na první verzi, aby ji grandfathering nesledoval navěky.
+FIRST_TERMS_VERSION = "2"
 
 
 def terms_accepted():
@@ -394,23 +400,35 @@ def terms_accepted():
 def _existing_install():
     """Instalace, která běžela už před zavedením právního upozornění, se bere jako
     automaticky odsouhlasená — nikdo starý nemusí nic doklikávat. Platí jen pro
-    TERMS_VERSION "1": případná pozdější věcná změna textu (zvednutí verze) tenhle
-    grandfathering neobchází, souhlas se pak musí znovu potvrdit i od existující
-    instalace."""
-    return TERMS_VERSION == "1" and bool(_PRIOR_SEEN_VERSION) and _PRIOR_SEEN_VERSION != _ADDON_VERSION
+    `FIRST_TERMS_VERSION`: případná další věcná změna textu (zvednutí verze nad rámec
+    prvního vydání) tenhle grandfathering neobchází, souhlas se pak musí znovu potvrdit
+    i od existující instalace."""
+    return TERMS_VERSION == FIRST_TERMS_VERSION and bool(_PRIOR_SEEN_VERSION) and _PRIOR_SEEN_VERSION != _ADDON_VERSION
 
 
 def terms_text():
-    return L(30729, "Nokturno is only a technical interface to content; it does not host, store or provide "
-                    "any content itself. It surfaces links from publicly available third-party services "
-                    "(WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna, OpenSubtitles) "
-                    "and from storage you configure yourself.\n\n"
-                    "Use the add-on only for content you have a legal right, licence, or other legal title to "
-                    "access. Searching for, accessing, or playing copyrighted content without the "
-                    "rightsholders' consent is prohibited.\n\n"
-                    "The add-on is provided \"as is\", with no warranty of functionality, availability, or "
-                    "legality of third-party sources. Responsibility for how it is used lies solely with the "
-                    "user. The operator reserves the right to restrict or terminate access at any time.")
+    return (L(30729, "Nokturno is primarily a player and manager for your own storage — content you upload "
+                     "and expose yourself (e.g. via WebDAV) is played directly. As an optional add-on service, "
+                     "you may connect some publicly available third-party search engines (WebShare, Sosáč, "
+                     "HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna, OpenSubtitles) — in that case "
+                     "Nokturno is only a technical interface; it does not host, store, or provide any content "
+                     "itself.\n\n"
+                     "Use the add-on only for content you have a legal right, licence, or other legal title to "
+                     "access. Searching for, accessing, or playing copyrighted content without the "
+                     "rightsholders' consent is prohibited.\n\n"
+                     "The add-on is provided \"as is\", with no warranty of functionality, availability, or "
+                     "legality of third-party sources. Responsibility for how it is used lies solely with the "
+                     "user. The operator reserves the right to restrict or terminate access at any time.")
+            + "\n\n" +
+            L(30734, "Where to report illegal content at each source:\n"
+                     "WebShare: abuse@webshare.cz\n"
+                     "Sosáč / Streamuj.tv: streamuj.tv/advertise (DMCA)\n"
+                     "HellSpy: hellspy.to/contact\n"
+                     "Sledujteto: sledujteto.cz/nahlasit-nelegalni-soubor\n"
+                     "FastShare: fastshare.cz/abuse\n"
+                     "Přehraj.to: prehrajto.cz/nahlasit-nelegalni-soubor\n"
+                     "CZtor: contact via cztor.com\n"
+                     "OpenSubtitles: copyright@opensubtitles.org (DMCA)"))
 
 
 def info_terms():

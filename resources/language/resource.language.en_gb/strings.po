@@ -2160,7 +2160,7 @@ msgid "Legal notice"
 msgstr ""
 
 msgctxt "#30729"
-msgid "Nokturno is only a technical interface to content; it does not host, store or provide any content itself. It surfaces links from publicly available third-party services (WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna, OpenSubtitles) and from storage you configure yourself.\n\nUse the add-on only for content you have a legal right, licence, or other legal title to access. Searching for, accessing, or playing copyrighted content without the rightsholders' consent is prohibited.\n\nThe add-on is provided \"as is\", with no warranty of functionality, availability, or legality of third-party sources. Responsibility for how it is used lies solely with the user. The operator reserves the right to restrict or terminate access at any time."
+msgid "Nokturno is primarily a player and manager for your own storage — content you upload and expose yourself (e.g. via WebDAV) is played directly. As an optional add-on service, you may connect some publicly available third-party search engines (WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna, OpenSubtitles) — in that case Nokturno is only a technical interface; it does not host, store, or provide any content itself.\n\nUse the add-on only for content you have a legal right, licence, or other legal title to access. Searching for, accessing, or playing copyrighted content without the rightsholders' consent is prohibited.\n\nThe add-on is provided \"as is\", with no warranty of functionality, availability, or legality of third-party sources. Responsibility for how it is used lies solely with the user. The operator reserves the right to restrict or terminate access at any time."
 msgstr ""
 
 msgctxt "#30730"
@@ -2177,4 +2177,9 @@ msgstr ""
 
 msgctxt "#30733"
 msgid "First accept the legal notice in the Nokturno menu."
+msgstr ""
+
+
+msgctxt "#30734"
+msgid "Where to report illegal content at each source:\nWebShare: abuse@webshare.cz\nSosáč / Streamuj.tv: streamuj.tv/advertise (DMCA)\nHellSpy: hellspy.to/contact\nSledujteto: sledujteto.cz/nahlasit-nelegalni-soubor\nFastShare: fastshare.cz/abuse\nPřehraj.to: prehrajto.cz/nahlasit-nelegalni-soubor\nCZtor: contact via cztor.com\nOpenSubtitles: copyright@opensubtitles.org (DMCA)"
 msgstr ""
