@@ -283,6 +283,35 @@ class TestPravniUpozorneni(unittest.TestCase):
         textviewer.assert_called_once()
         self.assertFalse(default.terms_accepted(), "otevření textu samo o sobě není souhlas")
 
+    def test_existujici_instalace_se_odsouhlasi_sama(self):
+        """Instalace s jiným `seen_version` na disku (běžela už před touhle verzí)
+        se odsouhlasí bez dialogu — nikdo starý nic doklikávat nemusí."""
+        xbmc.cond_visible.discard("Window.IsMedia")   # i mimo UI, grandfather nepotřebuje dialog
+        with mock.patch.object(default, "_PRIOR_SEEN_VERSION", "5.2.7"), \
+                mock.patch.object(xbmcgui.Dialog, "yesno") as yesno:
+            self.assertTrue(default.ensure_terms())
+        yesno.assert_not_called()
+        self.assertTrue(default.terms_accepted())
+
+    def test_nova_instalace_bez_prior_seen_version_se_neodsouhlasi_sama(self):
+        """Prázdné `_PRIOR_SEEN_VERSION` (čerstvý profil) grandfathering nespouští —
+        nová instalace musí projít dialogem jako dřív."""
+        xbmc.cond_visible.discard("Window.IsMedia")
+        with mock.patch.object(default, "_PRIOR_SEEN_VERSION", ""):
+            self.assertFalse(default.ensure_terms())
+        self.assertFalse(default.terms_accepted())
+
+    def test_budouci_verze_textu_grandfathering_neobchazi(self):
+        """Zvednutí `TERMS_VERSION` (věcná změna textu) musí i existující instalaci
+        přinutit odsouhlasit znovu — grandfather platí jen pro verzi "1"."""
+        xbmc.cond_visible.discard("Window.IsMedia")
+        with mock.patch.object(default, "_PRIOR_SEEN_VERSION", "5.2.7"), \
+                mock.patch.object(default, "TERMS_VERSION", "2"), \
+                mock.patch.object(xbmcgui.Dialog, "yesno") as yesno:
+            self.assertFalse(default.ensure_terms())
+        yesno.assert_not_called()   # mimo UI, ale hlavně se to neodsouhlasilo samo
+        self.assertFalse(default.terms_accepted())
+
 
 class TestAddonXml(unittest.TestCase):
     def setUp(self):

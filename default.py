@@ -376,6 +376,10 @@ def install_id():
         return ""
 
 
+# Zachyceno PŘED migrate_on_start(), který "seen_version" přepíše na aktuální verzi —
+# nenulová a jiná než _ADDON_VERSION znamená, že tahle instalace už běžela dřív.
+_PRIOR_SEEN_VERSION = STORE.load("seen_version", "")
+
 migrate_on_start()
 
 # Zvednout jen při věcné změně právního upozornění (ne u překlepu) — starší souhlas
@@ -385,6 +389,15 @@ TERMS_VERSION = "1"
 
 def terms_accepted():
     return STORE.load("terms_accepted", "") == TERMS_VERSION
+
+
+def _existing_install():
+    """Instalace, která běžela už před zavedením právního upozornění, se bere jako
+    automaticky odsouhlasená — nikdo starý nemusí nic doklikávat. Platí jen pro
+    TERMS_VERSION "1": případná pozdější věcná změna textu (zvednutí verze) tenhle
+    grandfathering neobchází, souhlas se pak musí znovu potvrdit i od existující
+    instalace."""
+    return TERMS_VERSION == "1" and bool(_PRIOR_SEEN_VERSION) and _PRIOR_SEEN_VERSION != _ADDON_VERSION
 
 
 def terms_text():
@@ -412,6 +425,9 @@ def ensure_terms():
     Odtud bez UI se akce jen tiše odmítne, dokud uživatel souhlas nedá v menu Nokturna —
     žádné obcházení odsouhlasení spuštěním z widgetu."""
     if terms_accepted():
+        return True
+    if _existing_install():
+        STORE.save("terms_accepted", TERMS_VERSION)
         return True
     if not browsing_nokturno():
         notify(L(30733, "First accept the legal notice in the Nokturno menu."), xbmcgui.NOTIFICATION_WARNING, 6000)

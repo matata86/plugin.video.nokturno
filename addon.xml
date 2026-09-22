@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="7.5.1" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="7.6.0~beta1" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>7.5.1 – Sezónní katalogy z Nokturna mají vlastní ikony: Vánoce, Pohádky, Komedie, Romantické, Rodinné a Animované jde v menu rozeznat na první pohled. Vánoční ikona se navíc do doplňku vůbec nebalila, takže u složky Vánoce žádná nebyla.
+    <news>7.6.0~beta1 – Právní upozornění: doplněk je jen technické rozhraní k obsahu, ke kterému musíš mít právo přístupu. Při prvním spuštění se ukáže k odsouhlasení, kdykoli je i v Nastavení → Info. Kdo doplněk používal už dřív, má souhlas automaticky — nikdo starý nemusí nic doklikávat, jen nové instalace.
+7.5.1 – Sezónní katalogy z Nokturna mají vlastní ikony: Vánoce, Pohádky, Komedie, Romantické, Rodinné a Animované jde v menu rozeznat na první pohled. Vánoční ikona se navíc do doplňku vůbec nebalila, takže u složky Vánoce žádná nebyla.
 7.5.0 – Nastavení se z dvaceti kategorií smrsklo na osm. Všechny zdroje (WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna) i OpenSubtitles, TMDB API a Trakt.tv jsou teď v jedné kategorii „Zdroje a účty“, každý ve vlastní rozbalovací skupině — mezi dvěma zdroji se chodí dolů, ne přes celé menu. Nic se neruší ani nepřejmenovává, po aktualizaci nemusíš nic zadávat znovu. OpenSubtitles nově jdou vyplnit i ze stránky „Nastavit z mobilu“ a přenést do dalšího Kodi. V menu: „Můj seznam“ se ukáže, až když v něm něco je, a hlášení o zdrojích je kratší, aby se na televizi vešlo na řádek.
 7.5.0~beta2 – Trakt.tv se přestěhoval do „Zdroje a účty“ k ostatním přihlášením, kategorií je tak 8. Nastavení Traktu zůstává, kde bylo — nemusíš nic zadávat znovu. „Můj seznam“ se v menu ukáže, až když v něm něco je (jako „Pokračovat ve sledování“). Hlášení o zdrojích v menu je kratší, aby se na televizi vešlo na řádek bez rolování.
 7.5.0~beta1 – Nastavení má 9 kategorií místo 20 (strop Kodi byl vyčerpaný — další zdroj by se už nevešel). Osm zdrojů (WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna) i OpenSubtitles a TMDB API teď žijí v jedné kategorii „Zdroje a účty“, každý ve vlastní rozbalovací skupině — mezi dvěma zdroji se chodí dolů, ne přes celé menu. Nic se neruší, nic se nepřejmenovává, po aktualizaci nemusíš dělat nic. OpenSubtitles nově jdou vyplnit i ze stránky „Nastavit z mobilu“ a jdou přenést do dalšího Kodi.
