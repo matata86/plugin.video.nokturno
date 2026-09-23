@@ -121,16 +121,17 @@ def _clean_items(items, ctype):
 
 
 class DashApi:
-    def __init__(self, cache=None, base=BASE):
+    def __init__(self, cache=None, base=BASE, headers=None):
         self.cache = cache
         self.base = base
+        self.headers = headers or {}   # Stremio: token pro koncerty ze zkušebního provozu
 
     # --- síť a cache -----------------------------------------------------------------
 
     def _get(self, path, timeout=TIMEOUT, **params):
         query = urllib.parse.urlencode({k: v for k, v in params.items() if v})
         url = f"{self.base}{path}" + (f"?{query}" if query else "")
-        req = urllib.request.Request(url, headers={"User-Agent": "Nokturno"})
+        req = urllib.request.Request(url, headers={"User-Agent": "Nokturno", **self.headers})
         try:
             with open_url(req, timeout=timeout) as resp:
                 return json.loads(resp.read().decode("utf-8"))
@@ -415,7 +416,8 @@ class DashApi:
             if artist and title:
                 out.append({"id": i["id"], "artist": artist, "title": title,
                             "year": i.get("year") if isinstance(i.get("year"), int) else None,
-                            "sources": [s for s in (i.get("sources") or []) if s in CONCERT_SOURCES]})
+                            "sources": [s for s in (i.get("sources") or []) if s in CONCERT_SOURCES],
+                            "img": _img(i.get("img"))})
         return out, int(data.get("total") or 0)
 
     def concert(self, concert_id, sources, install=""):
@@ -433,7 +435,8 @@ class DashApi:
         if not data:
             return None
         files = [{"source": f["source"], "ref": f["ref"], "name": _text(f.get("name"), 200),
-                  "size": int(f.get("size") or 0), "duration": int(f.get("duration") or 0)}
+                  "size": int(f.get("size") or 0), "duration": int(f.get("duration") or 0),
+                  "img": _img(f.get("img"))}
                  for f in data["files"] if isinstance(f, dict)
                  and f.get("source") in CONCERT_SOURCES and isinstance(f.get("ref"), str)
                  and CONCERT_REF_RE.match(f["ref"])]
@@ -462,6 +465,8 @@ def _concerts_with_files(raw, with_artist=False):
         title = _text(c.get("title"), 200)
         year = c.get("year") if isinstance(c.get("year"), int) else None
         item = {"title": title, "year": year, "files": files}
+        if isinstance(c.get("id"), int):
+            item["id"] = c["id"]   # Stremio z něj skládá `nktc:<id>`
         if with_artist:
             item["artist"] = _text(c.get("artist"), MAX_TITLE)
             if not item["artist"]:
