@@ -2464,3 +2464,11 @@ msgstr "Tohle se ostatním pustit nedá (není to titul z Nokturna)"
 msgctxt "#30853"
 msgid "You stopped playback, the others keep watching. You can return in SyncWatch"
 msgstr "Zastavil jsi přehrávání, ostatní sledují dál. Vrátit se jde v SyncWatch"
+
+msgctxt "#30860"
+msgid "Apply the last filter automatically"
+msgstr "Automaticky použít poslední filtr"
+
+msgctxt "#30861"
+msgid "The stream selection opens with the filter you set last time. If it would leave no stream for a title, all streams are shown."
+msgstr "Výběr streamu se otevře rovnou s filtrem, který jsi nastavil naposledy. Když by u titulu nenechal žádný stream, ukážou se všechny."

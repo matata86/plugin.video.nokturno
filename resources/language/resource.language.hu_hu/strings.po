@@ -2462,3 +2462,11 @@ msgstr "Ezt nem lehet a többieknek elindítani (nem Nokturno-cím)"
 msgctxt "#30853"
 msgid "You stopped playback, the others keep watching. You can return in SyncWatch"
 msgstr "Leállítottad a lejátszást, a többiek tovább nézik. A SyncWatch-ban vissza lehet térni"
+
+msgctxt "#30860"
+msgid "Apply the last filter automatically"
+msgstr "Az utolsó szűrő automatikus alkalmazása"
+
+msgctxt "#30861"
+msgid "The stream selection opens with the filter you set last time. If it would leave no stream for a title, all streams are shown."
+msgstr "A stream kiválasztása rögtön a legutóbb beállított szűrővel nyílik meg. Ha egy címnél egyetlen streamet sem hagyna, az összes megjelenik."

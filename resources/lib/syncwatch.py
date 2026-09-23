@@ -338,6 +338,7 @@ class Coordinator(object):
         self.wait_since = 0.0           # vedoucí: od kdy čeká na načtení ostatních
         self.last_me = None
         self.expires = None             # s do zániku skupiny, když není připojené žádné další zařízení
+        self.expires_at = None          # time.time() zániku
         self.locked = False
 
     # -- pomocné
@@ -385,6 +386,8 @@ class Coordinator(object):
     def on_poll(self, resp):
         self.members = resp.get("members") or []
         self.expires = resp.get("expires")
+        # okno odpočítává samo z času zániku — `expires` přichází jen s odpovědí pollu (až 25 s)
+        self.expires_at = time.time() + float(self.expires) if self.expires is not None else None
         self.locked = bool(resp.get("locked"))
         state = resp.get("state")
         if state and state.get("seq", 0) > (self.state or {}).get("seq", -1):
@@ -624,7 +627,7 @@ class Coordinator(object):
                              "online": m.get("online"), "st": m.get("st")} for m in self.members],
                 "title": load.get("title") or "", "phase": st.get("phase") or "",
                 "playing": bool(st.get("playing")), "loaded": bool(load.get("lid")),
-                "leader": self.leader, "expires": self.expires, "locked": self.locked,
+                "leader": self.leader, "expires": self.expires, "expires_at": self.expires_at, "locked": self.locked,
                 "loading": bool(self.loading), "detached": self.detached}
 
 

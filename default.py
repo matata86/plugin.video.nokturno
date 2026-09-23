@@ -2037,6 +2037,13 @@ def choose_stream(streams, preferred=None, relax=False, expand=None):
     nabízí se jako „Zobrazit všechny streamy“ před fulltextem, jen když je co rozbalit.
     Vrací stream, `FULLTEXT`, nebo None."""
     active = {}
+    if setting("stream_filter_last") == "true":
+        # „Automaticky použít poslední filtr“ — jen když u titulu něco nechá, jinak
+        # by dialog začínal hláškou „Filtr nic nenechal“
+        last = STORE.last_stream_filter() or {}
+        last = {k: list(last.get(k) or []) for k in FILTER_KINDS}
+        if any(last.values()) and apply_stream_filter(streams, **filter_params(last)):
+            active = last
     while True:
         shown = apply_stream_filter(streams, **filter_params(active))
         if not shown:
@@ -3086,7 +3093,7 @@ class SyncWatchWindow(xbmcgui.WindowDialog):
         self.members.setText("[CR]".join(rows) or L(30830, "Připojuji…"))
         line = ""
         if status.get("expires") is not None and leader:
-            left = int(status["expires"])
+            left = max(0, int(status["expires_at"] - time.time())) if status.get("expires_at") else int(status["expires"])
             line = _swf(30831, "Zatím se nikdo nepřipojil — kód zanikne za %s", "%d:%02d" % divmod(left, 60))
         elif status.get("title") and status.get("loaded"):
             line = "%s: %s" % (L(30832, "Hraje se"), status["title"])

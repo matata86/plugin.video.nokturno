@@ -743,6 +743,11 @@
           <data>RunPlugin(plugin://plugin.video.nokturno/?action=stream_layout_reset)</data>
           <control type="button" format="action"/>
         </setting>
+        <setting id="stream_filter_last" type="boolean" label="30860" help="30861">
+          <level>0</level>
+          <default>false</default>
+          <control type="toggle"/>
+        </setting>
       </group>
     </category>
     <category id="sync" label="30180">

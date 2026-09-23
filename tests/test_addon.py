@@ -1235,6 +1235,32 @@ class TestVyberStreamu(unittest.TestCase):
         self.assertEqual(len(volani[1]), 3, "Filtr + Zrušit filtr + jediný CZ stream")
         self.assertEqual(default.STORE.last_stream_filter()["lang"], ["CZ"])
 
+    def test_posledni_filtr_automaticky(self):
+        streams = [{"url": "ws:1", "label": "Film.2020.1080p.CZ.mkv", "detail": "2 GB", "source": "ws"},
+                   {"url": "ws:2", "label": "Film.2020.1080p.ENG.mkv", "detail": "2 GB", "source": "ws"}]
+        default.STORE.set_last_stream_filter({"lang": ["CZ"]})
+        radky = []
+
+        def select(heading, rows, *a, **k):
+            radky.append([r.getLabel() for r in rows])
+            return -1
+
+        xbmcaddon.settings["stream_filter_last"] = "true"
+        self.addCleanup(xbmcaddon.settings.pop, "stream_filter_last", None)
+        with mock.patch.object(xbmcgui.Dialog, "select", side_effect=select):
+            default.choose_stream(streams)
+        self.assertIn("(1/2)", radky[-1][0], "otevře se rovnou s posledním filtrem")
+        # filtr, který by u titulu nic nenechal, se nepoužije
+        default.STORE.set_last_stream_filter({"lang": ["HU"]})
+        with mock.patch.object(xbmcgui.Dialog, "select", side_effect=select):
+            default.choose_stream(streams)
+        self.assertIn("(2)", radky[-1][0])
+        xbmcaddon.settings["stream_filter_last"] = "false"
+        default.STORE.set_last_stream_filter({"lang": ["CZ"]})
+        with mock.patch.object(xbmcgui.Dialog, "select", side_effect=select):
+            default.choose_stream(streams)
+        self.assertIn("(2)", radky[-1][0], "vypnuto = bez filtru jako dřív")
+
 
 class TestSeznamStreamu(unittest.TestCase):
     def setUp(self):
@@ -2744,7 +2770,7 @@ class TestNastavitZMobilu(unittest.TestCase):
         jen = default.remote_setup_schema("streamlist")
         self.assertEqual([s["id"] for s in jen], ["streamlist"])
         self.assertTrue(jen[0]["open"])
-        self.assertEqual([f["id"] for f in jen[0]["fields"]], ["stream_layout"])
+        self.assertEqual([f["id"] for f in jen[0]["fields"]], ["stream_layout", "stream_filter_last"])
         storage = next(s for s in schema if s["id"] == "storage")
         headings = [f["label"] for f in storage["fields"] if f.get("type") == "heading"]
         self.assertEqual(headings, ["Úložiště 1", "Úložiště 2", "Úložiště 3"])
@@ -5756,7 +5782,7 @@ class TestOsmKategorii(unittest.TestCase):
         # přeskládání kategorií zůstávají stejná
         root = ET.parse(ROOT / "resources" / "settings.xml").getroot()
         volby = {s.get("id") for s in root.iter("setting")}
-        self.assertEqual(len(volby), 103)   # +2: terms_ok a terms_show_action (souhlas, 2026-09-22)
+        self.assertEqual(len(volby), 104)   # +2: terms_ok a terms_show_action (souhlas, 2026-09-22), +1 stream_filter_last
         for ocekavane in ("ws_enabled", "pt_email", "sosac_enabled", "hs_enabled",
                           "st_enabled", "fs_enabled", "cz_enabled", "luna_url",
                           "os_enabled", "tmdb_api_key", "download_dir", "info_donate"):
