@@ -6299,6 +6299,15 @@ class TestSyncWatch(unittest.TestCase):
         player.onPlayBackSeek(90500, 0)
         self.assertEqual(player.sw.event.call_args[1], {"pos": 90.5})
 
+    def test_spravce_je_vlakno_s_puvodnim_start(self):
+        # 8.2.0~beta1 před vydáním: `start(session)` přepsalo `Thread.start()` a služba
+        # při startu Kodi spadla na TypeError (Office)
+        self.assertIs(service.SyncWatchManager.start, threading.Thread.start)
+        with mock.patch.object(service.SyncWatchManager, "run"):
+            manager = service.SyncWatchManager(default.STORE, xbmc.Monitor())
+            manager.start()
+            manager.join(2)
+
     def test_spravce_spusti_a_ukonci_skupinu_podle_profilu(self):
         import syncwatch
         manager = service.SyncWatchManager(default.STORE, xbmc.Monitor())

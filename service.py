@@ -482,9 +482,9 @@ class SyncWatchManager(threading.Thread):
             if not token:
                 xbmcgui.Window(10000).clearProperty(SW_PROP)
         if token and self.runtime is None and token == session.get("token"):
-            self.start(session)
+            self.join_group(session)
 
-    def start(self, session):
+    def join_group(self, session):
         import syncwatch
         try:
             client = syncwatch.Client(session["code"], token=session["token"])

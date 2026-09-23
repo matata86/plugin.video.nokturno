@@ -2872,7 +2872,7 @@ class SyncWatchIntroWindow(xbmcgui.WindowDialog):
     def __init__(self):
         super().__init__()
         self.choice = None
-        self.addControl(xbmcgui.ControlImage(0, 0, 1280, 720, _sw_backdrop(), colorDiffuse="F20D0B14"))
+        self.addControl(xbmcgui.ControlImage(0, 0, 1280, 720, _sw_backdrop(), colorDiffuse="FF0D0B14"))
         self.addControl(xbmcgui.ControlLabel(90, 50, 1100, 50, "[B]%s[/B]" % sw_title(),
                                              font="font13", textColor="FFFFFFFF"))
         text = xbmcgui.ControlTextBox(90, 110, 1100, 470, font="font12", textColor="FFE6E1F0")
@@ -3039,7 +3039,7 @@ class SyncWatchWindow(xbmcgui.WindowDialog):
     def __init__(self, leader, code):
         super().__init__()
         self.closed_by_user = False
-        self.addControl(xbmcgui.ControlImage(0, 0, 1280, 720, _sw_backdrop(), colorDiffuse="F20D0B14"))
+        self.addControl(xbmcgui.ControlImage(0, 0, 1280, 720, _sw_backdrop(), colorDiffuse="FF0D0B14"))
         self.addControl(xbmcgui.ControlLabel(90, 50, 1100, 50, "[B]%s[/B]" % sw_title(),
                                              font="font13", textColor="FFFFFFFF"))
         if leader:
