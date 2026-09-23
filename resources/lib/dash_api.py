@@ -51,6 +51,13 @@ STALE_TTL = 14 * 86400   # jak staré záložní data ještě ukázat při výpa
 DOWN_TTL = 300
 DOWN_KEY = "nokturno:dash:down"
 
+
+def since_midnight(now=None):
+    """Sekundy od poslední místní půlnoci. Menu se nesmí držet přes půlnoc: sezónní
+    katalogy (Vánoce, Film pro dnešní den) platí po dnech a musí se objevit hned."""
+    t = time.localtime(now)
+    return t.tm_hour * 3600 + t.tm_min * 60 + t.tm_sec
+
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,39}$")
 IMDB_RE = re.compile(r"^tt\d{5,10}$")
 DAY_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -178,7 +185,7 @@ class DashApi:
             data = self._get("/catalogs")
             return data.get("catalogs") if isinstance(data, dict) and isinstance(data.get("catalogs"), list) else None
 
-        entries = [e for e in (_clean_entry(r) for r in (self._load("nokturno:dash:menu", MENU_TTL, fetch) or []))
+        entries = [e for e in (_clean_entry(r) for r in (self._load("nokturno:dash:menu", min(MENU_TTL, since_midnight()), fetch) or []))
                    if e]
         return [e for e in entries
                 if (placement is None or e["placement"] == placement) and (ctype is None or e["kind"] == ctype)]

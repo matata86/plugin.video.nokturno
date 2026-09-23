@@ -1095,14 +1095,18 @@ def concert_sources(apis):
 def concerts_available(apis):
     """Má se položka Koncerty ukázat? Zdroj, který koncerty umí, a server, který je téhle
     instalaci vydává (zkušební provoz: dashboard má seznam instalací, ostatním vrací 404).
-    Odpověď se drží hodinu (`CONCERTS_MENU_TTL`), ať otevření menu nestojí dotaz."""
+    Hodinu (`CONCERTS_MENU_TTL`) se drží jen kladná odpověď: záporná z chvíle, kdy Kodi
+    po startu ještě nemá síť, schovávala Koncerty i po restartu (8.0.0). Opakovaný dotaz
+    při výpadku nic nestojí, `DashApi` má vlastní pětiminutovou značku výpadku.
+    Klíč `menu2`: 8.0.0 mohla na disku nechat zápornou odpověď pod starým klíčem."""
     dash = apis.get("dash")
     sources = concert_sources(apis)
     if not (dash and sources):
         return False
     try:
-        stav = STORE.cached("nokturno:concerts:menu", CONCERTS_MENU_TTL,
-                            lambda: {"ok": bool(dash.concerts(sources, install=install_id()))})
+        stav = STORE.cached_if("nokturno:concerts:menu2", CONCERTS_MENU_TTL,
+                               lambda: {"ok": bool(dash.concerts(sources, install=install_id()))},
+                               ok=lambda s: bool(s and s.get("ok")))
     except Exception:      # noqa: BLE001 – výpadek serveru menu nezdrží
         return False
     return bool(stav and stav.get("ok"))

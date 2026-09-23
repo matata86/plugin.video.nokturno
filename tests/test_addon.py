@@ -6069,15 +6069,22 @@ class TestKoncerty(unittest.TestCase):
 
     def test_polozka_v_menu_jen_kdyz_server_vydava(self):
         """Zkušební provoz: dashboard vydává koncerty jen instalacím ze seznamu, ostatním
-        404 — ty položku v menu nemají. Odpověď se drží hodinu, menu nevolá server pokaždé."""
+        404 — ty položku v menu nemají. Hodinu se drží jen kladná odpověď (8.0.1): záporná
+        z chvíle bez sítě po startu schovávala Koncerty i po restartu Kodi."""
         dash = self.Dash()
         dash.prazdny = True
         default.main_menu({"dash": dash, "cinemeta": object(), "hs": object()})
         self.assertNotIn({"action": "concerts"}, [params_of(u) for u in xbmcplugin.urls()])
+        self.assertEqual(dash.volani[0][2], "inst-office", "server dostane id instalace")
+        xbmcplugin.reset()
+        dash.prazdny = False
+        default.main_menu({"dash": dash, "cinemeta": object(), "hs": object()})
+        self.assertIn({"action": "concerts"}, [params_of(u) for u in xbmcplugin.urls()],
+                      "záporná odpověď se nepamatuje")
+        pocet = len(dash.volani)
         xbmcplugin.reset()
         default.main_menu({"dash": dash, "cinemeta": object(), "hs": object()})
-        self.assertEqual(len(dash.volani), 1, "druhé otevření menu jde z cache")
-        self.assertEqual(dash.volani[0][2], "inst-office", "server dostane id instalace")
+        self.assertEqual(len(dash.volani), pocet, "kladná odpověď jde z cache")
 
     def test_interpreti_a_zdroje_pro_server(self):
         dash = self.Dash()
