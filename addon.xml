@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="7.9.4" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="7.9.6" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>7.9.4 – Odkaz na web Nokturna v nastavení (Pokročilé → Info) vede na novou adresu nokturno.stream. Ve stejném duchu je opravený i příklad adresy vlastního úložiště v nápovědě.
+    <news>7.9.6 – Stahování do síťové složky (smb://, nfs://) funguje. Dřív skončilo chybou „Read-only file system“ a soubor se neuložil. Přerušené stahování do síťové složky začne po obnovení od začátku, do místní složky naváže jako dosud.
+7.9.4 – Odkaz na web Nokturna v nastavení (Pokročilé → Info) vede na novou adresu nokturno.stream. Ve stejném duchu je opravený i příklad adresy vlastního úložiště v nápovědě.
 7.9.3 – Doplněk zná dvě adresy serveru Nokturna. Když se nedovolá na tu první (nokturno.stream), zkusí druhou. Důvod: 22. 9. přestal Tailscale vydávat veřejné adresy pro celý tailnet a spadly s tím naráz žebříčky, katalogy, TV program, statistiky, hlášení o pádech, odesílání logů i synchronizace mezi zařízeními. Od téhle verze výpadek jedné cesty doplněk nepoloží.
 7.9.2 – Oprava tlačítka souhlasu s podmínkami v Průvodci prvním nastavením (7.9.0): tvrdilo „Otevřít nastavení", ale ve skutečnosti jen rovnou zapsalo souhlas a pokračovalo v průvodci. Nově „Souhlasím" / „Souhlasíš s podmínkami použití výše?" — stejný text jako na stránce „Nastavit z mobilu".
 7.9.1 – Oprava zastaralého docstringu u průvodce prvním nastavením (kosmetika, bez funkční změny).
