@@ -1967,8 +1967,8 @@ class Engine:
                             "Přehraj.to hledání „%s“: %s", query, err)
                 if failures is not None:
                     failures.append(("Přehraj.to", err))
-                if isinstance(err, PrehrajtoRateLimited):
-                    break  # adresa je omezená — další dotazy by blokaci jen prodloužily
+                if isinstance(err, PrehrajtoRateLimited) or err.status in (401, 403):
+                    break  # omezená adresa nebo špatný účet — další dotazy dopadnou stejně
                 continue
             for f in files:
                 name = f.get("name") or ""
@@ -2005,7 +2005,9 @@ class Engine:
                               len(files) - len(odmitnute),
                               f", zahozeno např. {odmitnute[:3]}" if odmitnute else "")
             except SledujtetoError as err:
-                _LOGGER.warning("Sledujteto hledání „%s“: %s", query, err)
+                # pauza po dřívějším odmítnutí nic nového neříká (viz `lib/badlogin`)
+                _LOGGER.log(logging.DEBUG if err.paused else logging.WARNING,
+                            "Sledujteto hledání „%s“: %s", query, err)
                 if failures is not None:
                     failures.append(("Sledujteto", err))
                 if err.status in (401, 403):
@@ -2049,9 +2051,12 @@ class Engine:
             try:
                 files, _total = self.fs.search(query, limit=FS_LIMIT)
             except FastshareError as err:
-                _LOGGER.warning("FastShare hledání „%s“: %s", query, err)
+                _LOGGER.log(logging.DEBUG if err.paused else logging.WARNING,
+                            "FastShare hledání „%s“: %s", query, err)
                 if failures is not None:
                     failures.append(("FastShare", err))
+                if err.status in (401, 403):
+                    break   # špatný účet — další dotazy by dopadly stejně
                 continue
             for f in files:
                 name = f.get("name") or ""

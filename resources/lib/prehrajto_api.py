@@ -52,6 +52,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from badlogin import login_paused, mark_bad_login
 from streams import human_size
 
 BASE = "https://prehraj.to"
@@ -116,6 +117,7 @@ class PrehrajtoError(Exception):
     def __init__(self, message, status=None):
         super().__init__(message)
         self.status = status
+        self.paused = False
 
 
 class PrehrajtoRateLimited(PrehrajtoError):
@@ -439,6 +441,10 @@ class PrehrajtoApi:
         """
         if not self._account:
             raise PrehrajtoError("účet není vyplněný")
+        if login_paused("prehrajto", self.email, self.password, self.cache):
+            err = PrehrajtoError("přihlášení se nepovedlo — zkontroluj e-mail a heslo", status=401)
+            err.paused = True
+            raise err
         self._cookies = None
         resp = self._open("/")                       # bez první návštěvy server relaci nezaloží
         jar = _cookies_from(resp)
@@ -460,6 +466,7 @@ class PrehrajtoApi:
         resp.close()
         if not jar.get("access_token"):
             self._cookies = None
+            mark_bad_login("prehrajto", self.email, self.password, self.cache)
             raise PrehrajtoError("přihlášení se nepovedlo — zkontroluj e-mail a heslo", status=401)
         self._cookies = jar
         self._save_cookies(jar)
