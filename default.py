@@ -2936,6 +2936,10 @@ def sw_menu():
         members = status.get("members") or []
         online = sum(1 for m in members if m.get("online")) or 1
         role = L(30804, "vedoucí") if session.get("leader") else L(30805, "člen")
+        if not session.get("leader") and status.get("detached") and status.get("loaded"):
+            # zastavil omylem nebo pustil něco jiného — skupina sleduje dál
+            action_item(_swf(30835, "Vrátit se do filmu: %s", status.get("title") or ""),
+                        build_url(action="sw_rejoin"), icon="DefaultVideo.png")
         action_item("%s · %s · %s" % (session.get("code", ""), role, _swf(30806, "připojeno: %d", online)),
                     build_url(action="sw_window"), icon="DefaultNetwork.png")
         if session.get("leader"):
@@ -3013,6 +3017,12 @@ def sw_leave():
     sw_save({})
     notify(L(30819, "SyncWatch ukončen"))
     xbmc.executebuiltin("Container.Refresh")
+
+
+def sw_rejoin():
+    """Služba (`SyncWatchManager`) pustí film skupiny znovu a naskočí na její pozici."""
+    if sw_session().get("token"):
+        xbmcgui.Window(10000).setProperty("nokturno.sw.rejoin", str(time.time()))
 
 
 def sw_lock():
@@ -6864,6 +6874,7 @@ def router(query):
         "sw_join": lambda: _tlacitko(sw_join),
         "sw_window": lambda: _tlacitko(sw_window),
         "sw_leave": lambda: _tlacitko(sw_leave),
+        "sw_rejoin": lambda: _tlacitko(sw_rejoin),
         "sw_lock": lambda: _tlacitko(sw_lock),
         "sync_join": lambda: _tlacitko(sync_join),
         "sync_leave": lambda: _tlacitko(sync_leave),

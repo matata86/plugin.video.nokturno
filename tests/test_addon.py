@@ -6249,7 +6249,7 @@ class TestSyncWatch(unittest.TestCase):
         self.assertEqual(set(service.SW_NOTICE_IDS), set(syncwatch.NOTICES))
         for lang in ("cs_cz", "en_gb", "sk_sk", "hu_hu"):
             ids = po_ids(lang)
-            for sid in list(service.SW_NOTICE_IDS.values()) + list(range(30800, 30834)):
+            for sid in list(service.SW_NOTICE_IDS.values()) + list(range(30800, 30836)):
                 self.assertIn(sid, ids, f"{lang}: #{sid}")
 
     def test_sablony_hlasek_maji_stejne_udaje(self):
@@ -6260,6 +6260,23 @@ class TestSyncWatch(unittest.TestCase):
             want = set(re.findall(r"%\((\w+)\)s", syncwatch.NOTICES[code]))
             self.assertEqual(set(re.findall(r"%\((\w+)\)s", m.group(1))), want, code)
             self.assertEqual(set(re.findall(r"%\((\w+)\)s", m.group(2))), want, code)
+
+    def test_clen_se_vrati_do_filmu(self):
+        default.STORE.save("syncwatch", {"code": "SW-7K2Q-9MFX", "token": "t" * 32, "mid": 2, "leader": False})
+        home = xbmcgui.Window(10000)
+        home.setProperty(default.SW_PROP, json.dumps({"detached": True, "loaded": True, "title": "Matrix"}))
+        del xbmcplugin.items[:]
+        default.sw_menu()
+        urls = [u for _h, u, _li, _f in xbmcplugin.items]
+        self.assertIn("action=sw_rejoin", urls[0], "návrat do filmu je nahoře")
+        default.sw_rejoin()
+        mgr = service.SyncWatchManager(default.STORE, mock.MagicMock())
+        mgr.runtime = mock.MagicMock()
+        mgr.runtime.alive.return_value = True
+        mgr.token = "t" * 32
+        mgr.tick()
+        mgr.runtime.event.assert_called_with("rejoin")
+        self.assertEqual(home.getProperty(service.SW_REJOIN_PROP), "")
 
     def test_zalozeni_ulozi_skupinu_a_otevre_okno(self):
         import syncwatch

@@ -2403,6 +2403,10 @@ msgctxt "#30834"
 msgid "The leader's stream cannot be played here (%s). An account at the same source is needed."
 msgstr "A vezető streamje itt nem játszható le (%s). Fiók kell ugyanannál a forrásnál."
 
+msgctxt "#30835"
+msgid "Back to the film: %s"
+msgstr "Vissza a filmhez: %s"
+
 msgctxt "#30840"
 msgid "Pause for everyone"
 msgstr "Szünet mindenkinek"
@@ -2454,3 +2458,7 @@ msgstr "Mást játszol — a csoport a vezető következő címére vár"
 msgctxt "#30852"
 msgid "This can't be shared with the others (it is not a Nokturno title)"
 msgstr "Ezt nem lehet a többieknek elindítani (nem Nokturno-cím)"
+
+msgctxt "#30853"
+msgid "You stopped playback, the others keep watching. You can return in SyncWatch"
+msgstr "Leállítottad a lejátszást, a többiek tovább nézik. A SyncWatch-ban vissza lehet térni"

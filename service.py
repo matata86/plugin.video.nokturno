@@ -393,12 +393,13 @@ class Player(xbmc.Player):
 # --- SyncWatch: společné sledování -----------------------------------------------------
 
 SW_PROP = "nokturno.sw"             # stejný literál jako v default.py — stav skupiny pro okna pluginu
+SW_REJOIN_PROP = "nokturno.sw.rejoin"   # plugin: člen se chce vrátit do filmu skupiny
 SW_WATCH = 1.0                      # s — jak často se správce dívá, jestli je zařízení ve skupině
 # kód hlášky z jádra → řetězec (šablona s %(who)s a spol., záloha je český text z jádra)
 SW_NOTICE_IDS = {
     "paused_all": 30840, "paused": 30841, "played": 30842, "seeked": 30843, "buffering": 30844,
     "stopped": 30845, "loading": 30846, "waiting_others": 30847, "started_without": 30848,
-    "load_failed": 30849, "other_version": 30850, "detached": 30851, "not_shareable": 30852,
+    "load_failed": 30849, "other_version": 30850, "detached": 30851, "not_shareable": 30852, "left": 30853,
 }
 
 
@@ -483,6 +484,10 @@ class SyncWatchManager(threading.Thread):
                 xbmcgui.Window(10000).clearProperty(SW_PROP)
         if token and self.runtime is None and token == session.get("token"):
             self.join_group(session)
+        home = xbmcgui.Window(10000)
+        if home.getProperty(SW_REJOIN_PROP):
+            home.clearProperty(SW_REJOIN_PROP)
+            self.event("rejoin")
 
     def join_group(self, session):
         import syncwatch

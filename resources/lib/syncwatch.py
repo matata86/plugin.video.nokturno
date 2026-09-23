@@ -293,6 +293,7 @@ NOTICES = {
     "other_version": "Hraješ jinou verzi — časy nemusí přesně sedět",
     "detached": "Hraješ něco jiného — skupina čeká na další titul od vedoucího",
     "not_shareable": "Tohle se ostatním pustit nedá (není to titul z Nokturna)",
+    "left": "Zastavil jsi přehrávání, ostatní sledují dál. Vrátit se jde v SyncWatch",
 }
 
 
@@ -367,6 +368,7 @@ class Coordinator(object):
         if me != self.last_me:
             self.last_me = dict(me)
             self.publish_me(me)
+        self.status(self.info())
 
     def _publish(self, why, playing, pos, load=None, phase=None):
         state = {"load": load if load is not None else (self.state or {}).get("load"),
@@ -400,6 +402,8 @@ class Coordinator(object):
             return self._local_started(item or {})
         if kind == "stopped":
             return self._local_stopped()
+        if kind == "rejoin":
+            return self.rejoin()
         if self.detached or self.loading or not self.state or not self.state.get("load"):
             return
         if self._in_echo():
@@ -517,6 +521,9 @@ class Coordinator(object):
             return
         if self.leader and self.state and self.state.get("load") and not self.detached:
             self._publish("stop", False, 0, load={}, phase="live")
+        elif not self.leader and self.lid() and not self.detached:
+            # člen zastavil (třeba omylem) — skupina sleduje dál, jde se vrátit (`rejoin`)
+            self.notify("left")
         self.detached = not self.leader
         self._me()
 
@@ -534,16 +541,7 @@ class Coordinator(object):
             self.ready = ""
             return
         if new_lid != old_lid or (self.detached and new.get("why") == "load"):
-            replay = (new.get("load") or {}).get("replay")
-            if not valid_replay(replay):
-                return
-            self.loading = new_lid
-            self.load_started = self.now()
-            self.detached = False
-            self.ready = ""
-            self.notify("loading", title=(new.get("load") or {}).get("title") or "")
-            self.player.load(with_sw(replay))
-            self._me()
+            self._load(new)
             return
         if self.detached or self.loading:
             return
@@ -557,6 +555,25 @@ class Coordinator(object):
         elif why == "buffer":
             self.notify("buffering", who=who)
         self._set(new)
+
+    def _load(self, state):
+        """Pustit u sebe titul skupiny; po startu (`_local_started`) naskočí na její pozici."""
+        load = state.get("load") or {}
+        if not load.get("lid") or not valid_replay(load.get("replay")):
+            return
+        self.loading = load["lid"]
+        self.load_started = self.now()
+        self.detached = False
+        self.ready = ""
+        self.notify("loading", title=load.get("title") or "")
+        self.player.load(with_sw(load["replay"]))
+        self._me()
+
+    def rejoin(self):
+        """Člen, který přehrávání zastavil nebo pustil něco jiného, se vrací do filmu skupiny."""
+        if self.leader or self.loading or not self.state:
+            return
+        self._load(self.state)
 
     def _set(self, state):
         cur = self.player.position()

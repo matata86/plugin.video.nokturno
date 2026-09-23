@@ -2404,6 +2404,10 @@ msgctxt "#30834"
 msgid "The leader's stream cannot be played here (%s). An account at the same source is needed."
 msgstr ""
 
+msgctxt "#30835"
+msgid "Back to the film: %s"
+msgstr ""
+
 msgctxt "#30840"
 msgid "Pause for everyone"
 msgstr ""
@@ -2454,4 +2458,8 @@ msgstr ""
 
 msgctxt "#30852"
 msgid "This can't be shared with the others (it is not a Nokturno title)"
+msgstr ""
+
+msgctxt "#30853"
+msgid "You stopped playback, the others keep watching. You can return in SyncWatch"
 msgstr ""

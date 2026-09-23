@@ -2405,6 +2405,10 @@ msgctxt "#30834"
 msgid "The leader's stream cannot be played here (%s). An account at the same source is needed."
 msgstr "Stream vedúceho tu nejde prehrať (%s). Je potrebný účet pri rovnakom zdroji."
 
+msgctxt "#30835"
+msgid "Back to the film: %s"
+msgstr "Vrátiť sa do filmu: %s"
+
 msgctxt "#30840"
 msgid "Pause for everyone"
 msgstr "Pauza pre všetkých"
@@ -2456,3 +2460,7 @@ msgstr "Hráš niečo iné — skupina čaká na ďalší titul od vedúceho"
 msgctxt "#30852"
 msgid "This can't be shared with the others (it is not a Nokturno title)"
 msgstr "Toto sa ostatným pustiť nedá (nie je to titul z Nokturna)"
+
+msgctxt "#30853"
+msgid "You stopped playback, the others keep watching. You can return in SyncWatch"
+msgstr "Zastavil si prehrávanie, ostatní sledujú ďalej. Vrátiť sa dá v SyncWatch"
