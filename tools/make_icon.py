@@ -478,6 +478,54 @@ def make_outage(path):
     sky.save(path, optimize=True)
 
 
+def make_newaddr(path):
+    """Obrázek k oznámení nové veřejné adresy (1200×630, poměr `RELEASE`).
+    Navazuje na `make_outage` a záměrně vypadá stejně — jen tabule hlásí, kde
+    co běží teď. Stav se píše slovem v barevném štítku, ne fajfkou."""
+    W, H = RELEASE
+    sky = render(f'<rect width="{W}" height="{H}" fill="url(#sky)"/>', W, H, scale=1).convert("RGB")
+    q = 4
+    glow = Image.new("RGB", (W // q, H // q), (0, 0, 0))
+    ImageDraw.Draw(glow).ellipse([c / q for c in (700, -160, 1400, 520)], fill=(30, 40, 92))
+    sky = ImageChops.add(sky, glow.filter(ImageFilter.GaussianBlur(24)).resize((W, H), Image.BICUBIC))
+    dr = ImageDraw.Draw(sky, "RGBA")
+    for x, y, r, o in [(1120, 54, 3, 85), (1004, 36, 2, 60), (1160, 556, 3, 70), (54, 594, 2, 55),
+                       (944, 596, 2, 45), (1174, 318, 2, 60), (36, 36, 2, 50), (790, 26, 2, 42)]:
+        dr.ellipse((x - r, y - r, x + r, y + r), fill=(255, 255, 255, o))
+
+    logo = mark("", "url(#gold)", scale=1).resize((150, 150), Image.LANCZOS)
+    sky.paste(logo, (1010, 40), logo)
+
+    gold, bila, dim = (243, 196, 118), (255, 255, 255), (163, 176, 218)
+    ok, warn = (86, 186, 124), (226, 170, 84)
+
+    dr.text((70, 52), "Nová adresa", font=font("InterDisplay-Bold.otf", 78), fill=gold)
+    dr.text((74, 150), "nokturno.stream", font=font("InterDisplay-Bold.otf", 40), fill=bila)
+
+    rows = (("Doplněk v Kodi", "BĚŽÍ", ok),
+            ("Integrace v Home Assistantu", "BĚŽÍ", ok),
+            ("Aktualizace z repozitáře", "BĚŽÍ", ok),
+            ("Žebříčky, TV program, katalogy", "BĚŽÍ", ok),
+            ("Doplněk pro Stremio", "PŘIDAT ZNOVU", warn))
+
+    y = 230
+    fl = font("InterDisplay-Medium.otf", 32)
+    fs = font("InterDisplay-SemiBold.otf", 26)
+    for label, stav, color in rows:
+        dr.rounded_rectangle((70, y, 1130, y + 54), radius=14,
+                             fill=(23, 22, 43, 200), outline=(47, 45, 77), width=2)
+        dr.rounded_rectangle((70, y, 82, y + 54), radius=6, fill=color)
+        dr.text((106, y + 27), label, font=fl, fill=bila, anchor="lm")
+        tw = dr.textlength(stav, font=fs)
+        dr.rounded_rectangle((1110 - tw - 32, y + 11, 1110, y + 43), radius=16, fill=color)
+        dr.text((1110 - tw - 16, y + 27), stav, font=fs, fill=(16, 22, 48), anchor="lm")
+        y += 62
+
+    dr.text((74, 606), "Výpadek Tailscale trvá — Nokturno na něm už nestojí",
+            font=font("InterDisplay-Medium.otf", 28), fill=dim, anchor="ls")
+    sky.save(path, optimize=True)
+
+
 def make_ha_brand(icon):
     """Značka pro `custom_components/nokturno/brand/` — stejná čtvercová kresba
     jako ikona doplňku, jen v rozměrech, které chce seznam integrací HA."""
@@ -521,6 +569,9 @@ if __name__ == "__main__":
     elif sys.argv[1:] == ["vypadek"]:
         make_outage(os.path.join(ROOT, ".github", "nokturno-vypadek.png"))
         print(".github/nokturno-vypadek.png hotovo")
+    elif sys.argv[1:] == ["adresa"]:
+        make_newaddr(os.path.join(ROOT, ".github", "nokturno-adresa.png"))
+        print(".github/nokturno-adresa.png hotovo")
     elif sys.argv[1:] == ["podpora"]:
         make_support(os.path.join(ROOT, ".github", "podpora.png"))
         print(".github/podpora.png hotovo")
