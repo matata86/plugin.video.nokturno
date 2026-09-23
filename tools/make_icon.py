@@ -364,20 +364,20 @@ def make_release_800(path):
     dr.text((x, 214), "v Kodi i ve Stremiu", font=font("InterDisplay-Bold.otf", 34), fill=bila)
     dr.text((x, 258), "záznamy vystoupení podle interpreta", font=font("InterDisplay-Medium.otf", 26), fill=dim)
 
-    dr.line((74, 344, 1130, 344), fill=(90, 106, 168), width=2)
-    dr.text((74, 360), "A novinky řady 7", font=font("InterDisplay-Medium.otf", 32), fill=dim)
+    dr.line((74, 330, 1130, 330), fill=(90, 106, 168), width=2)
+    dr.text((74, 344), "A novinky řady 7", font=font("InterDisplay-Medium.otf", 32), fill=dim)
     radky = [("Nová adresa nokturno.stream", "a záložní server"),
              ("Nastavení v 8 kategoriích", "místo dvaceti"),
              ("Nefunkční streamy se skryjí", "a zkusí se další zdroj"),
              ("Přehraj.to s vlastním účtem", "i ve Stremiu"),
              ("Stahování do síťové složky", "smb:// a nfs://")]
     big, small = font("InterDisplay-Bold.otf", 34), font("InterDisplay-Medium.otf", 26)
-    y = 412
+    y = 392
     for hlavni, doplnek in radky:
         dr.ellipse((76, y + 12, 92, y + 28), fill=gold)
         dr.text((112, y), hlavni, font=big, fill=bila)
         dr.text((112 + dr.textlength(hlavni, font=big) + 16, y + 6), doplnek, font=small, fill=dim)
-        y += 42
+        y += 40
     sky.save(path)
 
 
