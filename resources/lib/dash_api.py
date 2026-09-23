@@ -36,7 +36,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-BASE = "https://nokturno.tailf0014.ts.net"
+from servers import BASE, urlopen as open_url
 TIMEOUT = 6
 MENU_TTL = 3600
 CATALOG_TTL = 6 * 3600
@@ -117,7 +117,7 @@ class DashApi:
         url = f"{self.base}{path}" + (f"?{query}" if query else "")
         req = urllib.request.Request(url, headers={"User-Agent": "Nokturno"})
         try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
+            with open_url(req, timeout=timeout) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             if e.code == 404:

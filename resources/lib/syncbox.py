@@ -34,6 +34,7 @@ import urllib.request
 from setsync import collect as collect_settings, merge as merge_settings
 from sealbox import SealError, format_code, keys_for as _keys_for, new_code as _new_code, \
     normalize_code, seal, unseal, valid_code as _valid_code
+from servers import urlopen as open_url
 from stats import COLLECT_URL
 from sync import CIRCLES, DEFAULT_CIRCLES, SNAPSHOTS, apply_changes, collect_changes, \
     filter_circles
@@ -106,7 +107,7 @@ class Relay(object):
             headers["Content-Type"] = kind
         req = urllib.request.Request(url, data=body, headers=headers, method=method)
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            with open_url(req, timeout=self.timeout) as resp:
                 return resp.read()
         except urllib.error.HTTPError as e:
             raise SyncError({

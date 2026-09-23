@@ -31,6 +31,7 @@ import traceback
 import urllib.error
 import urllib.request
 
+from servers import urlopen as open_url
 from stats import COLLECT_URL
 
 CRASH_URL = COLLECT_URL.rsplit("/", 1)[0] + "/crash"
@@ -282,7 +283,7 @@ def _post(url, body, agent):
         "Content-Type": "application/json", "User-Agent": agent,
     })
     try:
-        with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+        with open_url(req, timeout=TIMEOUT) as resp:
             resp.read(1024)
             return resp.getcode() or 200
     except urllib.error.HTTPError as e:

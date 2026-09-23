@@ -203,7 +203,7 @@ class TestNastaveni(unittest.TestCase):
         self.assertTrue(any("paypal.me/matata86" in t for t in texty))
         self.assertTrue(any("ko-fi.com/matata86" in t for t in texty))
         # QR nese adresu stránky, ne `bitcoin:` — na mobilu se z ní dá kliknout na PayPal
-        self.assertEqual(default.DONATE_URL, "https://nokturno.tailf0014.ts.net/#podpora")
+        self.assertEqual(default.DONATE_URL, "https://nokturno.stream/#podpora")
 
     def test_id_instalace_se_opravdu_precte(self):
         """Beta 8: `install_id()` sahala na `Stats` globálně, jenže ten se v default.py
