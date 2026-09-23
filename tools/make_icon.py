@@ -425,48 +425,52 @@ COVER_SAFE = (1312, 410)  # z té šířky ale okno se `overflow: hidden` ukáž
                           # obdélníku uprostřed, jinak přijde o krajní písmena
 
 
-def make_cover(path):
+def make_cover(path, S=2):
     """Cover facebookové skupiny — tatáž zpráva jako `make_social` (přehrávač vlastního
     úložiště, vyhledávače až pod tím), plus adresa. Všechen text leží v `COVER_SAFE`,
-    zbytek plátna je jen pozadí pro ořezy, které si Facebook dělá po svém."""
+    zbytek plátna je jen pozadí pro ořezy, které si Facebook dělá po svém.
+
+    Kreslí se v `S`-násobném rozlišení (3280×1024): v 1:1 Facebook cover na HiDPI
+    displeji roztáhl a překomprimoval, text byl rozmazaný. Souřadnice níž jsou v 1:1."""
     W, H = COVER
     sw, sh = COVER_SAFE
     ox, oy = (W - sw) // 2, (H - sh) // 2
-    sky = render(f'<rect width="{W}" height="{H}" fill="url(#sky)"/>', W, H, scale=1).convert("RGB")
+    k = lambda v: int(round(v * S))  # noqa: E731
+    sky = render(f'<rect width="{W}" height="{H}" fill="url(#sky)"/>', W, H, scale=S).convert("RGB")
     q = 4
     glow = Image.new("RGB", (W // q, H // q), (0, 0, 0))
     ImageDraw.Draw(glow).ellipse([c / q for c in (900, oy - 160, 1700, oy + 460)], fill=(32, 42, 96))
-    sky = ImageChops.add(sky, glow.filter(ImageFilter.GaussianBlur(24)).resize((W, H), Image.BICUBIC))
+    sky = ImageChops.add(sky, glow.filter(ImageFilter.GaussianBlur(24)).resize((k(W), k(H)), Image.BICUBIC))
     dr = ImageDraw.Draw(sky, "RGBA")
     for x, y, r, o in [(1400, 30, 3, 90), (1260, 12, 2, 60), (1420, 380, 3, 70), (30, 384, 2, 55),
                        (1180, 392, 2, 45), (1440, 200, 2, 60), (10, 10, 2, 50), (980, 4, 2, 42)]:
         x, y = x + ox, y + oy
-        dr.ellipse((x - r, y - r, x + r, y + r), fill=(255, 255, 255, o))
-    logo = mark("", "url(#gold)", scale=1).resize((178, 178), Image.LANCZOS)
-    sky.paste(logo, (ox + sw - 178, oy + 6), logo)
+        dr.ellipse((k(x - r), k(y - r), k(x + r), k(y + r)), fill=(255, 255, 255, o))
+    logo = mark("", "url(#gold)", scale=S).resize((k(178), k(178)), Image.LANCZOS)
+    sky.paste(logo, (k(ox + sw - 178), k(oy + 6)), logo)
     gold, dim, bila = (243, 196, 118), (163, 176, 218), (255, 255, 255)
+    F = lambda name, size: font(name, k(size))  # noqa: E731
 
-    dr.text((ox, oy - 4), "Nokturno", font=font("InterDisplay-Bold.otf", 70), fill=gold)
-    dr.text((ox + 3, oy + 84), "Přehrávač tvého vlastního úložiště",
-            font=font("InterDisplay-Bold.otf", 34), fill=bila)
-    f = font("InterDisplay-Bold.otf", 30)
-    tw = dr.textlength("WebDAV", font=f)
-    dr.rounded_rectangle((ox + 3, oy + 134, ox + 3 + tw + 40, oy + 184), radius=25, fill=gold)
-    dr.text((ox + 23, oy + 141), "WebDAV", font=f, fill=(20, 28, 66))
-    dr.text((ox + 3 + tw + 64, oy + 146), "NAS, Nextcloud, vlastní server",
-            font=font("InterDisplay-Medium.otf", 24), fill=bila)
+    def text(x, y, t, f, fill):
+        dr.text((k(x), k(y)), t, font=f, fill=fill)
 
-    dr.line((ox + 3, oy + 214, ox + sw - 3, oy + 214), fill=(90, 106, 168), width=2)
-    dr.text((ox + 3, oy + 226), "volitelně i veřejné vyhledávače třetích stran",
-            font=font("InterDisplay-Medium.otf", 23), fill=dim)
-    dr.text((ox + 3, oy + 258), "WebShare · Sosáč · Sledujteto · FastShare · HellSpy · CZtor · Přehraj.to · Luna",
-            font=font("InterDisplay-Medium.otf", 21), fill=dim)
-    dr.text((ox + 3, oy + 302), "Kodi  ·  Home Assistant  ·  Stremio",
-            font=font("InterDisplay-Medium.otf", 30), fill=(203, 212, 240))
+    text(ox, oy - 4, "Nokturno", F("InterDisplay-Bold.otf", 70), gold)
+    text(ox + 3, oy + 84, "Přehrávač tvého vlastního úložiště", F("InterDisplay-Bold.otf", 34), bila)
+    f = F("InterDisplay-Bold.otf", 30)
+    tw = dr.textlength("WebDAV", font=f) / S
+    dr.rounded_rectangle((k(ox + 3), k(oy + 134), k(ox + 3 + tw + 40), k(oy + 184)), radius=k(25), fill=gold)
+    text(ox + 23, oy + 141, "WebDAV", f, (20, 28, 66))
+    text(ox + 3 + tw + 64, oy + 146, "NAS, Nextcloud, vlastní server", F("InterDisplay-Medium.otf", 24), bila)
+
+    dr.line((k(ox + 3), k(oy + 214), k(ox + sw - 3), k(oy + 214)), fill=(90, 106, 168), width=k(2))
+    text(ox + 3, oy + 226, "volitelně i veřejné vyhledávače třetích stran", F("InterDisplay-Medium.otf", 23), dim)
+    text(ox + 3, oy + 258, "WebShare · Sosáč · Sledujteto · FastShare · HellSpy · CZtor · Přehraj.to · Luna",
+         F("InterDisplay-Medium.otf", 21), dim)
+    text(ox + 3, oy + 302, "Kodi  ·  Home Assistant  ·  Stremio", F("InterDisplay-Medium.otf", 30), (203, 212, 240))
     adr = "nokturno.stream"
-    fa = font("InterDisplay-Bold.otf", 30)
-    dr.text((ox + sw - 3 - dr.textlength(adr, font=fa), oy + 304), adr, font=fa, fill=gold)
-    sky.save(path)
+    fa = F("InterDisplay-Bold.otf", 30)
+    text(ox + sw - 3 - dr.textlength(adr, font=fa) / S, oy + 304, adr, fa, gold)
+    sky.save(path, optimize=True)
 
 
 SUPPORT = (1600, 700)
