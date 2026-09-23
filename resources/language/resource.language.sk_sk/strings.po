@@ -2255,7 +2255,7 @@ msgstr "Podľa žánru"
 
 msgctxt "#30753"
 msgid "By letter"
-msgstr "Podľa písmena"
+msgstr "Podľa abecedy"
 
 msgctxt "#30754"
 msgid "All artists"

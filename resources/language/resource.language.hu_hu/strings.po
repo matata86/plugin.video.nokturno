@@ -2253,7 +2253,7 @@ msgstr "Műfaj szerint"
 
 msgctxt "#30753"
 msgid "By letter"
-msgstr "Kezdőbetű szerint"
+msgstr "ABC szerint"
 
 msgctxt "#30754"
 msgid "All artists"

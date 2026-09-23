@@ -1138,7 +1138,7 @@ def list_concerts(apis, mode="", genre="", letter=""):
         skupiny = dash.concert_groups(sources, install=install_id()) or {}
         klic = "genres" if mode == "genres" else "letters"
         xbmcplugin.setPluginCategory(HANDLE, L(30752, "Podle žánru") if mode == "genres"
-                                     else L(30753, "Podle písmene"))
+                                     else L(30753, "Podle abecedy"))
         for g in skupiny.get(klic) or []:
             li = xbmcgui.ListItem(label=f"{g['name']}  [COLOR {GREY}]{g['artists']}[/COLOR]")
             li.setArt({"icon": "DefaultMusicGenres.png" if mode == "genres" else "DefaultAddonsSearch.png"})
@@ -1179,7 +1179,7 @@ def list_concert_groups(dash, sources):
         folder_item(L(30752, "Podle žánru"), build_url(action="concerts", mode="genres"),
                     icon="DefaultMusicGenres.png")
     if skupiny.get("letters"):
-        folder_item(L(30753, "Podle písmene"), build_url(action="concerts", mode="letters"),
+        folder_item(L(30753, "Podle abecedy"), build_url(action="concerts", mode="letters"),
                     icon="DefaultAddonsSearch.png")
     xbmcplugin.endOfDirectory(HANDLE)
 
