@@ -142,7 +142,14 @@ class DashApi:
 
     def _load(self, key, ttl, fetch):
         """Čerstvá cache → síť → při chybě poslední známá data (až `STALE_TTL`).
-        `fetch` vrací data k uložení, nebo None (nic neukládat, nic není)."""
+        `fetch` vrací data k uložení, nebo None (nic neukládat, nic není).
+
+        Značka výpadku (`DOWN_KEY`) šetří čekání na timeout, ale **jen tam, kde je co
+        ukázat místo toho**. Bez starých dat by kvůli ní uživatel dostal prázdno za
+        chybu, která mohla dávno minout: Kodi na Androidu po startu chvíli nemá síť,
+        zahřívání na pozadí tam narazí a značka pak pět minut umlčí i výpisy, které
+        uživatel otevře rukou. Tahle podmínka to stála jednou celý rozcestník koncertů
+        (2026-09-23, Office). Ruční výpis proto zaplatí nejvýš jeden timeout (6 s)."""
         if self.cache is None:
             try:
                 return fetch()
@@ -151,12 +158,13 @@ class DashApi:
         fresh = self.cache.peek_cached(key, ttl)
         if fresh is not None:
             return fresh
-        if self.cache.peek_cached(DOWN_KEY, DOWN_TTL) is None:
+        stale = self.cache.peek_cached(key, STALE_TTL)
+        if stale is None or self.cache.peek_cached(DOWN_KEY, DOWN_TTL) is None:
             try:
                 return self.cache.cached_if(key, ttl, fetch, ok=lambda d: d is not None, fresh=True)
             except DashApiError:
                 self.cache.cached_if(DOWN_KEY, DOWN_TTL, lambda: {"t": int(time.time())}, fresh=True)
-        return self.cache.peek_cached(key, STALE_TTL)
+        return stale
 
     # --- katalogy --------------------------------------------------------------------
 
