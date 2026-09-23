@@ -2246,3 +2246,15 @@ msgstr "Koncertek"
 msgctxt "#30751"
 msgid "Concerts are not available right now"
 msgstr "A koncertek most nem érhetők el"
+
+msgctxt "#30752"
+msgid "By genre"
+msgstr "Műfaj szerint"
+
+msgctxt "#30753"
+msgid "By letter"
+msgstr "Kezdőbetű szerint"
+
+msgctxt "#30754"
+msgid "All artists"
+msgstr "Összes előadó"

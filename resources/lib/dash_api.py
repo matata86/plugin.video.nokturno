@@ -62,6 +62,7 @@ KINDS = ("movie", "series")
 PLACEMENTS = ("root", "browse")
 CONCERTS_TTL = 6 * 3600
 CONCERT_SOURCES = ("webshare", "hellspy", "fastshare")
+MAX_GENRE = 24
 CONCERT_REF_RE = re.compile(r"^(ws|hs|fs):[A-Za-z0-9:_./=-]{1,160}$")
 # ikony, které klient umí přeložit na obrázek — neznámá se zahodí na výchozí
 ICONS = ("", "movies", "series", "star", "top", "new", "family", "christmas", "halloween", "calendar", "trophy",
@@ -78,6 +79,13 @@ class DashApiError(Exception):
 
 def _text(value, limit):
     return _CONTROL_RE.sub("", str(value or "")).strip()[:limit]
+
+
+def _img(value):
+    """Náhled ze zdroje. Jen http(s) adresa — Kodi bere v `setArt` i `special://` a cesty
+    k souborům, takže cizí řetězec se sem pouštět nesmí."""
+    url = _text(value, 300)
+    return url if url.startswith("http://") or url.startswith("https://") else ""
 
 
 def _clean_entry(raw, depth=1):
@@ -298,7 +306,30 @@ class DashApi:
 
     # --- koncerty --------------------------------------------------------------------
 
-    def concerts(self, sources, install=""):
+    def concert_groups(self, sources, install=""):
+        """Žánry a počáteční písmena s počty (`GET /concerts/groups`) — rozcestník nad dvěma
+        sty jmen. Starší server tuhle cestu nezná a odpoví 404, klient pak nabídne rovnou
+        celý seznam."""
+        srcs = ",".join(sorted(s for s in sources if s in CONCERT_SOURCES))
+
+        def fetch():
+            data = self._get("/concerts/groups", sources=srcs, install=install)
+            return data if isinstance(data, dict) and isinstance(data.get("genres"), list) else None
+
+        data = self._load(f"nokturno:dash:concertgroups:{srcs}", CONCERTS_TTL, fetch)
+        if not data:
+            return None
+        def skupiny(klic):
+            out = []
+            for g in data.get(klic) or []:
+                name = _text(g.get("name"), MAX_GENRE) if isinstance(g, dict) else ""
+                if name:
+                    out.append({"name": name, "artists": int(g.get("artists") or 0)})
+            return out
+        return {"artists": int(data.get("artists") or 0),
+                "genres": skupiny("genres"), "letters": skupiny("letters")}
+
+    def concerts(self, sources, install="", genre="", letter=""):
         """Interpreti s koncerty v zapnutých zdrojích (`GET /concerts?sources=`). Server
         klíčuje koncert názvem, ne IMDb id, a soubor nese hotový vnitřní odkaz
         (`ws:`/`hs:`/`fs:`), který klient rovnou předá `Engine.resolve()`. Zdroje jdou do
@@ -308,15 +339,20 @@ class DashApi:
         srcs = ",".join(sorted(s for s in sources if s in CONCERT_SOURCES))
 
         def fetch():
-            data = self._get("/concerts", sources=srcs, install=install)
+            data = self._get("/concerts", sources=srcs, install=install,
+                             **({"genre": genre} if genre else {}), **({"letter": letter} if letter else {}))
             return data.get("artists") if isinstance(data, dict) and isinstance(data.get("artists"), list) else None
 
         out = []
-        for a in self._load(f"nokturno:dash:concerts:{srcs}", CONCERTS_TTL, fetch) or []:
+        klic = f"nokturno:dash:concerts:{srcs}:{genre}:{letter}"
+        for a in self._load(klic, CONCERTS_TTL, fetch) or []:
             if isinstance(a, dict) and isinstance(a.get("id"), int) and a["id"] > 0:
                 name = _text(a.get("name"), MAX_TITLE)
                 if name:
-                    out.append({"id": a["id"], "name": name, "concerts": int(a.get("concerts") or 0)})
+                    out.append({"id": a["id"], "name": name, "concerts": int(a.get("concerts") or 0),
+                                "genres": [g for g in (a.get("genres") or [])
+                                           if isinstance(g, str)][:4],
+                                "letter": _text(a.get("letter"), 1)})
         return out
 
     def concert_artist(self, artist_id, sources, install=""):
@@ -337,7 +373,10 @@ class DashApi:
             if not isinstance(c, dict):
                 continue
             files = [{"source": f["source"], "ref": f["ref"], "name": _text(f.get("name"), 200),
-                      "size": int(f.get("size") or 0), "duration": int(f.get("duration") or 0)}
+                      "size": int(f.get("size") or 0), "duration": int(f.get("duration") or 0),
+                      # náhled je cizí URL — jen http(s), ať se z něj nestane `special://` ani soubor
+                      "img": _img(f.get("img")), "width": int(f.get("width") or 0),
+                      "height": int(f.get("height") or 0)}
                      for f in (c.get("files") or []) if isinstance(f, dict)
                      and f.get("source") in CONCERT_SOURCES and isinstance(f.get("ref"), str)
                      and CONCERT_REF_RE.match(f["ref"])]

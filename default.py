@@ -1108,23 +1108,64 @@ def concerts_available(apis):
     return bool(stav and stav.get("ok"))
 
 
-def list_concerts(apis):
-    """Katalog koncertů z dashboardu: interpreti, u každého počet koncertů dostupných
-    v uživatelových zdrojích. Koncert nemá IMDb id, jde tedy mimo běžné tituly —
-    server drží hotové vnitřní odkazy a klient je jen přehraje (`play_ref`)."""
+def list_concerts(apis, mode="", genre="", letter=""):
+    """Katalog koncertů z dashboardu. Bez `mode` je to rozcestník (všichni / podle žánru /
+    podle písmene) — dvě stě jmen v jednom výpisu se na ovladači neprochází. Koncert nemá
+    IMDb id, jde tedy mimo běžné tituly: server drží hotové vnitřní odkazy a klient je
+    jen přehraje (`play_ref`)."""
     dash = apis.get("dash")
     sources = concert_sources(apis)
-    rows = dash.concerts(sources, install=install_id()) if dash and sources else []
-    xbmcplugin.setPluginCategory(HANDLE, L(30750, "Koncerty"))
     set_content("videos")
+    if not dash or not sources:
+        notify(L(30751, "Koncerty teď nejsou dostupné"), xbmcgui.NOTIFICATION_WARNING, 4000)
+        xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+        return
+    if not mode:
+        list_concert_groups(dash, sources)
+        return
+    if mode == "genres" or mode == "letters":
+        skupiny = dash.concert_groups(sources, install=install_id()) or {}
+        klic = "genres" if mode == "genres" else "letters"
+        xbmcplugin.setPluginCategory(HANDLE, L(30752, "Podle žánru") if mode == "genres"
+                                     else L(30753, "Podle písmene"))
+        for g in skupiny.get(klic) or []:
+            li = xbmcgui.ListItem(label=f"{g['name']}  [COLOR {GREY}]{g['artists']}[/COLOR]")
+            li.setArt({"icon": "DefaultMusicGenres.png" if mode == "genres" else "DefaultAddonsSearch.png"})
+            url = build_url(action="concerts", mode="list",
+                            **({"genre": g["name"]} if mode == "genres" else {"letter": g["name"]}))
+            xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
+        xbmcplugin.endOfDirectory(HANDLE)
+        return
+
+    rows = dash.concerts(sources, install=install_id(), genre=genre, letter=letter)
+    xbmcplugin.setPluginCategory(HANDLE, genre or letter or L(30750, "Koncerty"))
     if not rows:
         notify(L(30751, "Koncerty teď nejsou dostupné"), xbmcgui.NOTIFICATION_WARNING, 4000)
         xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
         return
     for a in rows:
-        li = xbmcgui.ListItem(label=a["name"], label2=str(a["concerts"]))
+        # počet koncertů do labelu: label2 skiny u téhle položky nekreslí (viz 6.3.7)
+        li = xbmcgui.ListItem(label=f"{a['name']}  [COLOR {GREY}]{a['concerts']}[/COLOR]",
+                              label2=str(a["concerts"]))
         li.setArt({"icon": "DefaultMusicArtists.png"})
         xbmcplugin.addDirectoryItem(HANDLE, build_url(action="concert_artist", id=a["id"]), li, isFolder=True)
+    xbmcplugin.endOfDirectory(HANDLE)
+
+
+def list_concert_groups(dash, sources):
+    """Rozcestník nad katalogem koncertů. Když server skupiny neumí (starší verze, 404),
+    zbude jediná položka se všemi interprety — katalog tím nepřestane fungovat."""
+    skupiny = dash.concert_groups(sources, install=install_id()) or {}
+    xbmcplugin.setPluginCategory(HANDLE, L(30750, "Koncerty"))
+    celkem = skupiny.get("artists") or 0
+    vse = L(30754, "Všichni interpreti") + (f"  [COLOR {GREY}]{celkem}[/COLOR]" if celkem else "")
+    folder_item(vse, build_url(action="concerts", mode="list"), icon="DefaultMusicArtists.png")
+    if skupiny.get("genres"):
+        folder_item(L(30752, "Podle žánru"), build_url(action="concerts", mode="genres"),
+                    icon="DefaultMusicGenres.png")
+    if skupiny.get("letters"):
+        folder_item(L(30753, "Podle písmene"), build_url(action="concerts", mode="letters"),
+                    icon="DefaultAddonsSearch.png")
     xbmcplugin.endOfDirectory(HANDLE)
 
 
@@ -1144,14 +1185,33 @@ def list_concert_artist(apis, artist_id):
         files = c["files"]
         first = files[0]
         title = f"{data['artist']} – {c['title']}" + (f" ({c['year']})" if c["year"] else "")
-        li = xbmcgui.ListItem(label=title, label2=human_size(first["size"]) if first["size"] else "")
-        li.setArt({"icon": "DefaultMusicVideos.png"})
+        # Do řádku patří i zdroj, velikost a délka — jinak není poznat, co klik pustí. Jméno
+        # interpreta v popisku být nesmí: nese ho nadpis obrazovky a na řádek se v Arctic Fuse
+        # vejde asi čtyřicet znaků, delší text si skin roluje pod rukama (stejné jako 6.3.7).
+        # Label2 ani popis položky tenhle skin u ne-složky nekreslí, takže zbývá jen label.
+        popis = c["title"] + (f" ({c['year']})" if c["year"] else "")
+        udaje = [SOURCE_TAGS.get(first["ref"].split(":", 1)[0], ""), human_size(first["size"])]
+        if first.get("height"):
+            udaje.append(quality_name(first["height"]))
+        if first["duration"]:
+            udaje.append(f"{first['duration'] // 60} min")
+        if len(files) > 1:
+            udaje.append(f"×{len(files)}")
+        popis += f"  [COLOR {GREY}]" + " · ".join(u for u in udaje if u) + "[/COLOR]"
+        li = xbmcgui.ListItem(label=popis, label2=human_size(first["size"]) if first["size"] else "")
+        # náhled dává sám zdroj (WebShare `img`, HellSpy `thumbs[0]`, FastShare `thumb`) —
+        # koncert nemá IMDb id, takže obrázek odjinud vzít nejde; bez něj zbyde ikona
+        nahled = next((f["img"] for f in files if f.get("img")), "")
+        li.setArt({"icon": "DefaultMusicVideos.png",
+                   **({"thumb": nahled, "poster": nahled, "fanart": nahled} if nahled else {})})
         tag = li.getVideoInfoTag()
         tag.setTitle(title)
         if c["year"]:
             tag.setYear(c["year"])
         if first["duration"]:
             tag.setDuration(first["duration"])
+        if first.get("width") and first.get("height"):
+            tag.addVideoStream(xbmc.VideoStreamDetail(width=first["width"], height=first["height"]))
         # v popisu všechny soubory: zdroj, velikost a syrový název — ať jde poznat, co se pustí
         tag.setPlot("\n".join(f"{SOURCE_TAGS.get(f['ref'].split(':', 1)[0], '')} {human_size(f['size'])}  {f['name']}"
                               for f in files))
@@ -1408,6 +1468,16 @@ def fill_info(li, meta, ctype="movie", video=None, tech=True):
 
 # rozlišení, které se pošle skinu, když se kvalita jen odhadla z názvu
 TIER_SIZE = {4: (3840, 2160), 3: (1920, 1080), 2: (1280, 720), 1: (720, 576)}
+
+
+def quality_name(height):
+    """Výška obrazu → „4K“/„FHD“/„HD“/„SD“ (opak `TIER_SIZE`). Hranice jsou nižší než
+    jmenovité rozlišení, protože kinoformát má obraz oříznutý — 1920×800 je pořád Full HD."""
+    h = int(height or 0)
+    for hranice, rank in ((1700, 4), (900, 3), (600, 2)):
+        if h >= hranice:
+            return QUALITY_NAMES[rank]
+    return QUALITY_NAMES[1] if h else ""
 # „5.1" je šest kanálů — skin chce jejich počet, ne zápis se středem
 CHANNEL_COUNT = {"1.0": 1, "2.0": 2, "2.1": 3, "5.1": 6, "6.1": 7, "7.1": 8}
 
@@ -6514,7 +6584,7 @@ def router(query):
         elif action == "tv":
             list_tv(apis, p.get("date", ""), p.get("kind", ""), p.get("channel", ""))
         elif action == "concerts":
-            list_concerts(apis)
+            list_concerts(apis, p.get("mode", ""), p.get("genre", ""), p.get("letter", ""))
         elif action == "concert_artist":
             list_concert_artist(apis, int(p.get("id") or 0))
         elif action == "play_ref":

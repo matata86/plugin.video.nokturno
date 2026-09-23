@@ -125,6 +125,8 @@ class HellspyApi:
                     "size": size,
                     "size_h": human_size(size),
                     "duration": int(i.get("duration") or 0),
+                    # `thumbs` je pole náhledů z různých míst videa; první stačí (katalog koncertů)
+                    "thumb": next((t for t in (i.get("thumbs") or []) if isinstance(t, str)), ""),
                 })
             return files, int(data.get("nextOffset") or 0)
         if self.cache is None:

@@ -6001,15 +6001,24 @@ class TestKoncerty(unittest.TestCase):
 
         prazdny = False   # server téhle instalaci koncerty nevydává (404 → [])
 
-        def concerts(self, sources, install=""):
-            self.volani.append(("concerts", tuple(sources), install))
-            return [] if self.prazdny else [{"id": 7, "name": "Pink Floyd", "concerts": 42}]
+        skupiny = {"artists": 2, "genres": [{"name": "rock", "artists": 2}],
+                   "letters": [{"name": "P", "artists": 2}]}
+
+        def concert_groups(self, sources, install=""):
+            self.volani.append(("groups", tuple(sources), install))
+            return None if self.prazdny else self.skupiny
+
+        def concerts(self, sources, install="", genre="", letter=""):
+            self.volani.append(("concerts", tuple(sources), install, genre, letter))
+            return [] if self.prazdny else [{"id": 7, "name": "Pink Floyd", "concerts": 42,
+                                             "genres": ["rock"], "letter": "P"}]
 
         def concert_artist(self, artist_id, sources, install=""):
             self.volani.append(("artist", artist_id, tuple(sources)))
             return {"artist": "Pink Floyd", "concerts": [
                 {"title": "Live in Venice", "year": 1989, "files": [
-                    {"source": "webshare", "ref": "ws:abc", "name": "PF Venice.avi", "size": 2 * 1024 ** 3, "duration": 0},
+                    {"source": "webshare", "ref": "ws:abc", "name": "PF Venice.avi", "size": 2 * 1024 ** 3,
+                     "duration": 0, "img": "https://img/1.jpg", "width": 1920, "height": 1080},
                     {"source": "hellspy", "ref": "hs:1:h", "name": "PF Venice.mkv", "size": 1_000_000_000, "duration": 5400}]},
                 {"title": "Pulse", "year": None, "files": [
                     {"source": "fastshare", "ref": "fs:9:s:1", "name": "Pulse.mp4", "size": 6_000_000_000, "duration": 0}]},
@@ -6043,12 +6052,43 @@ class TestKoncerty(unittest.TestCase):
 
     def test_interpreti_a_zdroje_pro_server(self):
         dash = self.Dash()
-        default.list_concerts({"dash": dash, "ws": object(), "fs": object(), "pt": object()})
-        self.assertEqual(dash.volani, [("concerts", ("webshare", "fastshare"), "inst-office")])   # pt koncerty neumí
+        default.list_concerts({"dash": dash, "ws": object(), "fs": object(), "pt": object()}, mode="list")
+        self.assertEqual(dash.volani, [("concerts", ("webshare", "fastshare"), "inst-office", "", "")])   # pt koncerty neumí
         (_h, url, li, folder), = xbmcplugin.items
         self.assertTrue(folder)
         self.assertEqual(params_of(url), {"action": "concert_artist", "id": "7"})
-        self.assertEqual((li.getLabel(), li.label2), ("Pink Floyd", "42"))
+        self.assertIn("Pink Floyd", li.getLabel())
+        self.assertEqual(li.label2, "42")
+
+    def test_rozcestnik_nabizi_vse_zanry_i_pismena(self):
+        """Dvě stě jmen v jednom výpisu se na ovladači neprochází, proto rozcestník."""
+        dash = self.Dash()
+        default.list_concerts({"dash": dash, "ws": object()})
+        akce = [params_of(u) for u in xbmcplugin.urls()]
+        self.assertEqual(akce, [{"action": "concerts", "mode": "list"},
+                                {"action": "concerts", "mode": "genres"},
+                                {"action": "concerts", "mode": "letters"}])
+        self.assertIn("2", xbmcplugin.items[0][2].getLabel())   # počet interpretů u „Všichni“
+
+    def test_zanr_i_pismeno_jdou_na_server(self):
+        dash = self.Dash()
+        default.list_concerts({"dash": dash, "ws": object()}, mode="genres")
+        self.assertEqual(params_of(xbmcplugin.urls()[0]),
+                         {"action": "concerts", "mode": "list", "genre": "rock"})
+        xbmcplugin.reset()
+        default.list_concerts({"dash": dash, "ws": object()}, mode="list", genre="rock")
+        self.assertEqual(dash.volani[-1], ("concerts", ("webshare",), "inst-office", "rock", ""))
+        xbmcplugin.reset()
+        default.list_concerts({"dash": dash, "ws": object()}, mode="list", letter="P")
+        self.assertEqual(dash.volani[-1], ("concerts", ("webshare",), "inst-office", "", "P"))
+
+    def test_bez_skupin_ze_serveru_zbyde_jen_seznam(self):
+        """Starší server `/concerts/groups` nezná (404) — katalog tím nesmí přestat fungovat."""
+        dash = self.Dash()
+        dash.prazdny = True
+        default.list_concerts({"dash": dash, "ws": object()})
+        self.assertEqual([params_of(u) for u in xbmcplugin.urls()],
+                         [{"action": "concerts", "mode": "list"}])
 
     def test_bez_zdroje_se_server_nevola(self):
         dash = self.Dash()
@@ -6069,6 +6109,22 @@ class TestKoncerty(unittest.TestCase):
         self.assertEqual(li.label2, "2.0 GB")
         self.assertNotIn("alts", params_of(items[1][1]))   # jediný soubor → bez alts
         self.assertEqual(xbmcplugin.categories[-1], "Pink Floyd")
+
+    def test_radek_nese_zdroj_velikost_a_delku(self):
+        """Arctic Fuse u ne-složky nekreslí label2 ani popis, takže je vidět jen label —
+        bez těchhle údajů nešlo poznat, co klik pustí (stejné jako u stavu zdrojů v 6.3.7)."""
+        default.list_concert_artist({"dash": self.Dash(), "ws": object(), "hs": object()}, 7)
+        prvni = xbmcplugin.items[0][2].getLabel()
+        self.assertIn("Live in Venice (1989)", prvni)
+        self.assertNotIn("Pink Floyd", prvni)   # jméno nese nadpis obrazovky, na řádku ukrajuje místo
+        self.assertIn("WebShare", prvni)
+        self.assertIn("2.0 GB", prvni)
+        self.assertIn("×2", prvni)              # dvě kopie téhož koncertu
+        self.assertNotIn("min", prvni)          # WebShare délku nehlásí — nevymýšlet ji
+
+        druhy = xbmcplugin.items[1][2].getLabel()
+        self.assertIn("Pulse", druhy)
+        self.assertNotIn("×", druhy)            # jediný soubor
 
     def test_play_ref_zkusi_dalsi_kopii_a_oznaci_prehravani(self):
         with mock.patch.object(default, "resolve_first", return_value=("hs:1:h", "http://cdn/x.mkv")) as rf, \

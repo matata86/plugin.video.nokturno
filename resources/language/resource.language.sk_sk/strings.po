@@ -2248,3 +2248,15 @@ msgstr "Koncerty"
 msgctxt "#30751"
 msgid "Concerts are not available right now"
 msgstr "Koncerty teraz nie sú dostupné"
+
+msgctxt "#30752"
+msgid "By genre"
+msgstr "Podľa žánru"
+
+msgctxt "#30753"
+msgid "By letter"
+msgstr "Podľa písmena"
+
+msgctxt "#30754"
+msgid "All artists"
+msgstr "Všetci interpreti"
