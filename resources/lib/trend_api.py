@@ -18,7 +18,7 @@ import time
 import urllib.error
 import urllib.request
 
-BASE = "https://nokturno.tailf0014.ts.net"
+from servers import BASE, urlopen as open_url
 TIMEOUT = 10
 CACHE_TTL = 8 * 3600   # stejná platnost jako cache na serveru — kratší nemá smysl
 # Když dashboard neodpovídá, čekalo se `TIMEOUT` při každém otevření menu Filmy/Seriály.
@@ -44,7 +44,7 @@ class TrendApi:
         url = f"{self.base}/trending?kind={kind}"
         req = urllib.request.Request(url, headers={"User-Agent": "Nokturno"})
         try:
-            with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+            with open_url(req, timeout=TIMEOUT) as resp:
                 return json.loads(resp.read().decode("utf-8"))
         except Exception as e:  # noqa: BLE001 – síť, DNS, výpadek dashboardu
             raise TrendApiError(str(e)[:120]) from e

@@ -40,6 +40,7 @@ import urllib.request
 
 from sealbox import SealError, format_code, keys_for, new_code as _new_code, normalize_code, seal, unseal, \
     valid_code as _valid_code
+from servers import urlopen as open_url
 from stats import COLLECT_URL
 
 TRANSFER_URL = COLLECT_URL.rsplit("/", 1)[0] + "/transfer"
@@ -188,7 +189,7 @@ class Relay(object):
             headers["Content-Type"] = "application/octet-stream"
         req = urllib.request.Request(self.base, data=body, headers=headers, method=method)
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
+            with open_url(req, timeout=self.timeout) as resp:
                 return resp.read()
         except urllib.error.HTTPError as e:
             raise TransferError({

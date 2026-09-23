@@ -48,6 +48,7 @@ from sosac_api import SosacError, is_sosac_id as _is_stremio_sosac_id  # noqa: E
 from sosac_direct import EXPORT as SOSAC_EXPORT, SosacDirect, is_direct_id  # noqa: E402
 from enrich import enrich, enrich_one, shutdown_pool as release_enrich  # noqa: E402
 import foryou  # noqa: E402
+import servers  # noqa: E402
 from hellspy_api import HellspyApi, HellspyError  # noqa: E402
 from sledujteto_api import SledujtetoApi, SledujtetoError  # noqa: E402
 from fastshare_api import FastshareApi, FastshareError  # noqa: E402
@@ -309,7 +310,7 @@ def info_install():
 KOFI_URL = "ko-fi.com/matata86"
 PAYPAL_URL = "paypal.me/matata86"
 BITCOIN_ADDRESS = "bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc"
-DONATE_URL = "https://nokturno.tailf0014.ts.net/#podpora"
+DONATE_URL = servers.BASE + "/#podpora"
 
 
 def info_donate():

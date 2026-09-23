@@ -43,11 +43,13 @@ import urllib.error
 import urllib.request
 import uuid
 
+from servers import BASE, urlopen as open_url
+
 # Sběrný bod je natvrdo v kódu, ne v nastavení — je to detail implementace,
 # ne něco, co by měl kdokoli přepínat. Změna adresy = nová verze.
-# Od 2026-09-13 dashboard běží v LXC 124 přes Tailscale Funnel; stará adresa
-# nokturno.full-net.cz/collect zatím hlášení přeposílá (Dashboard/thinline-presmerovani).
-COLLECT_URL = "https://nokturno.tailf0014.ts.net/collect"
+# Dashboard běží v LXC 124. Adresa se bere z `servers.BASE`; když se na ni klient
+# nedostane, `servers.urlopen` sáhne po záložní (viz `lib/servers.py`).
+COLLECT_URL = BASE + "/collect"
 
 SEND_EVERY = 6 * 3600     # nejčastěji jednou za 6 hodin
 RETRY_EVERY = 30 * 60     # po neúspěchu (server neběží, není síť) nezkoušet hned znovu
@@ -183,7 +185,7 @@ class Stats:
             "User-Agent": f"{agent}/" + (version or "?"),
         })
         try:
-            with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+            with open_url(req, timeout=TIMEOUT) as resp:
                 raw = resp.read(8192)
                 code = resp.getcode()
         except urllib.error.HTTPError as e:
