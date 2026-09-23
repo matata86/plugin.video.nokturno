@@ -884,7 +884,7 @@ msgid "Folder address"
 msgstr ""
 
 msgctxt "#30380"
-msgid "WebDAV folder, e.g. davs://nokturno.tailf0014.ts.net:10000/ or https://nas/remote.php/dav/files/me/Video/. Empty = storage off. The file list is refreshed at most once an hour."
+msgid "WebDAV folder, e.g. davs://nas.doma:10000/ or https://nas/remote.php/dav/files/me/Video/. Empty = storage off. The file list is refreshed at most once an hour."
 msgstr ""
 
 msgctxt "#30381"
@@ -2014,7 +2014,7 @@ msgid "Version and ID of this installation"
 msgstr ""
 
 msgctxt "#30692"
-msgid "Web: nokturno.tailf0014.ts.net"
+msgid "Web: nokturno.stream"
 msgstr ""
 
 msgctxt "#30693"

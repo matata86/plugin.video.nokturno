@@ -883,8 +883,8 @@ msgid "Folder address"
 msgstr "Mappa címe"
 
 msgctxt "#30380"
-msgid "WebDAV folder, e.g. davs://nokturno.tailf0014.ts.net:10000/ or https://nas/remote.php/dav/files/me/Video/. Empty = storage off. The file list is refreshed at most once an hour."
-msgstr "WebDAV mappa, pl. davs://nokturno.tailf0014.ts.net:10000/ vagy https://nas/remote.php/dav/files/me/Video/. Üres = tárhely kikapcsolva. A fájllista legfeljebb óránként frissül."
+msgid "WebDAV folder, e.g. davs://nas.doma:10000/ or https://nas/remote.php/dav/files/me/Video/. Empty = storage off. The file list is refreshed at most once an hour."
+msgstr "WebDAV mappa, pl. davs://nas.doma:10000/ vagy https://nas/remote.php/dav/files/me/Video/. Üres = tárhely kikapcsolva. A fájllista legfeljebb óránként frissül."
 
 msgctxt "#30381"
 msgid "Username"
@@ -2013,8 +2013,8 @@ msgid "Version and ID of this installation"
 msgstr "Verzió és a telepítés azonosítója"
 
 msgctxt "#30692"
-msgid "Web: nokturno.tailf0014.ts.net"
-msgstr "Web: nokturno.tailf0014.ts.net"
+msgid "Web: nokturno.stream"
+msgstr "Web: nokturno.stream"
 
 msgctxt "#30693"
 msgid "Family: Kodi · Stremio · Home Assistant"
