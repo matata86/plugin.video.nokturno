@@ -6346,15 +6346,9 @@ def download_remove(dl_id):
         STORE.update_download(dl_id, status="cancel")  # služba smaže .part i záznam
     else:
         if d.get("status") == "done" and xbmcgui.Dialog().yesno(L(30000), Lf(30086, d.get("name", ""))):
-            try:
-                os.remove(d["dest"])
-            except OSError:
-                pass
+            xbmcvfs.delete(d["dest"])     # xbmcvfs umí i síťovou složku (smb://)
         else:
-            try:
-                os.remove(d["dest"] + ".part")   # rozdělané už nikdo nedostahuje
-            except OSError:
-                pass
+            xbmcvfs.delete(d["dest"] + ".part")   # rozdělané už nikdo nedostahuje
         STORE.remove_download(dl_id)
     xbmc.executebuiltin("Container.Refresh")
 

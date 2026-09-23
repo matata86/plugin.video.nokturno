@@ -3870,6 +3870,29 @@ class TestNavazovaniStahovani(unittest.TestCase):
         self.assertFalse(os.path.exists(self.dest + ".part"), "zrušené stahování po sobě uklidí")
         self.assertEqual([d["id"] for d in default.STORE.downloads()], [])
 
+    def test_stahuje_do_sitove_slozky_pres_xbmcvfs(self):
+        """Log uživatele (CoreELEC, 2026-09-22): složka `smb://…` a stahování padalo na
+        „Read-only file system: 'smb:'" — `open`/`os.makedirs` cestu Kodi neznají."""
+        koren = self.dir
+        prevod = lambda p: p.replace("smb://nas/", koren + "/")   # noqa: E731
+        vfs = mock.Mock()
+        makedirs = os.makedirs   # níž se `os.makedirs` schválně rozbije jako na CoreELEC
+        vfs.mkdirs.side_effect = lambda p: makedirs(prevod(p), exist_ok=True) or True
+        vfs.File.side_effect = lambda p, m="r": open(prevod(p), m + "b")
+        vfs.delete.side_effect = lambda p: False
+        vfs.rename.side_effect = lambda a, b: os.replace(prevod(a), prevod(b)) or True
+        job = self._job(dest="smb://nas/Filmy/film.mkv")
+        dl = service.Downloader(default.STORE, self.FakeMonitor())
+        with mock.patch.object(service, "xbmcvfs", vfs), \
+                mock.patch.object(service, "resolve_internal", return_value=("https://cdn/film.mkv", {})), \
+                mock.patch.object(service.urllib.request, "urlopen",
+                                  lambda req, timeout=None: self.FakeResp(b"F" * 100, code=200)), \
+                mock.patch.object(service.os, "makedirs", side_effect=OSError(30, "Read-only file system")):
+            dl.download(job)
+        with open(os.path.join(koren, "Filmy", "film.mkv"), "rb") as f:
+            self.assertEqual(f.read(), b"F" * 100)
+        self.assertEqual(next(d for d in default.STORE.downloads() if d["id"] == "d1")["status"], "done")
+
     def test_po_restartu_se_bezici_vrati_do_fronty(self):
         self._job(status="running")
         default.STORE.update_download("d1", status="running")

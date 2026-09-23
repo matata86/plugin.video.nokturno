@@ -453,15 +453,23 @@ class Downloader(threading.Thread):
         self.store.update_download(dl_id, status="running")
         xbmcgui.Dialog().notification(L(30000), Lf(30073, job.get("name", "")), ADDON.getAddonInfo("icon"), 3000)
         tmp = dest + ".part"
+        # Složka ze sítě (smb://, nfs://…) je cesta Kodi, ne souborového systému —
+        # `open`/`os.*` s ní skončí „Read-only file system: 'smb:'" (do 7.9.5).
+        vfs = "://" in dest
         try:
-            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            if vfs:
+                xbmcvfs.mkdirs(os.path.dirname(dest))
+            else:
+                os.makedirs(os.path.dirname(dest), exist_ok=True)
             link, headers = resolve_internal(url, self.store)
             if not link:
                 raise RuntimeError("zdroj odkaz nevydal")
             # Navázání na rozdělané stahování: film mívá desítky GB a přerušení
             # (restart Kodi, výpadek sítě, vypnutý box) znamenalo do 6.2.2 začít
             # od nuly. `.part` proto po chybě zůstává ležet.
-            od = self.part_size(tmp, int(job.get("size") or 0))
+            # ponytail: `xbmcvfs.File` neumí zápis na konec, síťový cíl se po přerušení
+            # stahuje znovu od nuly; navázání tam by chtělo `.part` lokálně a kopii na konci
+            od = 0 if vfs else self.part_size(tmp, int(job.get("size") or 0))
             if od:
                 headers = {**headers, "Range": f"bytes={od}-"}
             req = urllib.request.Request(link, headers={"User-Agent": "Kodi plugin.video.nokturno", **headers})
@@ -473,7 +481,7 @@ class Downloader(threading.Thread):
                 done, last = (od if navazuje else 0), 0.0
                 if od and not navazuje:
                     log(f"zdroj navázání neumí, stahuji {job.get('name', '')} znovu", xbmc.LOGWARNING)
-                out = open(tmp, "ab" if navazuje else "wb")
+                out = xbmcvfs.File(tmp, "w") if vfs else open(tmp, "ab" if navazuje else "wb")
                 try:
                     # `finally` místo `with`: při chybě se soubor musí zavřít (a tím
                     # dopsat), ale NE smazat — na to, co je stažené, se příště naváže
@@ -484,7 +492,8 @@ class Downloader(threading.Thread):
                         chunk = resp.read(CHUNK)
                         if not chunk:
                             break
-                        out.write(chunk)
+                        if out.write(chunk) is False:   # xbmcvfs chybu nehází, vrací False
+                            raise OSError("zápis do cílové složky selhal")
                         done += len(chunk)
                         if time.time() - last > 2:
                             last = time.time()
@@ -494,16 +503,18 @@ class Downloader(threading.Thread):
                             self.store.update_download(dl_id, done=done)
                 finally:
                     out.close()
-            os.replace(tmp, dest)
+            if vfs:
+                xbmcvfs.delete(dest)    # rename přes existující soubor na SMB neprojde
+                if not xbmcvfs.rename(tmp, dest):
+                    raise OSError("soubor nejde přejmenovat v cílové složce")
+            else:
+                os.replace(tmp, dest)
             self.store.update_download(dl_id, status="done", done=done, size=size or done)
             xbmcgui.Dialog().notification(L(30000), Lf(30074, job.get("name", "")), ADDON.getAddonInfo("icon"), 4000)
             log(f"staženo {dest}")
         except Exception as e:  # noqa: BLE001
             if str(e) == "cancel":
-                try:
-                    os.remove(tmp)      # zrušeno uživatelem — rozdělané smazat
-                except OSError:
-                    pass
+                xbmcvfs.delete(tmp)     # zrušeno uživatelem — rozdělané smazat
                 self.store.remove_download(dl_id)
                 log(f"stahování zrušeno {dest}")
             elif str(e) == "abort":
