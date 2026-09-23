@@ -884,8 +884,8 @@ msgid "Folder address"
 msgstr "Adresa priečinka"
 
 msgctxt "#30380"
-msgid "WebDAV folder, e.g. davs://nokturno.tailf0014.ts.net:10000/ or https://nas/remote.php/dav/files/me/Video/. Empty = storage off. The file list is refreshed at most once an hour."
-msgstr "Priečinok na WebDAV, napríklad davs://nokturno.tailf0014.ts.net:10000/ alebo https://nas/remote.php/dav/files/ja/Video/. Prázdne = úložisko vypnuté. Zoznam súborov sa obnovuje najviac raz za hodinu."
+msgid "WebDAV folder, e.g. davs://nas.doma:10000/ or https://nas/remote.php/dav/files/me/Video/. Empty = storage off. The file list is refreshed at most once an hour."
+msgstr "Priečinok na WebDAV, napríklad davs://nas.doma:10000/ alebo https://nas/remote.php/dav/files/ja/Video/. Prázdne = úložisko vypnuté. Zoznam súborov sa obnovuje najviac raz za hodinu."
 
 msgctxt "#30381"
 msgid "Username"
@@ -2015,8 +2015,8 @@ msgid "Version and ID of this installation"
 msgstr "Verzia a ID tejto inštalácie"
 
 msgctxt "#30692"
-msgid "Web: nokturno.tailf0014.ts.net"
-msgstr "Web: nokturno.tailf0014.ts.net"
+msgid "Web: nokturno.stream"
+msgstr "Web: nokturno.stream"
 
 msgctxt "#30693"
 msgid "Family: Kodi · Stremio · Home Assistant"
