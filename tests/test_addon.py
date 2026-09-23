@@ -6004,6 +6004,12 @@ class TestKoncerty(unittest.TestCase):
         skupiny = {"artists": 2, "genres": [{"name": "rock", "artists": 2}],
                    "letters": [{"name": "P", "artists": 2}]}
 
+        nove = []   # nově přidané (schválené za 30 dní); prázdné = položka se neukáže
+
+        def concert_recent(self, sources, install=""):
+            self.volani.append(("recent", tuple(sources), install))
+            return self.nove
+
         def concert_groups(self, sources, install=""):
             self.volani.append(("groups", tuple(sources), install))
             return None if self.prazdny else self.skupiny
@@ -6069,6 +6075,20 @@ class TestKoncerty(unittest.TestCase):
                                 {"action": "concerts", "mode": "genres"},
                                 {"action": "concerts", "mode": "letters"}])
         self.assertIn("2", xbmcplugin.items[0][2].getLabel())   # počet interpretů u „Všichni“
+
+    def test_nove_pridane_nahore_a_s_interpretem(self):
+        dash = self.Dash()
+        dash.nove = [{"artist": "Queen", "title": "Live At Wembley", "year": 1986, "files": [
+            {"source": "webshare", "ref": "ws:q1", "name": "q.mkv", "size": 3 * 1024 ** 3, "duration": 0}]}]
+        default.list_concerts({"dash": dash, "ws": object()})
+        self.assertEqual(params_of(xbmcplugin.urls()[0]), {"action": "concerts", "mode": "recent"})
+        xbmcplugin.reset()
+        default.list_concerts({"dash": dash, "ws": object()}, mode="recent")
+        (_h, url, li, folder), = xbmcplugin.items
+        self.assertFalse(folder)
+        self.assertTrue(li.getLabel().startswith("Queen – Live At Wembley (1986)"))
+        self.assertEqual(params_of(url), {"action": "play_ref", "ref": "ws:q1",
+                                          "name": "Queen – Live At Wembley (1986)"})
 
     def test_zanr_i_pismeno_jdou_na_server(self):
         dash = self.Dash()

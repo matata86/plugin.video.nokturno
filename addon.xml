@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="8.0.0~beta5" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="8.0.0~beta6" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>8.0.0~beta5 – Oprava: když se doplněk jednou nedovolal na server Nokturna (na Androidu k tomu stačí, že Kodi po startu ještě nemá síť), pět minut se tam nezkoušel dovolat vůbec — a seznamy, které si ještě nestihl uložit, zůstaly prázdné, i když síť mezitím byla. Nově se to, pro co nemá zálohu, zkusí i tak.
+    <news>8.0.0~beta6 – Koncerty: nahoře nová složka Nově přidané — koncerty, které za posledních 30 dní přibyly do katalogu, nejnovější napřed. Nové soubory teď do katalogu jdou až po ruční kontrole, takže v Nově přidaných je jen prověřený obsah.
+8.0.0~beta5 – Oprava: když se doplněk jednou nedovolal na server Nokturna (na Androidu k tomu stačí, že Kodi po startu ještě nemá síť), pět minut se tam nezkoušel dovolat vůbec — a seznamy, které si ještě nestihl uložit, zůstaly prázdné, i když síť mezitím byla. Nově se to, pro co nemá zálohu, zkusí i tak.
 8.0.0~beta4 – Koncerty: v seznamu je teď u každého záznamu vidět zdroj, velikost, rozlišení a délka (i kolik je jiných kopií téhož koncertu), položky mají náhledový obrázek ze zdroje a dvě stě interpretů už se neprochází v jednom výpisu — nahoře je rozcestník Všichni / Podle žánru / Podle písmene.
 8.0.0~beta3 – Bety 1 a 2 se nedovolaly na server, takže se Koncerty ani neukázaly: vyšly ještě před tím, než doplněk poznal novou adresu nokturno.stream. Tahle beta ji má, takže Koncerty (a s nimi žebříčky, katalogy, TV program a statistiky) zase fungují.
 7.9.4 – Odkaz na web Nokturna v nastavení (Pokročilé → Info) vede na novou adresu nokturno.stream, stejně tak příklad adresy vlastního úložiště v nápovědě.

@@ -14,6 +14,7 @@ Tři veřejné endpointy, které server skládá sám z TMDB (klient nic nedohle
 * `GET /similar?kind=&id=` — podobné tituly pro uživatele bez vlastního TMDB klíče.
 * `GET /tv-program?date=&kind=&channel=` — filmy a seriály v české a slovenské TV,
   jen ty, které server spároval s TMDB (mají `tt…` id).
+* `GET /concerts/recent?sources=` — nově přidané (schválené) koncerty, nejnovější napřed
 * `GET /concerts?sources=` + `GET /concerts/{id}?sources=` — katalog koncertů: interpreti a pod nimi
   koncerty se soubory jako hotové vnitřní odkazy (`ws:`/`hs:`/`fs:`). Koncert nemá IMDb id,
   proto jde mimo běžné katalogy; klient pošle zapnuté zdroje a dostane jen to, co umí přehrát.
@@ -376,24 +377,21 @@ class DashApi:
         data = self._load(f"nokturno:dash:concerts:{artist_id}:{srcs}", CONCERTS_TTL, fetch)
         if not data:
             return None
-        concerts = []
-        for c in data["concerts"]:
-            if not isinstance(c, dict):
-                continue
-            files = [{"source": f["source"], "ref": f["ref"], "name": _text(f.get("name"), 200),
-                      "size": int(f.get("size") or 0), "duration": int(f.get("duration") or 0),
-                      # náhled je cizí URL — jen http(s), ať se z něj nestane `special://` ani soubor
-                      "img": _img(f.get("img")), "width": int(f.get("width") or 0),
-                      "height": int(f.get("height") or 0)}
-                     for f in (c.get("files") or []) if isinstance(f, dict)
-                     and f.get("source") in CONCERT_SOURCES and isinstance(f.get("ref"), str)
-                     and CONCERT_REF_RE.match(f["ref"])]
-            title = _text(c.get("title"), 200)
-            if files and title:
-                year = c.get("year") if isinstance(c.get("year"), int) else None
-                concerts.append({"title": title, "year": year, "files": files})
         artist = data.get("artist") if isinstance(data.get("artist"), dict) else {}
-        return {"artist": _text(artist.get("name"), MAX_TITLE), "concerts": concerts}
+        return {"artist": _text(artist.get("name"), MAX_TITLE), "concerts": _concerts_with_files(data["concerts"])}
+
+    def concert_recent(self, sources, install=""):
+        """Nově přidané koncerty (`GET /concerts/recent`): schválené za posledních 30 dní,
+        nejnovější napřed, i se soubory. Každý nese i jméno interpreta. Starší server cestu
+        nezná (404) → prázdný seznam, klient položku v menu schová."""
+        srcs = ",".join(sorted(s for s in sources if s in CONCERT_SOURCES))
+
+        def fetch():
+            data = self._get("/concerts/recent", sources=srcs, install=install)
+            return data if isinstance(data, dict) and isinstance(data.get("concerts"), list) else None
+
+        data = self._load(f"nokturno:dash:concerts:recent:{srcs}", CONCERTS_TTL, fetch)
+        return _concerts_with_files(data["concerts"], with_artist=True) if data else []
 
     def concert_items(self, sources, search="", skip=0, install=""):
         """Plochý seznam koncertů napříč interprety (`GET /concerts/items`) — pro klienta bez
@@ -444,6 +442,33 @@ class DashApi:
             return None
         return {"id": concert_id, "artist": artist, "title": title,
                 "year": data.get("year") if isinstance(data.get("year"), int) else None, "files": files}
+
+
+def _concerts_with_files(raw, with_artist=False):
+    """Koncerty se soubory ze serveru — jen odkazy známého tvaru; koncert bez souboru
+    (nebo bez názvu, u nově přidaných i bez interpreta) vypadne."""
+    concerts = []
+    for c in raw:
+        if not isinstance(c, dict):
+            continue
+        files = [{"source": f["source"], "ref": f["ref"], "name": _text(f.get("name"), 200),
+                  "size": int(f.get("size") or 0), "duration": int(f.get("duration") or 0),
+                  # náhled je cizí URL — jen http(s), ať se z něj nestane `special://` ani soubor
+                  "img": _img(f.get("img")), "width": int(f.get("width") or 0),
+                  "height": int(f.get("height") or 0)}
+                 for f in (c.get("files") or []) if isinstance(f, dict)
+                 and f.get("source") in CONCERT_SOURCES and isinstance(f.get("ref"), str)
+                 and CONCERT_REF_RE.match(f["ref"])]
+        title = _text(c.get("title"), 200)
+        year = c.get("year") if isinstance(c.get("year"), int) else None
+        item = {"title": title, "year": year, "files": files}
+        if with_artist:
+            item["artist"] = _text(c.get("artist"), MAX_TITLE)
+            if not item["artist"]:
+                continue
+        if files and title:
+            concerts.append(item)
+    return concerts
 
 
 if __name__ == "__main__":

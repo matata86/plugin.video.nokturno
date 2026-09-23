@@ -2260,3 +2260,7 @@ msgstr "Podle písmene"
 msgctxt "#30754"
 msgid "All artists"
 msgstr "Všichni interpreti"
+
+msgctxt "#30755"
+msgid "Recently added"
+msgstr "Nově přidané"

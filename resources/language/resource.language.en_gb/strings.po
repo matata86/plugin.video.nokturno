@@ -2259,3 +2259,7 @@ msgstr ""
 msgctxt "#30754"
 msgid "All artists"
 msgstr ""
+
+msgctxt "#30755"
+msgid "Recently added"
+msgstr ""

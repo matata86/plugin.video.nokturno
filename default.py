@@ -1123,6 +1123,17 @@ def list_concerts(apis, mode="", genre="", letter=""):
     if not mode:
         list_concert_groups(dash, sources)
         return
+    if mode == "recent":
+        rows = dash.concert_recent(sources, install=install_id())
+        xbmcplugin.setPluginCategory(HANDLE, L(30755, "Nově přidané"))
+        if not rows:
+            notify(L(30751, "Koncerty teď nejsou dostupné"), xbmcgui.NOTIFICATION_WARNING, 4000)
+            xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+            return
+        for c in rows:
+            concert_item(c, c["artist"], with_artist=True)
+        xbmcplugin.endOfDirectory(HANDLE)
+        return
     if mode == "genres" or mode == "letters":
         skupiny = dash.concert_groups(sources, install=install_id()) or {}
         klic = "genres" if mode == "genres" else "letters"
@@ -1157,6 +1168,10 @@ def list_concert_groups(dash, sources):
     zbude jediná položka se všemi interprety — katalog tím nepřestane fungovat."""
     skupiny = dash.concert_groups(sources, install=install_id()) or {}
     xbmcplugin.setPluginCategory(HANDLE, L(30750, "Koncerty"))
+    # nově schválené koncerty nahoře; prázdný seznam (nic za 30 dní, starší server) položku schová
+    if dash.concert_recent(sources, install=install_id()):
+        folder_item(L(30755, "Nově přidané"), build_url(action="concerts", mode="recent"),
+                    icon="DefaultRecentlyAddedMusicVideos.png")
     celkem = skupiny.get("artists") or 0
     vse = L(30754, "Všichni interpreti") + (f"  [COLOR {GREY}]{celkem}[/COLOR]" if celkem else "")
     folder_item(vse, build_url(action="concerts", mode="list"), icon="DefaultMusicArtists.png")
@@ -1182,44 +1197,51 @@ def list_concert_artist(apis, artist_id):
         return
     xbmcplugin.setPluginCategory(HANDLE, data["artist"] or L(30750, "Koncerty"))
     for c in data["concerts"]:
-        files = c["files"]
-        first = files[0]
-        title = f"{data['artist']} – {c['title']}" + (f" ({c['year']})" if c["year"] else "")
-        # Do řádku patří i zdroj, velikost a délka — jinak není poznat, co klik pustí. Jméno
-        # interpreta v popisku být nesmí: nese ho nadpis obrazovky a na řádek se v Arctic Fuse
-        # vejde asi čtyřicet znaků, delší text si skin roluje pod rukama (stejné jako 6.3.7).
-        # Label2 ani popis položky tenhle skin u ne-složky nekreslí, takže zbývá jen label.
-        popis = c["title"] + (f" ({c['year']})" if c["year"] else "")
-        udaje = [SOURCE_TAGS.get(first["ref"].split(":", 1)[0], ""), human_size(first["size"])]
-        if first.get("height"):
-            udaje.append(quality_name(first["height"]))
-        if first["duration"]:
-            udaje.append(f"{first['duration'] // 60} min")
-        if len(files) > 1:
-            udaje.append(f"×{len(files)}")
-        popis += f"  [COLOR {GREY}]" + " · ".join(u for u in udaje if u) + "[/COLOR]"
-        li = xbmcgui.ListItem(label=popis, label2=human_size(first["size"]) if first["size"] else "")
-        # náhled dává sám zdroj (WebShare `img`, HellSpy `thumbs[0]`, FastShare `thumb`) —
-        # koncert nemá IMDb id, takže obrázek odjinud vzít nejde; bez něj zbyde ikona
-        nahled = next((f["img"] for f in files if f.get("img")), "")
-        li.setArt({"icon": "DefaultMusicVideos.png",
-                   **({"thumb": nahled, "poster": nahled, "fanart": nahled} if nahled else {})})
-        tag = li.getVideoInfoTag()
-        tag.setTitle(title)
-        if c["year"]:
-            tag.setYear(c["year"])
-        if first["duration"]:
-            tag.setDuration(first["duration"])
-        if first.get("width") and first.get("height"):
-            tag.addVideoStream(xbmc.VideoStreamDetail(width=first["width"], height=first["height"]))
-        # v popisu všechny soubory: zdroj, velikost a syrový název — ať jde poznat, co se pustí
-        tag.setPlot("\n".join(f"{SOURCE_TAGS.get(f['ref'].split(':', 1)[0], '')} {human_size(f['size'])}  {f['name']}"
-                              for f in files))
-        li.setProperty("IsPlayable", "true")
-        url = build_url(action="play_ref", ref=first["ref"], name=title,
-                        alts="|".join(f["ref"] for f in files[1:]) or None)
-        xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=False)
+        concert_item(c, data["artist"])
     xbmcplugin.endOfDirectory(HANDLE)
+
+
+def concert_item(c, artist, with_artist=False):
+    """Řádek koncertu: klik pustí největší soubor ze zapnutých zdrojů, ostatní soubory téhož
+    koncertu jdou do `alts`. `with_artist` = výpis napříč interprety (Nově přidané), kde
+    jméno interpreta nenese nadpis obrazovky, takže musí do popisku."""
+    files = c["files"]
+    first = files[0]
+    title = f"{artist} – {c['title']}" + (f" ({c['year']})" if c["year"] else "")
+    # Do řádku patří i zdroj, velikost a délka — jinak není poznat, co klik pustí. Jméno
+    # interpreta jen ve výpisu napříč interprety: jinak ho nese nadpis obrazovky a na řádek se
+    # v Arctic Fuse vejde asi čtyřicet znaků, delší text si skin roluje pod rukama (6.3.7).
+    # Label2 ani popis položky tenhle skin u ne-složky nekreslí, takže zbývá jen label.
+    popis = (f"{artist} – " if with_artist else "") + c["title"] + (f" ({c['year']})" if c["year"] else "")
+    udaje = [SOURCE_TAGS.get(first["ref"].split(":", 1)[0], ""), human_size(first["size"])]
+    if first.get("height"):
+        udaje.append(quality_name(first["height"]))
+    if first["duration"]:
+        udaje.append(f"{first['duration'] // 60} min")
+    if len(files) > 1:
+        udaje.append(f"×{len(files)}")
+    popis += f"  [COLOR {GREY}]" + " · ".join(u for u in udaje if u) + "[/COLOR]"
+    li = xbmcgui.ListItem(label=popis, label2=human_size(first["size"]) if first["size"] else "")
+    # náhled dává sám zdroj (WebShare `img`, HellSpy `thumbs[0]`, FastShare `thumb`) —
+    # koncert nemá IMDb id, takže obrázek odjinud vzít nejde; bez něj zbyde ikona
+    nahled = next((f["img"] for f in files if f.get("img")), "")
+    li.setArt({"icon": "DefaultMusicVideos.png",
+               **({"thumb": nahled, "poster": nahled, "fanart": nahled} if nahled else {})})
+    tag = li.getVideoInfoTag()
+    tag.setTitle(title)
+    if c["year"]:
+        tag.setYear(c["year"])
+    if first["duration"]:
+        tag.setDuration(first["duration"])
+    if first.get("width") and first.get("height"):
+        tag.addVideoStream(xbmc.VideoStreamDetail(width=first["width"], height=first["height"]))
+    # v popisu všechny soubory: zdroj, velikost a syrový název — ať jde poznat, co se pustí
+    tag.setPlot("\n".join(f"{SOURCE_TAGS.get(f['ref'].split(':', 1)[0], '')} {human_size(f['size'])}  {f['name']}"
+                          for f in files))
+    li.setProperty("IsPlayable", "true")
+    url = build_url(action="play_ref", ref=first["ref"], name=title,
+                    alts="|".join(f["ref"] for f in files[1:]) or None)
+    xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=False)
 
 
 def play_ref(apis, ref, name="", alts=""):
