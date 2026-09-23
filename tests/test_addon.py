@@ -6191,3 +6191,127 @@ class TestKoncerty(unittest.TestCase):
         with mock.patch.object(default, "resolve_first", side_effect=default.NokturnoError("nic")):
             default.play_ref({}, "ws:abc", "x", "")
         self.assertFalse(xbmcplugin.resolved[-1][1])
+
+
+class TestSyncWatch(unittest.TestCase):
+    """SyncWatch (8.2.0): plugin zakládá skupinu a ukazuje okna, služba synchronizuje
+    přehrávání. Logika synchronizace je v jádru (`nokturno-core`, test_syncwatch.py);
+    tady se hlídá napojení na Kodi."""
+
+    def setUp(self):
+        reset_kodi()
+        default.STORE.save("syncwatch", {})
+        self.addCleanup(default.STORE.save, "syncwatch", {})
+
+    def _play(self, **kw):
+        streams = [{"url": "ws:abc", "label": "Film.1080p.CZ.mkv", "source": "ws", "subtitles": []},
+                   {"url": "hs:1:x", "label": "Film.720p.mkv", "source": "hs"}]
+        with mock.patch.object(default, "load_meta", return_value=({"name": "Film", "year": 2026}, None)), \
+             mock.patch.object(default, "collect_streams", return_value=streams), \
+             mock.patch.object(default, "resolve_url", side_effect=lambda apis, url: "https://cdn/" + url), \
+             mock.patch.object(default.STORE, "resume", return_value=(600.0, 7200.0)), \
+             mock.patch.object(default, "choose_stream", side_effect=lambda st, *a, **k: st[0]) as choose:
+            default.play({}, "movie", "tt0133093", **kw)
+        item = json.loads(xbmcgui.Window(10000).getProperty(default.PLAYING_PROP))
+        return item, choose, xbmcplugin.resolved[-1][2]
+
+    def test_prehrani_nese_adresu_pro_ostatni(self):
+        import syncwatch
+        item, _choose, _li = self._play()
+        self.assertTrue(syncwatch.valid_replay(item["replay"]), item["replay"])
+        p = params_of(item["replay"])
+        self.assertEqual((p["action"], p["id"], p["url"]), ("play", "tt0133093", "ws:abc"))
+        self.assertEqual(p["alts"], "hs:1:x", "kdo nemá účet u WebShare, zkusí další nález")
+
+    def test_clen_skupiny_bez_dialogu_a_bez_pokracovani(self):
+        _item, choose, li = self._play(ask="1", sw="1")
+        choose.assert_not_called()
+        self.assertFalse([c for c in li.tag.calls if c[0] == "setResumePoint"],
+                         "pozici určuje skupina, ne historie zařízení")
+        _item, choose, li = self._play(ask="1")
+        choose.assert_called_once()
+        self.assertTrue([c for c in li.tag.calls if c[0] == "setResumePoint"])
+
+    def test_hlasky_jadra_maji_preklad_ve_vsech_jazycich(self):
+        import syncwatch
+        self.assertEqual(set(service.SW_NOTICE_IDS), set(syncwatch.NOTICES))
+        for lang in ("cs_cz", "en_gb", "sk_sk", "hu_hu"):
+            ids = po_ids(lang)
+            for sid in list(service.SW_NOTICE_IDS.values()) + list(range(30800, 30834)):
+                self.assertIn(sid, ids, f"{lang}: #{sid}")
+
+    def test_sablony_hlasek_maji_stejne_udaje(self):
+        import syncwatch
+        text = (LANG_DIR / "resource.language.cs_cz" / "strings.po").read_text(encoding="utf-8")
+        for code, sid in service.SW_NOTICE_IDS.items():
+            m = re.search(r'msgctxt "#%d"\nmsgid "(.*)"\nmsgstr "(.*)"' % sid, text)
+            want = set(re.findall(r"%\((\w+)\)s", syncwatch.NOTICES[code]))
+            self.assertEqual(set(re.findall(r"%\((\w+)\)s", m.group(1))), want, code)
+            self.assertEqual(set(re.findall(r"%\((\w+)\)s", m.group(2))), want, code)
+
+    def test_zalozeni_ulozi_skupinu_a_otevre_okno(self):
+        import syncwatch
+
+        class Klient:
+            def __init__(self, code, token=""):
+                self.code, self.token, self.mid = code, token, 0
+
+            def create(self, me):
+                self.token, self.mid = "t" * 32, 1
+
+        with mock.patch.object(syncwatch, "Client", Klient), \
+             mock.patch.object(default, "sw_window") as okno:
+            default.sw_create()
+        session = default.sw_session()
+        self.assertTrue(session["leader"])
+        self.assertTrue(syncwatch.valid_code(session["code"]))
+        self.assertEqual(session["token"], "t" * 32)
+        okno.assert_called_once()
+
+    def test_spatny_kod_nic_neulozi(self):
+        with mock.patch.object(xbmcgui.Dialog, "input", return_value="SW-12"):
+            default.sw_join()
+        self.assertEqual(default.sw_session(), {})
+        self.assertTrue(xbmcgui.oks)
+
+    def test_pauza_kodi_se_neprepina_dvakrat(self):
+        # `xbmc.Player.pause()` pauzu přepíná — pauza pozastaveného by ho pustila
+        player = service.SwPlayer()
+        player.p = mock.Mock()
+        player.p.isPlayingVideo.return_value = True
+        with mock.patch.object(xbmc, "getCondVisibility", return_value=True):   # Player.Paused
+            player.pause()
+            player.p.pause.assert_not_called()
+            player.resume()
+            player.p.pause.assert_called_once()
+
+    def test_start_prehravani_jde_do_skupiny(self):
+        player = service.Player(default.STORE, None)
+        player.sw = mock.Mock()
+        xbmcgui.Window(10000).setProperty(service.PROP, json.dumps(
+            {"id": "tt1", "title": "Matrix", "replay": "plugin://plugin.video.nokturno/?action=play&id=tt1"}))
+        with mock.patch.object(threading.Thread, "start"):
+            player.onAVStarted()
+        kind, = player.sw.event.call_args[0]
+        self.assertEqual(kind, "started")
+        self.assertEqual(player.sw.event.call_args[1]["item"]["replay"],
+                         "plugin://plugin.video.nokturno/?action=play&id=tt1")
+        player.onPlayBackSeek(90500, 0)
+        self.assertEqual(player.sw.event.call_args[1], {"pos": 90.5})
+
+    def test_spravce_spusti_a_ukonci_skupinu_podle_profilu(self):
+        import syncwatch
+        manager = service.SyncWatchManager(default.STORE, xbmc.Monitor())
+        runtime = mock.Mock()
+        runtime.alive.return_value = True
+        with mock.patch.object(syncwatch, "Runtime", return_value=runtime):
+            manager.tick()
+            self.assertIsNone(manager.runtime)
+            default.STORE.save("syncwatch", {"code": "SW-7K2Q-9MFX", "token": "a" * 32, "mid": 2,
+                                             "leader": False, "name": "Kuchyň"})
+            manager.tick()
+            runtime.start.assert_called_once()
+            default.STORE.save("syncwatch", {})
+            manager.tick()
+        runtime.stop.assert_called_once()
+        self.assertIsNone(manager.runtime)

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="8.0.1" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="8.2.0~beta1" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>8.0.1 – Položka Koncerty se ukáže, jakmile jsou koncerty dostupné. Dřív ji mohlo na hodinu schovat otevření menu hned po startu, kdy Kodi ještě nemělo síť, a restart nepomohl. Sezónní katalogy (třeba Vánoce) se v menu objeví hned po půlnoci, ne až do hodiny.
+    <news>8.2.0~beta1 – Nová položka menu SyncWatch: společné sledování na víc zařízeních. Jeden založí skupinu a dostane kód, ostatní (nejvýš 4 další zařízení) ho zadají a čekají. Co vedoucí pustí, spustí se i u nich — přes jejich vlastní účty u zdrojů — a začne se, až se načte všem. Pauza, play a přetáčení od kohokoli platí pro všechny, na pomalé zařízení se počká. Skupina zanikne, když se k ní 5 minut nikdo nepřipojí. Co sledujete, server nevidí. Zároveň oprava: synchronizace a přenos nastavení přes nokturno.stream znovu fungují (od 7.9.3 je server odmítal).
+8.0.1 – Položka Koncerty se ukáže, jakmile jsou koncerty dostupné. Dřív ji mohlo na hodinu schovat otevření menu hned po startu, kdy Kodi ještě nemělo síť, a restart nepomohl. Sezónní katalogy (třeba Vánoce) se v menu objeví hned po půlnoci, ne až do hodiny.
 8.0.0 – Nová položka menu Koncerty: katalog záznamů hudebních koncertů podle interpreta. Nahoře Nově přidané (padesát naposledy přidaných, každý soubor před zařazením prošel ruční kontrolou), pod tím Všichni, Podle žánru a Podle abecedy. U každého záznamu je vidět zdroj, velikost, rozlišení a délka; klik přehraje nejlepší soubor z tvých zapnutých zdrojů a když nejde, zkusí se další kopie. Koncerty najdeš i ve Stremiu jako samostatný doplněk.
 8.0.0~beta7 – Koncerty: položka Podle písmene se jmenuje Podle abecedy.
 8.0.0~beta6 – Koncerty: nahoře nová složka Nově přidané — padesát koncertů, které do katalogu přibyly naposledy. Nové soubory teď do katalogu jdou až po ruční kontrole, takže v Nově přidaných je jen prověřený obsah.

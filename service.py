@@ -187,6 +187,7 @@ class Player(xbmc.Player):
         super().__init__()
         self.store = store
         self.stats = stats
+        self.sw = None   # SyncWatchManager — události přehrávače jdou i do skupiny
         self.reset()
 
     def reset(self):
@@ -204,6 +205,7 @@ class Player(xbmc.Player):
         self.finish()
         raw = xbmcgui.Window(10000).getProperty(PROP)
         if not raw:
+            self.sw_event("started", item={})
             return
         try:
             item = json.loads(raw)
@@ -211,6 +213,12 @@ class Player(xbmc.Player):
             return
         xbmcgui.Window(10000).clearProperty(PROP)
         self.item, self.started = item, time.time()
+        try:
+            total = self.getTotalTime()
+        except RuntimeError:
+            total = 0
+        self.sw_event("started", item={"replay": item.get("replay"), "title": item.get("title") or "",
+                                       "total": total})
         log(f"sleduji {item.get('id')}")
         self.trakt_scrobble("start", 0)
         threading.Thread(target=self.apply_tracks, args=(item,), name="nokturno-tracks", daemon=True).start()
@@ -348,13 +356,31 @@ class Player(xbmc.Player):
         xbmcgui.Window(10000).setProperty(SYNC_PROP, "1")
         self.reset()
 
+    def sw_event(self, kind, **kw):
+        if self.sw is not None:
+            self.sw.event(kind, **kw)
+
+    def onPlayBackPaused(self):
+        self.sw_event("paused")
+
+    def onPlayBackResumed(self):
+        self.sw_event("resumed")
+
+    def onPlayBackSeek(self, time_ms, offset_ms):
+        self.sw_event("seek", pos=time_ms / 1000.0)
+
+    def onPlayBackSeekChapter(self, chapter):
+        self.sw_event("seek")
+
     def onPlayBackStopped(self):
+        self.sw_event("stopped")
         # opožděné zastavení předchozího souboru po startu nového nesmí ukončit sledování nového
         if self.item and time.time() - self.started < 5 and self.isPlayingVideo():
             return
         self.finish()
 
     def onPlayBackEnded(self):
+        self.sw_event("stopped")
         # na konci videa getTime už nemusí jít – bereme celou délku
         if self.item and self.total > 0:
             self.position = self.total
@@ -362,6 +388,135 @@ class Player(xbmc.Player):
 
     def onPlayBackError(self):
         self.reset()
+
+
+# --- SyncWatch: společné sledování -----------------------------------------------------
+
+SW_PROP = "nokturno.sw"             # stejný literál jako v default.py — stav skupiny pro okna pluginu
+SW_WATCH = 1.0                      # s — jak často se správce dívá, jestli je zařízení ve skupině
+# kód hlášky z jádra → řetězec (šablona s %(who)s a spol., záloha je český text z jádra)
+SW_NOTICE_IDS = {
+    "paused_all": 30840, "paused": 30841, "played": 30842, "seeked": 30843, "buffering": 30844,
+    "stopped": 30845, "loading": 30846, "waiting_others": 30847, "started_without": 30848,
+    "load_failed": 30849, "other_version": 30850, "detached": 30851, "not_shareable": 30852,
+}
+
+
+class SwPlayer(object):
+    """Přehrávač Kodi tak, jak ho chce `syncwatch.Coordinator`. `Player.pause()` v Kodi
+    pauzu přepíná, proto se pauza i pokračování dělají jen ze správného stavu."""
+
+    def __init__(self):
+        self.p = xbmc.Player()
+
+    def position(self):
+        try:
+            return self.p.getTime() if self.p.isPlayingVideo() else None
+        except RuntimeError:
+            return None
+
+    def playing(self):
+        return self.p.isPlayingVideo() and not xbmc.getCondVisibility("Player.Paused")
+
+    def caching(self):
+        return xbmc.getCondVisibility("Player.Caching")
+
+    def pause(self):
+        if self.playing():
+            self.p.pause()
+
+    def resume(self):
+        if self.p.isPlayingVideo() and not self.playing():
+            self.p.pause()
+
+    def seek(self, pos):
+        if self.p.isPlayingVideo():
+            self.p.seekTime(max(0.0, float(pos)))
+
+    def load(self, url):
+        log("SyncWatch: spouštím stream od vedoucího")
+        xbmc.executebuiltin("PlayMedia(%s)" % url)
+
+    def stop(self):
+        if self.p.isPlaying():
+            self.p.stop()
+
+
+class SyncWatchManager(threading.Thread):
+    """Drží běh skupiny (`syncwatch.Runtime`), dokud je v profilu `syncwatch.json`
+    s tokenem. Plugin ho jen zapisuje a maže; tady se podle něj skupina spustí,
+    ukončí, nebo po restartu Kodi znovu naváže."""
+
+    def __init__(self, store, monitor):
+        super().__init__(name="nokturno-syncwatch", daemon=True)
+        self.store = store
+        self.monitor = monitor
+        self.runtime = None
+        self.token = ""
+
+    def event(self, kind, **kw):
+        """Z callbacků `Player` — jen když skupina běží."""
+        rt = self.runtime
+        if rt is not None and rt.alive():
+            rt.event(kind, **kw)
+
+    def run(self):
+        while not self.monitor.abortRequested():
+            try:
+                self.tick()
+            except Exception as e:  # noqa: BLE001 – správce nesmí skončit kvůli jedné chybě
+                log(f"SyncWatch: {e}", xbmc.LOGWARNING)
+            if self.monitor.waitForAbort(SW_WATCH):
+                break
+        if self.runtime is not None:
+            # bez `leave` — po restartu Kodi se do skupiny naváže znovu (vedoucího server
+            # drží 10 minut, člena 5)
+            self.runtime.stop()
+
+    def tick(self):
+        session = self.store.load("syncwatch", {}) or {}
+        token = session.get("token") or ""
+        if self.runtime is not None and (token != self.token or not self.runtime.alive()):
+            self.runtime.stop()
+            self.runtime = None
+            if not token:
+                xbmcgui.Window(10000).clearProperty(SW_PROP)
+        if token and self.runtime is None and token == session.get("token"):
+            self.start(session)
+
+    def start(self, session):
+        import syncwatch
+        try:
+            client = syncwatch.Client(session["code"], token=session["token"])
+        except (syncwatch.SyncWatchError, KeyError) as e:
+            log(f"SyncWatch: neplatná skupina v profilu ({e}), zahazuji", xbmc.LOGWARNING)
+            self.store.save("syncwatch", {})
+            return
+        client.mid = int(session.get("mid") or 0)
+        token = session["token"]
+
+        def closed(reason):
+            # jen když skupinu mezitím plugin nenahradil jinou
+            if (self.store.load("syncwatch", {}) or {}).get("token") == token:
+                self.store.save("syncwatch", {})
+            xbmcgui.Window(10000).setProperty(SW_PROP, json.dumps({"closed": reason or L(30819, "SyncWatch ukončen")}))
+            xbmcgui.Dialog().notification(L(30800, "SyncWatch"),
+                                          reason or L(30819, "SyncWatch ukončen"), xbmcgui.NOTIFICATION_WARNING, 6000)
+            log(f"SyncWatch: skupina skončila ({reason})")
+
+        def notify(code, **kw):
+            text = syncwatch.notice_text(code, L(SW_NOTICE_IDS.get(code, 0), "") or None, **kw)
+            xbmcgui.Dialog().notification(L(30800, "SyncWatch"), text, ADDON.getAddonInfo("icon"), 3500)
+
+        def status(info):
+            xbmcgui.Window(10000).setProperty(SW_PROP, json.dumps(info))
+
+        self.runtime = syncwatch.Runtime(client, SwPlayer(), session.get("name") or "Kodi",
+                                         bool(session.get("leader")), notify=notify, status=status,
+                                         on_closed=closed, should_stop=QUITTING.is_set)
+        self.token = token
+        self.runtime.start()
+        log("SyncWatch: skupina běží (%s)" % ("vedoucí" if session.get("leader") else "člen"))
 
 
 # --- stahování ----------------------------------------------------------------------
@@ -1240,6 +1395,8 @@ def main():
     install_thread_hook()
     stats = Stats(PROFILE)
     player = Player(store, stats)
+    player.sw = SyncWatchManager(store, monitor)
+    player.sw.start()
     Downloader(store, monitor).start()
     threading.Thread(target=warmer, args=(monitor,), daemon=True).start()
     threading.Thread(target=lang_warmer, args=(monitor,), daemon=True).start()

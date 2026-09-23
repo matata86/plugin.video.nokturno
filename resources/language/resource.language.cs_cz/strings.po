@@ -2264,3 +2264,191 @@ msgstr "Všichni interpreti"
 msgctxt "#30755"
 msgid "Recently added"
 msgstr "Nově přidané"
+
+msgctxt "#30800"
+msgid "SyncWatch"
+msgstr "SyncWatch"
+
+msgctxt "#30801"
+msgid "Watch one film or episode together on several devices — each on their own, but at the same moment.[CR][CR][B]1.[/B] One person creates a group and becomes its leader. They get a code, e.g. SW-7K2Q-9MFX.[CR][B]2.[/B] The others (up to 4 more devices) enter the code in SyncWatch → Join with code. They wait until the leader plays something.[CR][B]3.[/B] The leader plays a film in Nokturno as usual. The same stream starts on the other devices by itself — playback begins once it has loaded everywhere.[CR][B]4.[/B] Pause, play and seeking by anyone apply to everyone. When someone is buffering, the others wait.[CR][CR]Everyone plays the stream through their own account at the source. Whoever has no account at the same source gets the same film from another source.[CR]The group ends when nobody joins it for 5 minutes, or when the leader ends it. The server cannot see what you watch — it is encrypted with the group code."
+msgstr "Sledujte jeden film nebo díl společně na víc zařízeních — každý u sebe, ale ve stejnou chvíli.[CR][CR][B]1.[/B] Jeden založí skupinu a stane se vedoucím. Dostane kód, třeba SW-7K2Q-9MFX.[CR][B]2.[/B] Ostatní (nejvýš 4 další zařízení) zadají kód v SyncWatch → Připojit se. Čekají, až vedoucí něco pustí.[CR][B]3.[/B] Vedoucí pustí film normálně v Nokturnu. Stejný stream se sám spustí i u ostatních — začne se, až se načte všem.[CR][B]4.[/B] Pauza, play a přetáčení od kohokoli platí pro všechny. Když se někomu načítá, ostatní počkají.[CR][CR]Stream se každému přehraje přes jeho vlastní účet u zdroje. Kdo účet u stejného zdroje nemá, dostane stejný film z jiného zdroje.[CR]Skupina zanikne, když se k ní 5 minut nikdo nepřipojí, nebo když ji vedoucí ukončí. Co sledujete, server nevidí — je to zašifrované kódem skupiny."
+
+msgctxt "#30802"
+msgid "Got it"
+msgstr "Rozumím"
+
+msgctxt "#30803"
+msgid "Got it, don't show again"
+msgstr "Rozumím, příště nezobrazovat"
+
+msgctxt "#30804"
+msgid "leader"
+msgstr "vedoucí"
+
+msgctxt "#30805"
+msgid "member"
+msgstr "člen"
+
+msgctxt "#30806"
+msgid "connected: %d"
+msgstr "připojeno: %d"
+
+msgctxt "#30807"
+msgid "Close the group to more devices"
+msgstr "Zavřít skupinu pro další zařízení"
+
+msgctxt "#30808"
+msgid "Open the group to more devices"
+msgstr "Otevřít skupinu pro další zařízení"
+
+msgctxt "#30809"
+msgid "End watching for everyone"
+msgstr "Ukončit sledování pro všechny"
+
+msgctxt "#30810"
+msgid "Leave the group"
+msgstr "Opustit skupinu"
+
+msgctxt "#30811"
+msgid "Create a group (I'll lead)"
+msgstr "Založit skupinu (budu vedoucí)"
+
+msgctxt "#30812"
+msgid "Join with code"
+msgstr "Připojit se kódem"
+
+msgctxt "#30813"
+msgid "How SyncWatch works"
+msgstr "Jak SyncWatch funguje"
+
+msgctxt "#30814"
+msgid "The SyncWatch server is not responding, try again in a moment."
+msgstr "Server SyncWatch neodpovídá, zkus to za chvíli."
+
+msgctxt "#30815"
+msgid "Group code (SW-XXXX-XXXX)"
+msgstr "Kód skupiny (SW-XXXX-XXXX)"
+
+msgctxt "#30816"
+msgid "The code is not valid. It has eight characters, e.g. SW-7K2Q-9MFX."
+msgstr "Kód nemá správný tvar. Má osm znaků, třeba SW-7K2Q-9MFX."
+
+msgctxt "#30817"
+msgid "End watching? The group will end for everyone else too."
+msgstr "Ukončit sledování? Skupina skončí i všem ostatním."
+
+msgctxt "#30818"
+msgid "Leave the group? The others will keep watching."
+msgstr "Opustit skupinu? Ostatní budou sledovat dál."
+
+msgctxt "#30819"
+msgid "SyncWatch ended"
+msgstr "SyncWatch ukončen"
+
+msgctxt "#30820"
+msgid "The group is closed, nobody else can join"
+msgstr "Skupina je zavřená, nikdo další se nepřipojí"
+
+msgctxt "#30821"
+msgid "The group is open to more devices"
+msgstr "Skupina je otevřená pro další zařízení"
+
+msgctxt "#30822"
+msgid "Group code"
+msgstr "Kód skupiny"
+
+msgctxt "#30823"
+msgid "On another Kodi: Nokturno → SyncWatch → Join with code."
+msgstr "Na dalším Kodi: Nokturno → SyncWatch → Připojit se kódem."
+
+msgctxt "#30824"
+msgid "Waiting for the broadcast…"
+msgstr "Čekám na vysílání…"
+
+msgctxt "#30825"
+msgid "Group %s — when the leader plays something, it will start here too."
+msgstr "Skupina %s — až vedoucí něco pustí, spustí se to i tady."
+
+msgctxt "#30826"
+msgid "Back closes the window. Then play a film in Nokturno — it starts for everyone."
+msgstr "Zpět zavře okno. Pak pusť film v Nokturnu — spustí se všem."
+
+msgctxt "#30827"
+msgid "Back closes the window, you stay in the group. You can leave in the SyncWatch menu."
+msgstr "Zpět zavře okno, ve skupině zůstaneš. Odejít jde v menu SyncWatch."
+
+msgctxt "#30828"
+msgid "this device"
+msgstr "toto zařízení"
+
+msgctxt "#30829"
+msgid "disconnected"
+msgstr "odpojené"
+
+msgctxt "#30830"
+msgid "Connecting…"
+msgstr "Připojuji…"
+
+msgctxt "#30831"
+msgid "Nobody has joined yet — the code expires in %s"
+msgstr "Zatím se nikdo nepřipojil — kód zanikne za %s"
+
+msgctxt "#30832"
+msgid "Now playing"
+msgstr "Hraje se"
+
+msgctxt "#30833"
+msgid "SyncWatch ended: %s"
+msgstr "SyncWatch skončil: %s"
+
+msgctxt "#30840"
+msgid "Pause for everyone"
+msgstr "Pauza pro všechny"
+
+msgctxt "#30841"
+msgid "%(who)s: paused"
+msgstr "%(who)s: pauza"
+
+msgctxt "#30842"
+msgid "%(who)s: playing again"
+msgstr "%(who)s: přehrávání pokračuje"
+
+msgctxt "#30843"
+msgid "%(who)s: jumped to %(pos)s"
+msgstr "%(who)s: přetočeno na %(pos)s"
+
+msgctxt "#30844"
+msgid "%(who)s: loading, waiting"
+msgstr "%(who)s: načítá se, čekáme"
+
+msgctxt "#30845"
+msgid "%(who)s: playback ended"
+msgstr "%(who)s: přehrávání skončilo"
+
+msgctxt "#30846"
+msgid "Starting: %(title)s"
+msgstr "Spouštím: %(title)s"
+
+msgctxt "#30847"
+msgid "Waiting for the stream to load for the others…"
+msgstr "Čekám, až se stream načte u ostatních…"
+
+msgctxt "#30848"
+msgid "Starting without: %(names)s"
+msgstr "Pouštím bez: %(names)s"
+
+msgctxt "#30849"
+msgid "The stream could not be started"
+msgstr "Stream se nepodařilo spustit"
+
+msgctxt "#30850"
+msgid "You are playing a different version — times may not match exactly"
+msgstr "Hraješ jinou verzi — časy nemusí přesně sedět"
+
+msgctxt "#30851"
+msgid "You are playing something else — the group waits for the next title from the leader"
+msgstr "Hraješ něco jiného — skupina čeká na další titul od vedoucího"
+
+msgctxt "#30852"
+msgid "This can't be shared with the others (it is not a Nokturno title)"
+msgstr "Tohle se ostatním pustit nedá (není to titul z Nokturna)"

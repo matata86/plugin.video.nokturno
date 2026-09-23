@@ -1261,7 +1261,7 @@ def play_ref(apis, ref, name="", alts=""):
     li.getVideoInfoTag().setTitle(name or used)
     kind = used.split(":", 1)[0]
     STORE.remember_item(used, {"type": kind, "id": used, "title": name or used, "art": {}})
-    mark_playing(used, name, kind=kind)
+    mark_playing(used, name, kind=kind, replay=sw_replay(action="play_ref", ref=ref, name=name, alts=alts))
     xbmcplugin.setResolvedUrl(HANDLE, True, li)
 
 
@@ -2281,15 +2281,19 @@ def stream_lines(s):
     return top, bottom
 
 
-def mark_playing(key, title="", year=None, kind="movie", stream_url=None, stream_subs=None, stream_langs=None):
+def mark_playing(key, title="", year=None, kind="movie", stream_url=None, stream_subs=None, stream_langs=None,
+                 replay=None):
     # stream_url/stream_subs: vnitřní reference zvoleného streamu (ne podepsaný odkaz zdroje,
     # ten vyprší) — služba (Player.save_resume) si je uloží k pozici, ať se dá „Pokračovat ve
     # sledování“ pustit rovnou bez nového hledání (viz add_playable/add_snapshot_item)
     # stream_langs: jazyky zvuku, které o streamu tvrdí zdroj — služba podle nich pozná češtinu
     # i u souboru, jehož stopy jazyk neuvádějí (`Player.apply_tracks`, `tracks.pick_audio`)
+    # replay: adresa pluginu, kterou totéž pustí ostatní ve skupině SyncWatch (služba ji
+    # pošle, když je tohle Kodi vedoucí)
     xbmcgui.Window(10000).setProperty(PLAYING_PROP, json.dumps(
         {"id": key, "title": title, "year": year, "kind": kind,
-         "stream_url": stream_url, "stream_subs": stream_subs, "stream_langs": stream_langs or []}))
+         "stream_url": stream_url, "stream_subs": stream_subs, "stream_langs": stream_langs or [],
+         "replay": replay}))
 
 
 SUBS_DIR = os.path.join(PROFILE, "subs")
@@ -2784,6 +2788,336 @@ def _group_fields(group):
                 field["enable"] = podminky
         fields.append(field)
     return fields
+
+
+# --- SyncWatch: společné sledování ------------------------------------------------------
+#
+# Plugin tu jen zakládá skupinu, připojuje se a ukazuje okna. Samotnou synchronizaci
+# přehrávání dělá služba (`service.SyncWatchManager`) — běží celou dobu, co je zařízení
+# ve skupině, i když plugin dávno skončil. Domlouvají se přes profil (`syncwatch.json`:
+# kód a token) a vlastnost okna `SW_PROP` (stav skupiny, který služba zapisuje).
+
+SW_PROP = "nokturno.sw"
+
+
+def _syncwatch():
+    import syncwatch
+    return syncwatch
+
+
+def sw_session():
+    return STORE.load("syncwatch", {}) or {}
+
+
+def sw_status():
+    try:
+        return json.loads(xbmcgui.Window(10000).getProperty(SW_PROP) or "{}")
+    except ValueError:
+        return {}
+
+
+def sw_save(session):
+    STORE.save("syncwatch", session)   # služba se sem dívá každou sekundu (`SyncWatchManager`)
+
+
+def sw_device_name():
+    return (xbmc.getInfoLabel("System.FriendlyName") or "Kodi").strip()[:40]
+
+
+def _swf(sid, fallback, *args):
+    """Lokalizovaný řetězec s `%` a zálohou v kódu (nové řetězce Kodi načte až po restartu)."""
+    text = L(sid, fallback)
+    try:
+        return text % args
+    except TypeError:
+        return fallback % args
+
+
+def sw_title():
+    return L(30800, "SyncWatch")
+
+
+def sw_entry():
+    """Položka SyncWatch v menu: napoprvé (a dokud to uživatel nevypne) návod,
+    pak složka skupiny."""
+    if not STORE.load("sw_intro_hidden", False):
+        if not sw_intro():
+            return
+    xbmc.executebuiltin("Container.Update(%s)" % build_url(action="sw_menu"))
+
+
+def _sw_backdrop():
+    path = os.path.join(PROFILE, "sw-bg.png")
+    if not os.path.exists(path):
+        xbmcvfs.mkdirs(PROFILE)
+        with open(path, "wb") as f:
+            f.write(_solid_rgba_png((13, 11, 20), 255))
+    return path
+
+
+def _sw_button_textures():
+    paths = (os.path.join(PROFILE, "sw-btn.png"), os.path.join(PROFILE, "sw-btn-focus.png"))
+    for path, rgba in zip(paths, (((92, 68, 150), 230), ((124, 92, 200), 255))):
+        if not os.path.exists(path):
+            with open(path, "wb") as f:
+                f.write(_solid_rgba_png(*rgba))
+    return paths
+
+
+class SyncWatchIntroWindow(xbmcgui.WindowDialog):
+    """Návod: jak SyncWatch funguje. Dvě tlačítka — „Rozumím" a „Rozumím,
+    příště nezobrazovat"; Zpět okno zavře a do skupiny se nejde."""
+    BACK = (9, 10, 13, 92)
+
+    def __init__(self):
+        super().__init__()
+        self.choice = None
+        self.addControl(xbmcgui.ControlImage(0, 0, 1280, 720, _sw_backdrop(), colorDiffuse="F20D0B14"))
+        self.addControl(xbmcgui.ControlLabel(90, 50, 1100, 50, "[B]%s[/B]" % sw_title(),
+                                             font="font13", textColor="FFFFFFFF"))
+        text = xbmcgui.ControlTextBox(90, 110, 1100, 470, font="font12", textColor="FFE6E1F0")
+        self.addControl(text)
+        text.setText(L(30801, SW_INTRO_TEXT))
+        bg, bg_focus = _sw_button_textures()
+        self.ok = xbmcgui.ControlButton(90, 610, 360, 56, L(30802, "Rozumím"), font="font13",
+                                        textColor="FFE6E1F0", focusedColor="FFFFFFFF", alignment=6,
+                                        noFocusTexture=bg, focusTexture=bg_focus)
+        self.hide = xbmcgui.ControlButton(470, 610, 520, 56, L(30803, "Rozumím, příště nezobrazovat"),
+                                          font="font13", textColor="FFE6E1F0", focusedColor="FFFFFFFF",
+                                          alignment=6, noFocusTexture=bg, focusTexture=bg_focus)
+        self.addControl(self.ok)
+        self.addControl(self.hide)
+        self.ok.controlRight(self.hide)
+        self.hide.controlLeft(self.ok)
+        self.setFocus(self.ok)
+
+    def onControl(self, control):
+        self.choice = "hide" if control.getId() == self.hide.getId() else "ok"
+        self.close()
+
+    def onAction(self, action):
+        if action.getId() in self.BACK:
+            self.close()
+
+
+SW_INTRO_TEXT = (
+    "Sledujte jeden film nebo díl společně na víc zařízeních — každý u sebe, ale ve stejnou chvíli.[CR][CR]"
+    "[B]1.[/B] Jeden založí skupinu a stane se vedoucím. Dostane kód, třeba SW-7K2Q-9MFX.[CR]"
+    "[B]2.[/B] Ostatní (nejvýš 4 další zařízení) zadají kód v SyncWatch → Připojit se. Čekají, až vedoucí něco pustí.[CR]"
+    "[B]3.[/B] Vedoucí pustí film normálně v Nokturnu. Stejný stream se sám spustí i u ostatních — "
+    "začne se, až se načte všem.[CR]"
+    "[B]4.[/B] Pauza, play a přetáčení od kohokoli platí pro všechny. Když se někomu načítá, ostatní počkají.[CR][CR]"
+    "Stream se každému přehraje přes jeho vlastní účet u zdroje. Kdo účet u stejného zdroje nemá, dostane "
+    "stejný film z jiného zdroje.[CR]"
+    "Skupina zanikne, když se k ní 5 minut nikdo nepřipojí, nebo když ji vedoucí ukončí. "
+    "Co sledujete, server nevidí — je to zašifrované kódem skupiny."
+)
+
+
+def sw_intro():
+    """Návod. Vrací True, když chce uživatel pokračovat do skupiny."""
+    window = SyncWatchIntroWindow()
+    try:
+        window.doModal()
+        choice = window.choice
+    finally:
+        del window
+    if choice == "hide":
+        STORE.save("sw_intro_hidden", True)
+    return choice is not None
+
+
+def sw_menu():
+    """Složka SyncWatch: mimo skupinu Založit / Připojit, ve skupině stav a odchod."""
+    session = sw_session()
+    xbmcplugin.setPluginCategory(HANDLE, sw_title())
+    if session.get("token"):
+        status = sw_status()
+        members = status.get("members") or []
+        online = sum(1 for m in members if m.get("online")) or 1
+        role = L(30804, "vedoucí") if session.get("leader") else L(30805, "člen")
+        action_item("%s · %s · %s" % (session.get("code", ""), role, _swf(30806, "připojeno: %d", online)),
+                    build_url(action="sw_window"), icon="DefaultNetwork.png")
+        if session.get("leader"):
+            action_item(L(30807, "Zavřít skupinu pro další zařízení") if not status.get("locked")
+                        else L(30808, "Otevřít skupinu pro další zařízení"),
+                        build_url(action="sw_lock"), icon="DefaultAddonService.png")
+            action_item(L(30809, "Ukončit sledování pro všechny"), build_url(action="sw_leave"),
+                        icon="DefaultIconError.png")
+        else:
+            action_item(L(30810, "Opustit skupinu"), build_url(action="sw_leave"), icon="DefaultIconError.png")
+    else:
+        action_item(L(30811, "Založit skupinu (budu vedoucí)"), build_url(action="sw_create"),
+                    icon="DefaultAddSource.png")
+        action_item(L(30812, "Připojit se kódem"), build_url(action="sw_join"), icon="DefaultNetwork.png")
+    action_item(L(30813, "Jak SyncWatch funguje"), build_url(action="sw_intro"), icon="DefaultIconInfo.png")
+    xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
+def _sw_fail(err):
+    xbmcgui.Dialog().ok(sw_title(), str(err) or L(30814, "Server SyncWatch neodpovídá, zkus to za chvíli."))
+
+
+def sw_create():
+    sw = _syncwatch()
+    if sw_session().get("token"):
+        return sw_window()
+    code = sw.new_code()
+    client = sw.Client(code)
+    try:
+        client.create({"name": sw_device_name(), "st": "ok"})
+    except sw.SyncWatchError as e:
+        return _sw_fail(e)
+    sw_save({"code": code, "token": client.token, "mid": client.mid, "leader": True,
+             "name": sw_device_name(), "since": int(time.time())})
+    xbmc.log(f"[{ADDON_ID}] SyncWatch: založena skupina", xbmc.LOGINFO)
+    sw_window()
+    xbmc.executebuiltin("Container.Refresh")
+
+
+def sw_join():
+    sw = _syncwatch()
+    if sw_session().get("token"):
+        return sw_window()
+    code = xbmcgui.Dialog().input(L(30815, "Kód skupiny (SW-XXXX-XXXX)"))
+    if not code:
+        return
+    if not sw.valid_code(code):
+        return _sw_fail(L(30816, "Kód nemá správný tvar. Má osm znaků, třeba SW-7K2Q-9MFX."))
+    code = sw.pretty_code(code)
+    client = sw.Client(code)
+    try:
+        client.join({"name": sw_device_name(), "st": "ok"})
+    except sw.SyncWatchError as e:
+        return _sw_fail(e)
+    sw_save({"code": code, "token": client.token, "mid": client.mid, "leader": False,
+             "name": sw_device_name(), "since": int(time.time())})
+    xbmc.log(f"[{ADDON_ID}] SyncWatch: připojeno ke skupině", xbmc.LOGINFO)
+    sw_window()
+    xbmc.executebuiltin("Container.Refresh")
+
+
+def sw_leave():
+    sw = _syncwatch()
+    session = sw_session()
+    if not session.get("token"):
+        return
+    question = (L(30817, "Ukončit sledování? Skupina skončí i všem ostatním.") if session.get("leader")
+                else L(30818, "Opustit skupinu? Ostatní budou sledovat dál."))
+    if not xbmcgui.Dialog().yesno(sw_title(), question):
+        return
+    try:
+        sw.Client(session["code"], token=session["token"]).leave()
+    except sw.SyncWatchError as e:
+        log_error(e)
+    sw_save({})
+    notify(L(30819, "SyncWatch ukončen"))
+    xbmc.executebuiltin("Container.Refresh")
+
+
+def sw_lock():
+    sw = _syncwatch()
+    session = sw_session()
+    if not session.get("leader"):
+        return
+    locked = not sw_status().get("locked")
+    try:
+        sw.Client(session["code"], token=session["token"]).lock(locked)
+    except sw.SyncWatchError as e:
+        return _sw_fail(e)
+    notify(L(30820, "Skupina je zavřená, nikdo další se nepřipojí") if locked
+           else L(30821, "Skupina je otevřená pro další zařízení"))
+    xbmc.executebuiltin("Container.Refresh")
+
+
+class SyncWatchWindow(xbmcgui.WindowDialog):
+    """Okno skupiny. U vedoucího kód velkým písmem a kdo se připojil, u člena
+    „Čekám na vysílání…". Neblokuje: smyčka v `sw_window()` ho obnovuje ze stavu,
+    který píše služba. Zpět okno zavře, ve skupině se zůstává."""
+    BACK = (9, 10, 13, 92)
+
+    def __init__(self, leader, code):
+        super().__init__()
+        self.closed_by_user = False
+        self.addControl(xbmcgui.ControlImage(0, 0, 1280, 720, _sw_backdrop(), colorDiffuse="F20D0B14"))
+        self.addControl(xbmcgui.ControlLabel(90, 50, 1100, 50, "[B]%s[/B]" % sw_title(),
+                                             font="font13", textColor="FFFFFFFF"))
+        if leader:
+            self.addControl(xbmcgui.ControlLabel(90, 120, 1100, 40, L(30822, "Kód skupiny"),
+                                                 font="font13", textColor="FF9B95AD"))
+            self.addControl(xbmcgui.ControlLabel(90, 160, 1100, 110, "[B]%s[/B]" % code,
+                                                 font="font45", textColor="FFC4B5FD"))
+            hint = L(30823, "Na dalším Kodi: Nokturno → SyncWatch → Připojit se kódem.")
+        else:
+            self.addControl(xbmcgui.ControlLabel(90, 140, 1100, 60, "[B]%s[/B]" % L(30824, "Čekám na vysílání…"),
+                                                 font="font13", textColor="FFC4B5FD"))
+            hint = _swf(30825, "Skupina %s — až vedoucí něco pustí, spustí se to i tady.", code)
+        self.addControl(xbmcgui.ControlLabel(90, 280, 1100, 40, hint, font="font13", textColor="FFE6E1F0"))
+        self.status = xbmcgui.ControlLabel(90, 330, 1100, 40, "", font="font13", textColor="FFFFB86C")
+        self.addControl(self.status)
+        self.members = xbmcgui.ControlTextBox(90, 390, 1100, 200, font="font13", textColor="FFE6E1F0")
+        self.addControl(self.members)
+        footer = (L(30826, "Zpět zavře okno. Pak pusť film v Nokturnu — spustí se všem.") if leader
+                  else L(30827, "Zpět zavře okno, ve skupině zůstaneš. Odejít jde v menu SyncWatch."))
+        self.addControl(xbmcgui.ControlLabel(90, 620, 1100, 40, footer, font="font13", textColor="FF9B95AD"))
+
+    def update(self, status, leader):
+        rows = []
+        for m in status.get("members") or []:
+            dot = "[COLOR FF50FA7B]●[/COLOR]" if m.get("online") else "[COLOR FF6D6A7C]○[/COLOR]"
+            extra = []
+            if m.get("leader"):
+                extra.append(L(30804, "vedoucí"))
+            if m.get("you"):
+                extra.append(L(30828, "toto zařízení"))
+            if not m.get("online"):
+                extra.append(L(30829, "odpojené"))
+            rows.append("%s %s%s" % (dot, m.get("name") or "?", (" (%s)" % ", ".join(extra)) if extra else ""))
+        self.members.setText("[CR]".join(rows) or L(30830, "Připojuji…"))
+        line = ""
+        if status.get("expires") is not None and leader:
+            left = int(status["expires"])
+            line = _swf(30831, "Zatím se nikdo nepřipojil — kód zanikne za %s", "%d:%02d" % divmod(left, 60))
+        elif status.get("title") and status.get("loaded"):
+            line = "%s: %s" % (L(30832, "Hraje se"), status["title"])
+        self.status.setLabel(line)
+
+    def onAction(self, action):
+        if action.getId() in self.BACK:
+            self.closed_by_user = True
+            self.close()
+
+
+def sw_window():
+    """Okno skupiny, dokud ho uživatel nezavře, skupina neskončí, nebo (u člena)
+    se nezačne přehrávat stream od vedoucího."""
+    session = sw_session()
+    if not session.get("token"):
+        return
+    leader = bool(session.get("leader"))
+    window = SyncWatchWindow(leader, session.get("code", ""))
+    window.show()
+    try:
+        while not window.closed_by_user and not should_stop():
+            # jen volání API Kodi pustí `onAction` (Zpět) k oknu — viz `remote_setup()`
+            MONITOR.waitForAbort(0.4)
+            if not sw_session().get("token"):
+                closed = sw_status().get("closed") or ""
+                notify(_swf(30833, "SyncWatch skončil: %s", closed) if closed else L(30819, "SyncWatch ukončen"),
+                       xbmcgui.NOTIFICATION_WARNING, 6000)
+                break
+            status = sw_status()
+            window.update(status, leader)
+            if not leader and (status.get("loading") or xbmc.Player().isPlayingVideo()):
+                break   # stream od vedoucího se spouští — okno by překrylo video
+    finally:
+        window.close()
+        del window
+
+
+def sw_replay(**params):
+    """Adresa, kterou ostatní ve skupině pustí totéž (`syncwatch.valid_replay`)."""
+    return build_url(**params)
 
 
 def remote_setup_schema(section=None):
@@ -4391,6 +4725,10 @@ def main_menu(apis):
     # První přidaný titul řádek rozsvítí hned, `toggle_fav()` volá Container.Refresh.
     if STORE.favourites() or STORE.recently_watched(1):
         folder_item(L(30060), build_url(action="favourites"), icon="DefaultFavourites.png")
+    # společné sledování; ve skupině ukazuje i kód, ať je vidět, že běží
+    sw_code = sw_session().get("code")
+    action_item("%s · %s" % (sw_title(), sw_code) if sw_code else sw_title(),
+                build_url(action="syncwatch"), icon="DefaultNetwork.png")
     if apis.get("dav"):
         folder_item(L(30387, "Moje úložiště"), build_url(action="dav_browse"), icon="DefaultHardDisk.png")
     if setting("download_dir") or sync_targets():
@@ -6058,7 +6396,7 @@ def pick_title(apis, ctype, item_id, series_id=None, alt=None, fulltext=False, d
         subs="|".join(picked.get("subtitles") or []), pref=pref_param(picked), alts=alts_param(picked)))
 
 
-def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref="", ask="", alts=""):
+def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref="", ask="", alts="", sw=""):
     """`ask=1` = Přehrát nad položkou Nokturna (detail, widget) nebo player TMDb Helperu → výběr
     v dialogu (`choose_stream`, zapamatovaný stream předvybraný). Bez `ask` (Up Next, HA) hraje
     zapamatovaný nebo nejlepší stream bez ptaní."""
@@ -6120,7 +6458,7 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
             return
         remembered = preferred_stream(streams, STORE.stream_pref(pref_key)) if pref_key else None
         chosen = remembered or streams[0]
-        if ask:
+        if ask and not sw:
             picked = choose_stream(streams, remembered, expand=lambda: expand_streams(apis, streams, meta, video))
             if picked is None:
                 xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
@@ -6145,7 +6483,8 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
     count = STORE.playcount(item_id)
     if count:
         tag.setPlaycount(count)
-    resume, total = STORE.resume(item_id)
+    # SyncWatch: pozici určuje skupina, ne historie tohohle zařízení
+    resume, total = STORE.resume(item_id) if not sw else (0, 0)
     if resume and not count:
         try:
             tag.setResumePoint(resume, total)
@@ -6158,11 +6497,16 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
     year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
     # bez roku – ten se posílá zvlášť polem `year`, display_name() by ho zdvojil
     stats_title = episode_stats_title(video, meta)
+    # SyncWatch: vybraný stream napřed, pak další nálezy — kdo nemá účet u zdroje
+    # vedoucího, pustí tentýž film odjinud (`play()` s `url` a `alts` bez hledání)
+    replay = sw_replay(action="play", type=ctype, id=item_id, series=series_id, alt=alt, url=chosen.get("url"),
+                       subs="|".join(chosen.get("subtitles") or []),
+                       alts="|".join(u for u, _ in play_candidates(chosen, streams)[1:]) or alts)
     mark_playing(item_id, stats_title, year if year.isdigit() else None, "series" if video else ctype,
                 stream_url=chosen.get("url"), stream_subs="|".join(chosen.get("subtitles") or []),
-                stream_langs=list(chosen.get("langs") or []))
+                stream_langs=list(chosen.get("langs") or []), replay=replay)
     xbmcplugin.setResolvedUrl(HANDLE, True, li)
-    if video:
+    if video and not sw:
         upnext_notify(meta, video, series_id or split_episode_id(item_id)[0], alt)
 
 
@@ -6179,17 +6523,18 @@ def play_ws(apis, ident, name=""):
     li = xbmcgui.ListItem(label=name or ident, path=link)
     li.getVideoInfoTag().setTitle(name or ident)
     STORE.remember_item("ws:" + ident, {"type": "ws", "id": "ws:" + ident, "title": name or ident, "art": {}})
-    mark_playing("ws:" + ident, name, kind="ws")
+    mark_playing("ws:" + ident, name, kind="ws", replay=sw_replay(action="play_ws", ident=ident, name=name))
     xbmcplugin.setResolvedUrl(HANDLE, True, li)
 
 
 def play_dav(apis, slot, path, name=""):
     key = f"dav:{slot}:{path}"
+    replay = sw_replay(action="play_dav", slot=slot, path=path, name=name)
     api, path = storage_for(apis, key)
     li = xbmcgui.ListItem(label=name or path, path=api.kodi_url(path))
     li.getVideoInfoTag().setTitle(name or path)
     STORE.remember_item(key, {"type": "dav", "id": key, "title": name or path, "art": {}})
-    mark_playing(key, name, kind="dav")
+    mark_playing(key, name, kind="dav", replay=replay)
     xbmcplugin.setResolvedUrl(HANDLE, True, li)
 
 
@@ -6204,7 +6549,7 @@ def play_hs(apis, file_id, file_hash, name=""):
     li = xbmcgui.ListItem(label=name or key, path=link)
     li.getVideoInfoTag().setTitle(name or key)
     STORE.remember_item(key, {"type": "hs", "id": key, "title": name or key, "art": {}})
-    mark_playing(key, name, kind="hs")
+    mark_playing(key, name, kind="hs", replay=sw_replay(action="play_hs", id=file_id, hash=file_hash, name=name))
     xbmcplugin.setResolvedUrl(HANDLE, True, li)
 
 
@@ -6504,6 +6849,15 @@ def router(query):
         # akce z nastavení, žádný výpis — succeeded=False jako u "clear_cache"
         "cztor_pair": lambda: (cztor_pair(), xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
         "sync_create": lambda: _tlacitko(sync_create),
+        # SyncWatch: tlačítka s okny (handle −1); složka skupiny je `sw_menu`
+        "syncwatch": lambda: _tlacitko(sw_entry),
+        "sw_menu": sw_menu,
+        "sw_intro": lambda: _tlacitko(sw_intro),
+        "sw_create": lambda: _tlacitko(sw_create),
+        "sw_join": lambda: _tlacitko(sw_join),
+        "sw_window": lambda: _tlacitko(sw_window),
+        "sw_leave": lambda: _tlacitko(sw_leave),
+        "sw_lock": lambda: _tlacitko(sw_lock),
         "sync_join": lambda: _tlacitko(sync_join),
         "sync_leave": lambda: _tlacitko(sync_leave),
         "cztor_status": lambda: (cztor_status(), xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)),
@@ -6642,7 +6996,7 @@ def router(query):
             play(apis, p.get("type", "movie"), p["id"], p.get("series"), alt=p.get("alt"), ask="1")
         elif action == "play":
             play(apis, p["type"], p["id"], p.get("series"), url=p.get("url"), alt=p.get("alt"), subs=p.get("subs", ""),
-                 pref=p.get("pref", ""), ask=p.get("ask", ""), alts=p.get("alts", ""))
+                 pref=p.get("pref", ""), ask=p.get("ask", ""), alts=p.get("alts", ""), sw=p.get("sw", ""))
         elif action == "play_ws":
             play_ws(apis, p["ident"], p.get("name", ""))
         elif action == "play_hs":

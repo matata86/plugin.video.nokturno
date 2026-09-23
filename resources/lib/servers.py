@@ -57,12 +57,20 @@ def variants(url):
     return [b + rest for b in order]
 
 
+# Cloudflare před `nokturno.stream` odmítá výchozí `Python-urllib/3.x` s 403 (error 1010,
+# „browser signature banned") — od přechodu na doménu 2026-09-23 tak neprošla synchronizace
+# ani přenos nastavení, které hlavičku nenastavovaly. Kdo žádnou nemá, dostane tuhle.
+USER_AGENT = "Nokturno"
+
+
 def _retarget(req, url):
-    """Týž požadavek (metoda, hlavičky, tělo) na jinou adresu."""
+    """Týž požadavek (metoda, hlavičky, tělo) na jinou adresu, vždy s `User-Agent`."""
     if not isinstance(req, urllib.request.Request):
-        return url
-    return urllib.request.Request(url, data=req.data, headers=dict(req.header_items()),
-                                  method=req.get_method())
+        req = urllib.request.Request(url)
+    headers = dict(req.header_items())
+    if not any(k.lower() == "user-agent" for k in headers):
+        headers["User-Agent"] = USER_AGENT
+    return urllib.request.Request(url, data=req.data, headers=headers, method=req.get_method())
 
 
 def urlopen(req, timeout=None):

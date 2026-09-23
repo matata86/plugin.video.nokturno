@@ -2262,3 +2262,191 @@ msgstr "Összes előadó"
 msgctxt "#30755"
 msgid "Recently added"
 msgstr "Újonnan hozzáadott"
+
+msgctxt "#30800"
+msgid "SyncWatch"
+msgstr "SyncWatch"
+
+msgctxt "#30801"
+msgid "Watch one film or episode together on several devices — each on their own, but at the same moment.[CR][CR][B]1.[/B] One person creates a group and becomes its leader. They get a code, e.g. SW-7K2Q-9MFX.[CR][B]2.[/B] The others (up to 4 more devices) enter the code in SyncWatch → Join with code. They wait until the leader plays something.[CR][B]3.[/B] The leader plays a film in Nokturno as usual. The same stream starts on the other devices by itself — playback begins once it has loaded everywhere.[CR][B]4.[/B] Pause, play and seeking by anyone apply to everyone. When someone is buffering, the others wait.[CR][CR]Everyone plays the stream through their own account at the source. Whoever has no account at the same source gets the same film from another source.[CR]The group ends when nobody joins it for 5 minutes, or when the leader ends it. The server cannot see what you watch — it is encrypted with the group code."
+msgstr "Nézzetek meg egy filmet vagy epizódot együtt több eszközön — mindenki a sajátján, de ugyanabban a pillanatban.[CR][CR][B]1.[/B] Valaki létrehoz egy csoportot, és ő lesz a vezető. Kap egy kódot, például SW-7K2Q-9MFX.[CR][B]2.[/B] A többiek (legfeljebb további 4 eszköz) beírják a kódot: SyncWatch → Csatlakozás kóddal. Várnak, amíg a vezető elindít valamit.[CR][B]3.[/B] A vezető a szokásos módon elindít egy filmet a Nokturnóban. Ugyanaz a stream magától elindul a többieknél is — a lejátszás akkor kezdődik, amikor mindenkinél betöltődött.[CR][B]4.[/B] A szünet, a lejátszás és a tekerés bárkitől mindenkire érvényes. Ha valakinél töltődik, a többiek várnak.[CR][CR]Mindenki a saját fiókjával játssza le a streamet a forrásnál. Akinek nincs fiókja ugyanannál a forrásnál, ugyanazt a filmet kapja más forrásból.[CR]A csoport megszűnik, ha 5 percig senki sem csatlakozik, vagy ha a vezető befejezi. A szerver nem látja, mit néztek — a csoport kódjával titkosítva van."
+
+msgctxt "#30802"
+msgid "Got it"
+msgstr "Értem"
+
+msgctxt "#30803"
+msgid "Got it, don't show again"
+msgstr "Értem, többé ne mutasd"
+
+msgctxt "#30804"
+msgid "leader"
+msgstr "vezető"
+
+msgctxt "#30805"
+msgid "member"
+msgstr "tag"
+
+msgctxt "#30806"
+msgid "connected: %d"
+msgstr "csatlakozva: %d"
+
+msgctxt "#30807"
+msgid "Close the group to more devices"
+msgstr "Csoport lezárása további eszközök elől"
+
+msgctxt "#30808"
+msgid "Open the group to more devices"
+msgstr "Csoport megnyitása további eszközöknek"
+
+msgctxt "#30809"
+msgid "End watching for everyone"
+msgstr "Közös nézés befejezése mindenkinek"
+
+msgctxt "#30810"
+msgid "Leave the group"
+msgstr "Kilépés a csoportból"
+
+msgctxt "#30811"
+msgid "Create a group (I'll lead)"
+msgstr "Csoport létrehozása (én vezetem)"
+
+msgctxt "#30812"
+msgid "Join with code"
+msgstr "Csatlakozás kóddal"
+
+msgctxt "#30813"
+msgid "How SyncWatch works"
+msgstr "Hogyan működik a SyncWatch"
+
+msgctxt "#30814"
+msgid "The SyncWatch server is not responding, try again in a moment."
+msgstr "A SyncWatch szerver nem válaszol, próbáld újra kicsit később."
+
+msgctxt "#30815"
+msgid "Group code (SW-XXXX-XXXX)"
+msgstr "Csoportkód (SW-XXXX-XXXX)"
+
+msgctxt "#30816"
+msgid "The code is not valid. It has eight characters, e.g. SW-7K2Q-9MFX."
+msgstr "A kód formátuma hibás. Nyolc karakterből áll, például SW-7K2Q-9MFX."
+
+msgctxt "#30817"
+msgid "End watching? The group will end for everyone else too."
+msgstr "Befejezed a közös nézést? A csoport mindenki másnak is véget ér."
+
+msgctxt "#30818"
+msgid "Leave the group? The others will keep watching."
+msgstr "Kilépsz a csoportból? A többiek tovább nézik."
+
+msgctxt "#30819"
+msgid "SyncWatch ended"
+msgstr "SyncWatch befejezve"
+
+msgctxt "#30820"
+msgid "The group is closed, nobody else can join"
+msgstr "A csoport lezárva, más nem csatlakozhat"
+
+msgctxt "#30821"
+msgid "The group is open to more devices"
+msgstr "A csoport nyitott további eszközöknek"
+
+msgctxt "#30822"
+msgid "Group code"
+msgstr "Csoportkód"
+
+msgctxt "#30823"
+msgid "On another Kodi: Nokturno → SyncWatch → Join with code."
+msgstr "Egy másik Kodin: Nokturno → SyncWatch → Csatlakozás kóddal."
+
+msgctxt "#30824"
+msgid "Waiting for the broadcast…"
+msgstr "Várakozás az adásra…"
+
+msgctxt "#30825"
+msgid "Group %s — when the leader plays something, it will start here too."
+msgstr "%s csoport — amikor a vezető elindít valamit, itt is elindul."
+
+msgctxt "#30826"
+msgid "Back closes the window. Then play a film in Nokturno — it starts for everyone."
+msgstr "A Vissza bezárja az ablakot. Utána indíts egy filmet a Nokturnóban — mindenkinél elindul."
+
+msgctxt "#30827"
+msgid "Back closes the window, you stay in the group. You can leave in the SyncWatch menu."
+msgstr "A Vissza bezárja az ablakot, a csoportban maradsz. Kilépni a SyncWatch menüben lehet."
+
+msgctxt "#30828"
+msgid "this device"
+msgstr "ez az eszköz"
+
+msgctxt "#30829"
+msgid "disconnected"
+msgstr "lecsatlakozott"
+
+msgctxt "#30830"
+msgid "Connecting…"
+msgstr "Csatlakozás…"
+
+msgctxt "#30831"
+msgid "Nobody has joined yet — the code expires in %s"
+msgstr "Még senki sem csatlakozott — a kód %s múlva lejár"
+
+msgctxt "#30832"
+msgid "Now playing"
+msgstr "Most megy"
+
+msgctxt "#30833"
+msgid "SyncWatch ended: %s"
+msgstr "A SyncWatch véget ért: %s"
+
+msgctxt "#30840"
+msgid "Pause for everyone"
+msgstr "Szünet mindenkinek"
+
+msgctxt "#30841"
+msgid "%(who)s: paused"
+msgstr "%(who)s: szünet"
+
+msgctxt "#30842"
+msgid "%(who)s: playing again"
+msgstr "%(who)s: lejátszás folytatódik"
+
+msgctxt "#30843"
+msgid "%(who)s: jumped to %(pos)s"
+msgstr "%(who)s: tekerés ide: %(pos)s"
+
+msgctxt "#30844"
+msgid "%(who)s: loading, waiting"
+msgstr "%(who)s: töltődik, várunk"
+
+msgctxt "#30845"
+msgid "%(who)s: playback ended"
+msgstr "%(who)s: lejátszás vége"
+
+msgctxt "#30846"
+msgid "Starting: %(title)s"
+msgstr "Indítás: %(title)s"
+
+msgctxt "#30847"
+msgid "Waiting for the stream to load for the others…"
+msgstr "Várakozás, amíg a stream betöltődik a többieknél…"
+
+msgctxt "#30848"
+msgid "Starting without: %(names)s"
+msgstr "Indítás nélkülük: %(names)s"
+
+msgctxt "#30849"
+msgid "The stream could not be started"
+msgstr "A streamet nem sikerült elindítani"
+
+msgctxt "#30850"
+msgid "You are playing a different version — times may not match exactly"
+msgstr "Más verziót játszol — az idők nem biztos, hogy pontosan egyeznek"
+
+msgctxt "#30851"
+msgid "You are playing something else — the group waits for the next title from the leader"
+msgstr "Mást játszol — a csoport a vezető következő címére vár"
+
+msgctxt "#30852"
+msgid "This can't be shared with the others (it is not a Nokturno title)"
+msgstr "Ezt nem lehet a többieknek elindítani (nem Nokturno-cím)"

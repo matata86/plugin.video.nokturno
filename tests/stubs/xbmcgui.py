@@ -141,6 +141,15 @@ class _Control:
     def setText(self, text):
         self.text = text
 
+    def setLabel(self, label):
+        self.text = label
+
+    def controlRight(self, other):
+        pass
+
+    def controlLeft(self, other):
+        pass
+
     def getId(self):
         return id(self)
 

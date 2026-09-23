@@ -2263,3 +2263,191 @@ msgstr ""
 msgctxt "#30755"
 msgid "Recently added"
 msgstr ""
+
+msgctxt "#30800"
+msgid "SyncWatch"
+msgstr ""
+
+msgctxt "#30801"
+msgid "Watch one film or episode together on several devices — each on their own, but at the same moment.[CR][CR][B]1.[/B] One person creates a group and becomes its leader. They get a code, e.g. SW-7K2Q-9MFX.[CR][B]2.[/B] The others (up to 4 more devices) enter the code in SyncWatch → Join with code. They wait until the leader plays something.[CR][B]3.[/B] The leader plays a film in Nokturno as usual. The same stream starts on the other devices by itself — playback begins once it has loaded everywhere.[CR][B]4.[/B] Pause, play and seeking by anyone apply to everyone. When someone is buffering, the others wait.[CR][CR]Everyone plays the stream through their own account at the source. Whoever has no account at the same source gets the same film from another source.[CR]The group ends when nobody joins it for 5 minutes, or when the leader ends it. The server cannot see what you watch — it is encrypted with the group code."
+msgstr ""
+
+msgctxt "#30802"
+msgid "Got it"
+msgstr ""
+
+msgctxt "#30803"
+msgid "Got it, don't show again"
+msgstr ""
+
+msgctxt "#30804"
+msgid "leader"
+msgstr ""
+
+msgctxt "#30805"
+msgid "member"
+msgstr ""
+
+msgctxt "#30806"
+msgid "connected: %d"
+msgstr ""
+
+msgctxt "#30807"
+msgid "Close the group to more devices"
+msgstr ""
+
+msgctxt "#30808"
+msgid "Open the group to more devices"
+msgstr ""
+
+msgctxt "#30809"
+msgid "End watching for everyone"
+msgstr ""
+
+msgctxt "#30810"
+msgid "Leave the group"
+msgstr ""
+
+msgctxt "#30811"
+msgid "Create a group (I'll lead)"
+msgstr ""
+
+msgctxt "#30812"
+msgid "Join with code"
+msgstr ""
+
+msgctxt "#30813"
+msgid "How SyncWatch works"
+msgstr ""
+
+msgctxt "#30814"
+msgid "The SyncWatch server is not responding, try again in a moment."
+msgstr ""
+
+msgctxt "#30815"
+msgid "Group code (SW-XXXX-XXXX)"
+msgstr ""
+
+msgctxt "#30816"
+msgid "The code is not valid. It has eight characters, e.g. SW-7K2Q-9MFX."
+msgstr ""
+
+msgctxt "#30817"
+msgid "End watching? The group will end for everyone else too."
+msgstr ""
+
+msgctxt "#30818"
+msgid "Leave the group? The others will keep watching."
+msgstr ""
+
+msgctxt "#30819"
+msgid "SyncWatch ended"
+msgstr ""
+
+msgctxt "#30820"
+msgid "The group is closed, nobody else can join"
+msgstr ""
+
+msgctxt "#30821"
+msgid "The group is open to more devices"
+msgstr ""
+
+msgctxt "#30822"
+msgid "Group code"
+msgstr ""
+
+msgctxt "#30823"
+msgid "On another Kodi: Nokturno → SyncWatch → Join with code."
+msgstr ""
+
+msgctxt "#30824"
+msgid "Waiting for the broadcast…"
+msgstr ""
+
+msgctxt "#30825"
+msgid "Group %s — when the leader plays something, it will start here too."
+msgstr ""
+
+msgctxt "#30826"
+msgid "Back closes the window. Then play a film in Nokturno — it starts for everyone."
+msgstr ""
+
+msgctxt "#30827"
+msgid "Back closes the window, you stay in the group. You can leave in the SyncWatch menu."
+msgstr ""
+
+msgctxt "#30828"
+msgid "this device"
+msgstr ""
+
+msgctxt "#30829"
+msgid "disconnected"
+msgstr ""
+
+msgctxt "#30830"
+msgid "Connecting…"
+msgstr ""
+
+msgctxt "#30831"
+msgid "Nobody has joined yet — the code expires in %s"
+msgstr ""
+
+msgctxt "#30832"
+msgid "Now playing"
+msgstr ""
+
+msgctxt "#30833"
+msgid "SyncWatch ended: %s"
+msgstr ""
+
+msgctxt "#30840"
+msgid "Pause for everyone"
+msgstr ""
+
+msgctxt "#30841"
+msgid "%(who)s: paused"
+msgstr ""
+
+msgctxt "#30842"
+msgid "%(who)s: playing again"
+msgstr ""
+
+msgctxt "#30843"
+msgid "%(who)s: jumped to %(pos)s"
+msgstr ""
+
+msgctxt "#30844"
+msgid "%(who)s: loading, waiting"
+msgstr ""
+
+msgctxt "#30845"
+msgid "%(who)s: playback ended"
+msgstr ""
+
+msgctxt "#30846"
+msgid "Starting: %(title)s"
+msgstr ""
+
+msgctxt "#30847"
+msgid "Waiting for the stream to load for the others…"
+msgstr ""
+
+msgctxt "#30848"
+msgid "Starting without: %(names)s"
+msgstr ""
+
+msgctxt "#30849"
+msgid "The stream could not be started"
+msgstr ""
+
+msgctxt "#30850"
+msgid "You are playing a different version — times may not match exactly"
+msgstr ""
+
+msgctxt "#30851"
+msgid "You are playing something else — the group waits for the next title from the leader"
+msgstr ""
+
+msgctxt "#30852"
+msgid "This can't be shared with the others (it is not a Nokturno title)"
+msgstr ""
