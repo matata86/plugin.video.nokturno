@@ -11,7 +11,7 @@ Podrobný návod (instalace, nastavení každého zdroje, používání, řešen
 ## Rychlý start
 
 1. V Kodi povol *Nastavení → Systém → Doplňky → **Neznámé zdroje***.
-2. Přidej zdroj `https://nokturno.tailf0014.ts.net/repo/` a z něj nainstaluj `repository.nokturno.zip`, pak doplněk **Nokturno** (přesný postup níž v [Instalaci](#instalace)).
+2. Přidej zdroj `https://nokturno.stream/repo/` a z něj nainstaluj `repository.nokturno.zip`, pak doplněk **Nokturno** (přesný postup níž v [Instalaci](#instalace)).
 3. Po instalaci tě **průvodce** provede vyplněním zdrojů. Nic víc není nutné — HellSpy funguje bez účtu a katalogy bez nastavení.
 
 Nastavení účtů se dá pohodlně vyplnit **z mobilu** (QR kód na TV) nebo přenést z jiného Kodi.
@@ -106,7 +106,7 @@ povolit Nastavení → Systém → Doplňky → **Neznámé zdroje**.
 *Přímo v Kodi, bez prohlížeče (vhodné pro TV a set-top boxy):*
 
 1. Nastavení → Správce souborů → **Přidat zdroj** → jako adresu zadej
-   `https://nokturno.tailf0014.ts.net/repo/` a pojmenuj ji třeba `Nokturno`.
+   `https://nokturno.stream/repo/` a pojmenuj ji třeba `Nokturno`.
 2. Doplňky → **Instalovat ze souboru ZIP** → `Nokturno` → `repository.nokturno`
    → `repository.nokturno.zip`.
 3. Doplňky → Instalovat z repozitáře → **Nokturno repozitář** → Video doplňky →
@@ -175,7 +175,7 @@ Tlačítka otevřou tvoji instanci: první přidá integraci do HACS, druhé spu
 
 Stejné zdroje (WebShare, Sosáč, Sledujteto, FastShare, HellSpy) jsou i jako [**doplněk pro Stremio**](https://github.com/matata86/nokturno-stremio) — funguje i v Nuviu a dalších klientech Stremia. Na rozdíl od tohoto doplňku nemá vlastní katalogy ani knihovnu — dohledává jen streamy k titulům, které si Stremio najde samo.
 
-**Přidat do Stremia:** [nokturno.tailf0014.ts.net/configure](https://nokturno.tailf0014.ts.net/configure).
+**Přidat do Stremia:** [nokturno.stream/configure](https://nokturno.stream/configure).
 
 ## Pro pokročilé a vývojáře
 
@@ -255,7 +255,7 @@ odinstalaci (smazání složky doplňku) tohle zachytit nemůže, protože při 
 žádný kód doplňku neběží. Server proto instalaci, která se dlouho neozvala,
 sám počítá jako mrtvou (`dead_after` v konfiguraci sběrného bodu).
 
-Data chodí na `https://nokturno.tailf0014.ts.net/collect`. Odesílání se vypíná
+Data chodí na `https://nokturno.stream/collect`. Odesílání se vypíná
 přepínačem v nastavení. Hlášení je jeden POST s tímto tělem, takže je vidět
 přesně, co odchází:
 
@@ -277,7 +277,7 @@ potvrzení („Opravdu odeslat log?") pošle poslední ~500 KB souboru `kodi.log
 neopouští. Funguje i při vypnutých statistikách, protože jde o jednorázovou
 diagnostickou akci na vyžádání, ne o průběžný sběr.
 
-Log se posílá na `https://nokturno.tailf0014.ts.net/logs?id=<id instalace>&version=<verze>`
+Log se posílá na `https://nokturno.stream/logs?id=<id instalace>&version=<verze>`
 jako syrová gzip data v těle POST požadavku (stejné `id` jako u statistik).
 Očekávaná odpověď je HTTP 200; při chybě (síť, server, moc časté odeslání)
 doplněk zobrazí notifikaci s důvodem. Nahlášené logy vidí administrátor v
@@ -297,7 +297,7 @@ Doplněk smíte používat jen k obsahu, ke kterému máte zákonné oprávněn�
 nebo jiný právní titul. Při prvním spuštění se právní upozornění ukáže
 k odsouhlasení (Nastavení → Podmínky použití, úplně první kategorie — přepínač
 jde kdykoli vypnout i znovu zapnout), plný text i kam nahlásit nelegální obsah
-u jednotlivých zdrojů je i na <https://nokturno.tailf0014.ts.net/terms>.
+u jednotlivých zdrojů je i na <https://nokturno.stream/terms>.
 
 ## Licence
 
