@@ -2270,8 +2270,8 @@ msgid "SyncWatch"
 msgstr "SyncWatch"
 
 msgctxt "#30801"
-msgid "Watch one film or episode together on several devices — each on their own, but at the same moment.[CR][CR][B]1.[/B] One person creates a group and becomes its leader. They get a code, e.g. SW-7K2Q-9MFX.[CR][B]2.[/B] The others (up to 4 more devices) enter the code in SyncWatch → Join with code. They wait until the leader plays something.[CR][B]3.[/B] The leader plays a film in Nokturno as usual. The same stream starts on the other devices by itself — playback begins once it has loaded everywhere.[CR][B]4.[/B] Pause, play and seeking by anyone apply to everyone. When someone is buffering, the others wait.[CR][CR]Everyone plays the stream through their own account at the source. Whoever has no account at the same source gets the same film from another source.[CR]The group ends when nobody joins it for 5 minutes, or when the leader ends it. The server cannot see what you watch — it is encrypted with the group code."
-msgstr "Sledujte jeden film alebo diel spoločne na viacerých zariadeniach — každý u seba, ale v rovnakej chvíli.[CR][CR][B]1.[/B] Jeden založí skupinu a stane sa vedúcim. Dostane kód, napríklad SW-7K2Q-9MFX.[CR][B]2.[/B] Ostatní (najviac 4 ďalšie zariadenia) zadajú kód v SyncWatch → Pripojiť sa kódom. Čakajú, kým vedúci niečo pustí.[CR][B]3.[/B] Vedúci pustí film normálne v Nokturne. Rovnaký stream sa sám spustí aj u ostatných — začne sa, keď sa načíta všetkým.[CR][B]4.[/B] Pauza, play a pretáčanie od kohokoľvek platí pre všetkých. Keď sa niekomu načítava, ostatní počkajú.[CR][CR]Stream sa každému prehrá cez jeho vlastný účet pri zdroji. Kto účet pri rovnakom zdroji nemá, dostane rovnaký film z iného zdroja.[CR]Skupina zanikne, keď sa k nej 5 minút nikto nepripojí, alebo keď ju vedúci ukončí. Čo sledujete, server nevidí — je to zašifrované kódom skupiny."
+msgid "Watch one film or episode together on several devices — each on their own, but at the same moment.[CR][CR][B]1.[/B] One person creates a group and becomes its leader. They get a code, e.g. SW-7K2Q-9MFX.[CR][B]2.[/B] The others (up to 4 more devices) enter the code in SyncWatch → Join with code. They wait until the leader plays something.[CR][B]3.[/B] The leader plays a film in Nokturno as usual. The same stream starts on the other devices by itself — playback begins once it has loaded everywhere.[CR][B]4.[/B] Pause, play and seeking by anyone apply to everyone. When someone is buffering, the others wait.[CR][CR]Everyone plays exactly the same stream — same quality, audio and length — each through their own account at the source. Whoever has no account at the leader's source cannot play it.[CR]The group ends when nobody joins it for 5 minutes, or when the leader ends it. The server cannot see what you watch — it is encrypted with the group code."
+msgstr "Sledujte jeden film alebo diel spoločne na viacerých zariadeniach — každý u seba, ale v rovnakej chvíli.[CR][CR][B]1.[/B] Jeden založí skupinu a stane sa vedúcim. Dostane kód, napríklad SW-7K2Q-9MFX.[CR][B]2.[/B] Ostatní (najviac 4 ďalšie zariadenia) zadajú kód v SyncWatch → Pripojiť sa kódom. Čakajú, kým vedúci niečo pustí.[CR][B]3.[/B] Vedúci pustí film normálne v Nokturne. Rovnaký stream sa sám spustí aj u ostatných — začne sa, keď sa načíta všetkým.[CR][B]4.[/B] Pauza, play a pretáčanie od kohokoľvek platí pre všetkých. Keď sa niekomu načítava, ostatní počkajú.[CR][CR]Všetci pustia presne ten istý stream — rovnakú kvalitu, zvuk aj dĺžku — každý cez svoj vlastný účet pri zdroji. Kto účet pri zdroji vedúceho nemá, stream sa mu nespustí.[CR]Skupina zanikne, keď sa k nej 5 minút nikto nepripojí, alebo keď ju vedúci ukončí. Čo sledujete, server nevidí — je to zašifrované kódom skupiny."
 
 msgctxt "#30802"
 msgid "Got it"
@@ -2400,6 +2400,10 @@ msgstr "Hrá sa"
 msgctxt "#30833"
 msgid "SyncWatch ended: %s"
 msgstr "SyncWatch skončil: %s"
+
+msgctxt "#30834"
+msgid "The leader's stream cannot be played here (%s). An account at the same source is needed."
+msgstr "Stream vedúceho tu nejde prehrať (%s). Je potrebný účet pri rovnakom zdroji."
 
 msgctxt "#30840"
 msgid "Pause for everyone"

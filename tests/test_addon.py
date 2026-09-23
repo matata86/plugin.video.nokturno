@@ -6221,7 +6221,19 @@ class TestSyncWatch(unittest.TestCase):
         self.assertTrue(syncwatch.valid_replay(item["replay"]), item["replay"])
         p = params_of(item["replay"])
         self.assertEqual((p["action"], p["id"], p["url"]), ("play", "tt0133093", "ws:abc"))
-        self.assertEqual(p["alts"], "hs:1:x", "kdo nemá účet u WebShare, zkusí další nález")
+        self.assertNotIn("alts", p, "ostatním jen tentýž stream, žádná jiná verze")
+
+    def test_clen_bez_uctu_nedostane_jiny_stream(self):
+        def resolve(apis, url):
+            if url == "ws:abc":
+                raise default.WebshareError("bez VIP")
+            return "https://cdn/" + url
+        with mock.patch.object(default, "load_meta", return_value=({"name": "Film", "year": 2026}, None)), \
+             mock.patch.object(default, "collect_streams") as collect, \
+             mock.patch.object(default, "resolve_url", side_effect=resolve):
+            default.play({}, "movie", "tt0133093", url="ws:abc", alts="hs:1:x", sw="1")
+        collect.assert_not_called()
+        self.assertFalse(xbmcplugin.resolved[-1][1], "jiný soubor by se se skupinou rozjel")
 
     def test_clen_skupiny_bez_dialogu_a_bez_pokracovani(self):
         _item, choose, li = self._play(ask="1", sw="1")

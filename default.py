@@ -1261,7 +1261,7 @@ def play_ref(apis, ref, name="", alts=""):
     li.getVideoInfoTag().setTitle(name or used)
     kind = used.split(":", 1)[0]
     STORE.remember_item(used, {"type": kind, "id": used, "title": name or used, "art": {}})
-    mark_playing(used, name, kind=kind, replay=sw_replay(action="play_ref", ref=ref, name=name, alts=alts))
+    mark_playing(used, name, kind=kind, replay=sw_replay(action="play_ref", ref=used, name=name))
     xbmcplugin.setResolvedUrl(HANDLE, True, li)
 
 
@@ -2907,8 +2907,8 @@ SW_INTRO_TEXT = (
     "[B]3.[/B] Vedoucí pustí film normálně v Nokturnu. Stejný stream se sám spustí i u ostatních — "
     "začne se, až se načte všem.[CR]"
     "[B]4.[/B] Pauza, play a přetáčení od kohokoli platí pro všechny. Když se někomu načítá, ostatní počkají.[CR][CR]"
-    "Stream se každému přehraje přes jeho vlastní účet u zdroje. Kdo účet u stejného zdroje nemá, dostane "
-    "stejný film z jiného zdroje.[CR]"
+    "Všichni pustí přesně tentýž stream — stejnou kvalitu, zvuk i délku — každý přes svůj vlastní účet "
+    "u zdroje. Kdo účet u zdroje vedoucího nemá, stream se mu nespustí.[CR]"
     "Skupina zanikne, když se k ní 5 minut nikdo nepřipojí, nebo když ji vedoucí ukončí. "
     "Co sledujete, server nevidí — je to zašifrované kódem skupiny."
 )
@@ -6409,8 +6409,16 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
     if url:
         try:
             # sloučené verze (`alts`) jsou tentýž film jinde — zkusí se, než se hledá znovu
-            url, resolved_path = resolve_first(apis, [url] + [a for a in (alts or "").split("|") if a])
+            # u SyncWatch jen tentýž soubor, `alts` se ignorují
+            url, resolved_path = resolve_first(apis, [url] + [a for a in (alts or "").split("|") if a and not sw])
         except Errors as e:
+            if sw:
+                # SyncWatch: jen přesně tentýž stream jako vedoucí (stejná kvalita, zvuk i délka),
+                # jiný soubor by se rozjel — žádné hledání ani náhrada z jiného zdroje
+                xbmc.log(f"[{ADDON_ID}] SyncWatch: stream vedoucího nejde přehrát: {e}", xbmc.LOGWARNING)
+                notify(Lf(30834, str(e) or L(30102)), xbmcgui.NOTIFICATION_ERROR, 8000)
+                xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
+                return
             # uložená reference streamu (Pokračovat ve sledování, viz add_playable) nebo dřív
             # vybraný stream ze seznamu mezitím zmizely ze zdroje — vzít to jako by url vůbec
             # nepřišla a normálně prohledat všechny zdroje znovu, ne rovnou ukázat chybu
@@ -6497,11 +6505,10 @@ def play(apis, ctype, item_id, series_id=None, url=None, alt=None, subs="", pref
     year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
     # bez roku – ten se posílá zvlášť polem `year`, display_name() by ho zdvojil
     stats_title = episode_stats_title(video, meta)
-    # SyncWatch: vybraný stream napřed, pak další nálezy — kdo nemá účet u zdroje
-    # vedoucího, pustí tentýž film odjinud (`play()` s `url` a `alts` bez hledání)
+    # SyncWatch: ostatním jen přesně tentýž stream — stejná kvalita, zvuk i délka; jiná verze
+    # (ani sloučená kopie) by se rozjela, proto žádné `alts`
     replay = sw_replay(action="play", type=ctype, id=item_id, series=series_id, alt=alt, url=chosen.get("url"),
-                       subs="|".join(chosen.get("subtitles") or []),
-                       alts="|".join(u for u, _ in play_candidates(chosen, streams)[1:]) or alts)
+                       subs="|".join(chosen.get("subtitles") or []))
     mark_playing(item_id, stats_title, year if year.isdigit() else None, "series" if video else ctype,
                 stream_url=chosen.get("url"), stream_subs="|".join(chosen.get("subtitles") or []),
                 stream_langs=list(chosen.get("langs") or []), replay=replay)

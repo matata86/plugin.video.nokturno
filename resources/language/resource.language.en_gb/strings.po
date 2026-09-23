@@ -2269,7 +2269,7 @@ msgid "SyncWatch"
 msgstr ""
 
 msgctxt "#30801"
-msgid "Watch one film or episode together on several devices — each on their own, but at the same moment.[CR][CR][B]1.[/B] One person creates a group and becomes its leader. They get a code, e.g. SW-7K2Q-9MFX.[CR][B]2.[/B] The others (up to 4 more devices) enter the code in SyncWatch → Join with code. They wait until the leader plays something.[CR][B]3.[/B] The leader plays a film in Nokturno as usual. The same stream starts on the other devices by itself — playback begins once it has loaded everywhere.[CR][B]4.[/B] Pause, play and seeking by anyone apply to everyone. When someone is buffering, the others wait.[CR][CR]Everyone plays the stream through their own account at the source. Whoever has no account at the same source gets the same film from another source.[CR]The group ends when nobody joins it for 5 minutes, or when the leader ends it. The server cannot see what you watch — it is encrypted with the group code."
+msgid "Watch one film or episode together on several devices — each on their own, but at the same moment.[CR][CR][B]1.[/B] One person creates a group and becomes its leader. They get a code, e.g. SW-7K2Q-9MFX.[CR][B]2.[/B] The others (up to 4 more devices) enter the code in SyncWatch → Join with code. They wait until the leader plays something.[CR][B]3.[/B] The leader plays a film in Nokturno as usual. The same stream starts on the other devices by itself — playback begins once it has loaded everywhere.[CR][B]4.[/B] Pause, play and seeking by anyone apply to everyone. When someone is buffering, the others wait.[CR][CR]Everyone plays exactly the same stream — same quality, audio and length — each through their own account at the source. Whoever has no account at the leader's source cannot play it.[CR]The group ends when nobody joins it for 5 minutes, or when the leader ends it. The server cannot see what you watch — it is encrypted with the group code."
 msgstr ""
 
 msgctxt "#30802"
@@ -2398,6 +2398,10 @@ msgstr ""
 
 msgctxt "#30833"
 msgid "SyncWatch ended: %s"
+msgstr ""
+
+msgctxt "#30834"
+msgid "The leader's stream cannot be played here (%s). An account at the same source is needed."
 msgstr ""
 
 msgctxt "#30840"

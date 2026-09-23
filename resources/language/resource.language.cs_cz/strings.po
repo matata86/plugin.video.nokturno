@@ -2270,8 +2270,8 @@ msgid "SyncWatch"
 msgstr "SyncWatch"
 
 msgctxt "#30801"
-msgid "Watch one film or episode together on several devices — each on their own, but at the same moment.[CR][CR][B]1.[/B] One person creates a group and becomes its leader. They get a code, e.g. SW-7K2Q-9MFX.[CR][B]2.[/B] The others (up to 4 more devices) enter the code in SyncWatch → Join with code. They wait until the leader plays something.[CR][B]3.[/B] The leader plays a film in Nokturno as usual. The same stream starts on the other devices by itself — playback begins once it has loaded everywhere.[CR][B]4.[/B] Pause, play and seeking by anyone apply to everyone. When someone is buffering, the others wait.[CR][CR]Everyone plays the stream through their own account at the source. Whoever has no account at the same source gets the same film from another source.[CR]The group ends when nobody joins it for 5 minutes, or when the leader ends it. The server cannot see what you watch — it is encrypted with the group code."
-msgstr "Sledujte jeden film nebo díl společně na víc zařízeních — každý u sebe, ale ve stejnou chvíli.[CR][CR][B]1.[/B] Jeden založí skupinu a stane se vedoucím. Dostane kód, třeba SW-7K2Q-9MFX.[CR][B]2.[/B] Ostatní (nejvýš 4 další zařízení) zadají kód v SyncWatch → Připojit se. Čekají, až vedoucí něco pustí.[CR][B]3.[/B] Vedoucí pustí film normálně v Nokturnu. Stejný stream se sám spustí i u ostatních — začne se, až se načte všem.[CR][B]4.[/B] Pauza, play a přetáčení od kohokoli platí pro všechny. Když se někomu načítá, ostatní počkají.[CR][CR]Stream se každému přehraje přes jeho vlastní účet u zdroje. Kdo účet u stejného zdroje nemá, dostane stejný film z jiného zdroje.[CR]Skupina zanikne, když se k ní 5 minut nikdo nepřipojí, nebo když ji vedoucí ukončí. Co sledujete, server nevidí — je to zašifrované kódem skupiny."
+msgid "Watch one film or episode together on several devices — each on their own, but at the same moment.[CR][CR][B]1.[/B] One person creates a group and becomes its leader. They get a code, e.g. SW-7K2Q-9MFX.[CR][B]2.[/B] The others (up to 4 more devices) enter the code in SyncWatch → Join with code. They wait until the leader plays something.[CR][B]3.[/B] The leader plays a film in Nokturno as usual. The same stream starts on the other devices by itself — playback begins once it has loaded everywhere.[CR][B]4.[/B] Pause, play and seeking by anyone apply to everyone. When someone is buffering, the others wait.[CR][CR]Everyone plays exactly the same stream — same quality, audio and length — each through their own account at the source. Whoever has no account at the leader's source cannot play it.[CR]The group ends when nobody joins it for 5 minutes, or when the leader ends it. The server cannot see what you watch — it is encrypted with the group code."
+msgstr "Sledujte jeden film nebo díl společně na víc zařízeních — každý u sebe, ale ve stejnou chvíli.[CR][CR][B]1.[/B] Jeden založí skupinu a stane se vedoucím. Dostane kód, třeba SW-7K2Q-9MFX.[CR][B]2.[/B] Ostatní (nejvýš 4 další zařízení) zadají kód v SyncWatch → Připojit se. Čekají, až vedoucí něco pustí.[CR][B]3.[/B] Vedoucí pustí film normálně v Nokturnu. Stejný stream se sám spustí i u ostatních — začne se, až se načte všem.[CR][B]4.[/B] Pauza, play a přetáčení od kohokoli platí pro všechny. Když se někomu načítá, ostatní počkají.[CR][CR]Všichni pustí přesně tentýž stream — stejnou kvalitu, zvuk i délku — každý přes svůj vlastní účet u zdroje. Kdo účet u zdroje vedoucího nemá, stream se mu nespustí.[CR]Skupina zanikne, když se k ní 5 minut nikdo nepřipojí, nebo když ji vedoucí ukončí. Co sledujete, server nevidí — je to zašifrované kódem skupiny."
 
 msgctxt "#30802"
 msgid "Got it"
@@ -2400,6 +2400,10 @@ msgstr "Hraje se"
 msgctxt "#30833"
 msgid "SyncWatch ended: %s"
 msgstr "SyncWatch skončil: %s"
+
+msgctxt "#30834"
+msgid "The leader's stream cannot be played here (%s). An account at the same source is needed."
+msgstr "Stream vedoucího tady nejde přehrát (%s). Je potřeba účet u stejného zdroje."
 
 msgctxt "#30840"
 msgid "Pause for everyone"
