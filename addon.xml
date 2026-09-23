@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="8.2.0~beta4" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="8.2.0~beta5" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>8.2.0~beta4 – Když Sledujteto, Přehraj.to nebo FastShare odmítne jméno či heslo, doplněk to s týmiž údaji hodinu nezkouší. Dřív se hlásil znovu u každého hledání (v katalogu s jazykem i stokrát za kolo). Po opravě hesla v nastavení se přihlásí hned.
+    <news>8.2.0~beta5 – Souhlas s podmínkami použití se dává rovnou v okně Souhlasím / Nesouhlasím. Dřív se otevřelo nastavení, přepínač ale byl až v poslední kategorii, takže se po aktualizaci ze starší verze menu neotevřelo.
+8.2.0~beta4 – Když Sledujteto, Přehraj.to nebo FastShare odmítne jméno či heslo, doplněk to s týmiž údaji hodinu nezkouší. Dřív se hlásil znovu u každého hledání (v katalogu s jazykem i stokrát za kolo). Po opravě hesla v nastavení se přihlásí hned.
 8.2.0~beta3 – Nová volba Nastavení → Výběr streamu → Automaticky použít poslední filtr: výběr streamu se otevře rovnou s filtrem, který jsi nastavil naposledy. SyncWatch: odpočet zániku skupiny v okně běží po vteřinách.
 8.2.0~beta2 – SyncWatch: kdo ve skupině omylem zastaví přehrávání, vrátí se zpátky do filmu položkou Vrátit se do filmu v menu SyncWatch. Film naskočí tam, kde ho mají ostatní.
 8.2.0~beta1 – Nová položka menu SyncWatch: společné sledování na víc zařízeních. Jeden založí skupinu a dostane kód, ostatní (nejvýš 4 další zařízení) ho zadají a čekají. Co vedoucí pustí, spustí se i u nich — přes jejich vlastní účty u zdrojů — a začne se, až se načte všem. Pauza, play a přetáčení od kohokoli platí pro všechny, na pomalé zařízení se počká. Skupina zanikne, když se k ní 5 minut nikdo nepřipojí. Co sledujete, server nevidí. Zároveň oprava: synchronizace a přenos nastavení přes nokturno.stream znovu fungují (od 7.9.3 je server odmítal).

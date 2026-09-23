@@ -2193,16 +2193,6 @@ msgid "Show the terms"
 msgstr "Feltételek megjelenítése"
 
 
-msgctxt "#30739"
-msgid "You have to agree to the terms of use first. Open the settings now?"
-msgstr "Először el kell fogadnod a felhasználási feltételeket. Megnyitod a beállításokat?"
-
-
-msgctxt "#30740"
-msgid "Open the settings"
-msgstr "Beállítások megnyitása"
-
-
 msgctxt "#30741"
 msgid "Unavailable streams: %s — hidden"
 msgstr "Elérhetetlen streamek: %s — elrejtve"

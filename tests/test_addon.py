@@ -253,33 +253,25 @@ class TestPravniUpozorneni(unittest.TestCase):
         self.assertEqual(len(xbmcgui.notifications), 1)
         self.assertFalse(default.terms_accepted())
 
-    def test_v_ui_vede_do_nastaveni_a_zaskrtnuti_plati(self):
+    def test_v_ui_souhlas_v_dialogu_plati_bez_nastaveni(self):
+        """Po aktualizaci ze staré verze: dřív se otevřelo nastavení na první kategorii,
+        přepínač byl ale poslední a menu se neotevřelo. Souhlas se teď dává v dialogu."""
         self._v_ui()
-        # uživatel v otevřeném nastavení přepínač zapne
-        def zaskrtni():
-            xbmcaddon.settings["terms_ok"] = "true"
         with mock.patch.object(xbmcgui.Dialog, "textviewer") as textviewer, \
                 mock.patch.object(xbmcgui.Dialog, "yesno", return_value=True) as yesno, \
-                mock.patch.object(xbmcaddon.Addon, "openSettings", side_effect=zaskrtni) as otevri:
+                mock.patch.object(xbmcaddon.Addon, "openSettings") as otevri:
             self.assertTrue(default.ensure_terms())
         textviewer.assert_called_once()
         yesno.assert_called_once()
-        otevri.assert_called_once()
+        otevri.assert_not_called()
+        self.assertEqual(xbmcaddon.settings["terms_ok"], "true")
         self.assertEqual(default.STORE.load("terms_accepted", ""), default.TERMS_VERSION)
         # podruhé už se žádné okno neotevírá
         with mock.patch.object(xbmcgui.Dialog, "yesno") as yesno2:
             self.assertTrue(default.ensure_terms())
         yesno2.assert_not_called()
 
-    def test_v_ui_bez_zaskrtnuti_souhlas_neplati(self):
-        self._v_ui()
-        with mock.patch.object(xbmcgui.Dialog, "textviewer"), \
-                mock.patch.object(xbmcgui.Dialog, "yesno", return_value=True), \
-                mock.patch.object(xbmcaddon.Addon, "openSettings"):
-            self.assertFalse(default.ensure_terms())   # nastavení otevřené, přepínač nezapnutý
-        self.assertFalse(default.terms_accepted())
-
-    def test_v_ui_odmitnuti_nastaveni_neotevre(self):
+    def test_v_ui_nesouhlas_nic_neulozi(self):
         self._v_ui()
         with mock.patch.object(xbmcgui.Dialog, "textviewer"), \
                 mock.patch.object(xbmcgui.Dialog, "yesno", return_value=False), \

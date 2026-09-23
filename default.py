@@ -475,10 +475,14 @@ def info_terms():
 
 def ensure_terms():
     """Musí proběhnout dřív, než plugin cokoli vyhledá nebo přehraje. Bez souhlasu se
-    z UI nabídne otevření nastavení (přepínač je tam první kategorie), odjinud —
-    z widgetu nebo JSON-RPC — jen oznámení: modál v cestě, kterou nikdo neklikl, by
-    zasekl přehrávání i vypínání Kodi (viz CLAUDE.md). Souhlas tedy nejde dát jinde
-    než v nastavení, takže ho nelze obejít spuštěním z widgetu."""
+    v menu Nokturna ukáže text a otázka Souhlasím / Nesouhlasím, odjinud — z widgetu
+    nebo JSON-RPC — jen oznámení: modál v cestě, kterou nikdo neklikl, by zasekl
+    přehrávání i vypínání Kodi (viz CLAUDE.md). Souhlas tak jde dát jen v menu nebo
+    v nastavení, spuštěním z widgetu ho obejít nelze.
+
+    Dřív dialog otevíral nastavení a spoléhal, že přepínač je první kategorie; od 7.6.1
+    je poslední, takže ho uživatel po aktualizaci nenašel a menu se neotevřelo
+    (log uživatele 2026-09-23). Proto se souhlas ukládá rovnou jako v průvodci."""
     if terms_accepted():
         return True
     if not browsing_nokturno():
@@ -487,12 +491,10 @@ def ensure_terms():
     dialog = xbmcgui.Dialog()
     dialog.textviewer(L(30728, "Legal notice"), terms_text())
     if not dialog.yesno(L(30728, "Legal notice"),
-                        L(30739, "You have to agree to the terms of use first. Open the settings now?"),
-                        yeslabel=L(30740, "Open the settings"), nolabel=L(30732, "I don't agree")):
+                        L(30749, "Do you agree to the terms of use above?"),
+                        yeslabel=L(30748, "I agree"), nolabel=L(30732, "I don't agree")):
         return False
-    global ADDON
-    ADDON.openSettings()            # přepínač je první kategorie, otevře se rovnou na něm
-    ADDON = xbmcaddon.Addon()       # čerstvá instance, jinak by se četla hodnota z doby před dialogem
+    ADDON.setSetting("terms_ok", "true")
     return terms_accepted()
 
 

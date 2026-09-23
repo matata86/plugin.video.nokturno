@@ -2195,16 +2195,6 @@ msgid "Show the terms"
 msgstr "Zobraziť podmienky"
 
 
-msgctxt "#30739"
-msgid "You have to agree to the terms of use first. Open the settings now?"
-msgstr "Najprv musíš súhlasiť s podmienkami používania. Otvoriť nastavenia?"
-
-
-msgctxt "#30740"
-msgid "Open the settings"
-msgstr "Otvoriť nastavenia"
-
-
 msgctxt "#30741"
 msgid "Unavailable streams: %s — hidden"
 msgstr "Nedostupné streamy: %s — skryté"
