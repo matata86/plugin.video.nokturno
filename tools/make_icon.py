@@ -2,6 +2,7 @@
 """Značka Nokturna — ikona doplňku, ikona repozitáře a fanart.
 
     python3 tools/make_icon.py            # ikony a fanart
+    python3 tools/make_icon.py cover      # cover facebookové skupiny (.github/nokturno-cover.png)
     python3 tools/make_icon.py podpora    # obrázek podpory do README (.github/podpora.png)
     python3 tools/make_icon.py 6.0.0      # obrázek k vydání 6.0.0 s CZtorem (.github/nokturno-6.0.0-cztor.png)
     python3 tools/make_icon.py 6.6.0      # obrázek k vydání 6.6.0 s přehledem novinek (.github/nokturno-6.6.0-novinky.png)
@@ -373,6 +374,56 @@ def make_social(path):
     sky.save(path)
 
 
+COVER = (1640, 512)       # poměr, ve kterém Facebook cover skupiny kreslí (3,2:1)
+COVER_SAFE = (1312, 410)  # z té šířky ale okno se `overflow: hidden` ukáže jen 84 %
+                          # (naměřeno 1250 z 1481 px) — obsah proto drží v tomhle
+                          # obdélníku uprostřed, jinak přijde o krajní písmena
+
+
+def make_cover(path):
+    """Cover facebookové skupiny — tatáž zpráva jako `make_social` (přehrávač vlastního
+    úložiště, vyhledávače až pod tím), plus adresa. Všechen text leží v `COVER_SAFE`,
+    zbytek plátna je jen pozadí pro ořezy, které si Facebook dělá po svém."""
+    W, H = COVER
+    sw, sh = COVER_SAFE
+    ox, oy = (W - sw) // 2, (H - sh) // 2
+    sky = render(f'<rect width="{W}" height="{H}" fill="url(#sky)"/>', W, H, scale=1).convert("RGB")
+    q = 4
+    glow = Image.new("RGB", (W // q, H // q), (0, 0, 0))
+    ImageDraw.Draw(glow).ellipse([c / q for c in (900, oy - 160, 1700, oy + 460)], fill=(32, 42, 96))
+    sky = ImageChops.add(sky, glow.filter(ImageFilter.GaussianBlur(24)).resize((W, H), Image.BICUBIC))
+    dr = ImageDraw.Draw(sky, "RGBA")
+    for x, y, r, o in [(1400, 30, 3, 90), (1260, 12, 2, 60), (1420, 380, 3, 70), (30, 384, 2, 55),
+                       (1180, 392, 2, 45), (1440, 200, 2, 60), (10, 10, 2, 50), (980, 4, 2, 42)]:
+        x, y = x + ox, y + oy
+        dr.ellipse((x - r, y - r, x + r, y + r), fill=(255, 255, 255, o))
+    logo = mark("", "url(#gold)", scale=1).resize((178, 178), Image.LANCZOS)
+    sky.paste(logo, (ox + sw - 178, oy + 6), logo)
+    gold, dim, bila = (243, 196, 118), (163, 176, 218), (255, 255, 255)
+
+    dr.text((ox, oy - 4), "Nokturno", font=font("InterDisplay-Bold.otf", 70), fill=gold)
+    dr.text((ox + 3, oy + 84), "Přehrávač tvého vlastního úložiště",
+            font=font("InterDisplay-Bold.otf", 34), fill=bila)
+    f = font("InterDisplay-Bold.otf", 30)
+    tw = dr.textlength("WebDAV", font=f)
+    dr.rounded_rectangle((ox + 3, oy + 134, ox + 3 + tw + 40, oy + 184), radius=25, fill=gold)
+    dr.text((ox + 23, oy + 141), "WebDAV", font=f, fill=(20, 28, 66))
+    dr.text((ox + 3 + tw + 64, oy + 146), "NAS, Nextcloud, vlastní server",
+            font=font("InterDisplay-Medium.otf", 24), fill=bila)
+
+    dr.line((ox + 3, oy + 214, ox + sw - 3, oy + 214), fill=(90, 106, 168), width=2)
+    dr.text((ox + 3, oy + 226), "volitelně i veřejné vyhledávače třetích stran",
+            font=font("InterDisplay-Medium.otf", 23), fill=dim)
+    dr.text((ox + 3, oy + 258), "WebShare · Sosáč · Sledujteto · FastShare · HellSpy · CZtor · Přehraj.to · Luna",
+            font=font("InterDisplay-Medium.otf", 21), fill=dim)
+    dr.text((ox + 3, oy + 302), "Kodi  ·  Home Assistant  ·  Stremio",
+            font=font("InterDisplay-Medium.otf", 30), fill=(203, 212, 240))
+    adr = "nokturno.stream"
+    fa = font("InterDisplay-Bold.otf", 30)
+    dr.text((ox + sw - 3 - dr.textlength(adr, font=fa), oy + 304), adr, font=fa, fill=gold)
+    sky.save(path)
+
+
 SUPPORT = (1600, 700)
 BTC = "bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc"
 
@@ -563,6 +614,9 @@ if __name__ == "__main__":
     elif sys.argv[1:] == ["6.6.0"]:
         make_release_660(os.path.join(ROOT, ".github", "nokturno-6.6.0-novinky.png"))
         print(".github/nokturno-6.6.0-novinky.png hotovo")
+    elif sys.argv[1:] == ["cover"]:
+        make_cover(os.path.join(ROOT, ".github", "nokturno-cover.png"))
+        print(".github/nokturno-cover.png hotovo")
     elif sys.argv[1:] == ["social"]:
         make_social(os.path.join(ROOT, ".github", "nokturno-uloziste.png"))
         print(".github/nokturno-uloziste.png hotovo")
