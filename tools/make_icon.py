@@ -467,7 +467,7 @@ def make_cover(path, S=2):
     text(ox + 3, oy + 258, "WebShare · Sosáč · Sledujteto · FastShare · HellSpy · CZtor · Přehraj.to · Luna",
          F("InterDisplay-Medium.otf", 21), dim)
     text(ox + 3, oy + 302, "Kodi  ·  Home Assistant  ·  Stremio", F("InterDisplay-Medium.otf", 30), (203, 212, 240))
-    adr = "nokturno.stream"
+    adr = "https://nokturno.stream"
     fa = F("InterDisplay-Bold.otf", 30)
     text(ox + sw - 3 - dr.textlength(adr, font=fa) / S, oy + 304, adr, fa, gold)
     sky.save(path, optimize=True)
