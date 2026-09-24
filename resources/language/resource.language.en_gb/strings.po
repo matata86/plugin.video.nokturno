@@ -2461,3 +2461,11 @@ msgstr ""
 msgctxt "#30861"
 msgid "The stream selection opens with the filter you set last time. If it would leave no stream for a title, all streams are shown."
 msgstr ""
+
+msgctxt "#30862"
+msgid "Use this storage"
+msgstr ""
+
+msgctxt "#30863"
+msgid "A disabled storage stays filled in, it is just not searched and not shown in the menu."
+msgstr ""

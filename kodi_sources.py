@@ -35,7 +35,7 @@ def stats_sources(get):
         # Přehraj.to hledá i bez účtu (HTML záloha), stačí tedy přepínač — jako HellSpy.
         ("prehrajto", zapnuto("pt_enabled", "false")),
         ("cztor", zapnuto("cz_enabled", "false")),
-        ("storage", any(vyplneno("dav%d_url" % n) for n in (1, 2, 3))),
+        ("storage", any(vyplneno("dav%d_url" % n) and zapnuto("dav%d_enabled" % n) for n in (1, 2, 3))),
         ("tmdb", vyplneno("tmdb_api_key")),
         ("trakt", zapnuto("trakt_enabled", "false")),
     ) if active]

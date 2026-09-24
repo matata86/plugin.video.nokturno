@@ -2462,3 +2462,11 @@ msgstr "Automaticky použiť posledný filter"
 msgctxt "#30861"
 msgid "The stream selection opens with the filter you set last time. If it would leave no stream for a title, all streams are shown."
 msgstr "Výber streamu sa otvorí rovno s filtrom, ktorý si nastavil naposledy. Keď by pri titule nenechal žiadny stream, zobrazia sa všetky."
+
+msgctxt "#30862"
+msgid "Use this storage"
+msgstr "Použiť toto úložisko"
+
+msgctxt "#30863"
+msgid "A disabled storage stays filled in, it is just not searched and not shown in the menu."
+msgstr "Vypnuté úložisko zostane vyplnené, len sa v ňom nehľadá a v menu sa nezobrazí."

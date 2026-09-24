@@ -2460,3 +2460,11 @@ msgstr "Az utolsó szűrő automatikus alkalmazása"
 msgctxt "#30861"
 msgid "The stream selection opens with the filter you set last time. If it would leave no stream for a title, all streams are shown."
 msgstr "A stream kiválasztása rögtön a legutóbb beállított szűrővel nyílik meg. Ha egy címnél egyetlen streamet sem hagyna, az összes megjelenik."
+
+msgctxt "#30862"
+msgid "Use this storage"
+msgstr "Ennek a tárhelynek a használata"
+
+msgctxt "#30863"
+msgid "A disabled storage stays filled in, it is just not searched and not shown in the menu."
+msgstr "A kikapcsolt tárhely kitöltve marad, csak nem keres benne és nem jelenik meg a menüben."

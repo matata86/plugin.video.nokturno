@@ -743,7 +743,7 @@ def get_storages():
     out = []
     for slot in range(1, STORAGE_SLOTS + 1):
         url = setting(f"dav{slot}_url").strip()
-        if not url:
+        if not url or setting(f"dav{slot}_enabled") == "false":   # vypnuté = jako nevyplněné, údaje zůstávají
             continue
         try:
             out.append(StorageApi(url, setting(f"dav{slot}_username"), setting(f"dav{slot}_password"),

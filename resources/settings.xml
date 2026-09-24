@@ -11,6 +11,11 @@
          znamená sloučit dvě staré, ne jen přidat. -->
     <category id="storage" label="30374" help="30375">
       <group id="1" label="30376">
+        <setting id="dav1_enabled" type="boolean" label="30862" help="30863">
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle"/>
+        </setting>
         <setting id="dav1_url" type="string" label="30379" help="30380">
           <level>0</level>
           <default></default>
@@ -50,6 +55,11 @@
         </setting>
       </group>
       <group id="2" label="30377">
+        <setting id="dav2_enabled" type="boolean" label="30862" help="30863">
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle"/>
+        </setting>
         <setting id="dav2_url" type="string" label="30379" help="30380">
           <level>0</level>
           <default></default>
@@ -89,6 +99,11 @@
         </setting>
       </group>
       <group id="3" label="30378">
+        <setting id="dav3_enabled" type="boolean" label="30862" help="30863">
+          <level>0</level>
+          <default>true</default>
+          <control type="toggle"/>
+        </setting>
         <setting id="dav3_url" type="string" label="30379" help="30380">
           <level>0</level>
           <default></default>

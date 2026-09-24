@@ -5774,7 +5774,7 @@ class TestOsmKategorii(unittest.TestCase):
         # přeskládání kategorií zůstávají stejná
         root = ET.parse(ROOT / "resources" / "settings.xml").getroot()
         volby = {s.get("id") for s in root.iter("setting")}
-        self.assertEqual(len(volby), 104)   # +2: terms_ok a terms_show_action (souhlas, 2026-09-22), +1 stream_filter_last
+        self.assertEqual(len(volby), 107)   # +2: terms_ok a terms_show_action (souhlas, 2026-09-22), +1 stream_filter_last, +3 dav1–3_enabled
         for ocekavane in ("ws_enabled", "pt_email", "sosac_enabled", "hs_enabled",
                           "st_enabled", "fs_enabled", "cz_enabled", "luna_url",
                           "os_enabled", "tmdb_api_key", "download_dir", "info_donate"):
@@ -5810,6 +5810,18 @@ class TestZdrojeDoStatistik(unittest.TestCase):
         zdroje = default.stats_sources()
         self.assertIn("prehrajto", zdroje)
         self.assertIn("storage", zdroje)
+
+    def test_vypnute_uloziste_se_nepouziva(self):
+        """Vyplněné úložiště s vypnutým přepínačem se chová jako nevyplněné — v hledání,
+        menu ani statistikách není, adresa a účet v nastavení zůstanou."""
+        xbmcaddon.settings.update(dav1_url="https://nas.example/dav", dav1_enabled="false",
+                                  dav2_url="https://nas2.example/dav")
+        self.assertEqual([s.slot for s in default.get_storages()], [2])
+        self.assertIn("storage", default.stats_sources())
+        xbmcaddon.settings.update(dav2_enabled="false")
+        self.assertEqual(default.get_storages(), [])
+        self.assertNotIn("storage", default.stats_sources())
+        self.assertEqual(xbmcaddon.settings["dav1_url"], "https://nas.example/dav")
 
     def test_vypnuty_zdroj_se_nehlasi(self):
         self.assertNotIn("prehrajto", default.stats_sources())
