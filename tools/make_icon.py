@@ -421,7 +421,7 @@ def make_release_820(path):
         dr.text((112, y), hlavni, font=big, fill=bila)
         dr.text((112 + dr.textlength(hlavni, font=big) + 16, y + 6), doplnek, font=small, fill=dim)
         y += 44
-    dr.text((74, 600), "„A jestli máte pocit, že už vymýšlíme píč...y, tak máte pravdu.“",
+    dr.text((74, 600), "„A jestli máte pocit, že už vymýšlíme píč...y, tak máte pravdu.“ :D",
             font=font("InterDisplay-MediumItalic.otf", 28), fill=gold, anchor="ls")
     sky.save(path)
 
