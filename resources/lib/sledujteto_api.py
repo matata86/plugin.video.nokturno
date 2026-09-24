@@ -258,4 +258,7 @@ class SledujtetoApi:
         link = inner.get("link")
         if not link:
             raise SledujtetoError("odkaz na soubor se nevrátil")
-        return link
+        # `/streaming/` odmítne GET bez hlavičky Range i HEAD (400 `invalid_range_header`).
+        # ExoPlayer (Nuvio, Stremio na Androidu) při startu od nuly Range neposílá.
+        # `/download/` se stejným tokenem vydá týž soubor a Range umí taky.
+        return link.replace("/api/v1/streaming/", "/api/v1/download/", 1)
