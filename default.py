@@ -4752,9 +4752,9 @@ def main_menu(apis):
         label = L(30900, "Hlídané")
         if new:
             label = f"{label}  [COLOR {WATCH_NEW}]· {new} {L(30908, 'nový díl')}[/COLOR]"
-        # vlastní ikona (`tools/make_watch_icon.py`): zvonek, s novým dílem s oranžovou tečkou
-        icon = os.path.join(ADDON.getAddonInfo("path"), "resources", "media",
-                            "watch-new.png" if new else "watch.png")
+        # jen ikony standardní sady skinu (vlastní ikony uživatel nechce); s novým dílem
+        # „nově přidané díly“, jinak seznam videí
+        icon = "DefaultRecentlyAddedEpisodes.png" if new else "DefaultVideoPlaylists.png"
         folder_item(label, build_url(action="watchlist"), icon=icon)
     # společné sledování; ve skupině ukazuje i kód, ať je vidět, že běží
     sw_code = sw_session().get("code")

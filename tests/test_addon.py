@@ -6407,9 +6407,7 @@ class TestHlidane(unittest.TestCase):
             default.main_menu(apis)
         polozka = next(li for _h, u, li, _f in xbmcplugin.items if "action=watchlist" in u)
         self.assertIn("1", polozka.label)
-        self.assertTrue(polozka.art["icon"].endswith("watch-new.png"))
-        for name in ("watch.png", "watch-new.png"):
-            self.assertTrue((ROOT / "resources" / "media" / name).is_file(), name)
+        self.assertEqual(polozka.art["icon"], "DefaultRecentlyAddedEpisodes.png", "jen výchozí ikony skinu")
 
     def test_vypis_novy_dil_nahore_a_stav_titulu(self):
         default.watch_lib.watch_series(default.STORE, "tt1", {"title": "A bez novinky"})
