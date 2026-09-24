@@ -106,6 +106,8 @@ class Store:
         # zámky per klíč cache (`cached_if`), viz `_key_lock`
         self._key_locks = {}
         self._key_locks_guard = threading.Lock()
+        # dočasně kratší platnost cache pro jedno vlákno (`fresher`)
+        self._local = threading.local()
 
     # --- soubory ------------------------------------------------------------
     def _path(self, name):
@@ -505,6 +507,20 @@ class Store:
     def cached(self, key, ttl, loader):
         return self.cached_if(key, ttl, loader)
 
+    @contextlib.contextmanager
+    def fresher(self, max_age, prefixes=()):
+        """Ve **svém vlákně** bere z cache jen záznamy mladší než `max_age` (s), a jen
+        u klíčů začínajících `prefixes` (prázdné = všechny). Pro kontrolu Hlídaných:
+        metadata seriálu se drží 30 dní a seznam streamů 72 h, takže by nový díl nebo
+        přibylý zdroj kontrola uviděla až dlouho po tom, co existuje. Ostatní vlákna
+        (výpisy, přehrávání) jedou z cache dál jako dřív; co se stáhne čerstvě, uloží se."""
+        old = getattr(self._local, "cap", None)
+        self._local.cap = (max(0, int(max_age)), tuple(prefixes))
+        try:
+            yield
+        finally:
+            self._local.cap = old
+
     def cached_if(self, key, ttl, loader, ok=bool, fresh=False):
         """Jako `cached()`, ale na disk zapíše jen když `ok(data)` je pravda — pro
         věci, co se mají zapamatovat jen při úspěchu (např. nalezené streamy),
@@ -516,6 +532,10 @@ class Store:
         # populární titul padesát lidí naráz a každý by šel na TMDB, HellSpy i pro
         # hlavičky souborů sám. Napřed se čte bez zámku (běžný případ, cache platná),
         # zámek se bere až při chybějícím záznamu a pod ním se čte ještě jednou.
+        cap = getattr(self._local, "cap", None)
+        if cap is not None and (not cap[1] or key.startswith(cap[1])):
+            ttl = min(ttl, cap[0])
+            fresh = fresh or ttl <= 0
         path = os.path.join(self.dir, "cache", hashlib.md5(key.encode("utf-8")).hexdigest() + ".json")
         if not fresh:
             data = self._read_cached(path, ttl)

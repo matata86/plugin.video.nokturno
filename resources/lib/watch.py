@@ -28,6 +28,7 @@ vyhrává novější zápis, odebrání se přenáší jako `on: False`. Oznáme
 počítají zvlášť na každém zařízení (`pending_notices`), takže se ozve i to, které
 nový díl samo nenašlo, jen ho dostalo synchronizací.
 """
+import contextlib
 import datetime
 import logging
 import re
@@ -54,8 +55,27 @@ MAX_ITEMS = 40      # kolik titulů jedna kontrola projde (každý = dotaz na v�
 NOTICE_MAX_AGE = 3 * 86400   # starší nález už neoznamovat (nové zařízení ve skupině)
 LOG_MAX = 1000
 
+# Cache, které kontrola zkracuje (`Store.fresher`): metadata titulu (TMDB 30 dní,
+# Cinemeta 12 h) a seznam streamů (72 h). Hlavičky souborů (`media:`) ne — nemění se
+# a jejich čtení je nejdražší část hledání.
+META_KEYS = ("tmdb:meta", "tmdb:season", "tmdb:detail", "https://v3-cinemeta")
+STREAM_KEYS = ("streams",)
+
 SERIES_FIELDS = ("title", "alt", "poster")
 WANTED_FIELDS = ("type", "title", "year", "alt", "poster", "series", "query")
+
+
+@contextlib.contextmanager
+def _fresher(engine, max_age, prefixes):
+    """`Store.fresher` na všech úložištích jádra (u Stremia je cache metadat sdílená)."""
+    stores = []
+    for store in (getattr(engine, "store", None), getattr(engine, "shared", None)):
+        if store is not None and hasattr(store, "fresher") and all(store is not s for s in stores):
+            stores.append(store)
+    with contextlib.ExitStack() as stack:
+        for store in stores:
+            stack.enter_context(store.fresher(max_age, prefixes))
+        yield
 
 
 def _now():
@@ -347,7 +367,10 @@ def check_series(engine, store, force=False, only=None, should_stop=None):
             continue
         if should_stop and should_stop():
             break
-        result = check_one_series(engine, sid, item)
+        # díly bez streamu se necachují vůbec, stačí čerstvá metadata; „Zkontrolovat teď“
+        # (`force`) je bere úplně nově, jinak nejvýš tak stará, jak dlouhý je interval
+        with _fresher(engine, 0 if force else SERIES_EVERY - SLACK, META_KEYS):
+            result = check_one_series(engine, sid, item)
         if result is None:
             continue
         _save_series(store, sid, item, result, _now())
@@ -429,7 +452,9 @@ def check_wanted(engine, store, extra=(), force=False, only=None, should_stop=No
             if before:
                 fresh[wid] = before
             continue
-        fresh[wid] = check_one_wanted(engine, item, before)
+        # seznam streamů se drží 72 h, přibylý zdroj by se bez tohohle ukázal až po nich
+        with _fresher(engine, 0 if force else WANTED_EVERY - SLACK, META_KEYS + STREAM_KEYS):
+            fresh[wid] = check_one_wanted(engine, item, before)
         done.append(wid)
     with store.updating(RESULTS, {}) as data:
         if only is None:
