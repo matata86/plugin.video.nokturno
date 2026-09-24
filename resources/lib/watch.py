@@ -487,9 +487,25 @@ def pending_notices(store, now=None):
 
 # --- synchronizace ------------------------------------------------------------------
 
+def _backfill(store):
+    """Seriály a tituly uložené dřív, než deník existoval (HA před 8.3.0), v něm
+    chybí — bez záznamu by je synchronizace nikdy neposlala, protože čte jen
+    deník. Doplní se jednou s aktuálním časem, stejně jako `favlog` v `sync.py`."""
+    log = store.reload(LOG, {})
+    missing = ["s:" + k for k in store.reload(SERIES, {}) if "s:" + k not in log]
+    missing += ["w:" + k for k in store.reload(WANTED, {}) if "w:" + k not in log]
+    if not missing:
+        return
+    now = _now()
+    with store.updating(LOG, {}) as data:
+        for key in missing:
+            data.setdefault(key, {"on": True, "ts": now})
+
+
 def collect(store, since, seen):
     """Změny od `since` pro sekci `watchlist`. `seen(rec)` = kdy záznam dorazil
     (`sync._seen` — u středu čas příjmu)."""
+    _backfill(store)
     log = store.reload(LOG, {})
     if not log:
         return {}

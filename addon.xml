@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="8.3.0~beta1" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="8.3.0~beta2" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>8.3.0~beta1 – Hlídané: nový díl seriálu nebo film, který zatím nikde není, ohlásí Nokturno samo, až bude k dispozici. V kontextovém menu Hlídat nové díly (seriál) a Hlídat, až bude k dispozici (film), totéž se nabídne, když se nenajde žádný stream. Kontrolovat dál u titulu, který stream má, ale ne v kvalitě nebo zvuku, jakou chceš. Položka Hlídané v menu ukazuje nové díly. Seznam se synchronizuje s dalšími Kodi i s Home Assistantem (nová volba v Synchronizaci) a kontrola se nedělá na každém zařízení znovu.
+    <news>8.3.0~beta2 – Hlídané uložené v Home Assistantu nebo v Kodi před touto betou se teď synchronizují taky.
+8.3.0~beta1 – Hlídané: nový díl seriálu nebo film, který zatím nikde není, ohlásí Nokturno samo, až bude k dispozici. V kontextovém menu Hlídat nové díly (seriál) a Hlídat, až bude k dispozici (film), totéž se nabídne, když se nenajde žádný stream. Kontrolovat dál u titulu, který stream má, ale ne v kvalitě nebo zvuku, jakou chceš. Položka Hlídané v menu ukazuje nové díly. Seznam se synchronizuje s dalšími Kodi i s Home Assistantem (nová volba v Synchronizaci) a kontrola se nedělá na každém zařízení znovu.
 8.2.0 – SyncWatch: společné sledování na víc zařízeních (menu SyncWatch, kód skupiny, tentýž stream u všech, pauza a přetáčení platí pro všechny, Vrátit se do filmu). Nová volba Automaticky použít poslední filtr u výběru streamu. Po odmítnutém jménu či hesle se zdroj hodinu nezkouší. Souhlas s podmínkami rovnou v dialogu. Každé vlastní úložiště jde vypnout bez smazání údajů. Sledujteto hraje přes stahovací odkaz.
 8.2.0~beta6 – Vlastní úložiště má u každého ze tří slotů přepínač Použít toto úložiště. Vypnuté zůstane vyplněné, jen se v něm nehledá a v menu se neukáže.
 8.2.0~beta5 – Souhlas s podmínkami použití se dává rovnou v okně Souhlasím / Nesouhlasím. Dřív se otevřelo nastavení, přepínač ale byl až v poslední kategorii, takže se po aktualizaci ze starší verze menu neotevřelo.
