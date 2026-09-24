@@ -464,7 +464,8 @@ def make_social(path):
     sky.save(path)
 
 
-COVER = (1640, 512)       # poměr, ve kterém Facebook cover skupiny kreslí (3,2:1)
+COVER = (1640, 856)       # doporučený rozměr coveru skupiny; při 3,2:1 (1640×512) Facebook
+                          # v hlavičce servíroval jen náhled 720 px roztažený na celou šířku
 COVER_SAFE = (1312, 410)  # z té šířky ale okno se `overflow: hidden` ukáže jen 84 %
                           # (naměřeno 1250 z 1481 px) — obsah proto drží v tomhle
                           # obdélníku uprostřed, jinak přijde o krajní písmena
@@ -491,30 +492,24 @@ def make_cover(path, S=2):
                        (1180, 392, 2, 45), (1440, 200, 2, 60), (10, 10, 2, 50), (980, 4, 2, 42)]:
         x, y = x + ox, y + oy
         dr.ellipse((k(x - r), k(y - r), k(x + r), k(y + r)), fill=(255, 255, 255, o))
-    logo = mark("", "url(#gold)", scale=S).resize((k(178), k(178)), Image.LANCZOS)
-    sky.paste(logo, (k(ox + sw - 178), k(oy + 6)), logo)
+    # Facebook cover v hlavičce skupiny servíruje nejvýš 720 px široký (ctp=s720x720)
+    # a roztáhne ho přes celou šířku — drobné písmo a tenké linky se rozmažou, proto
+    # jen pár řádků velkým tučným písmem.
+    logo = mark("", "url(#gold)", scale=S).resize((k(210), k(210)), Image.LANCZOS)
+    sky.paste(logo, (k(ox + sw - 210), k(oy - 4)), logo)
     gold, dim, bila = (243, 196, 118), (163, 176, 218), (255, 255, 255)
     F = lambda name, size: font(name, k(size))  # noqa: E731
 
     def text(x, y, t, f, fill):
         dr.text((k(x), k(y)), t, font=f, fill=fill)
 
-    text(ox, oy - 4, "Nokturno", F("InterDisplay-Bold.otf", 70), gold)
-    text(ox + 3, oy + 84, "Přehrávač tvého vlastního úložiště", F("InterDisplay-Bold.otf", 34), bila)
-    f = F("InterDisplay-Bold.otf", 30)
-    tw = dr.textlength("WebDAV", font=f) / S
-    dr.rounded_rectangle((k(ox + 3), k(oy + 134), k(ox + 3 + tw + 40), k(oy + 184)), radius=k(25), fill=gold)
-    text(ox + 23, oy + 141, "WebDAV", f, (20, 28, 66))
-    text(ox + 3 + tw + 64, oy + 146, "NAS, Nextcloud, vlastní server", F("InterDisplay-Medium.otf", 24), bila)
-
-    dr.line((k(ox + 3), k(oy + 214), k(ox + sw - 3), k(oy + 214)), fill=(90, 106, 168), width=k(2))
-    text(ox + 3, oy + 226, "volitelně i veřejné vyhledávače třetích stran", F("InterDisplay-Medium.otf", 23), dim)
-    text(ox + 3, oy + 258, "WebShare · Sosáč · Sledujteto · FastShare · HellSpy · CZtor · Přehraj.to · Luna",
-         F("InterDisplay-Medium.otf", 21), dim)
-    text(ox + 3, oy + 302, "Kodi  ·  Home Assistant  ·  Stremio", F("InterDisplay-Medium.otf", 30), (203, 212, 240))
-    adr = "https://nokturno.stream"
-    fa = F("InterDisplay-Bold.otf", 30)
-    text(ox + sw - 3 - dr.textlength(adr, font=fa) / S, oy + 304, adr, fa, gold)
+    text(ox, oy - 14, "Nokturno", F("InterDisplay-Bold.otf", 120), gold)
+    text(ox + 4, oy + 140, "Přehrávač tvého vlastního úložiště", F("InterDisplay-Bold.otf", 52), bila)
+    dr.line((k(ox + 4), k(oy + 232), k(ox + sw - 4), k(oy + 232)), fill=(110, 126, 190), width=k(4))
+    text(ox + 4, oy + 262, "Kodi · Home Assistant · Stremio", F("InterDisplay-SemiBold.otf", 46), (215, 222, 245))
+    adr = "nokturno.stream"
+    fa = F("InterDisplay-Bold.otf", 46)
+    text(ox + sw - 4 - dr.textlength(adr, font=fa) / S, oy + 262, adr, fa, gold)
     sky.save(path, optimize=True)
 
 
