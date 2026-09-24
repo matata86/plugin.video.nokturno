@@ -60,6 +60,7 @@ import kodi_marks  # noqa: E402 – vedle service.py, čte videodatabázi Kodi
 import kodi_settings  # noqa: E402 – vedle service.py, most do settings.xml
 import kodi_sources  # noqa: E402 – vedle service.py, sdílený výčet zdrojů do statistik
 import setsync  # noqa: E402
+import watch as watch_lib  # noqa: E402
 
 PROP = "nokturno.playing"
 VIEWED_PROP = "nokturno.viewed"
@@ -77,6 +78,12 @@ ACCOUNTS_DELAY = 240      # po startu Kodi napřed skin a widgety, teprve pak st
 ACCOUNTS_EVERY = 6 * 3600     # pod `accounts.TTL` (12 h), ať v menu nestojí zastaralý stav
 ACCOUNTS_RETRY = 20 * 60      # zdroj, na který se nešlo dostat, zkusit dřív — viz AccountsChecker.tick
 ACCOUNTS_TRIGGER_PROP = "nokturno.accounts_trigger"   # stejný literál jako v default.py
+WATCH_TRIGGER_PROP = "nokturno.watch_check"           # stejný literál jako v default.py
+WATCH_DELAY = 6 * 60        # po startu napřed skin, widgety a stav zdrojů
+WATCH_EVERY = 30 * 60       # jak často se podívat, jestli něco z Hlídaných nečeká na kontrolu
+WATCH_DAILY = 24 * 3600     # seznam z Traktu (`watch_state.last_run`) — jinak se nepozná, že je co dělat
+WATCH_NOTICE_EVERY = 60     # oznámení nových dílů, i těch, co přišly synchronizací
+WATCH_NOTICE_MAX = 3        # víc toastů naráz je šum; zbytek je vidět v menu Hlídané
                                                       # (refresh_accounts_after_test) — obnovit hned
 WATCHED_PCT = 0.90
 MIN_RESUME = 90  # s – po takové době přehrávání patří titul do rozkoukaných
@@ -776,6 +783,89 @@ class AccountsChecker:
         xbmcgui.Dialog().notification(L(30000), msg, xbmcgui.NOTIFICATION_WARNING, 8000)
 
 
+class WatchChecker:
+    """Hlídané: kontrola nových dílů a titulů bez streamu, a oznámení.
+
+    Kontrolu dělá plugin (`action=watch_check`) stejnou cestou jako obnovu stavu zdrojů —
+    služba vlastní jádro nemá. Budí se jen tehdy, když něčemu vypršel interval
+    (`watch.anything_due`, bez sítě), a nikdy při přehrávání ani bez sítě: na mobilu
+    Android utne Kodi na pozadí síť (viz 6.6.2) a kontrola by jen vyrobila chyby.
+
+    Oznámení se počítají zvlášť (`watch.pending_notices`), takže se ozve i nový díl,
+    který našel Home Assistant nebo jiné Kodi a přišel synchronizací.
+    """
+
+    def __init__(self, store):
+        self.store = store
+        self.next = time.time() + WATCH_DELAY
+        self.next_notice = time.time() + WATCH_DELAY
+        self.lock = threading.Lock()
+
+    def tick(self):
+        now = time.time()
+        if now >= self.next_notice:
+            self.next_notice = now + WATCH_NOTICE_EVERY
+            self.announce()
+        trigger = self.requested()
+        if not trigger and now < self.next:
+            return
+        self.next = now + WATCH_EVERY
+        if not trigger:
+            if xbmc.Player().isPlaying() or self.offline():
+                return
+            last = int((self.store.reload("watch_state", {}) or {}).get("last_run") or 0)
+            if not watch_lib.anything_due(self.store) and now - last < WATCH_DAILY:
+                return
+        if not self.lock.acquire(blocking=False):
+            return
+
+        def run():
+            try:
+                url = "plugin://plugin.video.nokturno/?action=watch_check"
+                rpc_directory(url + ("&force=1" if trigger == "force" else ""))
+            except Exception as e:  # noqa: BLE001 – kontrola nesmí shodit službu
+                log(f"kontrola Hlídaných: {e}", xbmc.LOGWARNING)
+            finally:
+                self.lock.release()
+            self.announce()
+
+        threading.Thread(target=run, daemon=True).start()
+
+    @staticmethod
+    def requested():
+        """„Zkontrolovat teď“ nebo nově přidaný titul — vlastnost okna se přečte a smaže."""
+        win = xbmcgui.Window(10000)
+        value = win.getProperty(WATCH_TRIGGER_PROP)
+        if value:
+            win.clearProperty(WATCH_TRIGGER_PROP)
+        return value
+
+    def offline(self):
+        znacka = (self.store.reload(accounts_lib.OFFLINE, {}) or {}).get("ts", 0)
+        return bool(znacka) and time.time() - float(znacka) < accounts_lib.OFFLINE_TTL
+
+    def announce(self):
+        """Toasty, ne modál — služba nesmí nic blokovat. Při přehrávání počkají
+        (nic se neoznačí), ať nevyskakují přes film."""
+        if xbmc.Player().isPlaying():
+            return
+        try:
+            notices = watch_lib.pending_notices(self.store)
+        except Exception as e:  # noqa: BLE001
+            log(f"oznámení Hlídaných: {e}", xbmc.LOGWARNING)
+            return
+        icon = ADDON.getAddonInfo("icon")
+        for n in notices[:WATCH_NOTICE_MAX]:
+            if n["kind"] == "episode":
+                text = f"{n['title']} – {int(n['season'] or 0)}x{int(n['episode'] or 0):02d} {n['episode_title']}"
+                xbmcgui.Dialog().notification(L(30913, "Nový díl ke sledování"), text.strip(), icon, 8000)
+            else:
+                year = f" ({n['year']})" if n.get("year") else ""
+                sid = 30915 if n["kind"] == "more" else 30914
+                xbmcgui.Dialog().notification(L(30000, "Nokturno"), Lf(sid, n["title"] + year), icon, 8000)
+            time.sleep(0.2)
+
+
 SUB_STATE = "substate"   # substate.json v profilu: {"last_warned": "YYYY-MM-DD"}
 
 
@@ -793,7 +883,8 @@ class Syncer:
     # nastavení a účty umí jen relay (viz `default.sync_circles`) a jsou výchozím
     # stavem vypnuté — sdílení přihlášení má být vědomé rozhodnutí
     CIRCLES = {"watched": "sync_watched", "favourites": "sync_favourites",
-               "history": "sync_history", "settings": "sync_settings",
+               "history": "sync_history", "watchlist": "sync_watchlist",
+               "settings": "sync_settings",
                "accounts": "sync_accounts"}
     RELAY_ONLY = ("settings", "accounts")
 
@@ -1408,6 +1499,7 @@ def main():
     threading.Thread(target=lang_trigger_watcher, args=(monitor,), daemon=True).start()
     syncer = Syncer(store)
     accounts_checker = AccountsChecker(store)
+    watch_checker = WatchChecker(store)
     marks = KodiMarks(store)
     crash_sender = CrashSender(CrashReporter(PROFILE))
     log("start")
@@ -1418,6 +1510,7 @@ def main():
             stats_tick(stats)
             syncer.tick()
             accounts_checker.tick()
+            watch_checker.tick()
             marks.tick()
             crash_sender.tick()
             if monitor.waitForAbort(POLL):

@@ -63,6 +63,7 @@ from store import WATCHED_MAX, Store, migrate_profile  # noqa: E402
 from source_errors import describe_failure, summarize as summarize_failures  # noqa: E402
 from sync import sync_once  # noqa: E402
 import kodi_settings  # noqa: E402
+import watch as watch_lib  # noqa: E402
 import setsync  # noqa: E402
 import syncbox  # noqa: E402
 from streams import estimate_rank, langs_from_name, parse_stream, subs_from_name  # noqa: E402
@@ -1606,7 +1607,7 @@ def add_meta_item(meta, ctype, alt=None, tag_source=False, label=None):
     li.setArt(art_for(meta))
     fill_info(li, meta, ctype)
     fav = fav_context(meta["id"], ctype, alt=alt)
-    similar = similar_context(ctype, meta["id"])
+    similar = similar_context(ctype, meta["id"]) + [watch_context(ctype, meta["id"], alt)]
     if ctype == "series":
         li.addContextMenuItems([fav] + similar)
         xbmcplugin.addDirectoryItem(HANDLE, build_url(action="seasons", id=meta["id"], alt=alt), li, isFolder=True)
@@ -1690,11 +1691,11 @@ def add_snapshot_item(key, snap, extra_context=None):
     fill_info_snapshot(li, snap)
     ctx = [fav_context(key, snap.get("type", "movie"), snap.get("series"), snap.get("alt"))] + (extra_context or [])
     if snap.get("type") == "series" and snap.get("season") is None:
-        li.addContextMenuItems(ctx + similar_context("series", key))
+        li.addContextMenuItems(ctx + similar_context("series", key) + [watch_context("series", key, snap.get("alt"))])
         xbmcplugin.addDirectoryItem(HANDLE, build_url(action="seasons", id=key, alt=snap.get("alt")), li, isFolder=True)
         return
     kind = "series" if snap.get("season") is not None else "movie"
-    similar = similar_context("movie", key) if kind == "movie" else []
+    similar = similar_context("movie", key) + [watch_context("movie", key, snap.get("alt"))] if kind == "movie" else []
     apply_watched(li, key, ctx + streams_context(kind, key, snap.get("series"), snap.get("alt")) + similar)
     add_playable(li, kind, key, series_id=snap.get("series"), alt=snap.get("alt"))
 
@@ -2502,7 +2503,8 @@ def sync_targets():
 # volby doplňku a přihlášení do jeho rozhraní nepatří (proto je `settings.xml`
 # u obou přepínačů schovává, když je vybraný Home Assistant).
 SYNC_CIRCLE_SETTINGS = {"watched": "sync_watched", "favourites": "sync_favourites",
-                        "history": "sync_history", "settings": "sync_settings",
+                        "history": "sync_history", "watchlist": "sync_watchlist",
+                        "settings": "sync_settings",
                         "accounts": "sync_accounts"}
 SYNC_RELAY_ONLY = ("settings", "accounts")
 
@@ -4744,6 +4746,13 @@ def main_menu(apis):
     # První přidaný titul řádek rozsvítí hned, `toggle_fav()` volá Container.Refresh.
     if STORE.favourites() or STORE.recently_watched(1):
         folder_item(L(30060), build_url(action="favourites"), icon="DefaultFavourites.png")
+    # Hlídané jen s obsahem, jako Můj seznam; nové díly rovnou v popisku
+    if watch_lib.series(STORE) or watch_lib.wanted(STORE) or watch_lib.results(STORE):
+        new = watch_lib.new_count(STORE)
+        label = L(30900, "Hlídané")
+        if new:
+            label = f"{label}  [COLOR {WATCH_NEW}]· {new} {L(30908, 'nový díl')}[/COLOR]"
+        folder_item(label, build_url(action="watchlist"), icon="DefaultRecentlyAddedEpisodes.png")
     # společné sledování; ve skupině ukazuje i kód, ať je vidět, že běží
     sw_code = sw_session().get("code")
     action_item("%s · %s" % (sw_title(), sw_code) if sw_code else sw_title(),
@@ -5709,6 +5718,231 @@ def list_favourites():
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
+# --- Hlídané -----------------------------------------------------------------------
+# Nové díly sledovaných seriálů a tituly, které čekají na stream (nebo na lepší). Logika,
+# seznamy i synchronizace jsou v jádru (`lib/watch.py`) a sdílí je karta v Home Assistantu —
+# tady je jen menu. Kontrolu dělá služba na pozadí (`WatchChecker`) přes `action=watch_check`,
+# stejnou cestou jako obnovu stavu zdrojů.
+
+WATCH_TRIGGER_PROP = "nokturno.watch_check"
+WATCH_STATE = "watch_state"          # watch_state.json: {"last_run": čas poslední kontroly}
+WATCH_NEW = "FFE8A33D"               # nový díl, kontrolovat dál
+WATCH_OK = "FF6FCF7F"                # lze pustit
+
+
+def request_watch_check(force=False):
+    """Kontrolu dělá služba — plugin skončí dřív, než by hledání doběhlo."""
+    xbmcgui.Window(10000).setProperty(WATCH_TRIGGER_PROP, "force" if force else "1")
+    if force:
+        notify(L(30920, "Kontroluji Hlídané…"))
+
+
+def watch_context(ctype, key, alt=None):
+    """Hlídat / Přestat hlídat v kontextovém menu titulu."""
+    if ctype == "series":
+        on_ = watch_lib.is_series_watched(STORE, key)
+        return (L(30902, "Přestat hlídat nové díly") if on_ else L(30901, "Hlídat nové díly"),
+                runplugin(action="watch_series", id=key, alt=alt))
+    on_ = watch_lib.is_wanted(STORE, key)
+    return (L(30904, "Přestat hlídat") if on_ else L(30903, "Hlídat, až bude k dispozici"),
+            runplugin(action="want", id=key, type=ctype, alt=alt))
+
+
+def watch_info(apis, ctype, key, alt=None):
+    """Název, rok a plakát do seznamu — ze snímku, jinak z metadat."""
+    snap = STORE.item(key)
+    if not snap or thin_snapshot(snap):
+        try:
+            meta, _video = load_meta(apis, ctype, key)
+            snap = snapshot(meta, ctype, alt=alt)
+            STORE.remember_item(key, snap)
+        except Errors as e:
+            log_error(e)
+            snap = snap or {}
+    art = snap.get("art") or {}
+    return {"title": strip_year(snap.get("title"), snap.get("year")) or key, "year": snap.get("year") or "",
+            "poster": art.get("poster") or art.get("thumb") or "", "alt": alt, "type": ctype}
+
+
+def toggle_watch_series(apis, sid, alt=None):
+    if watch_lib.is_series_watched(STORE, sid):
+        watch_lib.unwatch_series(STORE, sid)
+        notify(L(30917, "Odebráno z Hlídaných"))
+    else:
+        watch_lib.watch_series(STORE, sid, watch_info(apis, "series", sid, alt))
+        notify(L(30916, "Přidáno do Hlídaných"))
+        request_watch_check()
+    request_sync()
+    xbmc.executebuiltin("Container.Refresh")
+
+
+def toggle_want(apis, wid, ctype="movie", alt=None):
+    if watch_lib.is_wanted(STORE, wid):
+        watch_lib.unwant(STORE, wid)
+        notify(L(30917, "Odebráno z Hlídaných"))
+    else:
+        watch_lib.want(STORE, wid, watch_info(apis, ctype, wid, alt))
+        notify(L(30916, "Přidáno do Hlídaných"))
+        request_watch_check()
+    request_sync()
+    xbmc.executebuiltin("Container.Refresh")
+
+
+def offer_watch(meta, ctype, item_id, video, series_id, alt):
+    """Žádný stream ani po uvolněném hledání — nabídnout, že se Nokturno ozve samo.
+    U dílu se hlídá celý seriál (nový díl = přesně tohle), u filmu titul."""
+    if video:
+        sid = series_id or split_episode_id(item_id)[0]
+        if watch_lib.is_series_watched(STORE, sid):
+            return
+        if xbmcgui.Dialog().yesno(L(30577, "Žádný stream nenalezen"),
+                                  L(30925, "Ozvat se, až díl bude k dispozici?[CR]Seriál se zařadí do Hlídaných "
+                                           "a Nokturno ho kontroluje každých šest hodin.")):
+            watch_lib.watch_series(STORE, sid, {"title": meta.get("_title") or meta.get("name") or sid,
+                                                "poster": meta.get("poster") or "", "alt": alt})
+            request_sync()
+            notify(L(30916, "Přidáno do Hlídaných"))
+        return
+    if watch_lib.is_wanted(STORE, item_id):
+        return
+    if xbmcgui.Dialog().yesno(L(30577, "Žádný stream nenalezen"),
+                              L(30924, "Ozvat se, až bude k dispozici?[CR]Titul se zařadí do Hlídaných "
+                                       "a Nokturno ho jednou denně zkontroluje.")):
+        year = str(meta.get("year") or meta.get("releaseInfo") or "")[:4]
+        watch_lib.want(STORE, item_id, {"title": display_name(meta), "year": year, "type": ctype,
+                                        "poster": meta.get("poster") or "", "alt": alt})
+        request_sync()
+        notify(L(30916, "Přidáno do Hlídaných"))
+
+
+def watch_flag(wid):
+    watch_lib.toggle_flag(STORE, wid)
+    request_sync()
+    xbmc.executebuiltin("Container.Refresh")
+
+
+def watch_seen(sid=None):
+    watch_lib.mark_seen(STORE, sid)
+    request_sync()
+    xbmc.executebuiltin("Container.Refresh")
+
+
+def watch_open(apis, sid, alt=None):
+    """Seriál z Hlídaných: otevřít = nový díl je vidět, zhasne i v kartě HA."""
+    if (watch_lib.series(STORE).get(sid) or {}).get("new"):
+        watch_lib.mark_seen(STORE, sid)
+        request_sync()
+    list_seasons(apis, sid, alt=alt)
+
+
+def watch_status(rec, flagged):
+    """Stav hlídaného titulu slovem v barvě — ✔/✘ fonty skinů nekreslí."""
+    if rec.get("streams"):
+        if flagged:
+            return f"[COLOR {WATCH_NEW}]{L(30905, 'Kontrolovat dál').lower()}[/COLOR]"
+        text = L(30912, "jen torrent") if rec.get("torrent") else L(30909, "lze pustit")
+        return f"[COLOR {WATCH_OK}]{text}[/COLOR]"
+    if not rec.get("checked"):
+        return ""
+    return f"[COLOR {GREY}]{L(30911, 'hlídám') if rec.get('pending') else L(30910, 'zatím ne')}[/COLOR]"
+
+
+def _watch_li(label, key, poster):
+    li = xbmcgui.ListItem(label=label)
+    snap = STORE.item(key)
+    if snap and snap.get("type") not in ("ws", "hs", "dav"):
+        fill_info_snapshot(li, snap)
+    if poster:
+        li.setArt({"poster": poster, "thumb": poster})
+    return li
+
+
+def list_watch():
+    """Sledované seriály (nové díly nahoře) a hlídané tituly."""
+    set_content("movies")
+    check_now = (L(30918, "Zkontrolovat teď"), runplugin(action="watch_check_now"))
+    items = sorted(watch_lib.series(STORE).items(),
+                   key=lambda kv: (not kv[1].get("new"), (kv[1].get("title") or "").lower()))
+    for sid, item in items:
+        label = item.get("title") or sid
+        new, avail = item.get("new"), item.get("available")
+        if new:
+            label += f"  [COLOR {WATCH_NEW}]{L(30908, 'nový díl')} {int(new['season'])}x{int(new['episode']):02d}[/COLOR]"
+        elif avail:
+            label += f"  [COLOR {GREY}]{int(avail['season'])}x{int(avail['episode']):02d}[/COLOR]"
+        li = _watch_li(label, sid, item.get("poster"))
+        ctx = ([(L(30907, "Označit jako viděné"), runplugin(action="watch_seen", id=sid))] if new else [])
+        li.addContextMenuItems(ctx + [(L(30902, "Přestat hlídat nové díly"),
+                                       runplugin(action="watch_series", id=sid)), check_now])
+        xbmcplugin.addDirectoryItem(HANDLE, build_url(action="watch_open", id=sid, alt=item.get("alt")), li,
+                                    isFolder=True)
+    # vlastní seznam + výsledky kontroly (i titulů z Traktu); co ještě neprošlo kontrolou,
+    # je jen v seznamu
+    flags = watch_lib.flags(STORE)
+    rows = dict(watch_lib.wanted(STORE))
+    rows.update(watch_lib.results(STORE))
+    order = sorted(rows.items(), key=lambda kv: (not kv[1].get("streams"), kv[0] in flags,
+                                                (kv[1].get("title") or "").lower()))
+    for wid, rec in order:
+        title = rec.get("title") or wid
+        year = str(rec.get("year") or "")[:4]
+        label = f"{title} ({year})" if year and year not in title else title
+        status = watch_status(rec, wid in flags)
+        if status:
+            label += "  " + status
+        own = watch_lib.is_wanted(STORE, wid)
+        ctx = []
+        if rec.get("streams"):
+            ctx.append((L(30906, "Nekontrolovat dál") if wid in flags else L(30905, "Kontrolovat dál"),
+                        runplugin(action="watch_flag", id=wid)))
+        if own:
+            ctx.append((L(30904, "Přestat hlídat"), runplugin(action="want", id=wid, type=rec.get("type"))))
+        ctx.append(check_now)
+        target = rec.get("found_id") or wid
+        li = _watch_li(label, target, rec.get("poster"))
+        li.addContextMenuItems(ctx)
+        if str(target).startswith("q:"):
+            # titul zatím žádný zdroj nezná — aspoň hledání podle názvu
+            url = build_url(action="search_run", type=rec.get("type", "movie"), q=rec.get("query") or title)
+            xbmcplugin.addDirectoryItem(HANDLE, url, li, isFolder=True)
+        elif rec.get("type") == "series":
+            xbmcplugin.addDirectoryItem(HANDLE, build_url(action="seasons", id=target, alt=rec.get("alt")), li,
+                                        isFolder=True)
+        else:
+            xbmcplugin.addDirectoryItem(HANDLE, build_url(action="title", type="movie", id=target,
+                                                          alt=rec.get("alt")), li, isFolder=False)
+    action_item(L(30918, "Zkontrolovat teď"), build_url(action="watch_check_now"), icon="DefaultAddonsUpdates.png")
+    xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
+def watch_check(apis, force=False):
+    """Kontrola Hlídaných — volá ji služba přes JSON-RPC (`WatchChecker`). Jen seriály
+    a tituly, které nikdo ve skupině synchronizace nekontroloval v posledních 6 h / 24 h."""
+    engine = engine_of(apis)
+    extra = []
+    trakt = get_trakt()
+    if trakt is not None and trakt.logged_in():
+        for kind in ("movies", "shows"):
+            try:
+                extra += trakt.watchlist(kind)
+            except Exception as e:  # noqa: BLE001 – výpadek Traktu nesmí shodit kontrolu
+                xbmc.log(f"[{ADDON_ID}] trakt watchlist {kind}: {e}", xbmc.LOGDEBUG)
+    try:
+        done = watch_lib.check_series(engine, STORE, force=force, should_stop=should_stop)
+        done += watch_lib.check_wanted(engine, STORE, extra, force=force, should_stop=should_stop)
+    except Aborted:
+        raise
+    except Exception as e:  # noqa: BLE001 – kontrola na pozadí nesmí nic shodit
+        log_error(f"kontrola Hlídaných: {e}")
+        done = []
+    STORE.save(WATCH_STATE, {"last_run": int(time.time())})
+    if done:
+        xbmc.log(f"[{ADDON_ID}] Hlídané: zkontrolováno {len(done)}", xbmc.LOGINFO)
+        request_sync()
+    # jako `accounts_refresh()`: prázdný, ale úspěšně zavřený adresář
+    xbmcplugin.endOfDirectory(HANDLE, succeeded=True, cacheToDisc=False)
+
+
 def list_recent():
     # „videos" je obecný typ a skiny k němu nabízejí jen základní seznam;
     # u konkrétního typu je na výběr celá sada zobrazení. Kodi si zobrazení
@@ -6396,6 +6630,8 @@ def pick_title(apis, ctype, item_id, series_id=None, alt=None, fulltext=False, d
             if typed:
                 streams, errors = collect(False, dict(meta, _title=typed, name=typed))
         if not streams:
+            if not download and not errors:
+                offer_watch(meta, ctype, item_id, video, series_id, alt)
             return
     pref_key = (series_id or split_episode_id(item_id)[0]) if video else None
     remembered = preferred_stream(streams, STORE.stream_pref(pref_key)) if pref_key else None
@@ -6866,6 +7102,10 @@ def router(query):
         "remove_progress": lambda: remove_progress(p["id"], p.get("series")),
         "search": lambda: search_menu(p.get("type") or p.get("kind") or "any"),
         "favourites": list_favourites,
+        "watchlist": list_watch,
+        "watch_flag": lambda: watch_flag(p["id"]),
+        "watch_seen": lambda: watch_seen(p.get("id")),
+        "watch_check_now": lambda: _tlacitko(lambda: request_watch_check(force=True)),
         "recent": list_recent,
         "downloads": list_downloads,
         "download_remove": lambda: download_remove(p["id"]),
@@ -7013,6 +7253,14 @@ def router(query):
             prefetch(apis, p.get("kind", "next"))
         elif action == "toggle_fav":
             toggle_fav(apis, p["id"], p.get("type", "movie"), p.get("series"), p.get("alt"))
+        elif action == "watch_series":
+            toggle_watch_series(apis, p["id"], p.get("alt"))
+        elif action == "want":
+            toggle_want(apis, p["id"], p.get("type", "movie"), p.get("alt"))
+        elif action == "watch_open":
+            watch_open(apis, p["id"], p.get("alt"))
+        elif action == "watch_check":
+            watch_check(apis, force=bool(p.get("force")))
         elif action == "seasons":
             list_seasons(apis, p["id"], alt=p.get("alt"))
         elif action == "episodes":
@@ -7086,6 +7334,7 @@ MARKS_SKIP = frozenset((
     "test_sources", "source_pause", "remote_setup", "stream_layout_reset", "setup_wizard", "sub_status",
     "luna_check", "luna_find", "os_check", "speedtest", "update_repos", "tmdbhelper_player", "sync_now",
     "sync_create", "sync_join", "sync_leave",
+    "watch_series", "want", "watch_flag", "watch_seen", "watch_check", "watch_check_now",
     "whats_new", "ha_files", "settings", "transfer_send", "transfer_receive",
     "transfer_file_save", "transfer_file_load",
 ))

@@ -916,6 +916,14 @@
           </dependencies>
           <control type="toggle"/>
         </setting>
+        <setting id="sync_watchlist" type="boolean" label="30919">
+          <level>0</level>
+          <default>true</default>
+          <dependencies>
+            <dependency type="enable" setting="sync_enabled">true</dependency>
+          </dependencies>
+          <control type="toggle"/>
+        </setting>
         <setting id="sync_settings" type="boolean" label="30683" help="30685">
           <level>0</level>
           <default>false</default>

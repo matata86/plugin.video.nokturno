@@ -5122,11 +5122,11 @@ class TestSynchronizaceRelay(unittest.TestCase):
         self.assertIsNone(default.sync_settings())
 
     def test_okruhy_podle_prepinacu(self):
-        self.assertEqual(default.sync_circles(), ("watched", "favourites", "history"),
+        self.assertEqual(default.sync_circles(), ("watched", "favourites", "history", "watchlist"),
                          "výchozí stav je vše zapnuté")
         xbmcaddon.settings["sync_history"] = "false"
-        self.assertEqual(default.sync_circles(), ("watched", "favourites"))
-        for klic in ("sync_watched", "sync_favourites"):
+        self.assertEqual(default.sync_circles(), ("watched", "favourites", "watchlist"))
+        for klic in ("sync_watched", "sync_favourites", "sync_watchlist"):
             xbmcaddon.settings[klic] = "false"
         self.assertEqual(default.sync_circles(), ())
 
@@ -5248,14 +5248,14 @@ class TestSynchronizaceRelay(unittest.TestCase):
                     break
                 time.sleep(0.02)
         self.assertEqual(relay.call_count, 0)
-        self.assertEqual(ha.call_args[1]["circles"], ("watched", "favourites"))
+        self.assertEqual(ha.call_args[1]["circles"], ("watched", "favourites", "watchlist"))
 
     def test_rucni_synchronizace_pres_ha_posila_okruhy(self):
         xbmcaddon.settings.update({"sync_mode": "0", "sync_url": "http://ha", "sync_key": "k",
                                    "sync_favourites": "false"})
         with mock.patch.object(default, "sync_once", return_value=(True, 0, 0, "")) as ha:
             default.sync_now()
-        self.assertEqual(ha.call_args[1]["circles"], ("watched", "history"))
+        self.assertEqual(ha.call_args[1]["circles"], ("watched", "history", "watchlist"))
 
     # --- jedno středisko, ne dvě ---
 
@@ -5349,14 +5349,14 @@ class TestSynchronizaceRelay(unittest.TestCase):
 
     def test_nastaveni_a_ucty_jsou_vychozim_stavem_vypnute(self):
         """Sdílení hesel se nesmí zapnout samo tím, že uživatel založí skupinu."""
-        self.assertEqual(default.sync_circles(), ("watched", "favourites", "history"))
+        self.assertEqual(default.sync_circles(), ("watched", "favourites", "history", "watchlist"))
 
     def test_zapnute_okruhy_se_pridaji_jen_u_relaye(self):
         xbmcaddon.settings.update({"sync_settings": "true", "sync_accounts": "true"})
         self.assertEqual(default.sync_circles(),
-                         ("watched", "favourites", "history", "settings", "accounts"))
+                         ("watched", "favourites", "history", "watchlist", "settings", "accounts"))
         xbmcaddon.settings["sync_mode"] = "0"
-        self.assertEqual(default.sync_circles(), ("watched", "favourites", "history"),
+        self.assertEqual(default.sync_circles(), ("watched", "favourites", "history", "watchlist"),
                          "Home Assistant nastavení ani účty nepřenáší")
 
     def test_hodnoty_nastaveni_jen_kdyz_je_okruh_zapnuty(self):
@@ -5774,7 +5774,7 @@ class TestOsmKategorii(unittest.TestCase):
         # přeskládání kategorií zůstávají stejná
         root = ET.parse(ROOT / "resources" / "settings.xml").getroot()
         volby = {s.get("id") for s in root.iter("setting")}
-        self.assertEqual(len(volby), 107)   # +2: terms_ok a terms_show_action (souhlas, 2026-09-22), +1 stream_filter_last, +3 dav1–3_enabled
+        self.assertEqual(len(volby), 108)   # +1 sync_watchlist (Hlídané), +2: terms_ok a terms_show_action (souhlas, 2026-09-22), +1 stream_filter_last, +3 dav1–3_enabled
         for ocekavane in ("ws_enabled", "pt_email", "sosac_enabled", "hs_enabled",
                           "st_enabled", "fs_enabled", "cz_enabled", "luna_url",
                           "os_enabled", "tmdb_api_key", "download_dir", "info_donate"):
@@ -6383,3 +6383,120 @@ class TestSyncWatch(unittest.TestCase):
             manager.tick()
         runtime.stop.assert_called_once()
         self.assertIsNone(manager.runtime)
+
+
+class TestHlidane(unittest.TestCase):
+    """Hlídané (8.3.0): menu nad jádrem `watch.py`, kontrola a oznámení ze služby."""
+
+    def setUp(self):
+        reset_kodi()
+        for name, empty in (("watchlist", {}), ("wantlist", {}), ("trakt_list", {}), ("trakt_flags", {}),
+                            ("watchlog", {}), ("watch_notified", {}), ("watch_state", {})):
+            default.STORE.save(name, empty)
+
+    def test_v_menu_jen_s_obsahem_a_s_novymi_dily(self):
+        apis = {"engine": default.KodiEngine(), "luna": object()}
+        with mock.patch.object(default.KodiEngine, "accounts", return_value={}):
+            default.main_menu(apis)
+        self.assertFalse(any("action=watchlist" in u for u in xbmcplugin.urls()))
+        default.watch_lib.watch_series(default.STORE, "tt9", {"title": "Seriál"})
+        with default.STORE.updating("watchlist", {}) as data:
+            data["tt9"]["new"] = {"id": "tt9:1:2", "season": 1, "episode": 2}
+        xbmcplugin.reset()
+        with mock.patch.object(default.KodiEngine, "accounts", return_value={}):
+            default.main_menu(apis)
+        polozka = next(li for _h, u, li, _f in xbmcplugin.items if "action=watchlist" in u)
+        self.assertIn("1", polozka.label)
+
+    def test_vypis_novy_dil_nahore_a_stav_titulu(self):
+        default.watch_lib.watch_series(default.STORE, "tt1", {"title": "A bez novinky"})
+        default.watch_lib.watch_series(default.STORE, "tt2", {"title": "B s novým dílem"})
+        with default.STORE.updating("watchlist", {}) as data:
+            data["tt2"]["new"] = {"id": "tt2:3:1", "season": 3, "episode": 1}
+        default.watch_lib.want(default.STORE, "tt5", {"title": "Film"})
+        default.STORE.save("trakt_list", {"tt5": {"id": "tt5", "title": "Film", "type": "movie", "streams": 2,
+                                                   "checked": "x"}})
+        default.watch_lib.toggle_flag(default.STORE, "tt5")
+        default.list_watch()
+        labels = [li.label for _h, _u, li, _f in xbmcplugin.items]
+        self.assertTrue(labels[0].startswith("B s novým dílem"))
+        self.assertIn("3x01", labels[0])
+        film = next(li for _h, u, li, _f in xbmcplugin.items if "tt5" in u)
+        self.assertIn("kontrolovat", film.label.lower())
+        self.assertIn(default.L(30906, "Nekontrolovat dál"), [c[0] for c in film.context])
+
+    def test_otevreni_serialu_zhasne_novy_dil(self):
+        default.watch_lib.watch_series(default.STORE, "tt2")
+        with default.STORE.updating("watchlist", {}) as data:
+            data["tt2"]["new"] = {"id": "tt2:3:1", "season": 3, "episode": 1}
+        with mock.patch.object(default, "list_seasons") as seasons:
+            default.watch_open({}, "tt2")
+        seasons.assert_called_once()
+        self.assertEqual(default.watch_lib.new_count(default.STORE), 0)
+        self.assertEqual(xbmcgui.Window(10000).getProperty(default.SYNC_PROP), "1")
+
+    def test_kontextove_menu_u_titulu(self):
+        self.assertEqual(default.watch_context("series", "tt9")[0], default.L(30901, "Hlídat nové díly"))
+        default.watch_lib.want(default.STORE, "tt5")
+        self.assertEqual(default.watch_context("movie", "tt5")[0], default.L(30904, "Přestat hlídat"))
+
+    def test_akce_nectou_videodatabazi(self):
+        for action in ("watch_series", "want", "watch_flag", "watch_seen", "watch_check", "watch_check_now"):
+            self.assertIn(action, default.MARKS_SKIP)
+
+    def test_kontrola_zavre_adresar_a_pozada_o_sync(self):
+        with mock.patch.object(default.watch_lib, "check_series", return_value=["tt9"]) as ser, \
+                mock.patch.object(default.watch_lib, "check_wanted", return_value=[]), \
+                mock.patch.object(default, "get_trakt", return_value=None):
+            default.watch_check({"engine": default.KodiEngine()})
+        self.assertFalse(ser.call_args[1]["force"])
+        self.assertTrue(xbmcplugin.ended[-1]["succeeded"], "jinak `GetDirectory - Error` v kodi.log v každém kole")
+        self.assertEqual(xbmcgui.Window(10000).getProperty(default.SYNC_PROP), "1")
+        self.assertTrue(default.STORE.load("watch_state", {}).get("last_run"))
+
+
+class TestHlidaneSluzba(unittest.TestCase):
+    def setUp(self):
+        reset_kodi()
+        self.dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.dir.cleanup)
+        self.store = service.Store(self.dir.name)
+        self.checker = service.WatchChecker(self.store)
+        self.checker.next = self.checker.next_notice = 0
+
+    def run_tick(self):
+        with mock.patch.object(service, "rpc_directory") as rpc, \
+                mock.patch.object(service.threading, "Thread") as thread:
+            thread.side_effect = lambda target, daemon: mock.Mock(start=target)
+            self.checker.tick()
+        return rpc
+
+    def test_bez_hlidanych_plugin_nebudi(self):
+        self.store.save("watch_state", {"last_run": int(time.time())})
+        self.run_tick().assert_not_called()
+
+    def test_zkontrolovat_ted_vynuti(self):
+        self.store.save("watch_state", {"last_run": int(time.time())})
+        xbmcgui.Window(10000).setProperty(service.WATCH_TRIGGER_PROP, "force")
+        rpc = self.run_tick()
+        self.assertIn("action=watch_check&force=1", rpc.call_args[0][0])
+
+    def test_seznam_co_ceka_na_kontrolu_plugin_probudi(self):
+        self.store.save("watch_state", {"last_run": int(time.time())})
+        service.watch_lib.watch_series(self.store, "tt9")
+        self.assertIn("action=watch_check", self.run_tick().call_args[0][0])
+
+    def test_oznameni_noveho_dilu_i_ze_synchronizace(self):
+        service.watch_lib.watch_series(self.store, "tt9", {"title": "Seriál"})
+        with self.store.updating("watchlist", {}) as data:
+            data["tt9"]["new"] = {"id": "tt9:2:3", "season": 2, "episode": 3, "title": "Díl",
+                                  "ts": int(time.time())}
+        self.store.save("watch_state", {"last_run": int(time.time())})
+        with self.store.updating("watchlist", {}) as data:
+            data["tt9"]["checked_ts"] = int(time.time())
+        self.run_tick()
+        self.assertEqual(len(xbmcgui.notifications), 1)
+        self.assertIn("2x03", xbmcgui.notifications[0][1])
+        self.checker.next_notice = 0
+        self.run_tick()
+        self.assertEqual(len(xbmcgui.notifications), 1, "podruhé už ne")

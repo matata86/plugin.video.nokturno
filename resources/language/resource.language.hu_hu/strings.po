@@ -2468,3 +2468,95 @@ msgstr "Ennek a tárhelynek a használata"
 msgctxt "#30863"
 msgid "A disabled storage stays filled in, it is just not searched and not shown in the menu."
 msgstr "A kikapcsolt tárhely kitöltve marad, csak nem keres benne és nem jelenik meg a menüben."
+
+msgctxt "#30900"
+msgid "Watchlist"
+msgstr "Figyelőlista"
+
+msgctxt "#30901"
+msgid "Watch for new episodes"
+msgstr "Új részek figyelése"
+
+msgctxt "#30902"
+msgid "Stop watching for new episodes"
+msgstr "Új részek figyelésének leállítása"
+
+msgctxt "#30903"
+msgid "Watch until available"
+msgstr "Figyelés, amíg elérhető lesz"
+
+msgctxt "#30904"
+msgid "Stop watching"
+msgstr "Figyelés leállítása"
+
+msgctxt "#30905"
+msgid "Keep checking"
+msgstr "Ellenőrzés folytatása"
+
+msgctxt "#30906"
+msgid "Stop checking"
+msgstr "Ne ellenőrizze tovább"
+
+msgctxt "#30907"
+msgid "Mark as seen"
+msgstr "Megjelölés megtekintettként"
+
+msgctxt "#30908"
+msgid "new episode"
+msgstr "új rész"
+
+msgctxt "#30909"
+msgid "can be played"
+msgstr "lejátszható"
+
+msgctxt "#30910"
+msgid "not yet"
+msgstr "még nem"
+
+msgctxt "#30911"
+msgid "watching"
+msgstr "figyelem"
+
+msgctxt "#30912"
+msgid "torrent only"
+msgstr "csak torrent"
+
+msgctxt "#30913"
+msgid "New episode to watch"
+msgstr "Új rész érhető el"
+
+msgctxt "#30914"
+msgid "Now available: %s"
+msgstr "Már elérhető: %s"
+
+msgctxt "#30915"
+msgid "New source: %s"
+msgstr "Új forrás: %s"
+
+msgctxt "#30916"
+msgid "Added to the watchlist"
+msgstr "Hozzáadva a figyelőlistához"
+
+msgctxt "#30917"
+msgid "Removed from the watchlist"
+msgstr "Eltávolítva a figyelőlistáról"
+
+msgctxt "#30918"
+msgid "Check now"
+msgstr "Ellenőrzés most"
+
+msgctxt "#30919"
+msgid "Watched series and titles"
+msgstr "Figyelt sorozatok és címek"
+
+msgctxt "#30920"
+msgid "Checking the watchlist…"
+msgstr "Figyelőlista ellenőrzése…"
+
+msgctxt "#30924"
+msgid "Let you know when it is available?[CR]The title goes to the watchlist and Nokturno checks it once a day."
+msgstr "Szóljunk, ha elérhető lesz?[CR]A cím a figyelőlistára kerül, és a Nokturno naponta egyszer ellenőrzi."
+
+msgctxt "#30925"
+msgid "Let you know when the episode is available?[CR]The series goes to the watchlist and Nokturno checks it every six hours."
+msgstr "Szóljunk, ha a rész elérhető lesz?[CR]A sorozat a figyelőlistára kerül, és a Nokturno hatóránként ellenőrzi."

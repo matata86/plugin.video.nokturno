@@ -2469,3 +2469,95 @@ msgstr ""
 msgctxt "#30863"
 msgid "A disabled storage stays filled in, it is just not searched and not shown in the menu."
 msgstr ""
+
+msgctxt "#30900"
+msgid "Watchlist"
+msgstr ""
+
+msgctxt "#30901"
+msgid "Watch for new episodes"
+msgstr ""
+
+msgctxt "#30902"
+msgid "Stop watching for new episodes"
+msgstr ""
+
+msgctxt "#30903"
+msgid "Watch until available"
+msgstr ""
+
+msgctxt "#30904"
+msgid "Stop watching"
+msgstr ""
+
+msgctxt "#30905"
+msgid "Keep checking"
+msgstr ""
+
+msgctxt "#30906"
+msgid "Stop checking"
+msgstr ""
+
+msgctxt "#30907"
+msgid "Mark as seen"
+msgstr ""
+
+msgctxt "#30908"
+msgid "new episode"
+msgstr ""
+
+msgctxt "#30909"
+msgid "can be played"
+msgstr ""
+
+msgctxt "#30910"
+msgid "not yet"
+msgstr ""
+
+msgctxt "#30911"
+msgid "watching"
+msgstr ""
+
+msgctxt "#30912"
+msgid "torrent only"
+msgstr ""
+
+msgctxt "#30913"
+msgid "New episode to watch"
+msgstr ""
+
+msgctxt "#30914"
+msgid "Now available: %s"
+msgstr ""
+
+msgctxt "#30915"
+msgid "New source: %s"
+msgstr ""
+
+msgctxt "#30916"
+msgid "Added to the watchlist"
+msgstr ""
+
+msgctxt "#30917"
+msgid "Removed from the watchlist"
+msgstr ""
+
+msgctxt "#30918"
+msgid "Check now"
+msgstr ""
+
+msgctxt "#30919"
+msgid "Watched series and titles"
+msgstr ""
+
+msgctxt "#30920"
+msgid "Checking the watchlist…"
+msgstr ""
+
+msgctxt "#30924"
+msgid "Let you know when it is available?[CR]The title goes to the watchlist and Nokturno checks it once a day."
+msgstr ""
+
+msgctxt "#30925"
+msgid "Let you know when the episode is available?[CR]The series goes to the watchlist and Nokturno checks it every six hours."
+msgstr ""

@@ -2470,3 +2470,95 @@ msgstr "Použít toto úložiště"
 msgctxt "#30863"
 msgid "A disabled storage stays filled in, it is just not searched and not shown in the menu."
 msgstr "Vypnuté úložiště zůstane vyplněné, jen se v něm nehledá a v menu se neukáže."
+
+msgctxt "#30900"
+msgid "Watchlist"
+msgstr "Hlídané"
+
+msgctxt "#30901"
+msgid "Watch for new episodes"
+msgstr "Hlídat nové díly"
+
+msgctxt "#30902"
+msgid "Stop watching for new episodes"
+msgstr "Přestat hlídat nové díly"
+
+msgctxt "#30903"
+msgid "Watch until available"
+msgstr "Hlídat, až bude k dispozici"
+
+msgctxt "#30904"
+msgid "Stop watching"
+msgstr "Přestat hlídat"
+
+msgctxt "#30905"
+msgid "Keep checking"
+msgstr "Kontrolovat dál"
+
+msgctxt "#30906"
+msgid "Stop checking"
+msgstr "Nekontrolovat dál"
+
+msgctxt "#30907"
+msgid "Mark as seen"
+msgstr "Označit jako viděné"
+
+msgctxt "#30908"
+msgid "new episode"
+msgstr "nový díl"
+
+msgctxt "#30909"
+msgid "can be played"
+msgstr "lze pustit"
+
+msgctxt "#30910"
+msgid "not yet"
+msgstr "zatím ne"
+
+msgctxt "#30911"
+msgid "watching"
+msgstr "hlídám"
+
+msgctxt "#30912"
+msgid "torrent only"
+msgstr "jen torrent"
+
+msgctxt "#30913"
+msgid "New episode to watch"
+msgstr "Nový díl ke sledování"
+
+msgctxt "#30914"
+msgid "Now available: %s"
+msgstr "Už je k dispozici: %s"
+
+msgctxt "#30915"
+msgid "New source: %s"
+msgstr "Přibyl zdroj: %s"
+
+msgctxt "#30916"
+msgid "Added to the watchlist"
+msgstr "Přidáno do Hlídaných"
+
+msgctxt "#30917"
+msgid "Removed from the watchlist"
+msgstr "Odebráno z Hlídaných"
+
+msgctxt "#30918"
+msgid "Check now"
+msgstr "Zkontrolovat teď"
+
+msgctxt "#30919"
+msgid "Watched series and titles"
+msgstr "Hlídané seriály a tituly"
+
+msgctxt "#30920"
+msgid "Checking the watchlist…"
+msgstr "Kontroluji Hlídané…"
+
+msgctxt "#30924"
+msgid "Let you know when it is available?[CR]The title goes to the watchlist and Nokturno checks it once a day."
+msgstr "Ozvat se, až bude k dispozici?[CR]Titul se zařadí do Hlídaných a Nokturno ho jednou denně zkontroluje."
+
+msgctxt "#30925"
+msgid "Let you know when the episode is available?[CR]The series goes to the watchlist and Nokturno checks it every six hours."
+msgstr "Ozvat se, až díl bude k dispozici?[CR]Seriál se zařadí do Hlídaných a Nokturno ho kontroluje každých šest hodin."
