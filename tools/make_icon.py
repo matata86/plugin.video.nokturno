@@ -6,6 +6,7 @@
     python3 tools/make_icon.py podpora    # obrázek podpory do README (.github/podpora.png)
     python3 tools/make_icon.py 6.0.0      # obrázek k vydání 6.0.0 s CZtorem (.github/nokturno-6.0.0-cztor.png)
     python3 tools/make_icon.py 6.6.0      # obrázek k vydání 6.6.0 s přehledem novinek (.github/nokturno-6.6.0-novinky.png)
+    python3 tools/make_icon.py 8.2.0      # obrázek k vydání 8.2 se SyncWatch (.github/nokturno-8.2.0-syncwatch.png)
     python3 tools/make_icon.py 8.0.0      # obrázek k vydání 8.0 s Koncerty a novinkami řady 7 (.github/nokturno-8.0.0-koncerty.png)
     python3 tools/make_icon.py 7.0.0      # obrázek k vydání 7.0 s Přehraj.to a novinkami 6.6 (.github/nokturno-7.0.0-prehrajto.png)
 
@@ -381,6 +382,50 @@ def make_release_800(path):
     sky.save(path)
 
 
+def make_release_820(path):
+    """Obrázek k vydání 8.2: SyncWatch (společné sledování) jako hlavní zpráva, pod ním
+    jak to funguje a motto vydání — pro vlastní skupinu na Facebooku a sdílení do ostatních."""
+    W, H = RELEASE
+    sky = render(f'<rect width="{W}" height="{H}" fill="url(#sky)"/>', W, H, scale=1).convert("RGB")
+    q = 4
+    glow = Image.new("RGB", (W // q, H // q), (0, 0, 0))
+    ImageDraw.Draw(glow).ellipse([c / q for c in (640, -120, 1340, 560)], fill=(32, 42, 96))
+    sky = ImageChops.add(sky, glow.filter(ImageFilter.GaussianBlur(24)).resize((W, H), Image.BICUBIC))
+    dr = ImageDraw.Draw(sky, "RGBA")
+    for x, y, r, o in [(1130, 60, 3, 90), (1010, 40, 2, 60), (1150, 560, 3, 70), (60, 600, 2, 55),
+                       (960, 600, 2, 45), (1170, 320, 2, 60), (40, 40, 2, 50), (800, 30, 2, 42)]:
+        dr.ellipse((x - r, y - r, x + r, y + r), fill=(255, 255, 255, o))
+    logo = mark("", "url(#gold)", scale=1).resize((250, 250), Image.LANCZOS)
+    sky.paste(logo, (905, 40), logo)
+    gold, dim, bila = (243, 196, 118), (163, 176, 218), (255, 255, 255)
+
+    dr.text((70, 42), "Nokturno 8.2", font=font("InterDisplay-Bold.otf", 88), fill=gold)
+    dr.text((74, 150), "Nová funkce v Kodi", font=font("InterDisplay-Medium.otf", 34), fill=dim)
+    f = font("InterDisplay-Bold.otf", 76)
+    tw = dr.textlength("SyncWatch", font=f)
+    dr.rounded_rectangle((70, 200, 70 + tw + 70, 310), radius=55, fill=gold)
+    dr.text((105, 208), "SyncWatch", font=f, fill=(20, 28, 66))
+    x = 74 + tw + 110
+    dr.text((x, 214), "společné sledování", font=font("InterDisplay-Bold.otf", 34), fill=bila)
+    dr.text((x, 258), "až 5 zařízení naráz", font=font("InterDisplay-Medium.otf", 26), fill=dim)
+
+    dr.line((74, 330, 1130, 330), fill=(90, 106, 168), width=2)
+    radky = [("Jeden založí skupinu,", "ostatní zadají kód"),
+             ("Tentýž stream u všech,", "každý přes svůj účet"),
+             ("Pauza a přetáčení", "platí pro všechny"),
+             ("Co sledujete,", "server nevidí")]
+    big, small = font("InterDisplay-Bold.otf", 34), font("InterDisplay-Medium.otf", 26)
+    y = 350
+    for hlavni, doplnek in radky:
+        dr.ellipse((76, y + 12, 92, y + 28), fill=gold)
+        dr.text((112, y), hlavni, font=big, fill=bila)
+        dr.text((112 + dr.textlength(hlavni, font=big) + 16, y + 6), doplnek, font=small, fill=dim)
+        y += 44
+    dr.text((74, 600), "„A jestli máte pocit, že už vymýšlíme píč...y, tak máte pravdu.“",
+            font=font("InterDisplay-MediumItalic.otf", 28), fill=gold, anchor="ls")
+    sky.save(path)
+
+
 def make_social(path):
     """Obrázek k příspěvkům na fórech a Facebooku (1200×630, poměr `RELEASE`). Říká to,
     co doplněk opravdu je: přehrávač vlastního úložiště, a teprve pod tím volitelné
@@ -660,6 +705,9 @@ if __name__ == "__main__":
     elif sys.argv[1:] == ["7.0.0"]:
         make_release_700(os.path.join(ROOT, ".github", "nokturno-7.0.0-prehrajto.png"))
         print(".github/nokturno-7.0.0-prehrajto.png hotovo")
+    elif sys.argv[1:] == ["8.2.0"]:
+        make_release_820(os.path.join(ROOT, ".github", "nokturno-8.2.0-syncwatch.png"))
+        print(".github/nokturno-8.2.0-syncwatch.png hotovo")
     elif sys.argv[1:] == ["8.0.0"]:
         make_release_800(os.path.join(ROOT, ".github", "nokturno-8.0.0-koncerty.png"))
         print(".github/nokturno-8.0.0-koncerty.png hotovo")
