@@ -1935,7 +1935,8 @@ def stream_facets(s):
         "channels": {t["channels"] for t in tracks if t["channels"]},
         "codecs": {t["codec"] for t in tracks if t["codec"]},
         "subs": subs,
-        "source": SOURCE_GROUP.get(s.get("source"), s.get("source") or ""),
+        "source": "Sdilej.cz" if s.get("source") == "fs" and fs_provider() == "sdilej"
+        else SOURCE_GROUP.get(s.get("source"), s.get("source") or ""),
         "tracks": tracks,
     }
 

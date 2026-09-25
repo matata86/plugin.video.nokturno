@@ -1430,6 +1430,8 @@ class Engine:
         if quality and stream.get("_estimated"):
             quality = "~" + quality  # odhad z velikosti, ne údaj ze zdroje
         source = stream.get("_storage") or SOURCE_NAMES.get(stream.get("source"), "")
+        if stream.get("source") == "fs" and self._opt("fs_provider") == "sdilej":
+            source = "Sdilej.cz"   # týž katalog, ale uživatel má účet ze Sdilej.cz (viz `fs`)
         size = stream.get("size_gb") or 0
         name = full[:51] + "…" if len(full) > 52 else full
         length_min = round(stream["_length_s"] / 60) if stream.get("_length_s") else 0
