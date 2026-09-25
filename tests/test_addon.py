@@ -950,6 +950,17 @@ class TestTmdbHelperPlayer(unittest.TestCase):
         self.assertEqual(xbmcaddon.settings["default_player_episodes"], "nokturno.json play_episode")
         shutil.rmtree(tmp, ignore_errors=True)
 
+    def test_jazyk_tmdb_helperu_podle_kodi(self):
+        self.assertIsNone(default.tmdbhelper_language(), "bez TMDb Helperu se neptá")
+        xbmc.cond_visible.add("System.HasAddon(plugin.video.themoviedb.helper)")
+        xbmcaddon.settings["language"] = "18"   # výchozí en-US
+        self.assertEqual(default.tmdbhelper_language(), "7", "české Kodi = cs-CZ")
+        xbmcaddon.settings["language"] = "7"
+        self.assertIsNone(default.tmdbhelper_language(), "už česky, neptat se")
+        with mock.patch.object(xbmc, "getLanguage", return_value="de"):
+            xbmcaddon.settings["language"] = "18"
+            self.assertIsNone(default.tmdbhelper_language(), "neznámý jazyk nechat být")
+
     def test_pruvodce_nabidne_player_jen_s_tmdb_helperem(self):
         tmp = tempfile.mkdtemp()
         dest = os.path.join(tmp, "players", "nokturno.json")

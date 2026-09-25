@@ -3764,6 +3764,13 @@ def setup_wizard(force=False):
         if not install_tmdbhelper_player(set_default=True):
             notify(L(30413, "Přidání do TMDb Helperu selhalo"), xbmcgui.NOTIFICATION_ERROR)
 
+    lang = tmdbhelper_language()
+    if lang and dialog.yesno(
+            L(30929, "Jazyk TMDb Helperu"),
+            L(30930, "TMDb Helper má vlastní nastavení jazyka a nepřebírá ho z Kodi, takže detail "
+                     "filmu a jeho widgety jsou anglicky.[CR]Přepnout TMDb Helper do jazyka Kodi?")):
+        xbmcaddon.Addon(TMDBH_ID).setSetting(TMDBH_LANGUAGE_KEY, lang)
+
     dialog.ok(L(30357, "Nastavení uloženo"),
               L(30358, "Hotovo. Vše se dá kdykoli změnit v Nastavení doplňku.[CR]"
                        "Bez zadaného zdroje budou katalog a hledání fungovat i tak, jen anglicky."))
@@ -4455,6 +4462,26 @@ def install_tmdbhelper_player(set_default=True):
         tmdbh.setSetting("default_player_movies", "nokturno.json play_movie")
         tmdbh.setSetting("default_player_episodes", "nokturno.json play_episode")
     return True
+
+
+# TMDb Helper má jazyk TMDB jako vlastní volbu (index do `LANGUAGES` v jeho
+# lib/addon/consts.py), jazyk Kodi nepřebírá a výchozí je en-US (18) — detail filmu
+# a widgety jsou pak anglicky i v českém Kodi. Nové jazyky přidává na konec seznamu.
+TMDBH_LANGUAGES = {"cs": "7", "sk": "53", "hu": "31"}
+TMDBH_LANGUAGE_KEY = "language"   # nastavení TMDb Helperu, ne Nokturna
+
+
+def tmdbhelper_language():
+    """Index jazyka pro TMDb Helper podle jazyka Kodi, nebo None, když ho TMDb Helper
+    už má (nebo jazyk Kodi neznáme, nebo je doplněk vypnutý)."""
+    want = TMDBH_LANGUAGES.get(xbmc.getLanguage(xbmc.ISO_639_1))
+    if not want or not tmdbhelper_installed():
+        return None
+    try:
+        current = xbmcaddon.Addon(TMDBH_ID).getSetting(TMDBH_LANGUAGE_KEY)
+    except RuntimeError:  # vypnutý doplněk, viz install_tmdbhelper_player
+        return None
+    return None if current == want else want
 
 
 def tmdbhelper_player():

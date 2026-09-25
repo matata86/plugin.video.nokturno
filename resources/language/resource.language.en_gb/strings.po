@@ -2573,3 +2573,11 @@ msgstr ""
 msgctxt "#30928"
 msgid "Sdilej.cz"
 msgstr ""
+
+msgctxt "#30929"
+msgid "TMDb Helper language"
+msgstr ""
+
+msgctxt "#30930"
+msgid "TMDb Helper has its own language setting and does not follow Kodi, so the movie details page and its widgets are in English.[CR]Switch TMDb Helper to Kodi's language?"
+msgstr ""

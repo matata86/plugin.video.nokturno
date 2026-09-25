@@ -2574,3 +2574,11 @@ msgstr "Sdilej.cz má stejné soubory jako FastShare, jen účet je samostatný.
 msgctxt "#30928"
 msgid "Sdilej.cz"
 msgstr "Sdilej.cz"
+
+msgctxt "#30929"
+msgid "TMDb Helper language"
+msgstr "Jazyk TMDb Helperu"
+
+msgctxt "#30930"
+msgid "TMDb Helper has its own language setting and does not follow Kodi, so the movie details page and its widgets are in English.[CR]Switch TMDb Helper to Kodi's language?"
+msgstr "TMDb Helper má vlastní nastavení jazyka a nepřebírá ho z Kodi, takže detail filmu a jeho widgety jsou anglicky.[CR]Přepnout TMDb Helper do jazyka Kodi?"
