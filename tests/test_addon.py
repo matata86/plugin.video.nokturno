@@ -6437,3 +6437,31 @@ class TestAktualizaceDoplnku(unittest.TestCase):
             service.service_started(stats)
         self.assertEqual(stats.events, ["stop", "start"])
         self.assertNotIn("stopped", stats.data)
+
+
+class TestKvalitaDoStatistik(unittest.TestCase):
+    """Počítadla přehrání a údaje k plnému hlášení (jen kódy a počty)."""
+
+    def test_prehrani_se_pocita_podle_zdroje(self):
+        import usage
+        store = service.Store(tempfile.mkdtemp())
+        with mock.patch.object(default, "STORE", store), \
+                mock.patch.object(default, "resolve_url",
+                                  side_effect=[default.NokturnoError("pryč"), "http://x/film.mkv"]):
+            used, link = default.resolve_first({}, ["fs:1", "hs:2"])
+        self.assertEqual(used, "hs:2")
+        self.assertEqual(usage.payload(usage.take(store))["cnt"], {"play_fail:fs": 1, "play_ok:hs": 1})
+
+    def test_udaje_k_hlaseni(self):
+        store = service.Store(tempfile.mkdtemp())
+        store.save("accounts", {"webshare": {"level": "ok", "code": "vip", "detail": {"days": 9}},
+                                "nesmysl": {"code": "x"}})
+        store.save("favourites", ["tt1"])
+        store.save("wizard_done", True)
+        addon = mock.Mock(getSetting=lambda k: "true" if k == "sync_enabled" else "")
+        with mock.patch.object(service.xbmc, "getSkinDir", create=True, return_value="skin.estuary"):
+            out = service.quality_extra(addon, store)
+        self.assertEqual(out["acc"], {"webshare": "vip"})
+        self.assertEqual(out["feat"], ["mylist", "sync"])
+        self.assertTrue(out["wiz"])
+        self.assertEqual(out["skin"], "skin.estuary")
