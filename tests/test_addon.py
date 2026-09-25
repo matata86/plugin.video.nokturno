@@ -6430,8 +6430,34 @@ class TestHlidane(unittest.TestCase):
         default.watch_lib.want(default.STORE, "tt5")
         self.assertEqual(default.watch_context("movie", "tt5")[0], default.L(30904, "Přestat hlídat"))
 
+    def test_kontrolovat_dal_u_dilu(self):
+        """Díl má streamy, ale ne s CZ titulky — hlídá se jako titul s příznakem
+        a ve výpisu vede rovnou na výběr streamu, ne na sezóny."""
+        default.watch_lib.watch_series(default.STORE, "tt2", {"title": "Cizinka"})
+        with default.STORE.updating("watchlist", {}) as data:
+            data["tt2"]["available"] = {"id": "tt2:2:2", "season": 2, "episode": 2}
+        default.list_watch()
+        serial = next(li for _h, u, li, _f in xbmcplugin.items if "watch_open" in u)
+        self.assertIn(default.L(30905, "Kontrolovat dál") + " 2x02", [c[0] for c in serial.context])
+        with mock.patch.object(default, "watch_info", return_value={"title": "Cizinka", "poster": "p",
+                                                                    "alt": None, "type": "series", "year": "2025"}):
+            default.toggle_watch_episode({}, "tt2:2:2", "tt2")
+        rec = default.watch_lib.wanted(default.STORE)["tt2:2:2"]
+        self.assertEqual((rec["title"], rec["type"], rec["series"]), ("Cizinka 2x02", "series", "tt2"))
+        self.assertTrue(default.watch_lib.is_flagged(default.STORE, "tt2:2:2"))
+        self.assertEqual(default.watch_episode_context("tt2", "tt2:2:2")[0],
+                         default.L(30906, "Nekontrolovat dál") + " 2x02")
+        xbmcplugin.reset()
+        default.list_watch()
+        dil = next((u, f) for _h, u, _li, f in xbmcplugin.items if "tt2%3A2%3A2" in u or "tt2:2:2" in u)
+        self.assertIn("action=title", dil[0])
+        self.assertFalse(dil[1])
+        default.toggle_watch_episode({}, "tt2:2:2", "tt2")
+        self.assertFalse(default.watch_lib.is_wanted(default.STORE, "tt2:2:2"))
+        self.assertFalse(default.watch_lib.is_flagged(default.STORE, "tt2:2:2"))
+
     def test_akce_nectou_videodatabazi(self):
-        for action in ("watch_series", "want", "watch_flag", "watch_seen", "watch_check", "watch_check_now"):
+        for action in ("watch_series", "want", "watch_episode", "watch_flag", "watch_seen", "watch_check", "watch_check_now"):
             self.assertIn(action, default.MARKS_SKIP)
 
     def test_kontrola_zavre_adresar_a_pozada_o_sync(self):
