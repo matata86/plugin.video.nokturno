@@ -235,6 +235,29 @@ class TmdbApi:
             items = list(pool.map(lambda r: self._item(ctype, r, genre_map), raw))
         return [i for i in items if i and i["id"] != imdb_id]
 
+    def brief(self, ctype, imdb_id):
+        """Popis, hodnocení, žánry a obrázky česky jedním dotazem (`/find`) — pro
+        `enrich()` u výpisů, kde plný `meta()` (u seriálu všechny sezóny) je zbytečně drahý."""
+        if not _IMDB_RE.match(str(imdb_id or "")):
+            raise TmdbError(f"neplatné IMDb id: {str(imdb_id)[:20]!r}")
+        kind = self._kind(ctype)
+
+        def load():
+            found = self._get(f"/find/{imdb_id}", external_source="imdb_id")
+            results = found.get(f"{kind}_results") or []
+            if not results:
+                return {}
+            raw, genre_map = results[0], self._genres(ctype)
+            return {
+                "description": raw.get("overview") or "",
+                "imdbRating": raw.get("vote_average") or None,
+                "genres": [g for g in (genre_map.get(gid, "") for gid in raw.get("genre_ids") or []) if g],
+                "poster": IMG + raw["poster_path"] if raw.get("poster_path") else "",
+                "background": IMG_BIG + raw["backdrop_path"] if raw.get("backdrop_path") else "",
+                "year": (raw.get("release_date") or raw.get("first_air_date") or "")[:4],
+            }
+        return self._cached(f"tmdb:brief:{kind}:{imdb_id}", DETAIL_TTL, load)
+
     def meta(self, ctype, imdb_id):
         """Detail podle `tt…` id (přes TMDB `/find`) — titul, popis, žánry, obsazení,
         u seriálu i epizody (`videos`, stejný tvar jako Luna/Cinemeta)."""

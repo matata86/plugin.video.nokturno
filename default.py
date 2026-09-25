@@ -4908,7 +4908,7 @@ def list_catalog(apis, ctype, cid, src, genre=None, search=None, skip=0):
     if src in ("sosac", "sosac_db", "cinemeta"):
         # exporty Sosáče a holé výpisy Cinemety nemají popis → dotáhnout podle IMDb id
         # (Luna, jinak Cinemeta sama — viz `_fetch()` v enrich.py — cache)
-        enrich(metas, apis["luna"], STORE, ctype)
+        enrich(metas, apis["luna"], STORE, ctype, tmdb=get_tmdb())
     for m in metas:
         add_meta_item(m, ctype)
     # Luna vrací stránky po ~20, ale některé katalogy o pár položek méně; žebříček a katalogy
@@ -5039,7 +5039,7 @@ def list_lang_catalog(apis, ctype, want):
     combined = _lang_catalog_locked(apis, ctype, key)
     matched = combined.get(want) or []
     t0 = time.time()
-    filled = enrich(matched, apis.get("luna"), STORE, "series" if ctype == "series" else "movie")
+    filled = enrich(matched, apis.get("luna"), STORE, "series" if ctype == "series" else "movie", tmdb=get_tmdb())
     _diag(f"{key}: enrich {filled}/{len(matched)} za {time.time() - t0:.1f} s "
           f"(bez hodnocení: {sum(1 for m in matched if not m.get('imdbRating'))})")
     for m in matched:
@@ -6184,7 +6184,7 @@ def list_continue(apis):
 def list_seasons(apis, series_id, alt=None):
     meta = meta_for(apis, "series", series_id)
     if is_sosac_id(series_id):
-        enrich_one(meta, apis["luna"], STORE, "series")
+        enrich_one(meta, apis["luna"], STORE, "series", tmdb=get_tmdb())
     videos = meta.get("videos") or []
     seasons = sorted({int(v.get("season") or 0) for v in videos}, key=lambda s: (s == 0, s))
     set_content("seasons")
