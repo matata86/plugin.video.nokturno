@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="8.2.3" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="8.2.4" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>8.2.3 – Drobné opravy.
+    <news>8.2.4 – S vlastním klíčem TMDB mají české popisy i katalogy ze Sosáče (Nově přidané s CZ dabingem/titulky), dřív anglicky z Cinemety.
+8.2.3 – Drobné opravy.
 8.2.2 – Drobné opravy.
 8.2.1 – Drobné opravy.
 8.2.0 – SyncWatch: společné sledování na víc zařízeních (menu SyncWatch, kód skupiny, tentýž stream u všech, pauza a přetáčení platí pro všechny, Vrátit se do filmu). Nová volba Automaticky použít poslední filtr u výběru streamu. Po odmítnutém jménu či hesle se zdroj hodinu nezkouší. Souhlas s podmínkami rovnou v dialogu. Každé vlastní úložiště jde vypnout bez smazání údajů. Sledujteto hraje přes stahovací odkaz.

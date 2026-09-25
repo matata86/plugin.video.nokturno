@@ -1075,7 +1075,8 @@ class Engine:
             # Sosáč posílá vždy mrtvý náhled, takže by enrich bez vlastní cache běžel při
             # každém hledání znovu — proto se cachuje až výsledek PO enrichi.
             data = {"pairs": [[m, alt] for m, alt in bare["pairs"]], "mixed": bare["mixed"]}
-            enrich([m for m, _alt in data["pairs"]], self.luna, self.shared, ctype, on_tick=on_tick, on_count=on_count)
+            enrich([m for m, _alt in data["pairs"]], self.luna, self.shared, ctype, on_tick=on_tick, on_count=on_count,
+                   tmdb=self.tmdb)
             return data
         full = self.store.cached_if(f"searchfull:{tail}", ttl, _fetch_full, ok=ok)
         failures.extend(errors)
@@ -1315,7 +1316,7 @@ class Engine:
         meta_type = "series" if season is not None else ctype
         meta = self._meta_for(meta_type, base_id)
         if is_sosac_id(base_id):
-            enrich_one(meta, self.luna, self.shared, meta_type)
+            enrich_one(meta, self.luna, self.shared, meta_type, tmdb=self.tmdb)
         video = None
         if season is not None:
             video = next((v for v in meta.get("videos") or []
