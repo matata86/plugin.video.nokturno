@@ -1040,8 +1040,8 @@ msgid "Password for fastshare.cz or sdilej.cz. It is sent only when signing in; 
 msgstr "Heslo z fastshare.cz alebo sdilej.cz. Posiela sa len pri prihlásení, prehrávanie potom ide s cookie."
 
 msgctxt "#30424"
-msgid "Do you have a FastShare account?[CR]Search works without it, playback is charged from your credit or unlimited plan."
-msgstr "Máš účet FastShare?[CR]Hľadá sa aj bez neho, prehratie ide z tvojho kreditu alebo neobmedzeného paušálu."
+msgid "Do you have a FastShare or Sdilej.cz account?[CR]Search works without it, playback is charged from your credit or unlimited plan."
+msgstr "Máš účet FastShare alebo Sdilej.cz?[CR]Hľadá sa aj bez neho, prehratie ide z tvojho kreditu alebo neobmedzeného paušálu."
 
 msgctxt "#30425"
 msgid "unlimited downloads"

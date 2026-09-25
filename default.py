@@ -3616,15 +3616,18 @@ def _wizard_accounts(dialog):
                 ADDON.setSetting("st_enabled", "true")
 
     if dialog.yesno(L(30417, "FastShare"),
-                     L(30424, "Máš účet FastShare?[CR]"
+                     L(30424, "Máš účet FastShare nebo Sdilej.cz?[CR]"
                               "Hledá se i bez něj, přehrání jde z tvého kreditu nebo neomezeného tarifu.")):
-        user = dialog.input(L(30420, "FastShare — uživatel"))
+        # Sdilej.cz = týž katalog, jen vlastní účty
+        web = dialog.select(L(30926, "Účet z"), [L(30417, "FastShare"), L(30928, "Sdilej.cz")])
+        user = dialog.input(L(30420, "FastShare — uživatel")) if web >= 0 else ""
         if user:
             pwd = dialog.input(L(30422, "FastShare — heslo"), option=xbmcgui.ALPHANUM_HIDE_INPUT)
             if pwd:
                 ADDON.setSetting("fs_username", user)
                 ADDON.setSetting("fs_password", pwd)
                 ADDON.setSetting("fs_enabled", "true")
+                ADDON.setSetting("fs_provider", str(web))
 
     if dialog.yesno(L(30560, "CZtor"), L(30573, "Máš předplatné CZtor (cztor.com)?[CR]"
                                                 "Zařízení se spáruje PINem, heslo není potřeba.")):

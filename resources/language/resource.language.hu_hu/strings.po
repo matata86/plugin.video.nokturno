@@ -1039,8 +1039,8 @@ msgid "Password for fastshare.cz or sdilej.cz. It is sent only when signing in; 
 msgstr "A fastshare.cz vagy a sdilej.cz jelszava. Csak bejelentkezéskor kerül elküldésre; a lejátszás utána sütit használ."
 
 msgctxt "#30424"
-msgid "Do you have a FastShare account?[CR]Search works without it, playback is charged from your credit or unlimited plan."
-msgstr "Van FastShare fiókod?[CR]A keresés nélküle is működik, a lejátszás a kreditedből vagy a korlátlan csomagodból vonódik le."
+msgid "Do you have a FastShare or Sdilej.cz account?[CR]Search works without it, playback is charged from your credit or unlimited plan."
+msgstr "Van FastShare vagy Sdilej.cz fiókod?[CR]A keresés nélküle is működik, a lejátszás a kreditedből vagy a korlátlan csomagodból vonódik le."
 
 msgctxt "#30425"
 msgid "unlimited downloads"
