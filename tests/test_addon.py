@@ -6596,6 +6596,16 @@ class TestKvalitaDoStatistik(unittest.TestCase):
         self.assertEqual(used, "hs:2")
         self.assertEqual(usage.payload(usage.take(store))["cnt"], {"play_fail:fs": 1, "play_ok:hs": 1})
 
+    def test_jedno_selhani_za_prehrani(self):
+        """Záložní odkazy se do selhání nepočítají — jen vybraný stream."""
+        import usage
+        store = service.Store(tempfile.mkdtemp())
+        with mock.patch.object(default, "STORE", store), \
+                mock.patch.object(default, "resolve_url", side_effect=default.NokturnoError("kredit")):
+            with self.assertRaises(default.NokturnoError):
+                default.resolve_first({}, ["fs:1", "fs:2", "fs:3", "hs:4"])
+        self.assertEqual(usage.payload(usage.take(store))["cnt"], {"play_fail:fs": 1})
+
     def test_udaje_k_hlaseni(self):
         store = service.Store(tempfile.mkdtemp())
         store.save("accounts", {"webshare": {"level": "ok", "code": "vip", "detail": {"days": 9}},

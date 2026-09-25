@@ -680,14 +680,19 @@ def play_candidates(chosen, streams, limit=PLAY_FALLBACKS):
 
 def resolve_first(apis, urls):
     """Rozklíčovat první odkaz, který jde — sloučené verze jsou tentýž film jinde. Vrátí
-    (reference, odkaz); když nejde žádný, vyhodí chybu toho prvního."""
+    (reference, odkaz); když nejde žádný, vyhodí chybu toho prvního.
+
+    Do statistik jde nejvýš jedno selhání na přehrání: jen za vybraný (první) odkaz.
+    Záložní pokusy (`play_candidates`, až 5) by jinak jedno přehrání s vadným účtem
+    započítaly několikrát."""
     first = None
     for url in urls:
         scheme = re.sub(r"[^a-z0-9]", "", (url or "").split(":", 1)[0].lower())[:12] or "x"
         try:
             link = resolve_url(apis, url)
         except Errors as e:
-            usage.count(STORE, "play_fail:" + scheme)
+            if first is None:
+                usage.count(STORE, "play_fail:" + scheme)
             xbmc.log(f"[{ADDON_ID}] stream nejde přehrát, zkouším další verzi: {e}", xbmc.LOGINFO)
             first = first or e
             continue
