@@ -12,7 +12,6 @@
    jí události předává vlastnostmi okna.
 """
 import json
-import platform as pyplatform
 import logging
 import os
 import re
@@ -1318,28 +1317,7 @@ def update_extra():
         return {}
 
 
-def quality_extra(addon, store):
-    """K plnému hlášení: kódy stavu zdrojů, použité funkce, průvodce, skin a architektura.
-    Jen kódy a názvy funkcí — nic, podle čeho by šlo poznat, co kdo sleduje."""
-    out = {}
-    try:
-        acc = store.load(accounts_lib.STORE, {}) or {}
-        out["acc"] = {k: str(v.get("code") or "")[:24] for k, v in acc.items()
-                      if k in accounts_lib.SOURCES and isinstance(v, dict)}
-        feat = set(usage.features(store))
-        for name, files in (("watchlist", ("watchlist", "wantlist")), ("mylist", ("favourites",)),
-                            ("downloads", ("downloads",))):
-            if any(store.load(f, None) for f in files):
-                feat.add(name)
-        if addon.getSetting("sync_enabled") == "true":
-            feat.add("sync")
-        out["feat"] = sorted(feat)
-        out["wiz"] = bool(store.load("wizard_done", False))
-        out["skin"] = xbmc.getSkinDir()[:60]
-        out["arch"] = pyplatform.machine()[:20]
-    except Exception as e:  # noqa: BLE001 – statistiky nesmí nic shodit
-        log(f"kvalita do statistik: {e}", xbmc.LOGDEBUG)
-    return out
+quality_extra = update_info.quality   # k plnému hlášení, sdílené s ručním odesláním v default.py
 
 
 def service_started(stats):

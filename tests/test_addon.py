@@ -6609,3 +6609,17 @@ class TestKvalitaDoStatistik(unittest.TestCase):
         self.assertEqual(out["feat"], ["mylist", "sync"])
         self.assertTrue(out["wiz"])
         self.assertEqual(out["skin"], "skin.estuary")
+
+    def test_rucni_odeslani_nese_kvalitu(self):
+        """Tlačítko Odeslat statistiky v nastavení posílá totéž co služba (8.4.0~beta7)."""
+        import stats
+        import usage
+        store = service.Store(tempfile.mkdtemp())
+        usage.count(store, "play_ok:ws")
+        with mock.patch.object(default, "STORE", store), \
+                mock.patch.object(stats.Stats, "send", return_value=(True, "")) as send, \
+                mock.patch.object(default, "notify"):
+            default.stats_send()
+        extra = send.call_args.kwargs["extra"]
+        self.assertEqual(extra["cnt"], {"play_ok:ws": 1})
+        self.assertIn("feat", extra)

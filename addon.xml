@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="8.4.0~beta6" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="8.4.0~beta7" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>8.4.0~beta6 – Drobné opravy.
+    <news>8.4.0~beta7 – Drobné opravy.
+8.4.0~beta6 – Drobné opravy.
 8.4.0~beta5 – Drobné opravy.
 8.4.0~beta4 – Hlídané: „kontrolovat dál“ u dílu se ukazuje přímo na řádku seriálu (Cizinka · 2x02 · kontrolovat dál).
 8.4.0~beta3 – Hlídané v hlavním menu hned pod Pokračovat ve sledování.
