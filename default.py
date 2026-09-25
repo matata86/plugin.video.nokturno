@@ -4742,6 +4742,16 @@ def main_menu(apis):
                icon="DefaultAddonsSearch.png", context=[(L(30106), runplugin(action="clear_cache"))])
     if STORE.in_progress() or STORE.recently_watched(1):
         folder_item(L(30063), build_url(action="continue"), icon="DefaultInProgressShows.png")
+    # Hlídané hned pod Pokračovat, jen s obsahem; nové díly rovnou v popisku
+    if watch_lib.series(STORE) or watch_lib.wanted(STORE) or watch_lib.results(STORE):
+        new = watch_lib.new_count(STORE)
+        label = L(30900, "Hlídané")
+        if new:
+            label = f"{label}  [COLOR {WATCH_NEW}]· {new} {L(30908, 'nový díl')}[/COLOR]"
+        # jen ikony standardní sady skinu (vlastní ikony uživatel nechce); s novým dílem
+        # „nově přidané díly“, jinak seznam videí
+        icon = "DefaultRecentlyAddedEpisodes.png" if new else "DefaultVideoPlaylists.png"
+        folder_item(label, build_url(action="watchlist"), icon=icon)
     folder_item(L(30012), build_url(action="browse", type="movie"), icon="DefaultMovies.png")
     folder_item(L(30013), build_url(action="browse", type="series"), icon="DefaultTVShows.png")
     # sezónní a tematické katalogy zapnuté na dashboardu (bez vydání nové verze)
@@ -4756,16 +4766,6 @@ def main_menu(apis):
     # První přidaný titul řádek rozsvítí hned, `toggle_fav()` volá Container.Refresh.
     if STORE.favourites() or STORE.recently_watched(1):
         folder_item(L(30060), build_url(action="favourites"), icon="DefaultFavourites.png")
-    # Hlídané jen s obsahem, jako Můj seznam; nové díly rovnou v popisku
-    if watch_lib.series(STORE) or watch_lib.wanted(STORE) or watch_lib.results(STORE):
-        new = watch_lib.new_count(STORE)
-        label = L(30900, "Hlídané")
-        if new:
-            label = f"{label}  [COLOR {WATCH_NEW}]· {new} {L(30908, 'nový díl')}[/COLOR]"
-        # jen ikony standardní sady skinu (vlastní ikony uživatel nechce); s novým dílem
-        # „nově přidané díly“, jinak seznam videí
-        icon = "DefaultRecentlyAddedEpisodes.png" if new else "DefaultVideoPlaylists.png"
-        folder_item(label, build_url(action="watchlist"), icon=icon)
     # společné sledování; ve skupině ukazuje i kód, ať je vidět, že běží
     sw_code = sw_session().get("code")
     action_item("%s · %s" % (sw_title(), sw_code) if sw_code else sw_title(),
