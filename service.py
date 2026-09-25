@@ -12,6 +12,7 @@
    jí události předává vlastnostmi okna.
 """
 import json
+import platform as pyplatform
 import logging
 import os
 import re
@@ -48,6 +49,7 @@ from sosac_direct import SosacDirect  # noqa: E402
 from stats import COLLECT_URL, Stats  # noqa: E402
 from crash import CRASH_URL, CrashReporter  # noqa: E402
 import accounts as accounts_lib  # noqa: E402
+import usage  # noqa: E402
 from storage_api import StorageApi, parse_ref  # noqa: E402
 from store import Store, migrate_profile  # noqa: E402
 from sync import sync_once  # noqa: E402
@@ -1316,6 +1318,30 @@ def update_extra():
         return {}
 
 
+def quality_extra(addon, store):
+    """K plnému hlášení: kódy stavu zdrojů, použité funkce, průvodce, skin a architektura.
+    Jen kódy a názvy funkcí — nic, podle čeho by šlo poznat, co kdo sleduje."""
+    out = {}
+    try:
+        acc = store.load(accounts_lib.STORE, {}) or {}
+        out["acc"] = {k: str(v.get("code") or "")[:24] for k, v in acc.items()
+                      if k in accounts_lib.SOURCES and isinstance(v, dict)}
+        feat = set(usage.features(store))
+        for name, files in (("watchlist", ("watchlist", "wantlist")), ("mylist", ("favourites",)),
+                            ("downloads", ("downloads",))):
+            if any(store.load(f, None) for f in files):
+                feat.add(name)
+        if addon.getSetting("sync_enabled") == "true":
+            feat.add("sync")
+        out["feat"] = sorted(feat)
+        out["wiz"] = bool(store.load("wizard_done", False))
+        out["skin"] = xbmc.getSkinDir()[:60]
+        out["arch"] = pyplatform.machine()[:20]
+    except Exception as e:  # noqa: BLE001 – statistiky nesmí nic shodit
+        log(f"kvalita do statistik: {e}", xbmc.LOGDEBUG)
+    return out
+
+
 def service_started(stats):
     """Minule služba skončila bez vypnutí Kodi (odinstalace/zakázání/aktualizace) a teď
     zase běží — dashboard zruší značku „odinstalováno“ hned, ne až s dalším hlášením."""
@@ -1426,13 +1452,19 @@ def stats_tick(stats, force=False):
     if addon.getSetting("stats_enabled") != "true":
         # vypnuté statistiky: jen „instalace žije" — id, produkt a verze, žádné tituly ani zdroje
         # (zpráva z dashboardu se pošle i tak — viz _show_pending_message níže)
+        usage.take(Store(PROFILE))   # počítadla se bez statistik nesbírají do zásoby
         ok, why = stats.send(COLLECT_URL, version=addon.getAddonInfo("version"), product="kodi", ping=True,
                              extra=update_extra())
         log("ping instalace odeslán" if ok else f"ping instalace neodeslán: {why}",
             xbmc.LOGINFO if ok else xbmc.LOGWARNING)
         _show_pending_message(stats)
         return
-    ok, why = stats.send(COLLECT_URL, extra=update_extra(), **stats_context(addon))
+    store = Store(PROFILE)
+    taken = usage.take(store)
+    extra = {**update_extra(), **quality_extra(addon, store), **usage.payload(taken)}
+    ok, why = stats.send(COLLECT_URL, extra=extra, **stats_context(addon))
+    if not ok:
+        usage.restore(store, taken)
     log("statistiky odeslány" if ok else f"statistiky neodeslány: {why}",
         xbmc.LOGINFO if ok else xbmc.LOGWARNING)
     _show_pending_message(stats)

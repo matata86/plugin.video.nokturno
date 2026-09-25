@@ -48,6 +48,7 @@ from sosac_api import SosacError, is_sosac_id as _is_stremio_sosac_id  # noqa: E
 from sosac_direct import EXPORT as SOSAC_EXPORT, SosacDirect, is_direct_id  # noqa: E402
 from enrich import enrich, enrich_one, shutdown_pool as release_enrich  # noqa: E402
 import foryou  # noqa: E402
+import usage  # noqa: E402
 import servers  # noqa: E402
 from hellspy_api import HellspyApi, HellspyError  # noqa: E402
 from sledujteto_api import SledujtetoApi, SledujtetoError  # noqa: E402
@@ -654,11 +655,16 @@ def resolve_first(apis, urls):
     (reference, odkaz); když nejde žádný, vyhodí chybu toho prvního."""
     first = None
     for url in urls:
+        scheme = re.sub(r"[^a-z0-9]", "", (url or "").split(":", 1)[0].lower())[:12] or "x"
         try:
-            return url, resolve_url(apis, url)
+            link = resolve_url(apis, url)
         except Errors as e:
+            usage.count(STORE, "play_fail:" + scheme)
             xbmc.log(f"[{ADDON_ID}] stream nejde přehrát, zkouším další verzi: {e}", xbmc.LOGINFO)
             first = first or e
+            continue
+        usage.count(STORE, "play_ok:" + scheme)
+        return url, link
     raise first or NokturnoError(L(30102))
 
 
@@ -1797,7 +1803,7 @@ def load_meta_video(meta, item_id):
                  if int(v.get("season") or 0) == season and int(v.get("episode") or 0) == episode), None)
 
 
-def collect_streams(apis, ctype, item_id, meta, alt=None, progress=None, strict=True, errors=None):
+def collect_streams(apis, ctype, item_id, meta, alt=None, progress=None, strict=True, errors=None, track=True):
     """Streamy ze všech zdrojů, vyfiltrované a seřazené podle nastavení — `Engine.raw_streams`.
 
     Každý zdroj běží pod vlastní pojistkou jádra: když selže (vypnutý addon Luny,
@@ -1811,6 +1817,7 @@ def collect_streams(apis, ctype, item_id, meta, alt=None, progress=None, strict=
     errors = [] if errors is None else errors
     failures = []
     engine = engine_of(apis)
+    started = time.time()
     try:
         streams = engine.raw_streams(ctype, item_id, alt, on_progress=progress.set if progress else None,
                                      failures=failures, strict=strict, meta_video=(meta, load_meta_video(meta, item_id)),
@@ -1820,6 +1827,9 @@ def collect_streams(apis, ctype, item_id, meta, alt=None, progress=None, strict=
         errors.extend(SourceFailure(label, err) for label, err in failures)
         remember_ws_token(engine.ws)
     xbmc.log(f"[{ADDON_ID}] streamy {item_id}: {describe_timings(engine.last_timings)}", xbmc.LOGINFO)
+    if track:   # do statistik jen hledání, na které uživatel čekal (ne zahřívání dalšího dílu)
+        usage.timing(STORE, time.time() - started)
+        usage.count(STORE, "search" if streams else "empty")
     return streams
 
 
@@ -2981,6 +2991,7 @@ def _sw_fail(err):
 
 
 def sw_create():
+    usage.mark_feature(STORE, "syncwatch")
     sw = _syncwatch()
     if sw_session().get("token"):
         return sw_window()
@@ -2998,6 +3009,7 @@ def sw_create():
 
 
 def sw_join():
+    usage.mark_feature(STORE, "syncwatch")
     sw = _syncwatch()
     if sw_session().get("token"):
         return sw_window()
@@ -3439,6 +3451,7 @@ def transfer_send():
 
     Dialog s kódem zůstane otevřený, dokud ho uživatel nezavře — má čas dojít
     k druhé televizi a kód opsat. Na server jde jen neprůhledná binárka."""
+    usage.mark_feature(STORE, "transfer")
     _close_settings()
     try:
         code, ttl = _transfer_core().send_payload(transfer_payload())
@@ -3451,6 +3464,7 @@ def transfer_send():
 
 def transfer_receive(code=None):
     """Načíst nastavení z jiného Kodi podle opsaného kódu."""
+    usage.mark_feature(STORE, "transfer")
     _close_settings()
     dialog = xbmcgui.Dialog()
     if not code:
@@ -3468,6 +3482,7 @@ def transfer_receive(code=None):
 def transfer_file_save():
     """Týž přenos, jen místo serveru soubor — na USB nebo síťový disk. Kód je
     potřeba pořád: bez něj soubor nikdo nepřečte."""
+    usage.mark_feature(STORE, "transfer")
     _close_settings()
     dialog = xbmcgui.Dialog()
     folder = dialog.browseSingle(3, L(30591, "Uložit do souboru"), "files")
@@ -3491,6 +3506,7 @@ def transfer_file_save():
 
 
 def transfer_file_load():
+    usage.mark_feature(STORE, "transfer")
     _close_settings()
     dialog = xbmcgui.Dialog()
     path = dialog.browseSingle(1, L(30592, "Načíst ze souboru"), "files", TRANSFER_EXT)
@@ -4464,7 +4480,7 @@ def prefetch(apis, kind):
             if STORE.playcount(ep_id):
                 continue
             try:
-                collect_streams(apis, "series", ep_id, meta, snap.get("alt"))
+                collect_streams(apis, "series", ep_id, meta, snap.get("alt"), track=False)
             except Errors as e:
                 log_error(f"prefetch {ep_id}: {e}")
     # Služba sem chodí přes Files.GetDirectory (JSON-RPC), a `succeeded=False` Kodi hlásí
