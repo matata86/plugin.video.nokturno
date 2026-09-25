@@ -6413,6 +6413,8 @@ class TestHlidane(unittest.TestCase):
         self.assertIn("3x01", labels[0])
         film = next(li for _h, u, li, _f in xbmcplugin.items if "tt5" in u)
         self.assertIn("kontrolovat", film.label.lower())
+        self.assertIn(" · ", film.label, "stav oddělený tečkou od názvu")
+        self.assertIn(" · ", labels[0])
         self.assertIn(default.L(30906, "Nekontrolovat dál"), [c[0] for c in film.context])
 
     def test_otevreni_serialu_zhasne_novy_dil(self):
@@ -6443,7 +6445,7 @@ class TestHlidane(unittest.TestCase):
                                                                     "alt": None, "type": "series", "year": "2025"}):
             default.toggle_watch_episode({}, "tt2:2:2", "tt2")
         rec = default.watch_lib.wanted(default.STORE)["tt2:2:2"]
-        self.assertEqual((rec["title"], rec["type"], rec["series"]), ("Cizinka 2x02", "series", "tt2"))
+        self.assertEqual((rec["title"], rec["type"], rec["series"]), ("Cizinka · 2x02", "series", "tt2"))
         self.assertTrue(default.watch_lib.is_flagged(default.STORE, "tt2:2:2"))
         self.assertEqual(default.watch_episode_context("tt2", "tt2:2:2")[0],
                          default.L(30906, "Nekontrolovat dál") + " 2x02")

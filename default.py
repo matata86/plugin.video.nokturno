@@ -5863,7 +5863,7 @@ def toggle_watch_episode(apis, ep_id, sid, alt=None):
     else:
         _base, season, episode = split_episode_id(ep_id)
         info = watch_info(apis, "series", sid, alt)
-        info.update(title=f"{info['title']} {season}x{episode:02d}", year="", series=sid)
+        info.update(title=f"{info['title']} · {season}x{episode:02d}", year="", series=sid)
         watch_lib.want(STORE, ep_id, info)
         if not watch_lib.is_flagged(STORE, ep_id):
             watch_lib.toggle_flag(STORE, ep_id)
@@ -5919,9 +5919,9 @@ def list_watch():
         label = item.get("title") or sid
         new, avail = item.get("new"), item.get("available")
         if new:
-            label += f"  [COLOR {WATCH_NEW}]{L(30908, 'nový díl')} {int(new['season'])}x{int(new['episode']):02d}[/COLOR]"
+            label += f" · [COLOR {WATCH_NEW}]{L(30908, 'nový díl')} {int(new['season'])}x{int(new['episode']):02d}[/COLOR]"
         elif avail:
-            label += f"  [COLOR {GREY}]{int(avail['season'])}x{int(avail['episode']):02d}[/COLOR]"
+            label += f" · [COLOR {GREY}]{int(avail['season'])}x{int(avail['episode']):02d}[/COLOR]"
         li = _watch_li(label, sid, item.get("poster"))
         ctx = ([(L(30907, "Označit jako viděné"), runplugin(action="watch_seen", id=sid))] if new else [])
         if avail and avail.get("id"):
@@ -5943,7 +5943,7 @@ def list_watch():
         label = f"{title} ({year})" if year and year not in title else title
         status = watch_status(rec, wid in flags)
         if status:
-            label += "  " + status
+            label += " · " + status
         own = watch_lib.is_wanted(STORE, wid)
         ctx = []
         if rec.get("streams"):
