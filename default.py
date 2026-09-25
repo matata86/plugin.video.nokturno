@@ -4905,7 +4905,7 @@ def lang_catalog_menu(apis, ctype, want):
     (zahřívač, nebo dřívější `lang_catalog_trigger()`) proto jen ohlásíme stejnou
     zprávou jako čerstvě zadanou žádost — doběhne sám, notifikace přijde, až bude
     hotovo, tady se na nic nečeká."""
-    key = f"lang_catalog:{ctype}"
+    key = lang_catalog_key(ctype)
     win = xbmcgui.Window(10000)
     note_lang_catalog_open(ctype)
     age = _lang_lock_age(win, f"{LANG_LOCK_PROP}:{key}")
@@ -4938,7 +4938,7 @@ def lang_catalog_trigger(apis, ctype, want):
     NE `list_lang_catalog()`, i kdyby cache mezitím zůstala prázdná a zámek byl
     cizí — to je přesně ta blokující cesta s tichým prázdným seznamem, co řeší
     `lang_catalog_menu()` (viz tam, `LANG_LOCK_WAIT` vs. reálná doba běhu)."""
-    key = f"lang_catalog:{ctype}"
+    key = lang_catalog_key(ctype)
     win = xbmcgui.Window(10000)
     note_lang_catalog_open(ctype)
     age = _lang_lock_age(win, f"{LANG_LOCK_PROP}:{key}")
@@ -4998,11 +4998,11 @@ def list_lang_catalog(apis, ctype, want):
     zvlášť pro dabing a titulky — otevření druhého seznamu hned po prvním je pak
     už jen čtení z cache, i když se předtím nikdy samostatně nepočítal."""
     set_content("tvshows" if ctype == "series" else "movies")
-    key = f"lang_catalog:{ctype}"
+    key = lang_catalog_key(ctype)
     combined = _lang_catalog_locked(apis, ctype, key)
     matched = combined.get(want) or []
     t0 = time.time()
-    filled = enrich(matched, apis.get("luna"), STORE, "movie")
+    filled = enrich(matched, apis.get("luna"), STORE, "series" if ctype == "series" else "movie")
     _diag(f"{key}: enrich {filled}/{len(matched)} za {time.time() - t0:.1f} s "
           f"(bez hodnocení: {sum(1 for m in matched if not m.get('imdbRating'))})")
     for m in matched:
@@ -5041,6 +5041,12 @@ def _lang_lock_age(win, prop):
         return time.time() - float(holder)
     except ValueError:
         return LANG_LOCK_STALE + 1  # neznámý formát → raději rovnou jako mrtvý zámek
+
+
+def lang_catalog_key(ctype):
+    """Klíč cache a zámku jazykového katalogu. Seriály mají od 8.3.0 vlastní tvar
+    klíče: dřív seznam nesl jednotlivé díly, stará cache by je ukazovala dál."""
+    return "lang_catalog2:series" if ctype == "series" else f"lang_catalog:{ctype}"
 
 
 def _lang_catalog_locked(apis, ctype, key):
@@ -5167,13 +5173,20 @@ def _build_lang_catalog(apis, ctype):
     t_start = time.time()
     engine = engine_of(apis)
     sosac = apis.get("sosac_db")
-    raw_cid = "tvshowsrecentlyadded" if ctype == "series" else "moviesrecentlyadded"
-    candidates = sosac.catalog(ctype, raw_cid, skip=0, page=LANG_CATALOG_CAP) if sosac else []
+    if not sosac:
+        candidates = []
+    elif ctype == "series":
+        # celé seriály, ne jednotlivé díly: Sosáčův export „nově přidané epizody" se
+        # sloučí na seriál s nejnovějším dílem, jazyk se ověří na tom dílu (`_probe_id`)
+        candidates = [dict(meta, _probe_id=f"{meta['imdb_id']}:{season}:{episode}")
+                      for meta, season, episode in sosac.recent_series(LANG_CATALOG_CAP)]
+    else:
+        candidates = sosac.catalog(ctype, "moviesrecentlyadded", skip=0, page=LANG_CATALOG_CAP)
     _diag(f"{ctype}: {len(candidates)} kandidátů za {time.time() - t_start:.1f} s")
     dub_label = L(30394, "Nově přidané s CZ dabingem")
     subs_label = L(30401, "Nově přidané s CZ titulky")
     win = xbmcgui.Window(10000)
-    progress_prop = f"{LANG_PROGRESS_PROP}:lang_catalog:{ctype}"
+    progress_prop = f"{LANG_PROGRESS_PROP}:{lang_catalog_key(ctype)}"
     bar = None if warming() else xbmcgui.DialogProgressBG()
     if bar:
         bar.create(L(30000, "Nokturno"), L(30435, "This list is normally built in the background, but the "
@@ -5199,7 +5212,7 @@ def _build_lang_catalog(apis, ctype):
             # `classify_langs()` v jádru: kolo zdrojů skončí hned, jak některý nabídne
             # CZ/SK dabing (dabing má přednost), a zařazení se drží 24 h — zahřívání
             # po 6 h tak většinou vůbec nesáhne na síť.
-            return engine.classify_langs(cand.get("type") or "movie", cand["id"])
+            return engine.classify_langs(cand.get("type") or "movie", cand.get("_probe_id") or cand["id"])
 
         with ThreadPoolExecutor(max_workers=LANG_CATALOG_WORKERS) as pool:
             for start in range(0, len(cands), LANG_CATALOG_WORKERS):

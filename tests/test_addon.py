@@ -2093,36 +2093,6 @@ class TestLangCatalog(unittest.TestCase):
         default.list_lang_catalog(apis, "movie", "dub")
         self.assertEqual(xbmcplugin.urls(), [])
 
-    def test_seriove_epizody_pouzivaji_vlastni_typ_movie(self):
-        """Seznam pod Seriály (`ctype="series"`) skládají ploché epizody
-        (`type: "movie"` v metadatech) — streamy i vykreslení se řídí typem
-        položky, ne obalujícím menu, jinak by se epizoda otevírala jako složka sezón."""
-        cand = self.kandidati(1, ctype="movie")
-        volane_ctype = []
-
-        def raw_streams(ctype, item_id, **kw):
-            volane_ctype.append(ctype)
-            return [{"langs": ["CZ"], "subs": []}]
-        self.engine.raw_streams = raw_streams
-        apis = {"engine": self.engine, "sosac_db": FakeSosacDb(cand), "luna": None}
-        default.list_lang_catalog(apis, "series", "dub")
-        self.assertEqual(volane_ctype, ["movie"])
-        self.assertEqual(params_of(xbmcplugin.urls()[0])["action"], "play")
-
-    def test_dily_serialu_se_zobrazuji_s_cislem_dilu_ne_jen_nazvem(self):
-        """`bare_title()` u Sosáčových id přednostně bere `_title` — u epizod
-        (`episode_meta()` v jádru) je to ale záměrně jen holý název seriálu
-        (potřebuje ho hledání napříč zdroji), zatímco `name` nese i sezónu/díl.
-        Bez opravy se pod Seriály zobrazovalo desetkrát za sebou jen jméno
-        seriálu bez rozlišení (2026-09-15, nahlásil uživatel: „Dogu“ 10x)."""
-        cand = [{"id": f"sosacd_m_ep{i}", "type": "movie", "name": f"Dogu {2}x{i:02d} Díl {i}",
-                 "_title": "Dogu", "year": ""} for i in range(1, 4)]
-        self.engine.raw_streams = lambda ctype, item_id, **kw: [{"langs": ["CZ"], "subs": []}]
-        apis = {"engine": self.engine, "sosac_db": FakeSosacDb(cand), "luna": None}
-        default.list_lang_catalog(apis, "series", "dub")
-        labels = [li.getLabel() for _h, _u, li, _f in xbmcplugin.items]
-        self.assertEqual(labels, ["Dogu 2x01 Díl 1", "Dogu 2x02 Díl 2", "Dogu 2x03 Díl 3"])
-
     def test_druhe_otevreni_nezkouma_znovu_streamy(self):
         """8h cache (2026-09-15, po ověření rychlosti): druhé otevření stejného
         seznamu (dabing/movie) se má obsloužit z cache, bez dalšího volání
@@ -2268,6 +2238,25 @@ class TestLangCatalogClassifyLangs(unittest.TestCase):
         self.assertEqual({params_of(u).get("id") for u in xbmcplugin.urls()}, {"sosacd_m_1"})
 
         self.engine.raw_streams.assert_not_called()
+
+    def test_serialy_jako_cely_serial_ne_dily(self):
+        """Seriály se berou z `recent_series()` (celý seriál) a jazyk se ověří na
+        nejnovějším dílu — dřív seznam ukazoval jednotlivé díly (hlášení uživatele)."""
+        serial = {"id": "sosacd_s_7", "type": "series", "name": "Seriál", "imdb_id": "tt0000007"}
+        sosac = FakeSosacDb([])
+        sosac.recent_series = lambda limit=60: [(dict(serial), 2, 5)]
+        dotazy = []
+
+        def classify_langs(ctype, item_id, **kw):
+            dotazy.append((ctype, item_id))
+            return {"k": "dub", "n": 1}
+        self.engine.classify_langs = classify_langs
+        apis = {"engine": self.engine, "sosac_db": sosac, "luna": None}
+
+        xbmcplugin.reset()
+        default.list_lang_catalog(apis, "series", "dub")
+        self.assertEqual(dotazy, [("series", "tt0000007:2:5")])
+        self.assertEqual([params_of(u).get("id") for u in xbmcplugin.urls()], ["sosacd_s_7"])
 
 
 class TestLangCatalogMenu(unittest.TestCase):
