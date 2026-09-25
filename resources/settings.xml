@@ -419,7 +419,7 @@
       <group id="luna" label="30001">
         <setting id="luna_enabled" type="boolean" label="30014" help="30308">
           <level>0</level>
-          <default>true</default>
+          <default>false</default>
           <control type="toggle"/>
         </setting>
         <setting id="luna_find_action" type="action" label="30538" help="30540">

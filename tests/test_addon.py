@@ -6623,3 +6623,58 @@ class TestKvalitaDoStatistik(unittest.TestCase):
         extra = send.call_args.kwargs["extra"]
         self.assertEqual(extra["cnt"], {"play_ok:ws": 1})
         self.assertIn("feat", extra)
+
+
+class TestLunaVychoziVypnuta(unittest.TestCase):
+    """Od 8.4.0~beta9 je Luna ve výchozím stavu vypnutá; kdo ji používá, zůstane zapnutý."""
+
+    def setUp(self):
+        xbmcaddon.settings.clear()
+        default.STORE.save("luna_default_migrated", "")
+
+    def tearDown(self):
+        xbmcaddon.settings.clear()
+
+    @staticmethod
+    def _profil(radek):
+        os.makedirs(default.PROFILE, exist_ok=True)
+        with open(os.path.join(default.PROFILE, "settings.xml"), "w", encoding="utf-8") as f:
+            f.write('<settings version="2">\n    %s\n</settings>\n' % radek)
+
+    def test_vychozi_hodnota_je_vypnuto(self):
+        import xml.etree.ElementTree as ET
+        root = ET.parse(os.path.join(os.path.dirname(default.__file__), "resources", "settings.xml"))
+        el = root.find(".//setting[@id='luna_enabled']/default")
+        self.assertEqual(el.text, "false")
+
+    def test_s_tokenem_zustane_zapnuta(self):
+        self._profil('<setting id="luna_enabled" default="true">false</setting>')
+        xbmcaddon.settings.update({"luna_enabled": "false", "token": "e1.abc"})
+        default.migrate_luna_default()
+        self.assertEqual(xbmcaddon.settings["luna_enabled"], "true")
+
+    def test_s_vlastni_adresou_zustane_zapnuta(self):
+        self._profil('<setting id="luna_enabled" default="true">true</setting>')
+        xbmcaddon.settings.update({"luna_enabled": "false", "luna_url": "http://10.0.0.5:7126"})
+        default.migrate_luna_default()
+        self.assertEqual(xbmcaddon.settings["luna_enabled"], "true")
+
+    def test_nenastavena_se_vypne(self):
+        self._profil('<setting id="luna_enabled" default="true">true</setting>')
+        xbmcaddon.settings.update({"luna_enabled": "false", "luna_url": default.LUNA_DEFAULT_URL})
+        default.migrate_luna_default()
+        self.assertEqual(xbmcaddon.settings["luna_enabled"], "false")
+
+    def test_vedome_vypnuti_zustane(self):
+        self._profil('<setting id="luna_enabled">false</setting>')
+        xbmcaddon.settings.update({"luna_enabled": "false", "token": "e1.abc"})
+        default.migrate_luna_default()
+        self.assertEqual(xbmcaddon.settings["luna_enabled"], "false")
+
+    def test_bezi_jen_jednou(self):
+        self._profil('<setting id="luna_enabled" default="true">false</setting>')
+        xbmcaddon.settings.update({"luna_enabled": "false", "token": "e1.abc"})
+        default.migrate_luna_default()
+        xbmcaddon.settings["luna_enabled"] = "false"    # uživatel ji pak vědomě vypne
+        default.migrate_luna_default()
+        self.assertEqual(xbmcaddon.settings["luna_enabled"], "false")

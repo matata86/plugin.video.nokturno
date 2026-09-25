@@ -436,6 +436,34 @@ def migrate_terms():
         ADDON.setSetting("terms_ok", "true")
 
 
+LUNA_DEFAULT_URL = "http://192.168.1.10:7126"
+
+
+def migrate_luna_default():
+    """Od 8.4.0~beta9 je Luna ve výchozím stavu vypnutá (dřív zapnutá i s výchozí
+    adresou `192.168.1.10`, takže stav zdrojů hlásil „Luna nedostupná" každému, kdo
+    ji nikdy nenastavil). Kdo ji ale opravdu používá (token nebo vlastní adresa),
+    ji musí mít zapnutou dál.
+
+    Rozhoduje značka `default="true"` v profilovém settings.xml: ta říká, že
+    uživatel přepínač nikdy nezměnil a jel na staré výchozí hodnotě. Výslovně
+    vypnutou Lunu (hodnota bez značky) nechá být. Běží jednou (`luna_default_migrated`) —
+    po změně výchozí hodnoty nese značku i vědomé vypnutí a to se nesmí přepsat."""
+    if STORE.load("luna_default_migrated", ""):
+        return
+    STORE.save("luna_default_migrated", "1")
+    try:
+        with open(os.path.join(PROFILE, "settings.xml"), encoding="utf-8") as f:
+            ulozeno = f.read()
+    except (IOError, OSError):
+        return    # čerstvá instalace
+    if not re.search(r'<setting id="luna_enabled" default="true">', ulozeno):
+        return
+    url = setting("luna_url").strip()
+    if setting("token").strip() or (url and url != LUNA_DEFAULT_URL):
+        ADDON.setSetting("luna_enabled", "true")
+
+
 def _existing_install():
     """Instalace, která běžela už před zavedením právního upozornění, se bere jako
     automaticky odsouhlasená — nikdo starý nemusí nic doklikávat. Platí jen pro
@@ -576,7 +604,7 @@ def get_luna():
     token = parse_token(raw_token)
     if not token:
         return None
-    base = parse_base_url(raw_token, setting("luna_url", "http://192.168.1.10:7126"))
+    base = parse_base_url(raw_token, setting("luna_url", LUNA_DEFAULT_URL))
     return LunaApi(base, token, cache=STORE, cache_ttl=LUNA_TTL, fresh=warming())
 
 
@@ -861,7 +889,7 @@ def engine_options():
         # `luna_enabled` by stav zdrojů hlásil „běží, ale chybí token" každému,
         # kdo zdroj nikdy nezapnul.
         "luna_enabled": on("luna_enabled"),
-        "luna_url": setting("luna_url", "http://192.168.1.10:7126"),
+        "luna_url": setting("luna_url", LUNA_DEFAULT_URL),
         # Kodi drží token Luny pod klíčem `token`, jádro ho zná jako `luna_token`.
         # Klienty si KodiEngine staví z `get_*()`, takže do 6.3.1 tenhle klíč jádro
         # vůbec nepotřebovalo — stav zdrojů podle něj ale pozná „Luna bez tokenu"
@@ -7459,6 +7487,7 @@ def main(query):
         # — ta běží na úrovni modulu, tedy dřív, než je tahle funkce definovaná
         migrate_sync_mode()
         migrate_terms()
+        migrate_luna_default()
         action = dict(urllib.parse.parse_qsl(query.lstrip("?"))).get("action") or ""
         # do nastavení a k textu podmínek se uživatel musí dostat i bez souhlasu — jinak
         # by neměl kde ho dát (přepínač je první kategorie nastavení)
