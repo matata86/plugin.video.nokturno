@@ -5915,6 +5915,13 @@ def list_watch():
     check_now = (L(30918, "Zkontrolovat teď"), runplugin(action="watch_check_now"))
     items = sorted(watch_lib.series(STORE).items(),
                    key=lambda kv: (not kv[1].get("new"), (kv[1].get("title") or "").lower()))
+    flags = watch_lib.flags(STORE)
+    # díl s „kontrolovat dál“ u sledovaného seriálu patří na řádek seriálu, ne na vlastní
+    flagged_eps = {}
+    for wid in watch_lib.wanted(STORE):
+        base, season, _ep = split_episode_id(wid)
+        if season is not None and wid in flags and base in dict(items):
+            flagged_eps.setdefault(base, []).append(wid)
     for sid, item in items:
         label = item.get("title") or sid
         new, avail = item.get("new"), item.get("available")
@@ -5922,6 +5929,11 @@ def list_watch():
             label += f" · [COLOR {WATCH_NEW}]{L(30908, 'nový díl')} {int(new['season'])}x{int(new['episode']):02d}[/COLOR]"
         elif avail:
             label += f" · [COLOR {GREY}]{int(avail['season'])}x{int(avail['episode']):02d}[/COLOR]"
+        for wid in sorted(flagged_eps.get(sid, [])):
+            _b, season, episode = split_episode_id(wid)
+            if not avail or avail.get("id") != wid:
+                label += f" · [COLOR {GREY}]{season}x{episode:02d}[/COLOR]"
+            label += f" · [COLOR {WATCH_NEW}]{L(30905, 'Kontrolovat dál').lower()}[/COLOR]"
         li = _watch_li(label, sid, item.get("poster"))
         ctx = ([(L(30907, "Označit jako viděné"), runplugin(action="watch_seen", id=sid))] if new else [])
         if avail and avail.get("id"):
@@ -5932,9 +5944,11 @@ def list_watch():
                                     isFolder=True)
     # vlastní seznam + výsledky kontroly (i titulů z Traktu); co ještě neprošlo kontrolou,
     # je jen v seznamu
-    flags = watch_lib.flags(STORE)
     rows = dict(watch_lib.wanted(STORE))
     rows.update(watch_lib.results(STORE))
+    for wids in flagged_eps.values():
+        for wid in wids:
+            rows.pop(wid, None)
     order = sorted(rows.items(), key=lambda kv: (not kv[1].get("streams"), kv[0] in flags,
                                                 (kv[1].get("title") or "").lower()))
     for wid, rec in order:

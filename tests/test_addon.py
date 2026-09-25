@@ -6451,6 +6451,15 @@ class TestHlidane(unittest.TestCase):
                          default.L(30906, "Nekontrolovat dál") + " 2x02")
         xbmcplugin.reset()
         default.list_watch()
+        # u sledovaného seriálu je stav přímo na jeho řádku, díl nemá vlastní řádek
+        serial = next(li for _h, u, li, _f in xbmcplugin.items if "watch_open" in u)
+        self.assertIn("2x02", serial.label)
+        self.assertIn("kontrolovat dál", serial.label)
+        self.assertFalse(any("tt2%3A2%3A2" in u or "tt2:2:2" in u for _h, u, _li, _f in xbmcplugin.items))
+        # bez sledovaného seriálu má díl vlastní řádek s výběrem streamu
+        default.watch_lib.unwatch_series(default.STORE, "tt2")
+        xbmcplugin.reset()
+        default.list_watch()
         dil = next((u, f) for _h, u, _li, f in xbmcplugin.items if "tt2%3A2%3A2" in u or "tt2:2:2" in u)
         self.assertIn("action=title", dil[0])
         self.assertFalse(dil[1])
