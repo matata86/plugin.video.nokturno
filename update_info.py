@@ -76,3 +76,31 @@ def info(execute, db_dir, addon_id=ADDON_ID):
     if origin is not None:
         out["origin"] = _ORIGINS.get(origin, origin[:40])
     return out
+
+
+def quality(addon, store):
+    """K plnému hlášení: kódy stavu zdrojů, použité funkce, průvodce, skin a architektura.
+    Jen kódy a názvy funkcí — nic, podle čeho by šlo poznat, co kdo sleduje."""
+    import platform
+    import xbmc
+    import accounts as accounts_lib
+    import usage
+    out = {}
+    try:
+        acc = store.load(accounts_lib.STORE, {}) or {}
+        out["acc"] = {k: str(v.get("code") or "")[:24] for k, v in acc.items()
+                      if k in accounts_lib.SOURCES and isinstance(v, dict)}
+        feat = set(usage.features(store))
+        for name, files in (("watchlist", ("watchlist", "wantlist")), ("mylist", ("favourites",)),
+                            ("downloads", ("downloads",))):
+            if any(store.load(f, None) for f in files):
+                feat.add(name)
+        if addon.getSetting("sync_enabled") == "true":
+            feat.add("sync")
+        out["feat"] = sorted(feat)
+        out["wiz"] = bool(store.load("wizard_done", False))
+        out["skin"] = xbmc.getSkinDir()[:60]
+        out["arch"] = platform.machine()[:20]
+    except Exception:  # noqa: BLE001 – statistiky nesmí nic shodit
+        pass
+    return out

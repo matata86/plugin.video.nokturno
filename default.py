@@ -4488,8 +4488,19 @@ def stats_sources():
 def stats_send():
     """Ruční odeslání statistik z nastavení – jinak je posílá služba na pozadí."""
     from stats import COLLECT_URL, Stats
+    import update_info
+    # stejné údaje navíc jako hlášení ze služby (service.stats_tick), jinak by ruční
+    # odeslání přepsalo jen základ a kvalita služby by z něj nikdy nepřišla
+    taken = usage.take(STORE)
+    extra = {**update_info.quality(ADDON, STORE), **usage.payload(taken)}
+    try:
+        extra.update(update_info.info(xbmc.executeJSONRPC, xbmcvfs.translatePath("special://database/")))
+    except Exception:  # noqa: BLE001 – statistiky nesmí nic shodit
+        pass
     ok, why = Stats(PROFILE).send(COLLECT_URL, version=ADDON.getAddonInfo("version"),
-                                  sources=stats_sources(), product="kodi")
+                                  sources=stats_sources(), product="kodi", extra=extra)
+    if not ok:
+        usage.restore(STORE, taken)
     notify(L(30165) if ok else f"{L(30166)}: {why}",
            xbmcgui.NOTIFICATION_INFO if ok else xbmcgui.NOTIFICATION_ERROR, 5000)
 
