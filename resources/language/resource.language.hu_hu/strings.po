@@ -2033,8 +2033,8 @@ msgid "Support the project"
 msgstr "A projekt támogatása"
 
 msgctxt "#30698"
-msgid "Support: PayPal or Bitcoin"
-msgstr "Támogatás: PayPal vagy Bitcoin"
+msgid "Support: Ko-fi, PayPal or Bitcoin"
+msgstr "Támogatás: Ko-fi, PayPal vagy Bitcoin"
 
 msgctxt "#30699"
 msgid "Bitcoin"

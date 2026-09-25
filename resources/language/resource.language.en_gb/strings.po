@@ -2034,7 +2034,7 @@ msgid "Support the project"
 msgstr ""
 
 msgctxt "#30698"
-msgid "Support: PayPal or Bitcoin"
+msgid "Support: Ko-fi, PayPal or Bitcoin"
 msgstr ""
 
 msgctxt "#30699"
