@@ -79,7 +79,7 @@ msgid "Sosáč"
 msgstr ""
 
 msgctxt "#30031"
-msgid "Enable Sosáč (catalogues from tv.sosac.to, streams from streamuj.tv)"
+msgid "Use Sosáč"
 msgstr ""
 
 msgctxt "#30034"
@@ -87,7 +87,7 @@ msgid "Also look up streams for a title in the other source"
 msgstr ""
 
 msgctxt "#30014"
-msgid "Enable Luna source"
+msgid "Use Luna"
 msgstr ""
 
 msgctxt "#30040"
@@ -115,11 +115,11 @@ msgid "Search WebShare"
 msgstr ""
 
 msgctxt "#30050"
-msgid "WebShare (direct)"
+msgid "WebShare"
 msgstr ""
 
 msgctxt "#30051"
-msgid "Search WebShare directly (no Luna server needed)"
+msgid "Use WebShare"
 msgstr ""
 
 msgctxt "#30052"
@@ -267,7 +267,7 @@ msgid "Trakt.tv"
 msgstr ""
 
 msgctxt "#30091"
-msgid "Sync watched status with Trakt"
+msgid "Use Trakt.tv"
 msgstr ""
 
 msgctxt "#30092"
@@ -475,8 +475,8 @@ msgid "HellSpy"
 msgstr "HellSpy"
 
 msgctxt "#30195"
-msgid "Search HellSpy for titles"
-msgstr "Search HellSpy for titles"
+msgid "Use HellSpy"
+msgstr ""
 
 msgctxt "#30196"
 msgid "HellSpy needs no account. It offers the original files, same as WebShare."
@@ -832,7 +832,7 @@ msgid "Sledujteto"
 msgstr ""
 
 msgctxt "#30368"
-msgid "Search Sledujteto for titles"
+msgid "Use Sledujteto"
 msgstr ""
 
 msgctxt "#30369"
@@ -1016,7 +1016,7 @@ msgid "FastShare"
 msgstr ""
 
 msgctxt "#30418"
-msgid "Search FastShare for titles"
+msgid "Use FastShare / Sdilej.cz"
 msgstr ""
 
 msgctxt "#30419"
@@ -1510,7 +1510,7 @@ msgid "CZtor"
 msgstr ""
 
 msgctxt "#30561"
-msgid "Enable CZtor"
+msgid "Use CZtor"
 msgstr ""
 
 msgctxt "#30562"
@@ -1794,7 +1794,7 @@ msgstr ""
 
 
 msgctxt "#30613"
-msgid "Look for subtitles on OpenSubtitles"
+msgid "Use OpenSubtitles"
 msgstr ""
 
 msgctxt "#30614"
@@ -2078,7 +2078,7 @@ msgid "Prehraj.to"
 msgstr ""
 
 msgctxt "#30709"
-msgid "Use Prehraj.to (works for free without an account)"
+msgid "Use Přehraj.to"
 msgstr ""
 
 msgctxt "#30710"

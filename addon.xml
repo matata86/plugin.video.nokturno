@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="8.3.0~beta7" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="8.3.0~beta8" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>8.3.0~beta7 – V Info u Podpořit projekt je vidět i Ko-fi.
+    <news>8.3.0~beta8 – Přepínače zdrojů v nastavení se jmenují jednotně „Používat …“ (WebShare, Přehraj.to, Sosáč, HellSpy, Sledujteto, FastShare / Sdilej.cz, CZtor, Luna, OpenSubtitles, Trakt.tv).
+8.3.0~beta7 – V Info u Podpořit projekt je vidět i Ko-fi.
 8.3.0~beta6 – FastShare jde nově používat i s účtem ze Sdilej.cz (Nastavení → Zdroje a účty → FastShare → Účet z, v průvodci se to nabídne samo). Oba weby mají stejné soubory, liší se jen účet. Zároveň se ve výsledcích FastShare ukazují i soubory, které dřív kvůli chybě chyběly.
 8.3.0~beta5 – Nově přidané s CZ dabingem nebo titulky ukazují u Seriálů celé seriály, ne jednotlivé díly. Jazyk se ověřuje na nejnovějším dílu.
 8.3.0~beta4 – Hlídané mají zase výchozí ikonu skinu (seznam videí, s novým dílem nově přidané díly).
