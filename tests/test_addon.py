@@ -6527,3 +6527,57 @@ class TestHlidaneSluzba(unittest.TestCase):
         self.checker.next_notice = 0
         self.run_tick()
         self.assertEqual(len(xbmcgui.notifications), 1, "podruhé už ne")
+
+
+class TestAktualizaceDoplnku(unittest.TestCase):
+    """Jak se doplněk aktualizuje (`update_info`) a událost stop/start služby."""
+
+    def _db(self, origin, rule=False):
+        import sqlite3
+        d = tempfile.mkdtemp()
+        conn = sqlite3.connect(os.path.join(d, "Addons33.db"))
+        conn.execute("CREATE TABLE installed (id INTEGER, addonID TEXT, origin TEXT)")
+        conn.execute("CREATE TABLE update_rules (id INTEGER, addonID TEXT, updateRule INTEGER)")
+        conn.execute("INSERT INTO installed VALUES (1, 'plugin.video.nokturno', ?)", (origin,))
+        if rule:
+            conn.execute("INSERT INTO update_rules VALUES (1, 'plugin.video.nokturno', 1)")
+        conn.commit()
+        conn.close()
+        return d
+
+    def test_puvod_a_volba(self):
+        import update_info
+        rpc = lambda _q: json.dumps({"result": {"value": 1}})  # noqa: E731
+        self.assertEqual(update_info.info(rpc, self._db("repository.nokturno")), {"updates": "notify", "origin": "repo"})
+        self.assertEqual(update_info.info(rpc, self._db(""))["origin"], "zip")
+        self.assertEqual(update_info.info(rpc, self._db("repository.nokturno.beta", rule=True)),
+                         {"updates": "off", "origin": "beta"})
+        self.assertEqual(update_info.info(lambda _q: "nesmysl", tempfile.mkdtemp()), {})
+
+    def test_stop_jen_bez_vypinani_kodi(self):
+        class S:
+            def __init__(self):
+                self.data, self.events = {}, []
+
+            def send_event(self, url, event, version="", product=""):
+                self.events.append(event)
+                return True
+
+            def _save(self):
+                pass
+
+        stats = S()
+        service.QUITTING.set()
+        try:
+            service.service_stopped(stats)
+        finally:
+            service.QUITTING.clear()
+        self.assertEqual(stats.events, [], "vypnutí Kodi není odinstalace")
+        service.service_stopped(stats)
+        self.assertEqual(stats.events, ["stop"])
+        self.assertTrue(stats.data["stopped"])
+        with mock.patch.object(service.threading, "Thread",
+                               lambda target, daemon: type("T", (), {"start": lambda self: target()})()):
+            service.service_started(stats)
+        self.assertEqual(stats.events, ["stop", "start"])
+        self.assertNotIn("stopped", stats.data)

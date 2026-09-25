@@ -125,7 +125,7 @@ class Stats:
     def due(self):
         return time.time() >= (self.data.get("next_try") or 0)
 
-    def payload(self, version="", platform="", kodi="", lang="", sources=None, product="", client=""):
+    def payload(self, version="", platform="", kodi="", lang="", sources=None, product="", client="", extra=None):
         plays = sorted(self.data.get("plays", {}).items(), key=lambda kv: kv[1].get("l") or 0, reverse=True)
         out = {
             "id": self.data["id"],
@@ -145,11 +145,14 @@ class Stats:
             out["client"] = client
         if self.data.get("msg_seen"):
             out["msg_seen"] = self.data["msg_seen"]
+        out.update(extra or {})
         return out
 
-    def ping_payload(self, version="", product="", client=""):
-        """Jen „instalace žije" — při vypnutých statistikách."""
+    def ping_payload(self, version="", product="", client="", extra=None):
+        """Jen „instalace žije" — při vypnutých statistikách. `extra` = jak se doplněk
+        aktualizuje (`updates`, `origin`), bez ničeho o uživateli."""
         out = {"id": self.data["id"], "ping": True, "version": version}
+        out.update(extra or {})
         if product:
             out["product"] = product
         if client:
@@ -167,7 +170,7 @@ class Stats:
                 self._save()
 
     def send(self, url, version="", platform="", kodi="", lang="", agent="Kodi plugin.video.nokturno",
-             sources=None, product="", ping=False, client=""):
+             sources=None, product="", ping=False, client="", extra=None):
         """Odešle stav. Vrací (True, "") nebo (False, důvod) — nikdy nevyhodí výjimku.
 
         `agent` odlišuje odesílatele v přístupovém logu serveru; tentýž modul
@@ -177,8 +180,8 @@ class Stats:
             return False, "chybí adresa"
         self.last_message = None
         with self._lock:
-            data = (self.ping_payload(version, product, client) if ping
-                    else self.payload(version, platform, kodi, lang, sources, product, client))
+            data = (self.ping_payload(version, product, client, extra) if ping
+                    else self.payload(version, platform, kodi, lang, sources, product, client, extra))
         body = json.dumps(data).encode("utf-8")
         req = urllib.request.Request(url, data=body, headers={
             "Content-Type": "application/json",
@@ -206,6 +209,23 @@ class Stats:
             self.data["next_try"] = now + SEND_EVERY
             self._save()
         return True, ""
+
+    def send_event(self, url, event, version="", product="", agent="Kodi plugin.video.nokturno", timeout=2):
+        """Krátká zpráva mimo pravidelné hlášení: `stop` = služba doplňku skončila, ale Kodi
+        se nevypínalo (odinstalace, zakázání, aktualizace), `start` = znovu běží. Server
+        podle toho pozná instalaci, která se po `stop` už neozvala. Nemění `next_try`,
+        nevyhodí výjimku; vrací True/False."""
+        if not url:
+            return False
+        body = json.dumps({"id": self.data["id"], "event": event, "version": version,
+                           "product": product}).encode("utf-8")
+        req = urllib.request.Request(url, data=body, headers={
+            "Content-Type": "application/json", "User-Agent": f"{agent}/" + (version or "?")})
+        try:
+            with open_url(req, timeout=timeout) as resp:
+                return (resp.getcode() or 200) < 400
+        except Exception:  # noqa: BLE001 – síť; při vypínání služby nesmí nic zdržet ani shodit
+            return False
 
     def _failed(self, why):
         self.data["next_try"] = int(time.time()) + RETRY_EVERY

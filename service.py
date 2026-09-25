@@ -57,6 +57,7 @@ from tracks import SUBS_WHEN_NEEDED, pick_audio, pick_subtitle, track_lang  # no
 from trakt_api import TraktApi, TraktError  # noqa: E402
 from webshare_api import WebshareApi  # noqa: E402
 import kodi_marks  # noqa: E402 – vedle service.py, čte videodatabázi Kodi
+import update_info  # noqa: E402 – vedle service.py, čte databázi doplňků Kodi
 import kodi_settings  # noqa: E402 – vedle service.py, most do settings.xml
 import kodi_sources  # noqa: E402 – vedle service.py, sdílený výčet zdrojů do statistik
 import setsync  # noqa: E402
@@ -1306,6 +1307,39 @@ def prefetch_next_later():
 
 # --- statistiky ---------------------------------------------------------------------
 
+def update_extra():
+    """Jak se doplněk aktualizuje (`update_info`) — k hlášení i k pingu."""
+    try:
+        return update_info.info(xbmc.executeJSONRPC, xbmcvfs.translatePath("special://database/"))
+    except Exception as e:  # noqa: BLE001 – statistiky nesmí nic shodit
+        log(f"aktualizace doplňku: {e}", xbmc.LOGDEBUG)
+        return {}
+
+
+def service_started(stats):
+    """Minule služba skončila bez vypnutí Kodi (odinstalace/zakázání/aktualizace) a teď
+    zase běží — dashboard zruší značku „odinstalováno“ hned, ne až s dalším hlášením."""
+    if not stats.data.get("stopped"):
+        return
+
+    def run():
+        if stats.send_event(COLLECT_URL, "start", ADDON.getAddonInfo("version"), "kodi"):
+            stats.data.pop("stopped", None)
+            stats._save()
+    threading.Thread(target=run, daemon=True).start()
+
+
+def service_stopped(stats):
+    """Služba končí a Kodi se nevypíná (`QUITTING` nenastavené) — doplněk se odinstaluje,
+    zakazuje nebo aktualizuje. Krátká zpráva dashboardu; když se instalace pak už
+    neozve, je vidět jako odinstalovaná. Kodi na službu čeká jen pár sekund."""
+    if QUITTING.is_set():
+        return
+    stats.data["stopped"] = True
+    stats._save()
+    stats.send_event(COLLECT_URL, "stop", ADDON.getAddonInfo("version"), "kodi")
+
+
 def stats_context(addon):
     """Verze doplňku, platforma, Kodi a aktivní zdroje – kontext k odeslaným čítačům."""
     platform = next((name for name, cond in (
@@ -1392,12 +1426,13 @@ def stats_tick(stats, force=False):
     if addon.getSetting("stats_enabled") != "true":
         # vypnuté statistiky: jen „instalace žije" — id, produkt a verze, žádné tituly ani zdroje
         # (zpráva z dashboardu se pošle i tak — viz _show_pending_message níže)
-        ok, why = stats.send(COLLECT_URL, version=addon.getAddonInfo("version"), product="kodi", ping=True)
+        ok, why = stats.send(COLLECT_URL, version=addon.getAddonInfo("version"), product="kodi", ping=True,
+                             extra=update_extra())
         log("ping instalace odeslán" if ok else f"ping instalace neodeslán: {why}",
             xbmc.LOGINFO if ok else xbmc.LOGWARNING)
         _show_pending_message(stats)
         return
-    ok, why = stats.send(COLLECT_URL, **stats_context(addon))
+    ok, why = stats.send(COLLECT_URL, extra=update_extra(), **stats_context(addon))
     log("statistiky odeslány" if ok else f"statistiky neodeslány: {why}",
         xbmc.LOGINFO if ok else xbmc.LOGWARNING)
     _show_pending_message(stats)
@@ -1492,6 +1527,7 @@ def main():
             store.update_download(d["id"], status="queued", done=0)
     install_thread_hook()
     stats = Stats(PROFILE)
+    service_started(stats)
     player = Player(store, stats)
     player.sw = SyncWatchManager(store, monitor)
     player.sw.start()
@@ -1525,6 +1561,7 @@ def main():
     # nastavení Kodi — tohle spolehlivě proběhne, skutečná odinstalace (smazání
     # složky) ne. I tak zpřesní čas posledního vidění o hodiny až šest.
     stats_tick(stats, force=True)
+    service_stopped(stats)
     log("stop")
 
 
