@@ -1028,7 +1028,7 @@ msgid "FastShare — username"
 msgstr ""
 
 msgctxt "#30421"
-msgid "Name you use to sign in to fastshare.cz."
+msgid "Name you use to sign in to fastshare.cz or sdilej.cz."
 msgstr ""
 
 msgctxt "#30422"
@@ -1036,7 +1036,7 @@ msgid "FastShare — password"
 msgstr ""
 
 msgctxt "#30423"
-msgid "Password for fastshare.cz. It is sent only when signing in; playback then uses a cookie."
+msgid "Password for fastshare.cz or sdilej.cz. It is sent only when signing in; playback then uses a cookie."
 msgstr ""
 
 msgctxt "#30424"
@@ -2560,4 +2560,16 @@ msgstr ""
 
 msgctxt "#30925"
 msgid "Let you know when the episode is available?[CR]The series goes to the watchlist and Nokturno checks it every six hours."
+msgstr ""
+
+msgctxt "#30926"
+msgid "Account from"
+msgstr ""
+
+msgctxt "#30927"
+msgid "Sdilej.cz has the same files as FastShare, only the account is separate. Choose the site where you have your account and credit."
+msgstr ""
+
+msgctxt "#30928"
+msgid "Sdilej.cz"
 msgstr ""

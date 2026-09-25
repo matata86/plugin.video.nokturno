@@ -560,7 +560,9 @@ class Engine:
         if self._fs is None:
             user = str(self._opt("fs_username") or "").strip()
             if user and self._opt("fs_password"):
-                self._fs = FastshareApi(user, self._opt("fs_password"), cache=self.store)
+                # `fs_provider` = „sdilej": účet ze Sdilej.cz, týž katalog (viz lib/fastshare_api)
+                self._fs = FastshareApi(user, self._opt("fs_password"), cache=self.store,
+                                        provider=str(self._opt("fs_provider") or "fastshare"))
         return self._fs
 
     @property

@@ -1028,16 +1028,16 @@ msgid "FastShare — username"
 msgstr "FastShare — uživatel"
 
 msgctxt "#30421"
-msgid "Name you use to sign in to fastshare.cz."
-msgstr "Jméno, kterým se přihlašuješ na fastshare.cz."
+msgid "Name you use to sign in to fastshare.cz or sdilej.cz."
+msgstr "Jméno, kterým se přihlašuješ na fastshare.cz nebo sdilej.cz."
 
 msgctxt "#30422"
 msgid "FastShare — password"
 msgstr "FastShare — heslo"
 
 msgctxt "#30423"
-msgid "Password for fastshare.cz. It is sent only when signing in; playback then uses a cookie."
-msgstr "Heslo z fastshare.cz. Posílá se jen při přihlášení, přehrávání pak jde s cookie."
+msgid "Password for fastshare.cz or sdilej.cz. It is sent only when signing in; playback then uses a cookie."
+msgstr "Heslo z fastshare.cz nebo sdilej.cz. Posílá se jen při přihlášení, přehrávání pak jde s cookie."
 
 msgctxt "#30424"
 msgid "Do you have a FastShare account?[CR]Search works without it, playback is charged from your credit or unlimited plan."
@@ -2562,3 +2562,15 @@ msgstr "Ozvat se, až bude k dispozici?[CR]Titul se zařadí do Hlídaných a No
 msgctxt "#30925"
 msgid "Let you know when the episode is available?[CR]The series goes to the watchlist and Nokturno checks it every six hours."
 msgstr "Ozvat se, až díl bude k dispozici?[CR]Seriál se zařadí do Hlídaných a Nokturno ho kontroluje každých šest hodin."
+
+msgctxt "#30926"
+msgid "Account from"
+msgstr "Účet z"
+
+msgctxt "#30927"
+msgid "Sdilej.cz has the same files as FastShare, only the account is separate. Choose the site where you have your account and credit."
+msgstr "Sdilej.cz má stejné soubory jako FastShare, jen účet je samostatný. Vyber web, kde máš účet a kredit."
+
+msgctxt "#30928"
+msgid "Sdilej.cz"
+msgstr "Sdilej.cz"

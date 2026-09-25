@@ -561,7 +561,9 @@ def resolve_internal(url, store):
         return SledujtetoApi(s("st_email"), addon.getSetting("st_password") if addon else "", cache=store).file_link(url[3:]), {}
     if url.startswith("fs:"):
         # soubor chce cookie z přihlášení — stahovač ji dostane v hlavičkách jako u úložiště
-        return FastshareApi(s("fs_username"), addon.getSetting("fs_password") if addon else "", cache=store).request(url)
+        provider = "sdilej" if s("fs_provider") == "1" else "fastshare"
+        return FastshareApi(s("fs_username"), addon.getSetting("fs_password") if addon else "", cache=store,
+                            provider=provider).request(url)
     if url.startswith("cz:"):
         # tokeny párování drží úložiště doplňku (sdílené s pluginem), `playback_url` hraje bez hlaviček
         return CztorApi(store, device_name=f"Nokturno ({xbmc.getInfoLabel('System.FriendlyName') or 'Kodi'})").resolve(url), {}

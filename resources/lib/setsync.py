@@ -38,7 +38,7 @@ ACCOUNT_KEYS = frozenset({
     "ws_username", "ws_password",
     "streamuj_username", "streamuj_password",
     "st_email", "st_password",
-    "fs_username", "fs_password",
+    "fs_username", "fs_password", "fs_provider",
     "os_username", "os_password",
     "luna_url", "token",
     "tmdb_api_key",

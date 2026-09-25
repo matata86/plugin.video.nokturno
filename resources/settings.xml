@@ -336,6 +336,20 @@
           <default>false</default>
           <control type="toggle"/>
         </setting>
+        <setting id="fs_provider" type="integer" label="30926" help="30927">
+          <level>0</level>
+          <default>0</default>
+          <constraints>
+            <options>
+              <option label="30417">0</option>
+              <option label="30928">1</option>
+            </options>
+          </constraints>
+          <dependencies>
+            <dependency type="enable" setting="fs_enabled">true</dependency>
+          </dependencies>
+          <control format="string" type="spinner"/>
+        </setting>
         <setting id="fs_username" type="string" label="30420" help="30421">
           <level>0</level>
           <default></default>

@@ -704,6 +704,11 @@ def get_sledujteto():
     return SledujtetoApi(email, pw, cache=STORE)
 
 
+def fs_provider():
+    """Účet ke katalogu FastShare: 0 = fastshare.cz, 1 = sdilej.cz (týž katalog, jiný účet)."""
+    return "sdilej" if setting("fs_provider") == "1" else "fastshare"
+
+
 def get_fastshare():
     """FastShare — jméno a heslo. Hledá se bez přihlášení, k přehrání se přihlásí
     a soubor jde z kreditu účtu (nebo neomezeného tarifu)."""
@@ -712,7 +717,7 @@ def get_fastshare():
     user, pw = setting("fs_username").strip(), setting("fs_password")
     if not user or not pw:
         return None
-    return FastshareApi(user, pw, cache=STORE)
+    return FastshareApi(user, pw, cache=STORE, provider=fs_provider())
 
 
 def get_prehrajto():
@@ -860,6 +865,7 @@ def engine_options():
         "ws_username": setting("ws_username") if on("ws_enabled", "false") else "",
         "st_email": setting("st_email") if on("st_enabled", "false") else "",
         "fs_username": setting("fs_username") if on("fs_enabled", "false") else "",
+        "fs_provider": fs_provider(),
         # jádro si podle e-mailu pozná účet (stránkování a původní soubor) — heslo
         # sem nepatří, klienta si staví `get_prehrajto()`
         "pt_enabled": on("pt_enabled", "false"),
