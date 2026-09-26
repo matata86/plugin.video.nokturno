@@ -47,6 +47,9 @@ Přihlašovací údaje zůstávají v Kodi — doplněk je posílá jen službě
 - **Nastavit z mobilu**, **přenos nastavení** do dalšího Kodi a průvodce prvním nastavením
 - **Titulky z OpenSubtitles**, **stahování** na pozadí s navazováním, **Přehrát z detailu** přes TMDb Helper (Arctic Fuse)
 
+<img src="resources/screenshots/02-menu.jpg" alt="Hlavní menu" width="49%"> <img src="resources/screenshots/01-uloziste.jpg" alt="Moje úložiště" width="49%">
+<img src="resources/screenshots/03-vyber-streamu.jpg" alt="Výběr streamu" width="49%"> <img src="resources/screenshots/04-nastaveni.jpg" alt="Nastavení" width="49%">
+
 <details>
 <summary><b>Všechny funkce podrobně</b></summary>
 
