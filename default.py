@@ -250,6 +250,8 @@ GENRES_CS = {
     "Fantasy": "Fantasy", "History": "Historický", "Horror": "Horor", "Music": "Hudební", "Musical": "Muzikál",
     "Mystery": "Mysteriózní", "Romance": "Romantický", "Sci-Fi": "Sci-fi", "Short": "Krátkometrážní",
     "Sport": "Sportovní", "Thriller": "Thriller", "War": "Válečný", "Western": "Western",
+    "Action & Adventure": "Akční a dobrodružný", "Kids": "Dětský", "Reality": "Reality show",
+    "Sci-Fi & Fantasy": "Sci-fi a fantasy", "War & Politics": "Válečný a politický",
 }
 PLAYING_PROP = "nokturno.playing"
 VIEWED_PROP = "nokturno.viewed"   # služba si odsud bere „u titulu se zobrazily streamy“ pro statistiky
@@ -4956,6 +4958,8 @@ def browse_menu(apis, ctype):
         if genre:
             params["genre"] = genre
         folder_item(label, build_url(**params), icon=icon)
+    folder_item(L(30944, "Vlastní katalogy"), build_url(action="mycats", type=ctype),
+                icon="DefaultVideoPlaylists.png")
     # „Náhodný film/seriál" je ne-složka: klik ji Kodi spustí jako skript s handle −1
     # a `random_title()` rovnou otevře dialog výběru streamu — ve výpisu se tedy žádný
     # modál neotevře a widget ani JSON-RPC se sem nedostanou (vzor `tv_pick`).
@@ -5010,6 +5014,156 @@ def list_catalog(apis, ctype, cid, src, genre=None, search=None, skip=0):
         folder_item(L(30021), build_url(action="catalog", type=ctype, catalog=cid, src=src, genre=genre,
                                         search=search, skip=skip + len(metas)), icon="DefaultFolder.png")
     # widget a výpis v Nokturnu mívají stejnou adresu, položky se ale liší podle okna (add_playable)
+    xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
+# --- vlastní katalogy ------------------------------------------------------------
+# Uživatel si katalog poskládá z žánrů, původního jazyka, let a řazení; tituly skládá
+# dashboard (`GET /discover`) přes TMDB svým klíčem, takže vlastní klíč TMDB netřeba.
+# Uložené jsou jen volby formuláře (`mycatalogs.json`), dotaz se z nich staví až při výpisu.
+
+MYCAT_GENRES = {   # id žánrů TMDB → anglický název (česky přes `genre_label`)
+    "movie": ((28, "Action"), (12, "Adventure"), (16, "Animation"), (35, "Comedy"), (80, "Crime"),
+              (99, "Documentary"), (18, "Drama"), (10751, "Family"), (14, "Fantasy"), (36, "History"),
+              (27, "Horror"), (10402, "Music"), (9648, "Mystery"), (10749, "Romance"), (878, "Sci-Fi"),
+              (53, "Thriller"), (10752, "War"), (37, "Western")),
+    "series": ((10759, "Action & Adventure"), (16, "Animation"), (35, "Comedy"), (80, "Crime"),
+               (99, "Documentary"), (18, "Drama"), (10751, "Family"), (10762, "Kids"), (9648, "Mystery"),
+               (10764, "Reality"), (10765, "Sci-Fi & Fantasy"), (10768, "War & Politics"), (37, "Western")),
+}
+MYCAT_LANGS = (("", 30950, "Jakýkoli"), ("cs", 30960, "Čeština"), ("sk", 30961, "Slovenština"),
+               ("cs|sk", 30962, "Čeština nebo slovenština"), ("en", 30963, "Angličtina"),
+               ("de", 30964, "Němčina"), ("fr", 30965, "Francouzština"), ("es", 30966, "Španělština"),
+               ("it", 30967, "Italština"), ("pl", 30968, "Polština"), ("hu", 30969, "Maďarština"),
+               ("ko", 30970, "Korejština"), ("ja", 30971, "Japonština"))
+MYCAT_SORTS = (("popularity.desc", 30954, "Oblíbenosti"), ("vote_average.desc", 30955, "Hodnocení"),
+               ("primary_release_date.desc", 30956, "Data vydání"))
+
+
+def mycats(ctype=None):
+    items = STORE.load("mycatalogs", [])
+    items = items if isinstance(items, list) else []
+    return [c for c in items if isinstance(c, dict) and (ctype is None or c.get("kind") == ctype)]
+
+
+def mycat_params(cat):
+    """Uložené volby → parametry `DashApi.discover` (neplatné hodnoty zahodí až klient)."""
+    genres = [str(g) for g in cat.get("genres") or []]
+    params = {"with_genres": ("|" if cat.get("join") == "or" else ",").join(genres),
+              "with_original_language": cat.get("lang") or "", "sort_by": cat.get("sort") or "",
+              "year_from": cat.get("year_from") or "", "year_to": cat.get("year_to") or ""}
+    return {k: v for k, v in params.items() if v}
+
+
+def mycat_auto_name(ctype, genres, lang):
+    names = dict(MYCAT_GENRES["series" if ctype == "series" else "movie"])
+    parts = [genre_label(names[g]) for g in genres if g in names][:3]
+    lang_label = next((L(sid, fb) for code, sid, fb in MYCAT_LANGS if code and code == lang), "")
+    return " · ".join(parts + ([lang_label] if lang_label else [])) or L(30972, "Vlastní katalog")
+
+
+def _mycat_year(heading, current):
+    value = xbmcgui.Dialog().numeric(0, heading, str(current or ""))
+    return int(value) if value and value.isdigit() and 1900 <= int(value) <= 2099 else None
+
+
+def mycat_form(ctype, cat=None):
+    """Dialogy formuláře (žánry, jazyk, roky, řazení, název) → uložitelný záznam, nebo None
+    po zrušení. Běží jen z ne-složky (handle −1), z widgetu ani z JSON-RPC se sem nejde."""
+    cat = cat or {}
+    kind = "series" if ctype == "series" else "movie"
+    dlg = xbmcgui.Dialog()
+    genres = MYCAT_GENRES[kind]
+    chosen = dlg.multiselect(L(30948, "Žánry (nic = všechny)"), [genre_label(n) for _, n in genres],
+                             preselect=[i for i, (g, _) in enumerate(genres) if g in (cat.get("genres") or [])])
+    if chosen is None:
+        return None
+    picked = [genres[i][0] for i in chosen]
+    join = cat.get("join") or "and"
+    if len(picked) > 1:
+        idx = dlg.select(L(30973, "Tituly musí mít"),
+                         [L(30974, "všechny vybrané žánry"), L(30975, "aspoň jeden vybraný žánr")],
+                         preselect=1 if join == "or" else 0)
+        if idx < 0:
+            return None
+        join = "or" if idx == 1 else "and"
+    langs = [code for code, _, _ in MYCAT_LANGS]
+    idx = dlg.select(L(30949, "Původní jazyk"), [L(sid, fb) for _, sid, fb in MYCAT_LANGS],
+                     preselect=langs.index(cat.get("lang")) if cat.get("lang") in langs else 0)
+    if idx < 0:
+        return None
+    lang = langs[idx]
+    year_from = _mycat_year(L(30951, "Od roku (prázdné = bez omezení)"), cat.get("year_from"))
+    year_to = _mycat_year(L(30952, "Do roku (prázdné = bez omezení)"), cat.get("year_to"))
+    sorts = [code for code, _, _ in MYCAT_SORTS]
+    idx = dlg.select(L(30953, "Řadit podle"), [L(sid, fb) for _, sid, fb in MYCAT_SORTS],
+                     preselect=sorts.index(cat.get("sort")) if cat.get("sort") in sorts else 0)
+    if idx < 0:
+        return None
+    default_name = cat.get("name") or mycat_auto_name(kind, picked, lang)
+    name = dlg.input(L(30957, "Název katalogu"), default_name).strip()[:60] or default_name
+    return {"id": cat.get("id") or f"k{int(time.time() * 1000):x}", "kind": kind, "name": name,
+            "genres": picked, "join": join, "lang": lang, "year_from": year_from, "year_to": year_to,
+            "sort": sorts[idx]}
+
+
+def mycat_new(ctype):
+    cat = mycat_form(ctype)
+    if not cat:
+        return
+    with STORE.updating("mycatalogs", []) as items:
+        items.append(cat)
+    usage.mark_feature(STORE, "mycatalog")
+    xbmc.executebuiltin("Container.Refresh")
+
+
+def mycat_edit(cat_id):
+    cat = next((c for c in mycats() if c.get("id") == cat_id), None)
+    new = mycat_form(cat.get("kind"), cat) if cat else None
+    if not new:
+        return
+    with STORE.updating("mycatalogs", []) as items:
+        items[:] = [new if isinstance(c, dict) and c.get("id") == cat_id else c for c in items]
+    xbmc.executebuiltin("Container.Refresh")
+
+
+def mycat_delete(cat_id):
+    cat = next((c for c in mycats() if c.get("id") == cat_id), None)
+    if not cat or not xbmcgui.Dialog().yesno(L(30947, "Smazat katalog"),
+                                             L(30958, "Smazat katalog %s?") % cat.get("name", "")):
+        return
+    with STORE.updating("mycatalogs", []) as items:
+        items[:] = [c for c in items if not (isinstance(c, dict) and c.get("id") == cat_id)]
+    xbmc.executebuiltin("Container.Refresh")
+
+
+def list_mycats(ctype):
+    for cat in mycats(ctype):
+        context = [(L(30946, "Upravit katalog"), runplugin(action="mycat_edit", id=cat["id"])),
+                   (L(30947, "Smazat katalog"), runplugin(action="mycat_delete", id=cat["id"]))]
+        folder_item(cat.get("name") or L(30972, "Vlastní katalog"),
+                    build_url(action="mycat", type=ctype, id=cat["id"]),
+                    icon="DefaultVideoPlaylists.png", context=context)
+    action_item(L(30945, "Nový katalog"), build_url(action="mycat_new", type=ctype), icon="DefaultAddSource.png")
+    xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+
+def list_mycat(apis, ctype, cat_id, page=1):
+    cat = next((c for c in mycats(ctype) if c.get("id") == cat_id), None)
+    dash = apis.get("dash")
+    if not cat or dash is None:
+        xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
+        return
+    set_content("tvshows" if ctype == "series" else "movies")
+    metas, pages = dash.discover(ctype, mycat_params(cat), page=page)
+    if metas is None:
+        notify(L(30959, "Katalog se nepodařilo načíst. Zkus to později."), xbmcgui.NOTIFICATION_WARNING)
+        metas = []
+    for m in metas:
+        add_meta_item(m, ctype)
+    if metas and page < pages:
+        folder_item(L(30021), build_url(action="mycat", type=ctype, id=cat_id, page=page + 1),
+                    icon="DefaultFolder.png")
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
 
@@ -7293,6 +7447,10 @@ def router(query):
     simple = {
         "history_remove": lambda: history_remove(p["type"], p.get("q", "")),
         "history_clear": lambda: _tlacitko(lambda: history_clear(p["type"])),
+        "mycats": lambda: list_mycats(p.get("type", "movie")),
+        "mycat_new": lambda: _tlacitko(lambda: mycat_new(p.get("type", "movie"))),
+        "mycat_edit": lambda: _tlacitko(lambda: mycat_edit(p.get("id", ""))),
+        "mycat_delete": lambda: _tlacitko(lambda: mycat_delete(p.get("id", ""))),
         "toggle_watched": lambda: toggle_watched(p["id"]),
         "remove_progress": lambda: remove_progress(p["id"], p.get("series")),
         "search": lambda: search_menu(p.get("type") or p.get("kind") or "any"),
@@ -7427,6 +7585,8 @@ def router(query):
             play_ref(apis, p.get("ref", ""), p.get("name", ""), p.get("alts", ""))
         elif action == "genres":
             list_genres(apis, p["type"], p["catalog"], p.get("src", "luna"), show_all=not p.get("noall"))
+        elif action == "mycat":
+            list_mycat(apis, p.get("type", "movie"), p.get("id", ""), int(p.get("page") or 1))
         elif action == "dash_group":
             list_dash_group(apis, p["catalog"], p.get("type", "movie"))
         elif action == "catalog":
@@ -7530,7 +7690,7 @@ MARKS_SKIP = frozenset((
     "cztor_status", "cztor_logout", "clear_cache", "stats_send", "log_send", "website_info",
     "test_sources", "source_pause", "remote_setup", "stream_layout_reset", "setup_wizard", "sub_status",
     "luna_check", "luna_find", "os_check", "speedtest", "update_repos", "tmdbhelper_player", "sync_now",
-    "sync_create", "sync_join", "sync_leave",
+    "sync_create", "sync_join", "sync_leave", "mycats", "mycat_new", "mycat_edit", "mycat_delete",
     "watch_series", "want", "watch_episode", "watch_flag", "watch_seen", "watch_check", "watch_check_now",
     "whats_new", "ha_files", "settings", "transfer_send", "transfer_receive",
     "transfer_file_save", "transfer_file_load",

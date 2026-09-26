@@ -2632,3 +2632,131 @@ msgstr "Folyamatban…"
 msgctxt "#30943"
 msgid "Without a group it creates one and shows the code. With an existing group it opens joining again for 30 minutes so another device can join. Keep the code – without it the data cannot be read and cannot be recovered."
 msgstr "Ha nincs csoport, létrehozza és megmutatja a kódot. Meglévő csoportnál 30 percre újra megnyitja a csatlakozást, hogy újabb eszköz csatlakozhasson. Őrizd meg a kódot – nélküle az adatok nem olvashatók és nem állíthatók vissza."
+
+msgctxt "#30944"
+msgid "Custom catalogs"
+msgstr "Saját katalógusok"
+
+msgctxt "#30945"
+msgid "New catalog"
+msgstr "Új katalógus"
+
+msgctxt "#30946"
+msgid "Edit catalog"
+msgstr "Katalógus szerkesztése"
+
+msgctxt "#30947"
+msgid "Delete catalog"
+msgstr "Katalógus törlése"
+
+msgctxt "#30948"
+msgid "Genres (none = all)"
+msgstr "Műfajok (semmi = mind)"
+
+msgctxt "#30949"
+msgid "Original language"
+msgstr "Eredeti nyelv"
+
+msgctxt "#30950"
+msgid "Any"
+msgstr "Bármelyik"
+
+msgctxt "#30951"
+msgid "From year (empty = no limit)"
+msgstr "Évtől (üres = nincs korlát)"
+
+msgctxt "#30952"
+msgid "To year (empty = no limit)"
+msgstr "Évig (üres = nincs korlát)"
+
+msgctxt "#30953"
+msgid "Sort by"
+msgstr "Rendezés"
+
+msgctxt "#30954"
+msgid "Popularity"
+msgstr "Népszerűség"
+
+msgctxt "#30955"
+msgid "Rating"
+msgstr "Értékelés"
+
+msgctxt "#30956"
+msgid "Release date"
+msgstr "Megjelenés dátuma"
+
+msgctxt "#30957"
+msgid "Catalog name"
+msgstr "Katalógus neve"
+
+msgctxt "#30958"
+msgid "Delete catalog %s?"
+msgstr "Törlöd a(z) %s katalógust?"
+
+msgctxt "#30959"
+msgid "The catalog could not be loaded. Try again later."
+msgstr "A katalógust nem sikerült betölteni. Próbáld újra később."
+
+msgctxt "#30960"
+msgid "Czech"
+msgstr "Cseh"
+
+msgctxt "#30961"
+msgid "Slovak"
+msgstr "Szlovák"
+
+msgctxt "#30962"
+msgid "Czech or Slovak"
+msgstr "Cseh vagy szlovák"
+
+msgctxt "#30963"
+msgid "English"
+msgstr "Angol"
+
+msgctxt "#30964"
+msgid "German"
+msgstr "Német"
+
+msgctxt "#30965"
+msgid "French"
+msgstr "Francia"
+
+msgctxt "#30966"
+msgid "Spanish"
+msgstr "Spanyol"
+
+msgctxt "#30967"
+msgid "Italian"
+msgstr "Olasz"
+
+msgctxt "#30968"
+msgid "Polish"
+msgstr "Lengyel"
+
+msgctxt "#30969"
+msgid "Hungarian"
+msgstr "Magyar"
+
+msgctxt "#30970"
+msgid "Korean"
+msgstr "Koreai"
+
+msgctxt "#30971"
+msgid "Japanese"
+msgstr "Japán"
+
+msgctxt "#30972"
+msgid "Custom catalog"
+msgstr "Saját katalógus"
+
+msgctxt "#30973"
+msgid "Titles must have"
+msgstr "A címeknek rendelkezniük kell"
+
+msgctxt "#30974"
+msgid "all selected genres"
+msgstr "az összes kiválasztott műfajjal"
+
+msgctxt "#30975"
+msgid "at least one selected genre"
+msgstr "legalább egy kiválasztott műfajjal"

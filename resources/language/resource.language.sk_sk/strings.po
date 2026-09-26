@@ -2634,3 +2634,131 @@ msgstr "Pracujem…"
 msgctxt "#30943"
 msgid "Without a group it creates one and shows the code. With an existing group it opens joining again for 30 minutes so another device can join. Keep the code – without it the data cannot be read and cannot be recovered."
 msgstr "Bez skupiny ju založí a ukáže kód. Pri existujúcej skupine znovu otvorí pripojenie na 30 minút, aby sa mohlo pridať ďalšie zariadenie. Kód si uschovaj – bez neho dáta nikto neprečíta a nedajú sa obnoviť."
+
+msgctxt "#30944"
+msgid "Custom catalogs"
+msgstr "Vlastné katalógy"
+
+msgctxt "#30945"
+msgid "New catalog"
+msgstr "Nový katalóg"
+
+msgctxt "#30946"
+msgid "Edit catalog"
+msgstr "Upraviť katalóg"
+
+msgctxt "#30947"
+msgid "Delete catalog"
+msgstr "Zmazať katalóg"
+
+msgctxt "#30948"
+msgid "Genres (none = all)"
+msgstr "Žánre (nič = všetky)"
+
+msgctxt "#30949"
+msgid "Original language"
+msgstr "Pôvodný jazyk"
+
+msgctxt "#30950"
+msgid "Any"
+msgstr "Akýkoľvek"
+
+msgctxt "#30951"
+msgid "From year (empty = no limit)"
+msgstr "Od roku (prázdne = bez obmedzenia)"
+
+msgctxt "#30952"
+msgid "To year (empty = no limit)"
+msgstr "Do roku (prázdne = bez obmedzenia)"
+
+msgctxt "#30953"
+msgid "Sort by"
+msgstr "Radiť podľa"
+
+msgctxt "#30954"
+msgid "Popularity"
+msgstr "Obľúbenosti"
+
+msgctxt "#30955"
+msgid "Rating"
+msgstr "Hodnotenia"
+
+msgctxt "#30956"
+msgid "Release date"
+msgstr "Dátumu vydania"
+
+msgctxt "#30957"
+msgid "Catalog name"
+msgstr "Názov katalógu"
+
+msgctxt "#30958"
+msgid "Delete catalog %s?"
+msgstr "Zmazať katalóg %s?"
+
+msgctxt "#30959"
+msgid "The catalog could not be loaded. Try again later."
+msgstr "Katalóg sa nepodarilo načítať. Skús to neskôr."
+
+msgctxt "#30960"
+msgid "Czech"
+msgstr "Čeština"
+
+msgctxt "#30961"
+msgid "Slovak"
+msgstr "Slovenčina"
+
+msgctxt "#30962"
+msgid "Czech or Slovak"
+msgstr "Čeština alebo slovenčina"
+
+msgctxt "#30963"
+msgid "English"
+msgstr "Angličtina"
+
+msgctxt "#30964"
+msgid "German"
+msgstr "Nemčina"
+
+msgctxt "#30965"
+msgid "French"
+msgstr "Francúzština"
+
+msgctxt "#30966"
+msgid "Spanish"
+msgstr "Španielčina"
+
+msgctxt "#30967"
+msgid "Italian"
+msgstr "Taliančina"
+
+msgctxt "#30968"
+msgid "Polish"
+msgstr "Poľština"
+
+msgctxt "#30969"
+msgid "Hungarian"
+msgstr "Maďarčina"
+
+msgctxt "#30970"
+msgid "Korean"
+msgstr "Kórejčina"
+
+msgctxt "#30971"
+msgid "Japanese"
+msgstr "Japončina"
+
+msgctxt "#30972"
+msgid "Custom catalog"
+msgstr "Vlastný katalóg"
+
+msgctxt "#30973"
+msgid "Titles must have"
+msgstr "Tituly musia mať"
+
+msgctxt "#30974"
+msgid "all selected genres"
+msgstr "všetky vybrané žánre"
+
+msgctxt "#30975"
+msgid "at least one selected genre"
+msgstr "aspoň jeden vybraný žáner"

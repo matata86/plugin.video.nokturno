@@ -6789,3 +6789,80 @@ class TestLunaVychoziVypnuta(unittest.TestCase):
         xbmcaddon.settings["luna_enabled"] = "false"    # uživatel ji pak vědomě vypne
         default.migrate_luna_default()
         self.assertEqual(xbmcaddon.settings["luna_enabled"], "false")
+
+
+class TestVlastniKatalogy(unittest.TestCase):
+    """Vlastní katalog: formulář v dialozích, uložené volby, tituly z dashboardu (`/discover`)."""
+
+    def setUp(self):
+        reset_kodi()
+        default.STORE.save("mycatalogs", [])
+
+    def _vytvor(self, multiselect=(3, 7), selects=(0, 1, 1), numeric=("1990", ""), name=""):
+        with mock.patch.object(xbmcgui.Dialog, "multiselect", return_value=list(multiselect)), \
+                mock.patch.object(xbmcgui.Dialog, "select", side_effect=list(selects)), \
+                mock.patch.object(xbmcgui.Dialog, "numeric", side_effect=list(numeric), create=True), \
+                mock.patch.object(xbmcgui.Dialog, "input", return_value=name):
+            default.main("action=mycat_new&type=movie")
+        return default.mycats("movie")
+
+    def test_novy_katalog_ulozi_volby(self):
+        cats = self._vytvor()
+        self.assertEqual(len(cats), 1)
+        cat = cats[0]
+        self.assertEqual((cat["genres"], cat["join"], cat["lang"], cat["year_from"], cat["year_to"], cat["sort"]),
+                         ([35, 10751], "and", "cs", 1990, None, "vote_average.desc"))
+        self.assertTrue(cat["name"])
+        self.assertIn("Container.Refresh", xbmc.builtins)
+        self.assertEqual(default.mycat_params(cat), {"with_genres": "35,10751", "with_original_language": "cs",
+                                                     "sort_by": "vote_average.desc", "year_from": 1990})
+        self.assertEqual(default.mycat_params({**cat, "join": "or"})["with_genres"], "35|10751")
+
+    def test_zruseni_nic_neulozi(self):
+        with mock.patch.object(xbmcgui.Dialog, "multiselect", return_value=None):
+            default.main("action=mycat_new&type=movie")
+        self.assertEqual(default.mycats(), [])
+
+    def test_vypis_katalogu_a_dalsi_strana(self):
+        cat = self._vytvor(name="České komedie")[0]
+        xbmcplugin.reset()
+
+        class Dash:
+            calls = []
+
+            def discover(self, ctype, params, page=1):
+                self.calls.append((ctype, params, page))
+                return [{"id": "tt0167331", "name": "Pelíšky", "type": "movie"}], 3
+
+        dash = Dash()
+        default.list_mycat({"dash": dash}, "movie", cat["id"], 1)
+        self.assertEqual(dash.calls[0][2], 1)
+        self.assertEqual(dash.calls[0][1]["with_original_language"], "cs")
+        urls = xbmcplugin.urls()
+        self.assertEqual(params_of(urls[-1]), {"action": "mycat", "type": "movie", "id": cat["id"], "page": "2"})
+
+    def test_vypadek_serveru_ohlasi(self):
+        cat = self._vytvor()[0]
+
+        class Dash:
+            def discover(self, ctype, params, page=1):
+                return None, 1
+
+        del xbmcgui.notifications[:]
+        default.list_mycat({"dash": Dash()}, "movie", cat["id"], 1)
+        self.assertEqual([n[1] for n in xbmcgui.notifications], ["Katalog se nepodařilo načíst. Zkus to později."])
+
+    def test_seznam_a_smazani(self):
+        cat = self._vytvor(name="Moje")[0]
+        xbmcplugin.reset()
+        default.main("action=mycats&type=movie")
+        urls = [params_of(u) for u in xbmcplugin.urls()]
+        self.assertEqual([u["action"] for u in urls], ["mycat", "mycat_new"])
+        self.assertEqual(xbmcplugin.items[0][2].getLabel(), "Moje")
+        with mock.patch.object(xbmcgui.Dialog, "yesno", return_value=True):
+            default.main(f"action=mycat_delete&id={cat['id']}")
+        self.assertEqual(default.mycats(), [])
+
+    def test_menu_filmu_nabizi_vlastni_katalogy(self):
+        default.browse_menu({}, "movie")
+        self.assertIn("mycats", [params_of(u).get("action") for u in xbmcplugin.urls()])

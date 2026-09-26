@@ -12,6 +12,8 @@ Tři veřejné endpointy, které server skládá sám z TMDB (klient nic nedohle
   ať server nemůže klientovi poslat nekonečné menu. Složku jde otevřít i jako obyčejný
   katalog — server pak vrátí slité položky jejích podkategorií.
 * `GET /similar?kind=&id=` — podobné tituly pro uživatele bez vlastního TMDB klíče.
+* `GET /discover?kind=&page=&…` — stránka vlastního katalogu, který si uživatel poskládal
+  v doplňku (žánry, původní jazyk, roky, řazení). Server dotaz pustí přes TMDB svým klíčem.
 * `GET /tv-program?date=&kind=&channel=` — filmy a seriály v české a slovenské TV,
   jen ty, které server spároval s TMDB (mají `tt…` id).
 * `GET /concerts/recent?sources=` — nově přidané (schválené) koncerty, nejnovější napřed
@@ -49,6 +51,18 @@ TIMEOUT = 6
 MENU_TTL = 3600
 CATALOG_TTL = 6 * 3600
 SIMILAR_TTL = 7 * 86400
+DISCOVER_TTL = 12 * 3600
+DISCOVER_MAX_PAGE = 10
+# parametry vlastního katalogu, které server přijme (bílá listina `tmdb_discover` na serveru je širší)
+DISCOVER_PARAMS = {
+    "with_genres": re.compile(r"^[0-9]{1,6}([,|][0-9]{1,6}){0,9}$"),
+    "with_original_language": re.compile(r"^[a-z]{2}(\|[a-z]{2}){0,4}$"),
+    "with_origin_country": re.compile(r"^[A-Z]{2}(\|[A-Z]{2}){0,4}$"),
+    "year_from": re.compile(r"^(19|20)[0-9]{2}$"),
+    "year_to": re.compile(r"^(19|20)[0-9]{2}$"),
+    "sort_by": re.compile(r"^(popularity|vote_average|primary_release_date)\.desc$"),
+    "vote_average_gte": re.compile(r"^[0-9](\.[0-9])?$"),
+}
 TV_TTL = 30 * 60
 OS_KEY_TTL = 7 * 86400   # klíč se nemění; při výměně se rozejde nejvýš na týden
 TRAKT_KEY_TTL = 7 * 86400
@@ -238,6 +252,29 @@ class DashApi:
             return data.get("items") if isinstance(data, dict) and isinstance(data.get("items"), list) else None
 
         return _clean_items(self._load(f"nokturno:dash:similar:{kind}:{imdb_id}", SIMILAR_TTL, fetch), ctype)
+
+    # --- vlastní katalogy -------------------------------------------------------------
+
+    def discover(self, ctype, params, page=1):
+        """Jedna stránka vlastního katalogu: `(položky, počet stránek)`, při výpadku serveru
+        bez záložních dat `(None, 1)`. Parametry mimo
+        `DISCOVER_PARAMS` nebo v nečekaném tvaru se zahodí, ať se nic cizího nedostane do adresy."""
+        kind = "series" if ctype == "series" else "movie"
+        page = page if isinstance(page, int) and 1 <= page <= DISCOVER_MAX_PAGE else 1
+        clean = {k: str(v) for k, v in (params or {}).items()
+                 if k in DISCOVER_PARAMS and DISCOVER_PARAMS[k].match(str(v))}
+
+        def fetch():
+            data = self._get("/discover", kind=kind, page=page, **clean)
+            return data if isinstance(data, dict) and isinstance(data.get("items"), list) else None
+
+        key = "nokturno:dash:discover:" + json.dumps([kind, page, sorted(clean.items())])
+        data = self._load(key, DISCOVER_TTL, fetch)
+        if data is None:
+            return None, 1
+        pages = data.get("pages")
+        pages = min(pages, DISCOVER_MAX_PAGE) if isinstance(pages, int) and pages > 0 else 1
+        return _clean_items(data.get("items"), ctype), pages
 
     # --- TV program ------------------------------------------------------------------
 

@@ -2634,3 +2634,131 @@ msgstr ""
 msgctxt "#30943"
 msgid "Without a group it creates one and shows the code. With an existing group it opens joining again for 30 minutes so another device can join. Keep the code – without it the data cannot be read and cannot be recovered."
 msgstr ""
+
+msgctxt "#30944"
+msgid "Custom catalogs"
+msgstr ""
+
+msgctxt "#30945"
+msgid "New catalog"
+msgstr ""
+
+msgctxt "#30946"
+msgid "Edit catalog"
+msgstr ""
+
+msgctxt "#30947"
+msgid "Delete catalog"
+msgstr ""
+
+msgctxt "#30948"
+msgid "Genres (none = all)"
+msgstr ""
+
+msgctxt "#30949"
+msgid "Original language"
+msgstr ""
+
+msgctxt "#30950"
+msgid "Any"
+msgstr ""
+
+msgctxt "#30951"
+msgid "From year (empty = no limit)"
+msgstr ""
+
+msgctxt "#30952"
+msgid "To year (empty = no limit)"
+msgstr ""
+
+msgctxt "#30953"
+msgid "Sort by"
+msgstr ""
+
+msgctxt "#30954"
+msgid "Popularity"
+msgstr ""
+
+msgctxt "#30955"
+msgid "Rating"
+msgstr ""
+
+msgctxt "#30956"
+msgid "Release date"
+msgstr ""
+
+msgctxt "#30957"
+msgid "Catalog name"
+msgstr ""
+
+msgctxt "#30958"
+msgid "Delete catalog %s?"
+msgstr ""
+
+msgctxt "#30959"
+msgid "The catalog could not be loaded. Try again later."
+msgstr ""
+
+msgctxt "#30960"
+msgid "Czech"
+msgstr ""
+
+msgctxt "#30961"
+msgid "Slovak"
+msgstr ""
+
+msgctxt "#30962"
+msgid "Czech or Slovak"
+msgstr ""
+
+msgctxt "#30963"
+msgid "English"
+msgstr ""
+
+msgctxt "#30964"
+msgid "German"
+msgstr ""
+
+msgctxt "#30965"
+msgid "French"
+msgstr ""
+
+msgctxt "#30966"
+msgid "Spanish"
+msgstr ""
+
+msgctxt "#30967"
+msgid "Italian"
+msgstr ""
+
+msgctxt "#30968"
+msgid "Polish"
+msgstr ""
+
+msgctxt "#30969"
+msgid "Hungarian"
+msgstr ""
+
+msgctxt "#30970"
+msgid "Korean"
+msgstr ""
+
+msgctxt "#30971"
+msgid "Japanese"
+msgstr ""
+
+msgctxt "#30972"
+msgid "Custom catalog"
+msgstr ""
+
+msgctxt "#30973"
+msgid "Titles must have"
+msgstr ""
+
+msgctxt "#30974"
+msgid "all selected genres"
+msgstr ""
+
+msgctxt "#30975"
+msgid "at least one selected genre"
+msgstr ""
