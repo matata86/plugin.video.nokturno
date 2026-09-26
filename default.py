@@ -226,6 +226,7 @@ SOSAC_TAG = "[COLOR FFE0A040]Sosáč[/COLOR]"
 HS_TAG = "[COLOR FFFF8A6B]HellSpy[/COLOR]"
 ST_TAG = "[COLOR FF4DD0C0]Sledujteto[/COLOR]"
 FS_TAG = "[COLOR FFF2C14E]FastShare[/COLOR]"
+SDILEJ_TAG = "[COLOR FFF2C14E]Sdilej.cz[/COLOR]"   # týž katalog jako FastShare, účet ze Sdilej.cz
 PT_TAG = "[COLOR FF9AD5FF]Přehraj.to[/COLOR]"
 CZ_TAG = "[COLOR FFFF6FB5]CZtor[/COLOR]"
 WS_TAG = "[COLOR FF60B0FF]WebShare[/COLOR]"
@@ -234,6 +235,15 @@ DAV_TAG = f"[COLOR {DAV_COLOR}]{ADDON.getLocalizedString(30405) or 'Úložiště
 LUNA_TAG = "[COLOR FFB39DFF]Luna[/COLOR]"
 SOURCE_TAGS = {"main": LUNA_TAG, "search": WS_TAG, "sosac": SOSAC_TAG, "ws": WS_TAG, "hs": HS_TAG, "st": ST_TAG,
                "fs": FS_TAG, "pt": PT_TAG, "cz": CZ_TAG, "dav": DAV_TAG}
+
+
+def source_tag(src):
+    """Štítek zdroje ve výpisu; s účtem ze Sdilej.cz se FastShare jmenuje Sdilej.cz."""
+    if src in ("fs", "fastshare") and fs_provider() == "sdilej":
+        return SDILEJ_TAG
+    return SOURCE_TAGS.get(src, "")
+
+
 QUALITY_COLORS = {4: "FFE06A60", 3: "FF6FD18A", 2: "FF6FB6F0", 1: "FFA0A0A0"}
 # krátce, ať zbyde místo na zbytek řádku: „Full HD" se v úzkém sloupci nevyplatí
 QUALITY_NAMES = {4: "4K", 3: "FHD", 2: "HD", 1: "SD"}
@@ -1267,7 +1277,7 @@ def concert_item(c, artist, with_artist=False):
     # v Arctic Fuse vejde asi čtyřicet znaků, delší text si skin roluje pod rukama (6.3.7).
     # Label2 ani popis položky tenhle skin u ne-složky nekreslí, takže zbývá jen label.
     popis = (f"{artist} – " if with_artist else "") + c["title"] + (f" ({c['year']})" if c["year"] else "")
-    udaje = [SOURCE_TAGS.get(first["ref"].split(":", 1)[0], ""), human_size(first["size"])]
+    udaje = [source_tag(first["ref"].split(":", 1)[0]), human_size(first["size"])]
     if first.get("height"):
         udaje.append(quality_name(first["height"]))
     if first["duration"]:
@@ -1290,7 +1300,7 @@ def concert_item(c, artist, with_artist=False):
     if first.get("width") and first.get("height"):
         tag.addVideoStream(xbmc.VideoStreamDetail(width=first["width"], height=first["height"]))
     # v popisu všechny soubory: zdroj, velikost a syrový název — ať jde poznat, co se pustí
-    tag.setPlot("\n".join(f"{SOURCE_TAGS.get(f['ref'].split(':', 1)[0], '')} {human_size(f['size'])}  {f['name']}"
+    tag.setPlot("\n".join(f"{source_tag(f['ref'].split(':', 1)[0])} {human_size(f['size'])}  {f['name']}"
                           for f in files))
     li.setProperty("IsPlayable", "true")
     url = build_url(action="play_ref", ref=first["ref"], name=title,
@@ -2209,7 +2219,7 @@ def stream_label_parts(s):
     """Díly popisku streamu (každý už obarvený) — skládá je `stream_label` do jednoho
     řádku pro výpis a `stream_list_item` do dvou řádků pro dialog výběru."""
     parse_stream(s)
-    tag = SOURCE_TAGS.get(s.get("source"), "")
+    tag = source_tag(s.get("source"))
     raw = s["label"]
     for junk in ("(WS)", "Sosáč"):
         raw = raw.replace(junk, "")
@@ -3872,7 +3882,7 @@ def test_sources():
         # mimo cache jako ostatní — HellspyApi bez úložiště se ptá vždy znovu
         "HellSpy": (lambda: len(HellspyApi().search("matrix", limit=5)[0])) if hs else None,
         "Sledujteto": check_sledujteto if st else None,
-        "FastShare": check_fastshare if fs else None,
+        ("Sdilej.cz" if fs_provider() == "sdilej" else "FastShare"): check_fastshare if fs else None,
         "Přehraj.to": check_prehrajto if pt else None,
         "CZtor": check_cztor if cz else None,
         # jen ověření klíče, mimo cache — 401 se překládá na "neplatný TMDB API klíč" v tmdb_api._get
@@ -4134,7 +4144,7 @@ def account_text(row, short=False):
 
 def account_line(row, color=True, short=False):
     """„WebShare: předplatné končí za 3 dny" — jméno zdroje a stav, stav v barvě."""
-    tag = ACCOUNT_TAGS.get(row["source"]) or row["source"]
+    tag = source_tag(row["source"]) or ACCOUNT_TAGS.get(row["source"]) or row["source"]
     text = account_text(row, short=short)
     if color:
         text = f"[COLOR {ACCOUNT_COLORS.get(row['level'], ACCOUNT_COLORS[ACC_OK])}]{text}[/COLOR]"
@@ -7432,7 +7442,7 @@ def source_pause(source):
     if choice < len(SOURCE_PAUSE_CHOICES):
         seconds, sid, fallback = SOURCE_PAUSE_CHOICES[choice]
         accounts_pause(STORE, source, seconds)
-        notify(Lf(30747, ACCOUNT_TAGS.get(source, source), L(sid, fallback)))
+        notify(Lf(30747, (source_tag(source) or ACCOUNT_TAGS.get(source, source)), L(sid, fallback)))
     else:
         accounts_pause(STORE, source, 0)
         notify(L(30746, "Zrušit uspání"))

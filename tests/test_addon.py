@@ -6866,3 +6866,14 @@ class TestVlastniKatalogy(unittest.TestCase):
     def test_menu_filmu_nabizi_vlastni_katalogy(self):
         default.browse_menu({}, "movie")
         self.assertIn("mycats", [params_of(u).get("action") for u in xbmcplugin.urls()])
+
+
+class TestStitekSdilej(unittest.TestCase):
+    """S účtem ze Sdilej.cz se streamy FastShare v dialogu jmenují Sdilej.cz (hlášení z FB 2026-09-26)."""
+
+    def test_stitek_podle_uctu(self):
+        s = {"source": "fs", "label": "Film 1080p", "quality_rank": 3}
+        with mock.patch.object(default, "fs_provider", return_value="sdilej"):
+            self.assertIn("Sdilej.cz", default.stream_label_parts(s)["source"])
+        with mock.patch.object(default, "fs_provider", return_value="fastshare"):
+            self.assertIn("FastShare", default.stream_label_parts(s)["source"])
