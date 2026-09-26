@@ -133,7 +133,7 @@ class FastshareApi:
                 return json.loads(resp.read().decode("utf-8", "replace"))
         except urllib.error.HTTPError as e:
             if e.code in (401, 403):
-                raise FastshareError("přihlášení se nepovedlo — zkontroluj jméno a heslo", status=e.code) from e
+                raise FastshareError("přihlášení se nepovedlo – zkontroluj jméno a heslo", status=e.code) from e
             raise FastshareError(f"HTTP {e.code}", status=e.code) from e
         except Exception as e:  # noqa: BLE001 – síť, DNS, rozsypaný JSON
             # text chyby nesmí nést adresu dotazu — je v ní heslo
@@ -150,7 +150,7 @@ class FastshareApi:
         if not self.login_name or not self.password:
             raise FastshareError("účet není vyplněný")
         if login_paused(self.provider, self.login_name, self.password, self.cache):
-            err = FastshareError("přihlášení se nepovedlo — zkontroluj jméno a heslo", status=401)
+            err = FastshareError("přihlášení se nepovedlo – zkontroluj jméno a heslo", status=401)
             err.paused = True
             raise err
         try:

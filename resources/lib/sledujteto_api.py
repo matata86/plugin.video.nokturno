@@ -33,7 +33,7 @@ UA = "Nokturno/3 (plugin.video.nokturno)"
 DEVICE_ID = "nokturno"
 
 ERROR_TEXTS = {
-    "invalid_credentials": "přihlášení se nepovedlo — zkontroluj e-mail a heslo",
+    "invalid_credentials": "přihlášení se nepovedlo – zkontroluj e-mail a heslo",
 }
 
 

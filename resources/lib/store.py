@@ -158,7 +158,7 @@ class Store:
                 msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
         except OSError as err:
             # síťový disk bez zámků, Android SAF, plný disk… radši bez zámku než spadnout
-            _LOGGER.debug("zámek %s nejde vzít (%s) — pokračuji bez něj", path, err)
+            _LOGGER.debug("zámek %s nejde vzít (%s) – pokračuji bez něj", path, err)
             if handle is not None:
                 handle.close()
                 handle = None

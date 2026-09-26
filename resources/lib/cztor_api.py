@@ -242,7 +242,7 @@ class CztorApi:
                 return data["access_token"]
             refresh = data.get("refresh_token")
             if not refresh:
-                raise NotPaired("CZtor není spárovaný — spáruj zařízení v nastavení.")
+                raise NotPaired("CZtor není spárovaný – spáruj zařízení v nastavení.")
             try:
                 resp = self._http("POST", "/auth/refresh",
                                   payload={"refresh_token": refresh, "device_id": self.device_id()})
@@ -252,7 +252,7 @@ class CztorApi:
                     return again.get("access_token")
                 if err.status in (401, 403):
                     self.forget()
-                    raise NotPaired("Párování s CZtor zaniklo — spáruj zařízení znovu.",
+                    raise NotPaired("Párování s CZtor zaniklo – spáruj zařízení znovu.",
                                     status=err.status) from err
                 raise
             if not self._store_tokens(resp):
@@ -262,7 +262,7 @@ class CztorApi:
     def _token(self):
         data = self._session()
         if not data.get("refresh_token"):
-            raise NotPaired("CZtor není spárovaný — spáruj zařízení v nastavení.")
+            raise NotPaired("CZtor není spárovaný – spáruj zařízení v nastavení.")
         if data.get("access_token") and time.time() < float(data.get("expires") or 0) - REFRESH_MARGIN:
             return data["access_token"]
         return self._refresh(data.get("access_token"))
@@ -303,7 +303,7 @@ class CztorApi:
                     pass
                 return True
         if status in ("expired", "denied", "rejected", "cancelled"):
-            raise CztorError("PIN vypršel — zkus spárovat znovu.", code=status)
+            raise CztorError("PIN vypršel – zkus spárovat znovu.", code=status)
         return False
 
     def forget(self):
@@ -436,4 +436,4 @@ class CztorApi:
             for raw in self._raw_streams(kind, media_id, fresh=fresh):
                 if str(raw.get("id")) == stream_id and raw.get("playback_url"):
                     return raw["playback_url"]
-        raise CztorError("stream už v CZtor není — vyber jiný ze seznamu", status=404)
+        raise CztorError("stream už v CZtor není – vyber jiný ze seznamu", status=404)

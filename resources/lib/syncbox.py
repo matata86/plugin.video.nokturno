@@ -111,7 +111,7 @@ class Relay(object):
                 return resp.read()
         except urllib.error.HTTPError as e:
             raise SyncError({
-                403: "Skupina nepřijímá nová zařízení — otevři připojení na prvním Kodi",
+                403: "Skupina nepřijímá nová zařízení – otevři připojení na prvním Kodi",
                 404: "Skupina neexistuje nebo vypršela",
                 409: "Skupina je plná",
                 413: "Data jsou příliš velká",

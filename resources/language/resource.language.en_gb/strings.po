@@ -1915,7 +1915,7 @@ msgid "Group code"
 msgstr ""
 
 msgctxt "#30665"
-msgid "Create a group"
+msgid "Create group / open for joining"
 msgstr ""
 
 msgctxt "#30666"
@@ -1971,7 +1971,7 @@ msgid "The group has been left."
 msgstr ""
 
 msgctxt "#30679"
-msgid "Open joining again"
+msgid "Joining is open again. Enter this code on the next Kodi:"
 msgstr ""
 
 msgctxt "#30680"
@@ -2629,4 +2629,8 @@ msgstr ""
 
 msgctxt "#30942"
 msgid "Working…"
+msgstr ""
+
+msgctxt "#30943"
+msgid "Without a group it creates one and shows the code. With an existing group it opens joining again for 30 minutes so another device can join. Keep the code – without it the data cannot be read and cannot be recovered."
 msgstr ""

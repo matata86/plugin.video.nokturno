@@ -152,6 +152,17 @@ def runtime_minutes(text):
 _fold = fold   # HA a Kodi ho importují odsud
 
 
+def length_basis(meta, video):
+    """Z čeho se počítá strop a odhad datového toku. Díl bez vlastní stopáže (TMDB ji
+    u dílů nedává) převezme stopáž seriálu — jinak by se počítal dvouhodinový film
+    a strop u dílu propouštěl víc než dvojnásobný tok (stremio.cz, 2026-09-20)."""
+    if not video:
+        return meta
+    if video.get("runtime") or not (meta or {}).get("runtime"):
+        return video
+    return dict(video, runtime=meta["runtime"])
+
+
 SUBTITLE_NAME_RE = {
     "CZ": re.compile(r"(^|[^a-z])(cz|cze|ces|czech|cesky|cestina|cs)([^a-z]|$)"),
     "SK": re.compile(r"(^|[^a-z])(sk|slo|slk|slovak|slovensky|slovencina)([^a-z]|$)"),
@@ -2629,6 +2640,13 @@ class Engine:
             raise NokturnoError(str(err)) from err
         return True
 
+    def _max_bitrate(self):
+        """Strop datového toku z nastavení (Mb/s), 0 = bez omezení."""
+        try:
+            return float(str(self._opt("max_bitrate_mbps", 0)).replace(",", ".") or 0)
+        except ValueError:
+            return 0.0
+
     def _effective_max_gb(self, meta_or_video):
         """Max. velikost streamu pro TENHLE titul, spočtená z nastaveného
         datového toku (`max_bitrate_mbps`). Velikost souboru sama o sobě
@@ -2638,10 +2656,7 @@ class Engine:
         velikost. Bez známé stopáže (typicky holý fulltext bez metadat) se
         počítá s dvouhodinovým filmem — stejný odhad jako v `_ensure_bitrate`.
         """
-        try:
-            mbps = float(str(self._opt("max_bitrate_mbps", 0)).replace(",", ".") or 0)
-        except ValueError:
-            mbps = 0.0
+        mbps = self._max_bitrate()
         if not mbps:
             return 0.0
         minutes = runtime_minutes((meta_or_video or {}).get("runtime"))
@@ -2987,7 +3002,7 @@ class Engine:
         if on_progress and done[0] < self.STREAM_SOURCE_STEPS:
             done[0] = self.STREAM_SOURCE_STEPS
             on_progress(done[0], total)
-        sort = self._sorter(video or meta)
+        sort = self._sorter(length_basis(meta, video))
 
         # Hlavičky se čtou až po seřazení. Kandidátů bývá víc, než se vyplatí číst,
         # a před seřazením se rozpočet utratil za řádky, které skončí dole; teď padne
@@ -3011,7 +3026,7 @@ class Engine:
             assume_origin_language(with_audio, (meta or {}).get("country"))
         if strict:
             with_audio = self._drop_dead(with_audio)
-        ordered = self._finish(sort, with_audio, video or meta)
+        ordered = self._finish(sort, with_audio, length_basis(meta, video))
         if on_progress and done[0] < total:
             done[0] = total
             on_progress(done[0], total)
@@ -3025,7 +3040,8 @@ class Engine:
         lang = self._opt("pref_lang", "")
         order = self._opt("sort_streams", DEFAULT_SORT)
 
-        def sort(items):
+        def sort(items, final=False):
+            # `final`: po `_ensure_bitrate` — tok je známý u všech a nad stropem zbude jen nejmenší
             return arrange(
                 items,
                 pref_lang=lang if lang in LANGS else "",
@@ -3034,11 +3050,13 @@ class Engine:
                 order=order if order in SORT_ORDERS else DEFAULT_SORT,
                 pref_surround=bool(self.options.get("pref_surround")),
                 hide_3d=bool(self.options.get("hide_3d")),
+                max_bitrate=self._max_bitrate(),
+                keep_smallest=final,
             )
         return sort
 
     def _finish(self, sort, streams, meta_or_video):
-        ordered = sort(self._ensure_bitrate(streams, meta_or_video))
+        ordered = sort(self._ensure_bitrate(streams, meta_or_video), final=True)
         # vlastní úložiště vždy nahoru — mezi desítkami streamů zdrojů se jinak ztrácí
         return [s for s in ordered if s.get("source") == "dav"] + [s for s in ordered if s.get("source") != "dav"]
 
@@ -3048,9 +3066,10 @@ class Engine:
         Schované verze hlavičky ještě nemají — dočtou se teď (stejný strop jako při
         hledání, u zástupců jsou už v cache). `meta_video` = (meta, video) titulu."""
         meta, video = meta_video
-        sort = self._sorter(video or meta)
+        basis = length_basis(meta, video)
+        sort = self._sorter(basis)
         items = sort(expand_groups(list(streams)))
-        return self._finish(sort, self._fill_audio(items, on_audio_progress=on_audio_progress), video or meta)
+        return self._finish(sort, self._fill_audio(items, on_audio_progress=on_audio_progress), basis)
 
     # co WebShare vrací u nedostupných souborů — hlášky jsou anglické a nic neříkající
     WS_ERRORS = {

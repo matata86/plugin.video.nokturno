@@ -327,7 +327,7 @@ class PrehrajtoApi:
         except urllib.error.HTTPError as e:
             if e.code == 429:
                 _note_block(self.cache)
-                raise PrehrajtoRateLimited("HTTP 429 — server omezuje tuhle adresu", status=429) from e
+                raise PrehrajtoRateLimited("HTTP 429 – server omezuje tuto adresu", status=429) from e
             if not redirect and e.code in (301, 302, 303, 307, 308):
                 return e            # přesměrování je tu odpověď, ne chyba
             raise PrehrajtoError(f"HTTP {e.code}", status=e.code) from e
@@ -442,7 +442,7 @@ class PrehrajtoApi:
         if not self._account:
             raise PrehrajtoError("účet není vyplněný")
         if login_paused("prehrajto", self.email, self.password, self.cache):
-            err = PrehrajtoError("přihlášení se nepovedlo — zkontroluj e-mail a heslo", status=401)
+            err = PrehrajtoError("přihlášení se nepovedlo – zkontroluj e-mail a heslo", status=401)
             err.paused = True
             raise err
         self._cookies = None
@@ -467,7 +467,7 @@ class PrehrajtoApi:
         if not jar.get("access_token"):
             self._cookies = None
             mark_bad_login("prehrajto", self.email, self.password, self.cache)
-            raise PrehrajtoError("přihlášení se nepovedlo — zkontroluj e-mail a heslo", status=401)
+            raise PrehrajtoError("přihlášení se nepovedlo – zkontroluj e-mail a heslo", status=401)
         self._cookies = jar
         self._save_cookies(jar)
         return jar

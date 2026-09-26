@@ -230,7 +230,7 @@ PT_TAG = "[COLOR FF9AD5FF]Přehraj.to[/COLOR]"
 CZ_TAG = "[COLOR FFFF6FB5]CZtor[/COLOR]"
 WS_TAG = "[COLOR FF60B0FF]WebShare[/COLOR]"
 DAV_COLOR = "FFB0E57C"
-DAV_TAG = f"[COLOR {DAV_COLOR}]Úložiště[/COLOR]"
+DAV_TAG = f"[COLOR {DAV_COLOR}]{ADDON.getLocalizedString(30405) or 'Úložiště'}[/COLOR]"
 LUNA_TAG = "[COLOR FFB39DFF]Luna[/COLOR]"
 SOURCE_TAGS = {"main": LUNA_TAG, "search": WS_TAG, "sosac": SOSAC_TAG, "ws": WS_TAG, "hs": HS_TAG, "st": ST_TAG,
                "fs": FS_TAG, "pt": PT_TAG, "cz": CZ_TAG, "dav": DAV_TAG}
@@ -2696,7 +2696,8 @@ def _sync_apply(code):
 
 
 def sync_create():
-    """Založí skupinu a ukáže kód, který se opíše na dalším Kodi.
+    """Založí skupinu, nebo u existující znovu otevře připojení, a ukáže kód,
+    který se opíše na dalším Kodi.
 
     Kód je zároveň šifrovací klíč — server ho nikdy nevidí a bez něj data nikdo
     nepřečte ani neobnoví. Proto se ukazuje v `textviewer` (jde odrolovat a nechat
@@ -2711,7 +2712,7 @@ def sync_create():
         xbmcgui.Dialog().ok(L(30180, "Synchronizace"), f"{L(30188, 'Synchronizace selhala')}: {e}")
         return
     _sync_apply(code)
-    nadpis = L(30679, "Znovu otevřít připojení") if znovu else L(30671, "Skupina je založená. Na dalším Kodi zadej tento kód:")
+    nadpis = L(30679, "Připojení je znovu otevřené. Na dalším Kodi zadej tento kód:") if znovu else L(30671, "Skupina je založená. Na dalším Kodi zadej tento kód:")
     xbmcgui.Dialog().textviewer(L(30180, "Synchronizace"),
                                 f"{nadpis}[CR][CR][B]{code}[/B][CR][CR]"
                                 f"{L(30680, 'Připojení je otevřené 30 minut.')}[CR]"

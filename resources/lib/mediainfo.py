@@ -30,7 +30,7 @@ UA = "Mozilla/5.0 (compatible; Nokturno/1.0)"
 
 # ISO 639-2/B i /T na dvoupísmenné kódy, které používá zbytek doplňku
 LANGS = {
-    "cze": "CZ", "ces": "CZ", "cz": "CZ",
+    "cze": "CZ", "ces": "CZ", "cz": "CZ", "cs": "CZ",
     "slo": "SK", "slk": "SK", "sk": "SK",
     "eng": "EN", "en": "EN",
     "ger": "DE", "deu": "DE", "de": "DE",
@@ -167,6 +167,8 @@ def _mkv_walk(buf, i, end, out, info=None):
                 cur["codec"] = data.split(b"\0")[0].decode("ascii", "ignore")
             elif eid == 0x22B59C:
                 cur["lang"] = data.split(b"\0")[0].decode("ascii", "ignore")
+            elif eid == 0x22B59D:
+                cur["bcp47"] = data.split(b"\0")[0].decode("ascii", "ignore")
             elif eid == 0x9F and data:
                 cur["channels"] = int.from_bytes(data, "big")
             elif eid == 0xB0 and data:
@@ -182,6 +184,11 @@ def _mkv_walk(buf, i, end, out, info=None):
 def _from_mkv(head):
     tracks, info = [], {"scale": 1_000_000, "duration": 0.0}
     _mkv_walk(head, 0, len(head), tracks, info)
+    for t in tracks:
+        # LanguageBCP47 („en-US") má podle specifikace přednost před Language a bez obou
+        # platí výchozí „eng". MKVToolNix angličtinu do Language nezapisuje, takže anglická
+        # stopa nesla jen „en" v BCP47 a ukazovala se bez jazyka (stremio.cz, 2026-09-20)
+        t["lang"] = t.pop("bcp47", "").split("-")[0] or t.get("lang") or "eng"
     return tracks, (info["duration"] * info["scale"] / 1_000_000_000 if info["duration"] else 0)
 
 

@@ -321,8 +321,13 @@ def expand_groups(streams):
 
 
 def arrange(streams, pref_lang="", hide_sd=False, max_size_gb=0.0, order="source", pref_surround=False,
-            hide_3d=False):
+            hide_3d=False, max_bitrate=0.0, keep_smallest=False):
     """Vyfiltruje a seřadí streamy; když by filtr nic nenechal, vrátí původní pořadí.
+
+    Strop datového toku: známý tok streamu (`bitrate`) rozhoduje, velikost proti
+    `max_size_gb` je jen předběžný odhad, než ho `Engine._ensure_bitrate` doplní.
+    `keep_smallest`: když se do stropu nevejde nic (titul jen ve 4K), zůstane jen
+    nejmenší soubor, ne všechno (přání uživatele 2026-09-26).
 
     order: source (jak přišly) | quality (nejlepší první) | size_desc | size_asc
     """
@@ -335,15 +340,16 @@ def arrange(streams, pref_lang="", hide_sd=False, max_size_gb=0.0, order="source
         for s in streams:
             if s.get("_alts"):
                 s["_alts"] = [a for a in s["_alts"] if not stream_3d(a)]
-    kept = []
-    for s in streams:
-        if hide_sd and s["quality_rank"] and s["quality_rank"] <= 1:
-            continue
-        if max_size_gb and s["size_gb"] and s["size_gb"] > max_size_gb:
-            continue
-        kept.append(s)
-    if not kept:
-        kept = list(streams)
+    def too_big(s):
+        if max_bitrate and s.get("bitrate"):
+            return s["bitrate"] > max_bitrate
+        return bool(max_size_gb and s["size_gb"] and s["size_gb"] > max_size_gb)
+
+    kept = [s for s in streams if not (hide_sd and s["quality_rank"] and s["quality_rank"] <= 1)] or list(streams)
+    fits = [s for s in kept if not too_big(s)]
+    if not fits and kept:
+        fits = [min(kept, key=lambda s: s["size_gb"] or float("inf"))] if keep_smallest else kept
+    kept = fits
     keyed = list(enumerate(kept))
 
     def verified(s):

@@ -130,7 +130,7 @@ def import_bytes(code, blob):
     if not isinstance(payload, dict) or not isinstance(payload.get("settings"), dict):
         raise TransferError("Nesrozumitelný obsah přenosu")
     if int(payload.get("format") or 0) > FORMAT:
-        raise TransferError("Přenos je z novějšího Nokturna — nejdřív aktualizuj toto zařízení")
+        raise TransferError("Přenos je z novějšího Nokturna – nejdřív aktualizuj toto zařízení")
     return payload
 
 

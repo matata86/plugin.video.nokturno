@@ -51,18 +51,18 @@ MAX_TEXT = 1000
 NO_VALUE = ("heading", "info", "action")   # prvky bez hodnoty, do formuláře se nic neodesílá
 
 TEXTS = {
-    "title": "Nokturno — nastavení",
+    "title": "Nokturno – nastavení",
     "intro": "Vyplň, co chceš změnit, a ulož. Nastavení se hned propíše do Kodi.",
     "save": "Uložit do Kodi",
     "saved": "Uloženo. Nastavení je v Kodi, stránku můžeš zavřít.",
-    "password_set": "vyplněno — nech prázdné beze změny",
+    "password_set": "vyplněno – nech prázdné beze změny",
     "expired": "Tato adresa už neplatí. Na TV spusť Nastavit z mobilu znovu.",
     "invalid": "Neplatná hodnota: {}",
     "order_rows": "Horní řádek|Dolní řádek",
     "order_hidden": "Nezobrazovat",
     "order_up": "Nahoru",
     "order_down": "Dolů",
-    "action_failed": "Spojení s televizí se přerušilo — na TV spusť Nastavit z mobilu znovu.",
+    "action_failed": "Spojení s televizí se přerušilo – na TV spusť Nastavit z mobilu znovu.",
     "action_running": "Pracuji…",
 }
 

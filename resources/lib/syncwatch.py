@@ -290,8 +290,8 @@ NOTICES = {
     "waiting_others": "Čekám, až se stream načte u ostatních…",
     "started_without": "Pouštím bez: %(names)s",
     "load_failed": "Stream se nepodařilo spustit",
-    "other_version": "Hraješ jinou verzi — časy nemusí přesně sedět",
-    "detached": "Hraješ něco jiného — skupina čeká na další titul od vedoucího",
+    "other_version": "Hraješ jinou verzi – časy nemusí přesně sedět",
+    "detached": "Hraješ něco jiného – skupina čeká na další titul od vedoucího",
     "not_shareable": "Tohle se ostatním pustit nedá (není to titul z Nokturna)",
     "left": "Zastavil jsi přehrávání, ostatní sledují dál. Vrátit se jde v SyncWatch",
 }

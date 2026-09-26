@@ -28,7 +28,7 @@ def describe_failure(label, err):
         # operátora, VPN. Uživatelé s 429 ji dostávají od prvního dotazu. Oprava je u nich,
         # holé „HTTP 429" jim neřekne nic. Podle jména třídy, ne importem: `hellspy_api`
         # importuje `streams`, tenhle modul nemá na čem záviset.
-        return f"{label} odmítá tuto síť (HTTP 429) — VPN nebo mobilní data?"
+        return f"{label} odmítá tuto síť (HTTP 429) – VPN nebo mobilní data?"
     text = " ".join(_URL_RE.sub("", str(err or "")).split())
     if not text or any(k in text.lower() for k in _OFFLINE):
         return f"{label} neodpovídá"
