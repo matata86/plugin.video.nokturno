@@ -19,6 +19,7 @@ import urllib.parse
 import urllib.request
 
 _IMDB_RE = re.compile(r"^tt\d{1,12}$")
+_TMDB_ID_RE = re.compile(r"^tmdb:(\d{1,10})$")
 from concurrent.futures import ThreadPoolExecutor
 
 BASE = "https://api.themoviedb.org/3"
@@ -265,8 +266,13 @@ class TmdbApi:
 
     def meta(self, ctype, imdb_id):
         """Detail podle `tt…` id (přes TMDB `/find`) — titul, popis, žánry, obsazení,
-        u seriálu i epizody (`videos`, stejný tvar jako Luna/Cinemeta)."""
-        if not _IMDB_RE.match(str(imdb_id or "")):
+        u seriálu i epizody (`videos`, stejný tvar jako Luna/Cinemeta).
+
+        Bere i `tmdb:<id>` – titul, který IMDb id nemá (nové české a slovenské seriály).
+        Metadata pak nesou `id` ve stejném tvaru, `imdb_id` prázdné a `_orig` s původním
+        názvem, ať zdroje hledající podle názvu mají z čeho skládat dotazy."""
+        own = _TMDB_ID_RE.match(str(imdb_id or ""))
+        if not own and not _IMDB_RE.match(str(imdb_id or "")):
             # id posílá i klient (Stremio) — jde do cesty URL, `../` by měnilo endpoint
             raise TmdbError(f"neplatné IMDb id: {str(imdb_id)[:20]!r}")
         kind = self._kind(ctype)
@@ -275,11 +281,14 @@ class TmdbApi:
         ratings_key = "release_dates" if kind == "movie" else "content_ratings"
 
         def load():
-            found = self._get(f"/find/{imdb_id}", external_source="imdb_id")
-            results = found.get(f"{kind}_results") or []
-            if not results:
-                raise TmdbError(f"titul {imdb_id} v TMDB nenalezen")
-            tmdb_id = results[0]["id"]
+            if own:
+                tmdb_id = own.group(1)
+            else:
+                found = self._get(f"/find/{imdb_id}", external_source="imdb_id")
+                results = found.get(f"{kind}_results") or []
+                if not results:
+                    raise TmdbError(f"titul {imdb_id} v TMDB nenalezen")
+                tmdb_id = results[0]["id"]
             data = self._get(f"/{kind}/{tmdb_id}", append_to_response=f"credits,images,videos,{ratings_key}",
                              include_image_language="cs,en,null")
             crew = (data.get("credits") or {}).get("crew") or []
@@ -321,8 +330,9 @@ class TmdbApi:
                                    if v.get("site") == "YouTube" and v.get("key")), "")
             return {
                 "id": imdb_id,
-                "imdb_id": imdb_id,
+                "imdb_id": "" if own else imdb_id,
                 "name": data.get("title") or data.get("name") or "",
+                **({"_orig": data.get("original_title") or data.get("original_name") or ""} if own else {}),
                 "year": year,
                 "poster": IMG + data["poster_path"] if data.get("poster_path") else "",
                 "background": IMG_BIG + data["backdrop_path"] if data.get("backdrop_path") else "",

@@ -1,44 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
-<addon id="plugin.video.nokturno" name="Nokturno" version="8.2.0" provider-name="matata86">
-  <requires>
-    <import addon="xbmc.python" version="3.0.1"/>
-  </requires>
-  <extension point="xbmc.python.pluginsource" library="default.py">
-    <provides>video</provides>
-  </extension>
-  <extension point="xbmc.service" library="service.py"/>
-  <extension point="xbmc.addon.metadata">
-    <!-- Kodi nechá interpret běžet a při dalším kliknutí spustí default.py znovu v něm.
-         Ušetří se start interpretu a import ~30 modulů. Patří sem, do metadat — uvnitř
-         `xbmc.python.pluginsource` si toho Kodi nevšimne (ověřeno na Office 2026-09-20,
-         stejné místo mají youtube i themoviedb.helper). Podmínka: importované moduly si
-         drží stav mezi spuštěními, tělo default.py se spouští znovu — viz
-         dokumentace.md § Reuse invoker. -->
-    <reuselanguageinvoker>true</reuselanguageinvoker>
-    <summary lang="en_GB">Play your own storage (WebDAV/NAS) in Kodi, optionally also WebShare, Sosáč, Sledujteto, FastShare, CZtor, Přehraj.to, Luna: Absolute Cinema and HellSpy — one add-on, search across sources</summary>
-    <summary lang="cs_CZ">Přehrávač vlastního úložiště (WebDAV/NAS) pro Kodi, volitelně i WebShare, Sosáč, Sledujteto, FastShare, CZtor, Přehraj.to, Luna a HellSpy — jeden doplněk, hledání napříč</summary>
-    <summary lang="sk_SK">Prehrávač vlastného úložiska (WebDAV/NAS) pre Kodi, voliteľne aj WebShare, Sosáč, Sledujteto, FastShare, CZtor, Přehraj.to, Luna a HellSpy — jeden doplnok, hľadanie naprieč zdrojmi</summary>
-    <description lang="en_GB">Nokturno is first of all a player and manager for your own storage — WebDAV, NAS, Nextcloud or a home server, up to three folders, no account needed. Eight more sources are an optional add-on service, each toggled independently: WebShare directly (your account – file search and playback), Sosáč directly (its catalogues, series with episodes, Czech dubbing and subtitles – only a Streamuj.tv account), Sledujteto (your account – search, playback with Premium, audio and subtitle tracks straight from its API), FastShare (search without an account, playback from your credit or with unlimited downloads), CZtor (subscription at cztor.com – the device is paired with a PIN, audio and subtitle tracks straight from its API), Přehraj.to (works without an account, Premium adds the original file instead of the transcoded 1080p), a Luna: Absolute Cinema server, reachable on your LAN or running locally on the same device (TMDB catalogues, WebShare streams with detected quality and languages), and HellSpy (public, no account needed). The movie/series catalogue and search always work, even with none of these configured, thanks to a built-in Cinemeta connection. Search across sources, streams from several sources for one title with a quality/audio/subtitle filter, bitrate and length on every stream, continue watching, my list, downloads, Trakt, WebShare subscription tracking, and a TMDb Helper player — Play on a movie details page (Arctic Fuse and other skins) searches Nokturno, with stream choice and filter in a dialog. Support the author: Ko-fi https://ko-fi.com/matata86 · PayPal https://paypal.me/matata86 · BTC bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc</description>
-    <description lang="cs_CZ">Nokturno je především přehrávač a správce tvého vlastního úložiště — WebDAV, NAS, Nextcloud nebo domácí server, až tři složky, bez účtu. Osm dalších zdrojů je volitelná doplňková služba, každý se zapíná zvlášť: WebShare přímo (tvůj účet – hledání souborů a přehrávání), Sosáč napřímo (jeho katalogy, seriály s epizodami, český dabing a titulky – stačí účet Streamuj.tv), Sledujteto (tvůj účet – hledání, přehrávání s Premium, zvukové stopy a titulky přímo z jeho API), FastShare (hledání i bez účtu, přehrávání z kreditu nebo s neomezeným stahováním), CZtor (předplatné na cztor.com – zařízení se spáruje PINem, zvukové stopy a titulky přímo z jeho API), Přehraj.to (funguje i bez účtu, Premium přidá původní soubor místo překódovaného 1080p), server Luna: Absolute Cinema, dostupný v LAN nebo běžící lokálně na stejném zařízení (TMDB katalogy, streamy z WebShare s rozpoznanou kvalitou a jazyky), a HellSpy (veřejný, bez účtu). Katalog filmů a seriálů i hledání fungují vždy, i bez jediného nastaveného zdroje, díky vlastnímu napojení na Cinemetu. Hledání napříč zdroji, streamy z více zdrojů u jednoho titulu s filtrem podle kvality/zvuku/titulků, datový tok a délka u každého streamu, pokračovat ve sledování, můj seznam, stahování, Trakt, sledování předplatného WebShare a player pro TMDb Helper — Přehrát v detailu filmu (Arctic Fuse a další skiny) hledá v Nokturnu, s výběrem streamu a filtrem v dialogu. Podpoř autora: Ko-fi https://ko-fi.com/matata86 · PayPal https://paypal.me/matata86 · BTC bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc</description>
-    <description lang="sk_SK">Nokturno je predovšetkým prehrávač a správca tvojho vlastného úložiska — WebDAV, NAS, Nextcloud alebo domáci server, až tri zložky, bez účtu. Osem ďalších zdrojov je voliteľná doplnková služba, každý sa zapína zvlášť: WebShare priamo (tvoj účet – hľadanie súborov a prehrávanie), Sosáč priamo (jeho katalógy, seriály s dielmi, český dabing a titulky – stačí účet Streamuj.tv), Sledujteto (tvoj účet – hľadanie, prehrávanie s Premium, zvukové stopy a titulky priamo z jeho API), FastShare (hľadanie aj bez účtu, prehrávanie z kreditu alebo s neobmedzeným sťahovaním), CZtor (predplatné na cztor.com – zariadenie sa spáruje PIN kódom, zvukové stopy a titulky priamo z jeho API), Přehraj.to (funguje aj bez účtu, Premium pridá pôvodný súbor namiesto prekódovaného 1080p), server Luna: Absolute Cinema, dostupný v LAN alebo bežiaci lokálne na tom istom zariadení (TMDB katalógy, streamy z WebShare s rozpoznanou kvalitou a jazykmi), a HellSpy (verejný, bez účtu). Katalóg filmov a seriálov aj hľadanie fungujú vždy, aj bez jediného nastaveného zdroja, vďaka vlastnému napojeniu na Cinemetu. Hľadanie naprieč zdrojmi, streamy z viacerých zdrojov pri jednom titule s filtrom podľa kvality/zvuku/titulkov, dátový tok a dĺžka pri každom streame, pokračovať v sledovaní, môj zoznam, sťahovanie, Trakt, sledovanie predplatného WebShare a player pre TMDb Helper — Prehrať v detaile filmu (Arctic Fuse a ďalšie skiny) hľadá v Nokturne, s výberom streamu a filtrom v dialógu. Podpor autora: Ko-fi https://ko-fi.com/matata86 · PayPal https://paypal.me/matata86 · BTC bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc</description>
-    <platform>all</platform>
-    <license>MIT</license>
-    <source>https://github.com/matata86/plugin.video.nokturno</source>
-    <website>https://github.com/matata86/plugin.video.nokturno</website>
-    <forum>https://github.com/matata86/plugin.video.nokturno/issues</forum>
-    <assets>
-      <icon>resources/media/icon2.png</icon>
-      <fanart>resources/media/fanart.jpg</fanart>
-    </assets>
-    <news>8.2.0 – SyncWatch: společné sledování na víc zařízeních (menu SyncWatch, kód skupiny, tentýž stream u všech, pauza a přetáčení platí pro všechny, Vrátit se do filmu). Nová volba Automaticky použít poslední filtr u výběru streamu. Po odmítnutém jménu či hesle se zdroj hodinu nezkouší. Souhlas s podmínkami rovnou v dialogu. Každé vlastní úložiště jde vypnout bez smazání údajů. Sledujteto hraje přes stahovací odkaz.
-8.2.0~beta6 – Vlastní úložiště má u každého ze tří slotů přepínač Použít toto úložiště. Vypnuté zůstane vyplněné, jen se v něm nehledá a v menu se neukáže.
-8.2.0~beta5 – Souhlas s podmínkami použití se dává rovnou v okně Souhlasím / Nesouhlasím. Dřív se otevřelo nastavení, přepínač ale byl až v poslední kategorii, takže se po aktualizaci ze starší verze menu neotevřelo.
-8.2.0~beta4 – Když Sledujteto, Přehraj.to nebo FastShare odmítne jméno či heslo, doplněk to s týmiž údaji hodinu nezkouší. Dřív se hlásil znovu u každého hledání (v katalogu s jazykem i stokrát za kolo). Po opravě hesla v nastavení se přihlásí hned.
-8.2.0~beta3 – Nová volba Nastavení → Výběr streamu → Automaticky použít poslední filtr: výběr streamu se otevře rovnou s filtrem, který jsi nastavil naposledy. SyncWatch: odpočet zániku skupiny v okně běží po vteřinách.
-8.2.0~beta2 – SyncWatch: kdo ve skupině omylem zastaví přehrávání, vrátí se zpátky do filmu položkou Vrátit se do filmu v menu SyncWatch. Film naskočí tam, kde ho mají ostatní.</news>
-  </extension>
-</addon>
 <addon id="plugin.video.nokturno" name="Nokturno" version="8.2.1" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
@@ -451,6 +412,59 @@
 8.4.0 – Katalogy Nově přidané s CZ/SK dabingem a s CZ/SK titulky, u Seriálů celé seriály. Sjednocené texty ve čtyřech jazycích a přepínače zdrojů „Používat …“.
 8.4.0 – Luna je v nové instalaci vypnutá. Průvodce nabídne přepnout TMDb Helper do češtiny. Nové synchronizaci je předvolený Dashboard Nokturna. Drobné opravy.
 8.4.0~beta21 – Titul odebraný z Pokračovat ve sledování se zase otevírá výběrem streamu, dřív ho klik rovnou pustil starým streamem od začátku.</news>
+  </extension>
+</addon>
+<addon id="plugin.video.nokturno" name="Nokturno" version="8.5.0" provider-name="matata86">
+  <requires>
+    <import addon="xbmc.python" version="3.0.1"/>
+  </requires>
+  <extension point="xbmc.python.pluginsource" library="default.py">
+    <provides>video</provides>
+  </extension>
+  <extension point="xbmc.service" library="service.py"/>
+  <extension point="xbmc.addon.metadata">
+    <!-- Kodi nechá interpret běžet a při dalším kliknutí spustí default.py znovu v něm.
+         Ušetří se start interpretu a import ~30 modulů. Patří sem, do metadat — uvnitř
+         `xbmc.python.pluginsource` si toho Kodi nevšimne (ověřeno na Office 2026-09-20,
+         stejné místo mají youtube i themoviedb.helper). Podmínka: importované moduly si
+         drží stav mezi spuštěními, tělo default.py se spouští znovu — viz
+         dokumentace.md § Reuse invoker. -->
+    <reuselanguageinvoker>true</reuselanguageinvoker>
+    <summary lang="en_GB">Player for your own storage (WebDAV, NAS) in Kodi, optionally also WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor and Luna</summary>
+    <summary lang="cs_CZ">Přehrávač vlastního úložiště (WebDAV, NAS) pro Kodi, volitelně i WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor a Luna</summary>
+    <summary lang="sk_SK">Prehrávač vlastného úložiska (WebDAV, NAS) pre Kodi, voliteľne aj WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor a Luna</summary>
+    <summary lang="hu_HU">Saját tárhely (WebDAV, NAS) lejátszója Kodihoz, opcionálisan WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor és Luna is</summary>
+    <description lang="en_GB">Nokturno is a player for your own storage — WebDAV, NAS, Nextcloud or a home server, up to three folders. It finds movies and series, adds descriptions and subtitles, and remembers where you stopped. As an optional add-on service you can switch on third-party search engines, each one separately: WebShare (your account), Sosáč (a Streamuj.tv account), HellSpy (no account), Sledujteto (playback with Premium), FastShare (a FastShare or Sdilej.cz account, playback from credit), Přehraj.to (works without an account, Premium plays the original file), CZtor (subscription, paired with a PIN) and Luna (your own server on the network or directly on an Android TV box, needs WebShare VIP). Nokturno itself does not host or distribute any content. Features: search across sources and stream choice with a filter, Continue watching, My list, Watchlist (new episodes and titles without a stream yet), Concerts, SyncWatch (watch together), sync between several Kodi devices, set up from phone and settings transfer, subtitles from OpenSubtitles, TV guide, downloads, Trakt and a TMDb Helper player. The catalogue and search work even with no source configured. Support Nokturno: Ko-fi https://ko-fi.com/matata86 · PayPal https://paypal.me/matata86 · BTC bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc</description>
+    <description lang="cs_CZ">Nokturno je přehrávač tvého vlastního úložiště — WebDAV, NAS, Nextcloud nebo domácí server, až tři složky. Najde filmy a seriály, doplní k nim popisy a titulky a pamatuje si, kde jsi skončil. Jako volitelnou doplňkovou službu si můžeš zapnout vyhledávače třetích stran, každý zvlášť: WebShare (tvůj účet), Sosáč (účet Streamuj.tv), HellSpy (bez účtu), Sledujteto (přehrávání s Premium), FastShare (účet z FastShare nebo Sdilej.cz, přehrávání z kreditu), Přehraj.to (funguje i bez účtu, s Premium původní soubor), CZtor (předplatné, spárování PINem) a Luna (vlastní server v síti nebo přímo na Android TV boxu, vyžaduje WebShare VIP). Nokturno samo žádný obsah nehostuje ani nešíří. Umí: hledání napříč zdroji a výběr streamu s filtrem, Pokračovat ve sledování, Můj seznam, Hlídané (nové díly a tituly, které zatím nemají stream), Koncerty, SyncWatch (společné sledování), synchronizaci více Kodi, nastavení z mobilu a přenos nastavení, titulky z OpenSubtitles, TV program, stahování, Trakt a přehrávač pro TMDb Helper. Katalog a hledání fungují i bez jediného nastaveného zdroje. Podpoř Nokturno: Ko-fi https://ko-fi.com/matata86 · PayPal https://paypal.me/matata86 · BTC bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc</description>
+    <description lang="sk_SK">Nokturno je prehrávač tvojho vlastného úložiska — WebDAV, NAS, Nextcloud alebo domáci server, až tri zložky. Nájde filmy a seriály, doplní k nim popisy a titulky a pamätá si, kde si skončil. Ako voliteľnú doplnkovú službu si môžeš zapnúť vyhľadávače tretích strán, každý zvlášť: WebShare (tvoj účet), Sosáč (účet Streamuj.tv), HellSpy (bez účtu), Sledujteto (prehrávanie s Premium), FastShare (účet z FastShare alebo Sdilej.cz, prehrávanie z kreditu), Přehraj.to (funguje aj bez účtu, s Premium pôvodný súbor), CZtor (predplatné, spárovanie PIN kódom) a Luna (vlastný server v sieti alebo priamo na Android TV boxe, vyžaduje WebShare VIP). Nokturno samo žiadny obsah nehostuje ani nešíri. Vie: vyhľadávanie naprieč zdrojmi a výber streamu s filtrom, Pokračovať v sledovaní, Môj zoznam, Sledované (nové diely a tituly, ktoré zatiaľ nemajú stream), Koncerty, SyncWatch (spoločné sledovanie), synchronizáciu viacerých Kodi, nastavenie z mobilu a prenos nastavenia, titulky z OpenSubtitles, TV program, sťahovanie, Trakt a prehrávač pre TMDb Helper. Katalóg a vyhľadávanie fungujú aj bez jediného nastaveného zdroja. Podpor Nokturno: Ko-fi https://ko-fi.com/matata86 · PayPal https://paypal.me/matata86 · BTC bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc</description>
+    <description lang="hu_HU">A Nokturno a saját tárhelyed lejátszója — WebDAV, NAS, Nextcloud vagy otthoni szerver, legfeljebb három mappa. Megkeresi a filmeket és sorozatokat, leírást és feliratot ad hozzájuk, és megjegyzi, hol hagytad abba. Opcionális kiegészítő szolgáltatásként külön-külön bekapcsolhatsz harmadik felek által üzemeltetett keresőket: WebShare (saját fiók), Sosáč (Streamuj.tv fiók), HellSpy (fiók nélkül), Sledujteto (lejátszás Premiummal), FastShare (FastShare vagy Sdilej.cz fiók, lejátszás kreditből), Přehraj.to (fiók nélkül is működik, Premiummal az eredeti fájl), CZtor (előfizetés, PIN-kódos párosítás) és Luna (saját szerver a hálózaton vagy közvetlenül Android TV-n, WebShare VIP szükséges). A Nokturno maga nem tárol és nem terjeszt semmilyen tartalmat. Tudja: keresés a források között és streamválasztás szűrővel, Folytatás, Saját lista, Figyelőlista (új részek és még stream nélküli címek), Koncertek, SyncWatch (közös nézés), több Kodi szinkronizálása, beállítás telefonról és a beállítások átvitele, OpenSubtitles feliratok, műsorújság, letöltés, Trakt és TMDb Helper lejátszó. A katalógus és a keresés egyetlen beállított forrás nélkül is működik. Támogasd a Nokturnót: Ko-fi https://ko-fi.com/matata86 · PayPal https://paypal.me/matata86 · BTC bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc</description>
+    <disclaimer lang="en_GB">Nokturno does not host or distribute any content itself, third-party search engines are an optional add-on service, and you may use it only for content you have the right to access (terms: nokturno.stream/terms).</disclaimer>
+    <disclaimer lang="cs_CZ">Nokturno samo žádný obsah nehostuje ani nešíří, vyhledávače třetích stran jsou volitelná doplňková služba a používat ho smíš jen k obsahu, ke kterému máš právo (podmínky: nokturno.stream/terms).</disclaimer>
+    <disclaimer lang="sk_SK">Nokturno samo žiadny obsah nehostuje ani nešíri, vyhľadávače tretích strán sú voliteľná doplnková služba a používať ho smieš len na obsah, ku ktorému máš právo (podmienky: nokturno.stream/terms).</disclaimer>
+    <disclaimer lang="hu_HU">A Nokturno maga nem tárol és nem terjeszt semmilyen tartalmat, a harmadik felek keresői opcionális kiegészítő szolgáltatást jelentenek, és csak olyan tartalomhoz használhatod, amelyhez jogod van (feltételek: nokturno.stream/terms).</disclaimer>
+    <platform>all</platform>
+    <license>All rights reserved</license>
+    <source>https://github.com/matata86/plugin.video.nokturno</source>
+    <website>https://github.com/matata86/plugin.video.nokturno</website>
+    <forum>https://github.com/matata86/plugin.video.nokturno/issues</forum>
+    <assets>
+      <icon>resources/media/icon2.png</icon>
+      <fanart>resources/media/fanart.jpg</fanart>
+      <screenshot>resources/screenshots/01-uloziste.jpg</screenshot>
+      <screenshot>resources/screenshots/02-menu.jpg</screenshot>
+      <screenshot>resources/screenshots/03-vyber-streamu.jpg</screenshot>
+      <screenshot>resources/screenshots/04-nastaveni.jpg</screenshot>
+    </assets>
+    <news>8.5.0 – Vlastní katalogy: mezi žánry přibyly Pohádky (s jazykem Čeština nebo slovenština dají české a slovenské pohádky). Drobné opravy.
+8.5.0~beta2 – S účtem ze Sdilej.cz se streamy FastShare ve výběru streamu, ve stavu zdrojů i v Ověřit zdroje jmenují Sdilej.cz.
+8.5.0~beta1 – Vlastní katalogy: mezi žánry přibyly Pohádky (s jazykem Čeština nebo slovenština dají české a slovenské pohádky).
+8.4.3 – Výběr streamu nepadá na dalších buildech Kodi pro Android, kterým chybí část Pythonu.
+8.4.2 – S účtem ze Sdilej.cz se streamy FastShare ve výběru streamu, ve stavu zdrojů i v Ověřit zdroje jmenují Sdilej.cz.
+8.4.1 – Výběr streamu nepadá na Kodi pro Android, kterému chybí část Pythonu.
+8.4.0 – Hlídané: nový díl seriálu nebo film, který zatím nikde není, Nokturno ohlásí samo, až bude k dispozici. Kontrolovat dál i u titulu nebo dílu, který streamy má, ale ne takové, jaké chceš (třeba bez CZ titulků). Hlídané jsou v hlavním menu a synchronizují se mezi Kodi i s Home Assistantem.
+8.4.0 – Vlastní katalogy ve Filmech a Seriálech: katalog si poskládáš podle žánrů, původního jazyka, let a řazení, bez vlastního klíče TMDB.
+8.4.0 – FastShare jde používat i s účtem ze Sdilej.cz. Trakt.tv bez vlastní aplikace: stačí kód na trakt.tv/activate, i s free účtem.
+8.4.0 – Nová volba Skrýt 3D streamy. Hodnocení nese svůj zdroj (IMDb, TMDB, Sosáč). S vlastním klíčem TMDB jsou české popisy i v katalozích ze Sosáče.</news>
   </extension>
 </addon>
 <addon id="repository.nokturno" name="Nokturno repozitář" version="1.0.4" provider-name="matata86">
