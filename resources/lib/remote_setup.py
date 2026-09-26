@@ -34,10 +34,11 @@ co v hodnotě chybí, se nezobrazuje. Na stránce tři skupiny (řádky a Nezobr
 nahoru a dolů — přetahování prstem v mobilních prohlížečích spolehlivě nefunguje. Server přijme
 jen známé klíče, každý nejvýš jednou.
 """
+import base64
 import hmac
 import html
 import json
-import secrets
+import os
 import threading
 import time
 import urllib.parse
@@ -88,13 +89,18 @@ class _Server(ThreadingMixIn, HTTPServer):
     allow_reuse_address = True
 
 
+def _token():
+    # Ne `secrets`: některé buildy Kodi pro Android ho v Pythonu nemají (pád 15dde7be7240).
+    return base64.urlsafe_b64encode(os.urandom(12)).rstrip(b"=").decode("ascii")
+
+
 class SetupServer:
     def __init__(self, schema, values, texts=None, token=None, actions=None):
         self.schema = schema
         self.actions = dict(actions or {})
         self.values = dict(values)
         self.texts = dict(TEXTS, **(texts or {}))
-        self.token = token or secrets.token_urlsafe(12)
+        self.token = token or _token()
         self.fields = {f["id"]: f for section in schema for f in section["fields"] if f.get("type") not in NO_VALUE}
         self.port = None
         self._httpd = None
