@@ -704,10 +704,11 @@ class TestJadroVKodi(unittest.TestCase):
         reset_kodi()
 
     def test_volby_z_nastaveni(self):
-        xbmcaddon.settings.update(pref_lang="1", sort_streams="2", hide_sd="true", max_bitrate_mbps="12,5",
+        xbmcaddon.settings.update(pref_lang="1", sort_streams="2", hide_sd="true", hide_3d="true", max_bitrate_mbps="12,5",
                                   audio_probe="5", cross_search="false", ws_enabled="false", ws_username="u")
         opts = default.engine_options()
         self.assertEqual((opts["pref_lang"], opts["sort_streams"], opts["hide_sd"]), ("CZ", "size_desc", True))
+        self.assertTrue(opts["hide_3d"])
         self.assertEqual((opts["audio_probe"], opts["cross_search"], opts["search_streams"]), ("5", False, True))
         self.assertEqual(opts["ws_username"], "", "vypnutý zdroj se jádru nehlásí ani při vyplněném účtu")
         engine = default.KodiEngine()
@@ -5773,7 +5774,7 @@ class TestOsmKategorii(unittest.TestCase):
         # přeskládání kategorií zůstávají stejná
         root = ET.parse(ROOT / "resources" / "settings.xml").getroot()
         volby = {s.get("id") for s in root.iter("setting")}
-        self.assertEqual(len(volby), 109)   # +1 fs_provider (Sdilej.cz), +1 sync_watchlist (Hlídané), +2: terms_ok a terms_show_action (souhlas, 2026-09-22), +1 stream_filter_last, +3 dav1–3_enabled
+        self.assertEqual(len(volby), 110)   # +1 hide_3d, +1 fs_provider (Sdilej.cz), +1 sync_watchlist (Hlídané), +2: terms_ok a terms_show_action (souhlas, 2026-09-22), +1 stream_filter_last, +3 dav1–3_enabled
         for ocekavane in ("ws_enabled", "pt_email", "sosac_enabled", "hs_enabled",
                           "st_enabled", "fs_enabled", "cz_enabled", "luna_url",
                           "os_enabled", "tmdb_api_key", "download_dir", "info_donate"):

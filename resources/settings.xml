@@ -678,6 +678,11 @@
           <default>false</default>
           <control type="toggle"/>
         </setting>
+        <setting id="hide_3d" type="boolean" label="30931" help="30932">
+          <level>0</level>
+          <default>false</default>
+          <control type="toggle"/>
+        </setting>
         <setting id="max_bitrate_mbps" type="string" label="30224" help="30225">
           <level>0</level>
           <default>0</default>

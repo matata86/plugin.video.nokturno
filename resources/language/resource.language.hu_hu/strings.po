@@ -2580,3 +2580,11 @@ msgstr "A TMDb Helper nyelve"
 msgctxt "#30930"
 msgid "TMDb Helper has its own language setting and does not follow Kodi, so the movie details page and its widgets are in English.[CR]Switch TMDb Helper to Kodi's language?"
 msgstr "A TMDb Helpernek saját nyelvi beállítása van, nem a Kodi nyelvét használja, ezért a film adatlapja és widgetjei angolul jelennek meg.[CR]Átállítod a TMDb Helpert a Kodi nyelvére?"
+
+msgctxt "#30931"
+msgid "Hide 3D streams"
+msgstr "3D streamek elrejtése"
+
+msgctxt "#30932"
+msgid "Files marked as 3D in their name (3D, H-SBS, Half-OU, MVC) are left out of the list. If there is no other stream, 3D ones are shown too."
+msgstr "A nevükben 3D-t jelölő fájlok (3D, H-SBS, Half-OU, MVC) kimaradnak a listából. Ha nincs más stream, a 3D is megjelenik."

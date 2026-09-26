@@ -3033,6 +3033,7 @@ class Engine:
                 max_size_gb=max_gb,
                 order=order if order in SORT_ORDERS else DEFAULT_SORT,
                 pref_surround=bool(self.options.get("pref_surround")),
+                hide_3d=bool(self.options.get("hide_3d")),
             )
         return sort
 

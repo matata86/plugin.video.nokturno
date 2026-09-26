@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="8.4.0~beta14" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="8.4.0~beta15" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -30,7 +30,8 @@
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
     </assets>
-    <news>8.4.0~beta14 – Trakt.tv bez vlastní aplikace: stačí se přihlásit kódem na trakt.tv/activate, jde to i s free účtem. Opraveno přihlášení, které Trakt odmítal.
+    <news>8.4.0~beta15 – Nová volba „Skrýt 3D streamy“ ve výběru streamu: soubory s 3D v názvu (3D, H-SBS, Half-OU, MVC) se nezobrazí.
+8.4.0~beta14 – Trakt.tv bez vlastní aplikace: stačí se přihlásit kódem na trakt.tv/activate, jde to i s free účtem. Opraveno přihlášení, které Trakt odmítal.
 8.4.0~beta13 – Místní složka z Windows (C:\…) v adrese vlastního úložiště už neshodí celý doplněk, úložiště se jen přeskočí.
 8.2.5 – Místní složka z Windows (C:\…) v adrese vlastního úložiště už neshodí celý doplněk, úložiště se jen přeskočí.
 8.4.0~beta12 – Hodnocení nese svůj zdroj (IMDb, TMDB, Sosáč), skin tak ukáže správné logo.

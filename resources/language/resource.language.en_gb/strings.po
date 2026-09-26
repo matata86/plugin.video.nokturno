@@ -2581,3 +2581,11 @@ msgstr ""
 msgctxt "#30930"
 msgid "TMDb Helper has its own language setting and does not follow Kodi, so the movie details page and its widgets are in English.[CR]Switch TMDb Helper to Kodi's language?"
 msgstr ""
+
+msgctxt "#30931"
+msgid "Hide 3D streams"
+msgstr ""
+
+msgctxt "#30932"
+msgid "Files marked as 3D in their name (3D, H-SBS, Half-OU, MVC) are left out of the list. If there is no other stream, 3D ones are shown too."
+msgstr ""
