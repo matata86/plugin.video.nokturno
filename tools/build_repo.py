@@ -40,19 +40,16 @@ def addon_version(path):
 
 
 def addon_assets(path):
-    """Cesty k ikoně/fanartu přesně tak, jak je addon.xml deklaruje (relativně
-    ke kořeni doplňku) — Kodi je při náhledu v repozitáři hledá na
+    """Cesty k ikoně, fanartu a screenshotům přesně tak, jak je addon.xml deklaruje
+    (relativně ke kořeni doplňku), jako seznam dvojic (tag, cesta) — screenshotů
+    bývá víc. Kodi je při náhledu v repozitáři hledá na
     `<datadir>/<addon_id>/<tahle cesta>`, ne vedle zipu na pevném místě."""
     root = ET.parse(os.path.join(path, "addon.xml")).getroot()
     assets = root.find(".//assets")
     if assets is None:
-        return {}
-    out = {}
-    for tag in ("icon", "fanart"):
-        el = assets.find(tag)
-        if el is not None and el.text:
-            out[tag] = el.text.strip()
-    return out
+        return []
+    return [(el.tag, el.text.strip()) for el in assets
+            if el.tag in ("icon", "fanart", "screenshot") and el.text and el.text.strip()]
 
 
 def zip_addon(addon_id, src, version):
@@ -93,7 +90,7 @@ def zip_addon(addon_id, src, version):
     # při náhledu v Instalovat ze zdroje stahuje `<datadir>/<addon_id>/<ta cesta>`
     # rovnou, bez ohledu na to, kde leží uvnitř zipu. Špatné umístění hlásilo
     # při instalaci chybu (404 na ikonu), i když samotný zip byl v pořádku.
-    for tag, rel in addon_assets(src).items():
+    for tag, rel in addon_assets(src):
         cand = os.path.join(src, rel)
         if not os.path.exists(cand):
             continue

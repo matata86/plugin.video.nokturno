@@ -35,6 +35,10 @@
     <assets>
       <icon>resources/media/icon2.png</icon>
       <fanart>resources/media/fanart.jpg</fanart>
+      <screenshot>resources/screenshots/01-uloziste.jpg</screenshot>
+      <screenshot>resources/screenshots/02-menu.jpg</screenshot>
+      <screenshot>resources/screenshots/03-vyber-streamu.jpg</screenshot>
+      <screenshot>resources/screenshots/04-nastaveni.jpg</screenshot>
     </assets>
     <news>8.4.0~beta17 – Sjednocené a opravené texty v nastavení, nápovědách a hláškách (čeština, slovenština, angličtina, maďarština). Kdo má zapnuté jen Přehraj.to, dostane i volnější hledání podle názvu souboru a nabídku hledat pod jiným názvem. Přihlášení k Přehraj.to se synchronizuje s ostatními účty ke zdrojům. Účet WebShare bez VIP má vlastní upozornění. Kdo synchronizaci ještě nenastavil, má jako středisko předvolený Dashboard Nokturna. Kontrola aktualizací stahuje místo 8 MB asi 85 kB.
 8.4.0~beta16 – Skrýt 3D streamy: 3D se pozná i z hlavičky MKV a se zapnutou volbou se nezobrazí nikdy, ani jako jediný stream.

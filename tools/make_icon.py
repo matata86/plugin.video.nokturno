@@ -227,7 +227,7 @@ def make_fanart(path):
         dr.text((177, 616 + i * (size + 14)), radek, font=f, fill=(163, 176, 218))
     dr.text((177, 730), "Kodi  ·  Home Assistant  ·  Stremio",
             font=font("InterDisplay-Medium.otf", 38), fill=(203, 212, 240))
-    sky.save(path, quality=92, subsampling=0)
+    sky.save(path, quality=85, optimize=True, progressive=True)
 
 
 RELEASE = (1200, 630)   # poměr, který Facebook i fóra ukazují bez ořezu

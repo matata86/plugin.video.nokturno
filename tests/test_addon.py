@@ -446,8 +446,15 @@ class TestAddonXml(unittest.TestCase):
         self.assertEqual(default.changelog_lines(self.version), [])
 
     def test_ikona_a_fanart_existuji(self):
-        for tag, rel in build_repo.addon_assets(str(ROOT)).items():
+        for tag, rel in build_repo.addon_assets(str(ROOT)):
             self.assertTrue((ROOT / rel).is_file(), f"{tag}: {rel}")
+
+    def test_screenshoty_jdou_do_repozitare(self):
+        # bez nich by náhled v „Instalovat z repozitáře“ hlásil 404, stejně jako dřív u ikony
+        tags = [tag for tag, _rel in build_repo.addon_assets(str(ROOT))]
+        self.assertIn("icon", tags)
+        self.assertIn("fanart", tags)
+        self.assertGreaterEqual(tags.count("screenshot"), 1)
 
 
 class TestBuildRepo(unittest.TestCase):
