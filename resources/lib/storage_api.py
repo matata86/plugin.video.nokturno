@@ -89,9 +89,13 @@ def normalize_url(url):
     parts = urllib.parse.urlsplit(url)
     if parts.scheme not in ("http", "https") or not parts.hostname:
         return ""
+    try:
+        port = parts.port
+    except ValueError:   # místní cesta „C:\\Users\\…“ nebo nesmysl za dvojtečkou
+        return ""
     path = parts.path if parts.path.endswith("/") else parts.path + "/"
     # přihlašovací údaje v adrese se berou jako jméno/heslo, do adresy nepatří
-    netloc = parts.hostname + (f":{parts.port}" if parts.port else "")
+    netloc = parts.hostname + (f":{port}" if port else "")
     return urllib.parse.urlunsplit((parts.scheme, netloc, path, "", ""))
 
 
