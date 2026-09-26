@@ -350,7 +350,7 @@
           </dependencies>
           <control format="string" type="spinner"/>
         </setting>
-        <setting id="fs_username" type="string" label="30420" help="30421">
+        <setting id="fs_username" type="string" label="30381" help="30421">
           <level>0</level>
           <default></default>
           <constraints>
@@ -362,7 +362,7 @@
           <control type="edit" format="string">
           </control>
         </setting>
-        <setting id="fs_password" type="string" label="30422" help="30423">
+        <setting id="fs_password" type="string" label="30383" help="30423">
           <level>0</level>
           <default></default>
           <constraints>
@@ -565,7 +565,7 @@
             <hidden>true</hidden>
           </control>
         </setting>
-        <setting id="trakt_auth_action" type="action" label="30100">
+        <setting id="trakt_auth_action" type="action" label="30100" help="30938">
           <level>0</level>
           <constraints>
             <allowempty>true</allowempty>
@@ -692,7 +692,7 @@
           <control type="edit" format="string">
           </control>
         </setting>
-        <setting id="speedtest_action" type="action" label="30220">
+        <setting id="speedtest_action" type="action" label="30220" help="30934">
           <level>0</level>
           <constraints>
             <allowempty>true</allowempty>
@@ -876,7 +876,7 @@
           <data>RunPlugin(plugin://plugin.video.nokturno/?action=sync_join)</data>
           <control format="action" type="button"/>
         </setting>
-        <setting id="sync_code" type="string" label="30664" help="30672">
+        <setting id="sync_code" type="string" label="30664" help="30707">
           <level>0</level>
           <default></default>
           <constraints>
@@ -893,7 +893,7 @@
           <control type="edit" format="string">
           </control>
         </setting>
-        <setting id="sync_leave_action" type="action" label="30667" help="30677">
+        <setting id="sync_leave_action" type="action" label="30667" help="30941">
           <level>0</level>
           <constraints>
             <allowempty>true</allowempty>
@@ -911,7 +911,7 @@
         </setting>
       </group>
       <group id="4" label="30682">
-        <setting id="sync_watched" type="boolean" label="30668">
+        <setting id="sync_watched" type="boolean" label="30668" help="30939">
           <level>0</level>
           <default>true</default>
           <dependencies>
@@ -935,7 +935,7 @@
           </dependencies>
           <control type="toggle"/>
         </setting>
-        <setting id="sync_watchlist" type="boolean" label="30919">
+        <setting id="sync_watchlist" type="boolean" label="30919" help="30940">
           <level>0</level>
           <default>true</default>
           <dependencies>
@@ -1020,7 +1020,7 @@
           <data>RunPlugin(plugin://plugin.video.nokturno/?action=setup_wizard)</data>
           <control format="action" type="button"/>
         </setting>
-        <setting id="clear_cache_action" type="action" label="30106">
+        <setting id="clear_cache_action" type="action" label="30106" help="30935">
           <level>0</level>
           <constraints>
             <allowempty>true</allowempty>
@@ -1028,7 +1028,7 @@
           <data>RunPlugin(plugin://plugin.video.nokturno/?action=clear_cache)</data>
           <control format="action" type="button"/>
         </setting>
-        <setting id="test_sources_action" type="action" label="30167">
+        <setting id="test_sources_action" type="action" label="30167" help="30936">
           <level>0</level>
           <constraints>
             <allowempty>true</allowempty>
@@ -1036,7 +1036,7 @@
           <data>RunPlugin(plugin://plugin.video.nokturno/?action=test_sources)</data>
           <control format="action" type="button"/>
         </setting>
-        <setting id="tmdbhelper_player_action" type="action" label="30409">
+        <setting id="tmdbhelper_player_action" type="action" label="30409" help="30937">
           <level>0</level>
           <constraints>
             <allowempty>true</allowempty>

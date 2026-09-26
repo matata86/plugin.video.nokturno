@@ -2715,7 +2715,7 @@ def sync_create():
     xbmcgui.Dialog().textviewer(L(30180, "Synchronizace"),
                                 f"{nadpis}[CR][CR][B]{code}[/B][CR][CR]"
                                 f"{L(30680, 'Připojení je otevřené 30 minut.')}[CR]"
-                                f"{L(30672, 'Kód pustí nové zařízení dovnitř po 30 minut.')}")
+                                f"{L(30672, 'Nové zařízení se může kódem připojit do 30 minut.')}")
 
 
 def sync_join():
@@ -2759,7 +2759,7 @@ def sync_leave():
         log_error(e)   # relay nedostupný: blob tam zůstane, retence ho po čase smaže
     ADDON.setSetting("sync_code", "")
     ADDON.setSetting("sync_enabled", "false")
-    notify(L(30678, "Odešel jsi ze skupiny."), xbmcgui.NOTIFICATION_INFO, 5000)
+    notify(L(30678, "Skupina opuštěna."), xbmcgui.NOTIFICATION_INFO, 5000)
 
 
 def sub_status():
@@ -3405,6 +3405,7 @@ def remote_setup(section=None):
         "order_up": L(30510, "Nahoru"),
         "order_down": L(30511, "Dolů"),
         "action_failed": L(30580, "Spojení s televizí se přerušilo — na TV spusť Nastavit z mobilu znovu."),
+        "action_running": L(30942, "Pracuji…"),
     }
     server = _remote_setup().SetupServer(schema, values, texts, actions={"luna_find": luna_find_remote,
                                                         "luna_check": luna_check_remote,
@@ -3637,7 +3638,7 @@ def transfer_apply(payload):
             and dialog.yesno(L(30560, "CZtor"), L(30600, "Účet CZtoru se nepřenáší. Spárovat teď?")):
         cztor_pair()
     if "trakt" in plan.flags and not STORE.trakt() \
-            and dialog.yesno(L(30090, "Trakt"), L(30601, "Účet Traktu se nepřenáší. Přihlásit teď?")):
+            and dialog.yesno(L(30090, "Trakt.tv"), L(30601, "Účet Traktu se nepřenáší. Přihlásit teď?")):
         trakt_auth()
 
 
@@ -3675,7 +3676,7 @@ def _wizard_accounts(dialog):
             ADDON.setSetting("luna_url", found[0]["url"])
             heading = Lf(30542, found[0]["url"])
         else:
-            heading = L(30350, "Adresa doplňku nebo token ze setu Luny")
+            heading = L(30350, "Adresa doplňku nebo token ze stránky /setup Luny")
         addr = dialog.input(heading)
         if addr:
             ADDON.setSetting("token", addr)
@@ -3716,7 +3717,7 @@ def _wizard_accounts(dialog):
         cztor_pair()
 
     if dialog.yesno(L(30353, "Vlastní databáze filmů a seriálů"),
-                     L(30354, "Chceš zadat zdarma klíč TMDB, aby popisy a obsazení filmů byly česky? (nepovinné)")):
+                     L(30354, "Chceš zadat bezplatný klíč TMDB, aby popisy a obsazení filmů byly česky? (nepovinné)")):
         dialog.ok(L(30353, "Vlastní databáze filmů a seriálů"),
                   L(30355, "Klíč se zakládá zdarma na themoviedb.org → ikona profilu → Nastavení → API → Request an "
                            "API Key → Developer → zkopírovat „API Key (v3 auth)“.[CR]Podrobný návod je v nápovědě u "
@@ -3952,9 +3953,9 @@ LUNA_DIAG_TEXTS = {
     "ok": (30520, "Luna %s odpovídá a vrací streamy. Nastavení je v pořádku."),
     "no_url": (30521, "Není vyplněná adresa Luny ani token.[CR]Použij „Najít Lunu v síti“, nebo vlož "
                       "do pole Token celou adresu doplňku ze stránky /setup Luny."),
-    "bad_url": (30522, "Adrese %s nerozumím.[CR]Čekám tvar jako 192.168.1.10:7126."),
-    "unreachable": (30523, "Na adrese %s se nikdo neozval.[CR][CR]Běží počítač, kde je Luna spuštěná? "
-                           "Je ve stejné síti jako tahle televize? Zkus „Najít Lunu v síti“."),
+    "bad_url": (30522, "Adresa %s nemá očekávaný tvar.[CR]Očekává se například 192.168.1.10:7126."),
+    "unreachable": (30523, "Na adrese %s se nikdo neozval.[CR][CR]Běží počítač, kde je Luna spuštěná? Je ve stejné "
+                           "síti jako toto zařízení? Zkus „Najít Lunu v síti“."),
     "not_luna": (30524, "Na adrese %s něco odpovídá, ale není to Luna.[CR]Zkontroluj port — Luna má "
                         "výchozí 7126."),
     "no_token": (30525, "Luna %s běží, ale chybí token.[CR][CR]Otevři v prohlížeči %s/setup, zkopíruj "
@@ -3965,8 +3966,8 @@ LUNA_DIAG_TEXTS = {
     "bad_token": (30527, "Luna %s běží, ale tento token nepřijala.[CR][CR]Vygeneruj si adresu doplňku "
                          "znovu na %s/setup a vlož ji celou do pole Token."),
     "main_empty": (30528, "Luna %s odpovídá a hledání na WebShare funguje, ale její hlavní zdroj nic "
-                          "nevrací.[CR][CR]Zkontroluj na %s/setup účet WebShare a jestli je token "
-                          "opravdu z téhle Luny."),
+                          "nevrací.[CR][CR]Zkontroluj na %s/setup účet WebShare a jestli je token opravdu z této "
+                          "Luny."),
     "no_streams": (30529, "Luna %s běží, ale nenašla streamy ani u známých filmů.[CR][CR]Nejčastěji "
                           "chybí účet WebShare v samotné Luně — otevři %s/setup a doplň ho."),
 }
@@ -4077,7 +4078,7 @@ ACCOUNT_SHORT = {
     ("sledujteto", "no_premium"): (30655, "účet bez Premium"),
     ("prehrajto", "expires_soon"): (30651, "zbývá dní: %s"),
     ("prehrajto", "no_premium"): (30720, "účet bez Premium"),
-    ("prehrajto", "paused"): (30656, "pauza %s min"),
+    ("prehrajto", "paused"): (30656, "pozastaveno %s min"),
     ("hellspy", "paused"): (30725, "odmítá síť"),
 }
 
@@ -4286,7 +4287,7 @@ def os_check():
     except OpenSubtitlesError as err:
         xbmc.log(f"[{ADDON_ID}] OpenSubtitles účet: {err}", xbmc.LOGINFO)
         xbmcgui.Dialog().ok(L(30611, "OpenSubtitles"),
-                    L(30624, "Přihlášení se nepovedlo — zkontroluj jméno a heslo."))
+                    L(30624, "Přihlášení se nepodařilo — zkontroluj jméno a heslo."))
         return
     if ucet:
         radky.append(L(30627, "Přihlášen jako %s") % ucet["user"])
@@ -5049,8 +5050,7 @@ def lang_catalog_menu(apis, ctype, want):
         folder_item(label, build_url(action="lang_catalog_menu", type=ctype, want=want),
                     icon="DefaultAddonsSearch.png")
     else:
-        folder_item(L(30437, "Data aren't ready — checking dubbing/subtitles across the enabled sources can take "
-                              "a few minutes. Tap to start."),
+        folder_item(L(30437, "The list isn't ready yet — start"),
                     build_url(action="lang_catalog_trigger", type=ctype, want=want), icon="DefaultAddonsSearch.png")
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
@@ -6053,7 +6053,7 @@ def list_watch():
                 label += f" · [COLOR {GREY}]{season}x{episode:02d}[/COLOR]"
             label += f" · [COLOR {WATCH_NEW}]{L(30905, 'Kontrolovat dál').lower()}[/COLOR]"
         li = _watch_li(label, sid, item.get("poster"))
-        ctx = ([(L(30907, "Označit jako viděné"), runplugin(action="watch_seen", id=sid))] if new else [])
+        ctx = ([(L(30907, "Označit nový díl jako viděný"), runplugin(action="watch_seen", id=sid))] if new else [])
         if avail and avail.get("id"):
             ctx.append(watch_episode_context(sid, avail["id"], item.get("alt")))
         li.addContextMenuItems(ctx + [(L(30902, "Přestat hlídat nové díly"),

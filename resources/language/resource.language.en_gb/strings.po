@@ -23,7 +23,7 @@ msgid "Luna server address (http://IP:7126)"
 msgstr ""
 
 msgctxt "#30003"
-msgid "Addon URL or token from Luna setup page"
+msgid "Add-on address or token from Luna's /setup page"
 msgstr ""
 
 msgctxt "#30004"
@@ -31,7 +31,7 @@ msgid "Playback"
 msgstr ""
 
 msgctxt "#30009"
-msgid "Also search WebShare full-text (Luna: Search, slower)"
+msgid "Search via Luna and WebShare full-text too (slower)"
 msgstr ""
 
 msgctxt "#30010"
@@ -123,11 +123,11 @@ msgid "Use WebShare"
 msgstr ""
 
 msgctxt "#30052"
-msgid "WebShare user name / e-mail"
+msgid "Username or e-mail"
 msgstr ""
 
 msgctxt "#30053"
-msgid "WebShare password (or 40-char salted hash)"
+msgid "Password (or 40-char salted hash)"
 msgstr ""
 
 msgctxt "#30054"
@@ -403,8 +403,8 @@ msgid "Statistics could not be sent"
 msgstr "Statistics could not be sent"
 
 msgctxt "#30167"
-msgid "Test sources"
-msgstr "Test sources"
+msgid "Check sources"
+msgstr "Check sources"
 
 msgctxt "#30168"
 msgid "OK"
@@ -635,7 +635,7 @@ msgid "Address of your Luna server on the local network, e.g. http://192.168.1.1
 msgstr ""
 
 msgctxt "#30310"
-msgid "Paste the whole add-on URL from Luna's setup page (…/setup), or just the token itself starting with 'e1.'."
+msgid "Paste the whole add-on address from Luna's /setup page, or just the token itself starting with \"e1.\"."
 msgstr ""
 
 msgctxt "#30311"
@@ -728,7 +728,7 @@ msgid "Do you have a WebShare account?"
 msgstr ""
 
 msgctxt "#30342"
-msgid "WebShare — email"
+msgid "WebShare — e-mail"
 msgstr ""
 
 msgctxt "#30343"
@@ -740,7 +740,7 @@ msgid "Sosáč"
 msgstr ""
 
 msgctxt "#30345"
-msgid "Do you have a Streamuj.tv account (Sosáč player)?"
+msgid "Do you have a Streamuj.tv account (Sosáč player)?\nSosáč catalogues work without an account, it is only needed for playback."
 msgstr ""
 
 msgctxt "#30346"
@@ -760,7 +760,7 @@ msgid "Do you have a Luna: Absolute Cinema server running on your network?"
 msgstr ""
 
 msgctxt "#30350"
-msgid "Add-on address or token from setup"
+msgid "Add-on address or token from Luna's /setup page"
 msgstr ""
 
 msgctxt "#30351"
@@ -808,7 +808,7 @@ msgid "Internet speed"
 msgstr ""
 
 msgctxt "#30362"
-msgid "Measure your internet speed now?"
+msgid "Measure your internet speed now and set the highest allowed stream bitrate from it? It prevents stuttering when a file is too big for your connection.\nIt takes under a minute and can also be done later in Settings → Playback."
 msgstr ""
 
 msgctxt "#30363"
@@ -840,7 +840,7 @@ msgid "Sledujteto.cz is a Czech video hosting. Searching needs an account, playb
 msgstr ""
 
 msgctxt "#30370"
-msgid "Sledujteto — e-mail"
+msgid "E-mail"
 msgstr ""
 
 msgctxt "#30371"
@@ -848,7 +848,7 @@ msgid "E-mail you use to sign in to sledujteto.cz."
 msgstr ""
 
 msgctxt "#30372"
-msgid "Sledujteto — password"
+msgid "Password"
 msgstr ""
 
 msgctxt "#30373"
@@ -952,7 +952,7 @@ msgid "Top rated"
 msgstr ""
 
 msgctxt "#30401"
-msgid "New with Czech subtitles"
+msgid "Recently added with Czech subtitles"
 msgstr ""
 
 msgctxt "#30402"
@@ -1085,7 +1085,7 @@ msgid "The list is being built in the background right now…"
 msgstr ""
 
 msgctxt "#30437"
-msgid "Data aren't ready — checking dubbing/subtitles across the enabled sources can take a few minutes. Tap to start."
+msgid "The list isn't ready yet — start"
 msgstr ""
 
 msgctxt "#30438"
@@ -1586,7 +1586,7 @@ msgid "Name to search for"
 msgstr ""
 
 msgctxt "#30580"
-msgid "Connection to the TV was lost - start Set up from mobile on the TV again."
+msgid "Connection to the TV was lost - start Set up from phone on the TV again."
 msgstr ""
 
 msgctxt "#30581"
@@ -1594,7 +1594,7 @@ msgid "Open Luna settings (/setup)"
 msgstr ""
 
 msgctxt "#30582"
-msgid "TV program: show programmes that already ended today"
+msgid "TV guide: show programmes that already ended today"
 msgstr ""
 
 msgctxt "#30583"
@@ -1819,7 +1819,7 @@ msgid "Sent only when signing in; only the issued token is stored."
 msgstr ""
 
 msgctxt "#30619"
-msgid "Test OpenSubtitles"
+msgid "Check OpenSubtitles"
 msgstr ""
 
 msgctxt "#30620"
@@ -2075,7 +2075,7 @@ msgid "The code from the first Kodi where you created the group. Turn on Synchro
 msgstr ""
 
 msgctxt "#30708"
-msgid "Prehraj.to"
+msgid "Přehraj.to"
 msgstr ""
 
 msgctxt "#30709"
@@ -2099,7 +2099,7 @@ msgid "Password"
 msgstr ""
 
 msgctxt "#30714"
-msgid "The password for the same account. Prehraj.to counts every sign-in as a device, so Nokturno signs in only once every few hours."
+msgid "The password for the same account. Přehraj.to counts every sign-in as a device, so Nokturno signs in only once every few hours."
 msgstr ""
 
 msgctxt "#30715"
@@ -2163,7 +2163,7 @@ msgid "Nokturno is primarily a player and manager for your own storage — conte
 msgstr ""
 
 msgctxt "#30730"
-msgid "I confirm I will use the add-on only for content I have the right to access, and I agree to the terms of use."
+msgid "I confirm I will use Nokturno only for content I have the right to access, and I agree to the terms of use."
 msgstr ""
 
 msgctxt "#30732"
@@ -2500,7 +2500,7 @@ msgid "Stop checking"
 msgstr ""
 
 msgctxt "#30907"
-msgid "Mark as seen"
+msgid "Mark new episode as seen"
 msgstr ""
 
 msgctxt "#30908"
@@ -2548,7 +2548,7 @@ msgid "Check now"
 msgstr ""
 
 msgctxt "#30919"
-msgid "Watched series and titles"
+msgid "Sync Watchlist"
 msgstr ""
 
 msgctxt "#30920"
@@ -2593,4 +2593,40 @@ msgstr ""
 
 msgctxt "#30933"
 msgid "WebShare account without VIP – downloads at only a few kB/s."
+msgstr ""
+
+msgctxt "#30934"
+msgid "Measures your connection speed and sets Max. bitrate from it. Takes under a minute."
+msgstr ""
+
+msgctxt "#30935"
+msgid "Deletes saved catalogues, search results and stream lists, they load again next time. Settings, My list and history are not deleted."
+msgstr ""
+
+msgctxt "#30936"
+msgid "Tries every enabled source and sign-in and shows what works."
+msgstr ""
+
+msgctxt "#30937"
+msgid "The Play button on a movie details page (TMDb Helper, Arctic Fuse and other skins) then searches for streams in Nokturno."
+msgstr ""
+
+msgctxt "#30938"
+msgid "Shows a code that you enter at trakt.tv/activate."
+msgstr ""
+
+msgctxt "#30939"
+msgid "The watched mark and the point where playback stopped."
+msgstr ""
+
+msgctxt "#30940"
+msgid "Watched series and titles including Keep checking. The check is then not repeated on every device."
+msgstr ""
+
+msgctxt "#30941"
+msgid "This Kodi stops syncing, the data saved here stays."
+msgstr ""
+
+msgctxt "#30942"
+msgid "Working…"
 msgstr ""

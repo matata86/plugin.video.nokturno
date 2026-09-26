@@ -23,16 +23,16 @@ msgid "Luna server address (http://IP:7126)"
 msgstr "Luna szerver címe (http://IP:7126)"
 
 msgctxt "#30003"
-msgid "Addon URL or token from Luna setup page"
-msgstr "Bővítmény URL-je vagy token a Luna beállítási oldaláról"
+msgid "Add-on address or token from Luna's /setup page"
+msgstr "Bővítmény címe vagy token a Luna /setup oldaláról"
 
 msgctxt "#30004"
 msgid "Playback"
 msgstr "Lejátszás"
 
 msgctxt "#30009"
-msgid "Also search WebShare full-text (Luna: Search, slower)"
-msgstr "WebShare teljes szöveges keresése is (Luna: Search, lassabb)"
+msgid "Search via Luna and WebShare full-text too (slower)"
+msgstr "Keresés a Lunán és a WebShare teljes szöveges keresésével is (lassabb)"
 
 msgctxt "#30010"
 msgid "Search movies"
@@ -123,12 +123,12 @@ msgid "Use WebShare"
 msgstr "WebShare használata"
 
 msgctxt "#30052"
-msgid "WebShare user name / e-mail"
-msgstr "WebShare felhasználónév / e-mail"
+msgid "Username or e-mail"
+msgstr "Felhasználónév vagy e-mail"
 
 msgctxt "#30053"
-msgid "WebShare password (or 40-char salted hash)"
-msgstr "WebShare jelszó (vagy 40 karakteres sózott hash)"
+msgid "Password (or 40-char salted hash)"
+msgstr "Jelszó (vagy 40 karakteres sózott hash)"
 
 msgctxt "#30054"
 msgid "Sort results"
@@ -403,8 +403,8 @@ msgid "Statistics could not be sent"
 msgstr "A statisztikát nem sikerült elküldeni"
 
 msgctxt "#30167"
-msgid "Test sources"
-msgstr "Források tesztelése"
+msgid "Check sources"
+msgstr "Források ellenőrzése"
 
 msgctxt "#30168"
 msgid "OK"
@@ -635,8 +635,8 @@ msgid "Address of your Luna server on the local network, e.g. http://192.168.1.1
 msgstr "A Luna szervered címe a helyi hálózaton, pl. http://192.168.1.10:7126. Ha a Luna ugyanazon az eszközön fut, mint a Kodi, add meg: http://127.0.0.1:7126."
 
 msgctxt "#30310"
-msgid "Paste the whole add-on URL from Luna's setup page (…/setup), or just the token itself starting with 'e1.'."
-msgstr "Illeszd be a teljes bővítmény URL-t a Luna beállítási oldaláról (…/setup), vagy csak magát a tokent, ami 'e1.'-vel kezdődik."
+msgid "Paste the whole add-on address from Luna's /setup page, or just the token itself starting with \"e1.\"."
+msgstr "Illeszd be a teljes bővítménycímet a Luna /setup oldaláról, vagy csak magát a tokent, ami „e1.”-gyel kezdődik."
 
 msgctxt "#30311"
 msgid "Luna can also full-text search WebShare (its own Search feature) — finds more, but takes longer."
@@ -727,7 +727,7 @@ msgid "Do you have a WebShare account?"
 msgstr "Van WebShare fiókod?"
 
 msgctxt "#30342"
-msgid "WebShare — email"
+msgid "WebShare — e-mail"
 msgstr "WebShare — e-mail"
 
 msgctxt "#30343"
@@ -739,8 +739,8 @@ msgid "Sosáč"
 msgstr "Sosáč"
 
 msgctxt "#30345"
-msgid "Do you have a Streamuj.tv account (Sosáč player)?"
-msgstr "Van Streamuj.tv fiókod (Sosáč lejátszó)?"
+msgid "Do you have a Streamuj.tv account (Sosáč player)?\nSosáč catalogues work without an account, it is only needed for playback."
+msgstr "Van Streamuj.tv fiókod (Sosáč lejátszó)?\nA Sosáč katalógusai fiók nélkül is működnek, csak a lejátszáshoz kell."
 
 msgctxt "#30346"
 msgid "Streamuj.tv — username"
@@ -759,8 +759,8 @@ msgid "Do you have a Luna: Absolute Cinema server running on your network?"
 msgstr "Fut a hálózatodon Luna: Absolute Cinema szerver?"
 
 msgctxt "#30350"
-msgid "Add-on address or token from setup"
-msgstr "Bővítmény címe vagy token a beállításból"
+msgid "Add-on address or token from Luna's /setup page"
+msgstr "Bővítmény címe vagy token a Luna /setup oldaláról"
 
 msgctxt "#30351"
 msgid "HellSpy"
@@ -807,8 +807,8 @@ msgid "Internet speed"
 msgstr "Internetsebesség"
 
 msgctxt "#30362"
-msgid "Measure your internet speed now?"
-msgstr "Megméred most az internetsebességedet?"
+msgid "Measure your internet speed now and set the highest allowed stream bitrate from it? It prevents stuttering when a file is too big for your connection.\nIt takes under a minute and can also be done later in Settings → Playback."
+msgstr "Megméred most az internetsebességedet, és ez alapján beállítod a streamek legnagyobb megengedett bitrátáját? Így nem akad a lejátszás, ha a fájl túl nagy a kapcsolathoz.\nNem tart egy percig sem, és később is megteheted a Beállítások → Lejátszás menüben."
 
 msgctxt "#30363"
 msgid "Clear filter"
@@ -839,16 +839,16 @@ msgid "Sledujteto.cz is a Czech video hosting. Searching needs an account, playb
 msgstr "A Sledujteto.cz egy cseh videótár. A kereséshez fiók, a lejátszáshoz Premium fiók kell."
 
 msgctxt "#30370"
-msgid "Sledujteto — e-mail"
-msgstr "Sledujteto — e-mail"
+msgid "E-mail"
+msgstr "E-mail"
 
 msgctxt "#30371"
 msgid "E-mail you use to sign in to sledujteto.cz."
 msgstr "Az e-mail, amivel a sledujteto.cz-re bejelentkezel."
 
 msgctxt "#30372"
-msgid "Sledujteto — password"
-msgstr "Sledujteto — jelszó"
+msgid "Password"
+msgstr "Jelszó"
 
 msgctxt "#30373"
 msgid "Password for sledujteto.cz. It is sent only when signing in; requests then use a token."
@@ -951,8 +951,8 @@ msgid "Top rated"
 msgstr "Legjobbra értékelt"
 
 msgctxt "#30401"
-msgid "New with Czech subtitles"
-msgstr "Új, cseh felirattal"
+msgid "Recently added with Czech subtitles"
+msgstr "Nemrég hozzáadva, cseh felirattal"
 
 msgctxt "#30402"
 msgid "Measuring download speed…"
@@ -1084,8 +1084,8 @@ msgid "The list is being built in the background right now…"
 msgstr "A lista éppen a háttérben épül fel…"
 
 msgctxt "#30437"
-msgid "Data aren't ready — checking dubbing/subtitles across the enabled sources can take a few minutes. Tap to start."
-msgstr "Az adatok nincsenek készen — a szinkron és a felirat ellenőrzése a bekapcsolt forrásokban eltarthat pár percig. Érintsd meg az indításhoz."
+msgid "The list isn't ready yet — start"
+msgstr "A lista még nincs kész — indítás"
 
 msgctxt "#30438"
 msgid "Started in the background — you'll get a notification when it's ready."
@@ -1584,15 +1584,15 @@ msgid "Name to search for"
 msgstr "Keresett név"
 
 msgctxt "#30580"
-msgid "Connection to the TV was lost - start Set up from mobile on the TV again."
-msgstr "A kapcsolat a TV-vel megszakadt — indítsd újra a Beállítás mobilról funkciót a TV-n."
+msgid "Connection to the TV was lost - start Set up from phone on the TV again."
+msgstr "A kapcsolat a TV-vel megszakadt — indítsd újra a Beállítás telefonról funkciót a TV-n."
 
 msgctxt "#30581"
 msgid "Open Luna settings (/setup)"
 msgstr "Luna beállításainak megnyitása (/setup)"
 
 msgctxt "#30582"
-msgid "TV program: show programmes that already ended today"
+msgid "TV guide: show programmes that already ended today"
 msgstr "TV-műsor: a ma már véget ért műsorok is látszanak"
 
 msgctxt "#30583"
@@ -1733,8 +1733,8 @@ msgid "Sent only when signing in; only the issued token is stored."
 msgstr "Csak bejelentkezéskor kerül elküldésre; csak a kiadott token tárolódik."
 
 msgctxt "#30619"
-msgid "Test OpenSubtitles"
-msgstr "OpenSubtitles kipróbálása"
+msgid "Check OpenSubtitles"
+msgstr "OpenSubtitles ellenőrzése"
 
 msgctxt "#30620"
 msgid "Checks the connection, the account and the remaining daily quota."
@@ -2073,8 +2073,8 @@ msgid "The code from the first Kodi where you created the group. Turn on Synchro
 msgstr "A kód az első Kodiról, ahol a csoportot létrehoztad. Kapcsold be a szinkronizálást, központnak válaszd a Nokturno vezérlőpultot, és mentsd el — ez a Kodi öt percen belül csatlakozik."
 
 msgctxt "#30708"
-msgid "Prehraj.to"
-msgstr "Prehraj.to"
+msgid "Přehraj.to"
+msgstr "Přehraj.to"
 
 msgctxt "#30709"
 msgid "Use Přehraj.to"
@@ -2097,8 +2097,8 @@ msgid "Password"
 msgstr "Jelszó"
 
 msgctxt "#30714"
-msgid "The password for the same account. Prehraj.to counts every sign-in as a device, so Nokturno signs in only once every few hours."
-msgstr "Ugyanannak a fióknak a jelszava. A Prehraj.to minden belépést eszköznek számol, ezért a Nokturno csak néhány óránként lép be."
+msgid "The password for the same account. Přehraj.to counts every sign-in as a device, so Nokturno signs in only once every few hours."
+msgstr "Ugyanannak a fióknak a jelszava. A Přehraj.to minden belépést eszköznek számol, ezért a Nokturno csak néhány óránként lép be."
 
 msgctxt "#30715"
 msgid "Premium, days left: %s"
@@ -2161,8 +2161,8 @@ msgid "Nokturno is primarily a player and manager for your own storage — conte
 msgstr "A Nokturno elsősorban a saját tárhelyedhez készült lejátszó és kezelő — az általad feltöltött és megosztott tartalmat (pl. WebDAV-on keresztül) közvetlenül lejátssza. Kiegészítő szolgáltatásként opcionálisan csatlakoztathatsz néhány nyilvánosan elérhető, harmadik féltől származó keresőt is (WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna, OpenSubtitles) — ebben az esetben a Nokturno csak technikai felület, maga nem tárol, nem ment és nem szolgáltat semmilyen tartalmat.\n\nA kiegészítőt csak olyan tartalomhoz használd, amelyhez jogszerű jogosultságod, licenced vagy más jogcímed van. Szerzői joggal védett tartalom keresése, elérése vagy lejátszása a jogtulajdonosok hozzájárulása nélkül tilos.\n\nA kiegészítő „ahogy van” alapon kerül biztosításra, működésre, elérhetőségre és a harmadik féltől származó források jogszerűségére vonatkozó garancia nélkül. A használat módjáért kizárólag a felhasználó felel. Az üzemeltető fenntartja a jogot a hozzáférés bármikori korlátozására vagy megszüntetésére."
 
 msgctxt "#30730"
-msgid "I confirm I will use the add-on only for content I have the right to access, and I agree to the terms of use."
-msgstr "Megerősítem, hogy a kiegészítőt csak olyan tartalomhoz használom, amelyhez jogom van hozzáférni, és elfogadom a használati feltételeket."
+msgid "I confirm I will use Nokturno only for content I have the right to access, and I agree to the terms of use."
+msgstr "Megerősítem, hogy a Nokturnót csak olyan tartalomhoz használom, amelyhez jogom van hozzáférni, és elfogadom a felhasználási feltételeket."
 
 msgctxt "#30732"
 msgid "I don't agree"
@@ -2498,8 +2498,8 @@ msgid "Stop checking"
 msgstr "Ne ellenőrizze tovább"
 
 msgctxt "#30907"
-msgid "Mark as seen"
-msgstr "Megjelölés megtekintettként"
+msgid "Mark new episode as seen"
+msgstr "Új epizód megjelölése megtekintettként"
 
 msgctxt "#30908"
 msgid "new episode"
@@ -2546,8 +2546,8 @@ msgid "Check now"
 msgstr "Ellenőrzés most"
 
 msgctxt "#30919"
-msgid "Watched series and titles"
-msgstr "Figyelt sorozatok és címek"
+msgid "Sync Watchlist"
+msgstr "Figyelőlista szinkronizálása"
 
 msgctxt "#30920"
 msgid "Checking the watchlist…"
@@ -2592,3 +2592,39 @@ msgstr "A 3D fájlok (név alapján: 3D, H-SBS, Half-OU, MVC, vagy az MKV fejlé
 msgctxt "#30933"
 msgid "WebShare account without VIP – downloads at only a few kB/s."
 msgstr "VIP nélküli WebShare-fiók – a letöltés csak pár kB/s."
+
+msgctxt "#30934"
+msgid "Measures your connection speed and sets Max. bitrate from it. Takes under a minute."
+msgstr "Megméri a kapcsolat sebességét, és ez alapján beállítja a Max. bitrátát. Nem tart egy percig sem."
+
+msgctxt "#30935"
+msgid "Deletes saved catalogues, search results and stream lists, they load again next time. Settings, My list and history are not deleted."
+msgstr "Törli a mentett katalógusokat, keresési eredményeket és streamlistákat, legközelebb újra betöltődnek. A beállítások, a Saját lista és az előzmények nem törlődnek."
+
+msgctxt "#30936"
+msgid "Tries every enabled source and sign-in and shows what works."
+msgstr "Kipróbál minden bekapcsolt forrást és bejelentkezést, és megmutatja, mi működik."
+
+msgctxt "#30937"
+msgid "The Play button on a movie details page (TMDb Helper, Arctic Fuse and other skins) then searches for streams in Nokturno."
+msgstr "A film adatlapján a Lejátszás gomb (TMDb Helper, Arctic Fuse és más skinek) ezután a Nokturnóban keres streamet."
+
+msgctxt "#30938"
+msgid "Shows a code that you enter at trakt.tv/activate."
+msgstr "Megjelenít egy kódot, amit a trakt.tv/activate oldalon kell megadnod."
+
+msgctxt "#30939"
+msgid "The watched mark and the point where playback stopped."
+msgstr "A megtekintett jelölés és a hely, ahol a lejátszás megállt."
+
+msgctxt "#30940"
+msgid "Watched series and titles including Keep checking. The check is then not repeated on every device."
+msgstr "A figyelt sorozatok és címek, az Ellenőrzés folytatása jelöléssel együtt. Az ellenőrzés így nem ismétlődik minden eszközön."
+
+msgctxt "#30941"
+msgid "This Kodi stops syncing, the data saved here stays."
+msgstr "Ez a Kodi nem szinkronizál tovább, a mentett adatok megmaradnak."
+
+msgctxt "#30942"
+msgid "Working…"
+msgstr "Folyamatban…"
