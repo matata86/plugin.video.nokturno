@@ -37,12 +37,13 @@ Přihlašovací údaje zůstávají v Kodi – doplněk je posílá jen službě
 ## Co umí
 
 - **Vlastní úložiště + osm volitelných vyhledávačů** v jednom hledání a jednom výběru streamu (stejný soubor z více zdrojů se sloučí do jednoho řádku)
-- **Výběr streamu v dialogu** – kvalita, jazyk zvuku i titulků, kanály, kodek, velikost; filtr a zapamatovaný stream u seriálu
+- **Výběr streamu v dialogu** – kvalita, jazyk zvuku i titulků, kanály, kodek, velikost; filtr, zapamatovaný stream u seriálu a volba *Skrýt 3D streamy* ([nápověda](https://matata86.github.io/nokturno-napoveda/cs/vyber-streamu))
 - **Pokračovat ve sledování**, Můj seznam, rozkoukané a zhlédnuté i bez Kodi knihovny; **Trakt.tv** a **Up Next**
-- **Hlídané** (od 8.4.0) – nový díl seriálu nebo titul, který zatím nemá stream, se ohlásí, jakmile se dá pustit; *Kontrolovat dál* hlídá, jestli u titulu nebo dílu nepřibude vhodnější stream (třeba s CZ titulky)
+- **Hlídané** (od 8.4.0) – nový díl seriálu nebo titul, který zatím nemá stream, se ohlásí, jakmile se dá pustit; *Kontrolovat dál* hlídá, jestli u titulu nebo dílu nepřibude vhodnější stream (třeba s CZ titulky); sdílí se mezi Kodi i s Home Assistantem ([nápověda](https://matata86.github.io/nokturno-napoveda/cs/hlidane))
+- **Vlastní katalogy** (od 8.4.0) – ve Filmech a Seriálech si poskládáš katalog podle žánrů, původního jazyka, let a řazení, bez vlastního klíče TMDB ([nápověda](https://matata86.github.io/nokturno-napoveda/cs/vlastni-katalogy))
 - **Koncerty** (od 8.0.0) – záznamy koncertů podle interpreta
 - **SyncWatch** (od 8.2.0) – společné sledování až na pěti zařízeních: stejný stream, pauza a přetáčení platí pro všechny
-- **Synchronizace více Kodi** (od 6.6.0) – zhlédnuto, Můj seznam, historie, nastavení i přihlášení se sdílí mezi zařízeními **bez Home Assistanta**; server do dat nevidí
+- **Synchronizace více Kodi** (od 6.6.0) – zhlédnuto, Můj seznam, historie, Hlídané, nastavení i přihlášení se sdílí mezi zařízeními **bez Home Assistanta**; server do dat nevidí
 - **Katalogy, žebříčky, TV program, Pro Tebe** a náhodný titul; **Stav zdrojů** v menu řekne, co nefunguje
 - **Nastavit z mobilu**, **přenos nastavení** do dalšího Kodi a průvodce prvním nastavením
 - **Titulky z OpenSubtitles**, **stahování** na pozadí s navazováním, **Přehrát z detailu** přes TMDb Helper (Arctic Fuse)
@@ -67,7 +68,7 @@ Přihlašovací údaje zůstávají v Kodi – doplněk je posílá jen službě
 - **Hledat** napříč zapnutými zdroji – jeden dotaz pro filmy i seriály; volba typu se nabídne, jen když dotaz najde obojí. Stejný titul z více zdrojů jen jednou, zdroj je vidět až ve výběru streamu
 - **rok v dotazu je filtr** – „Pět švestek 2026“ vrátí jen film z roku 2026; číslo, které patří k názvu („2012“, „Blade Runner 2049“), se jako rok nebere
 - **Hledat na WebShare** – soubory přímo z WebShare API (řazení: relevance / nejnovější / hodnocení / velikost)
-- **katalogy** Luny (TMDB) i Sosáče; seriály → série → epizody s plakáty, popisy, hodnocením, obsazením
+- **katalogy** Luny (TMDB) i Sosáče; seriály → série → epizody s plakáty, popisy, hodnocením, obsazením. **Nově přidané s CZ/SK dabingem** a **s CZ/SK titulky** ověřují jazyk ve zdrojích, u Seriálů ukazují celé seriály. S vlastním klíčem TMDB mají české popisy i katalogy ze Sosáče
 - **streamy z více zdrojů u jednoho titulu** – vlastní úložiště, WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor i Luna se prohledají **souběžně** a stejný soubor nalezený víc cestami se ukáže jen jednou; u každého streamu je zdroj, kvalita (u souborů bez kvality v názvu odhad podle velikosti se značkou `~`), datový tok, délka, velikost a jazyky zvuku i titulků – zjištěné ze zdroje, nebo dočtené z hlavičky souboru a označené `~`, když jde jen o odhad. Řazení podle nastavení
 - **Vlastní úložiště** (od 3.1.0) – až tři složky s vlastními soubory na WebDAV (NAS, Nextcloud, server). Soubor se k titulu přiřadí podle názvu a složek nad ním (rok u filmu, `S01E02` u dílu), mezi streamy je vždy první se jménem úložiště na začátku řádku; **Moje úložiště** v hlavním menu prochází úložiště po složkách. Nic se do úložiště nezapisuje (žádné `.nfo`/`.strm`). Návod a pojmenování souborů: [wiki → Vlastní úložiště](https://github.com/matata86/plugin.video.nokturno/wiki/Vlastni-uloziste)
 - **Hledat volněji podle názvu souboru** – tlačítko dole v seznamu streamů spustí volnější hledání pro případ, že přísný filtr (chrání proti nabídnutí úplně jiného titulu, který hledaná slova jen náhodou obsahuje) zahodil skutečnou shodu; takové výsledky jsou označené jako neověřené
@@ -80,10 +81,10 @@ Přihlašovací údaje zůstávají v Kodi – doplněk je posílá jen službě
 - **Ověřit zdroje** – tlačítko v *Nastavení → Pokročilé* ověří všechny zapnuté zdroje, vlastní úložiště i klíč TMDB a řekne, co nefunguje, bez čekání na prázdný seznam streamů
 - **Zkontrolovat aktualizace doplňků** – tlačítko v *Nastavení → Pokročilé* vyžádá kontrolu repozitářů hned, ne až při denní kontrole Kodi
 - **Rychlejší procházení** – služba na pozadí drží načtené katalogy pro domovskou obrazovku a předstahuje streamy dalšího dílu rozkoukaných seriálů, takže se otevírají hned
-- **Trakt.tv** scrobble (stačí přihlášení kódem na trakt.tv/activate, i s free účtem), IMDb id pro doplňky titulků, cesty pro widgety skinu
-- **hodnocení v procentech** – položky nesou vlastnost `RatingPercent` („58 %“) vedle běžného ratingu, takže ji skin může ukázat místo hvězdiček
+- **Trakt.tv** scrobble (bez vlastní aplikace, stačí přihlášení kódem na trakt.tv/activate, i s free účtem; [nápověda](https://matata86.github.io/nokturno-napoveda/cs/trakt)), IMDb id pro doplňky titulků, cesty pro widgety skinu
+- **hodnocení v procentech** – položky nesou vlastnost `RatingPercent` („58 %“) vedle běžného ratingu, takže ji skin může ukázat místo hvězdiček. Hodnocení nese svůj zdroj (IMDb, TMDB, Sosáč), skin tak ukáže správné logo
 - **anonymní statistiky** používání, které jdou v nastavení vypnout (viz níže)
-- **Synchronizace mezi více Kodi** (od 6.6.0) – zhlédnuto, rozkoukané (i pozice), Můj seznam a historie hledání se sdílí mezi všemi tvými Kodi, **i bez Home Assistanta**. Středisko je dashboard Nokturna, který drží jen zapečetěná data – jsou zašifrovaná klíčem odvozeným z kódu skupiny a server je nepřečte. *Nastavení → Synchronizace*: na prvním Kodi zvol *Založit skupinu / otevřít připojení* a opiš kód `NKT-XXXX-XXXX-XXXX-XXXX`, na dalších *Připojit se ke skupině*. U existující skupiny totéž tlačítko otevře připojení dalších zařízení na 30 minut. Zvlášť se zapíná, co se sdílí: zhlédnuto a rozkoukanost, Můj seznam, historie hledání a (výchozí vypnuté) **nastavení doplňku** a **přihlášení ke zdrojům** – ta jdou zašifrovaná, ale kdo má kód skupiny, přečte je, takže kód patří jen tvým zařízením. **Home Assistant** je dalším členem skupiny: kód zadáš i v nastavení integrace. Kodi v domácí síti může dál synchronizovat přímo s HA přes adresu a klíč (volba *Středisko synchronizace → Home Assistant*). Běží na pozadí, ručně přes „Synchronizovat teď“ v menu
+- **Synchronizace mezi více Kodi** (od 6.6.0) – zhlédnuto, rozkoukané (i pozice), Můj seznam a historie hledání se sdílí mezi všemi tvými Kodi, **i bez Home Assistanta**. Středisko je dashboard Nokturna, který drží jen zapečetěná data – jsou zašifrovaná klíčem odvozeným z kódu skupiny a server je nepřečte. *Nastavení → Synchronizace*: na prvním Kodi zvol *Založit skupinu / otevřít připojení* a opiš kód `NKT-XXXX-XXXX-XXXX-XXXX`, na dalších *Připojit se ke skupině*. U existující skupiny totéž tlačítko otevře připojení dalších zařízení na 30 minut. Zvlášť se zapíná, co se sdílí: zhlédnuto a rozkoukanost, Můj seznam, historie hledání, Hlídané a (výchozí vypnuté) **nastavení doplňku** a **přihlášení ke zdrojům** – ta jdou zašifrovaná, ale kdo má kód skupiny, přečte je, takže kód patří jen tvým zařízením. **Home Assistant** je dalším členem skupiny: kód zadáš i v nastavení integrace. Kodi v domácí síti může dál synchronizovat přímo s HA přes adresu a klíč (volba *Středisko synchronizace → Home Assistant*). Běží na pozadí, ručně přes „Synchronizovat teď“ v menu
 - **Up Next** – je-li nainstalovaná služba [Up Next](https://kodi.tv/addons/omega/service.upnext), dostane u seriálů informaci o dalším dílu a ke konci epizody nabídne jeho přehrání (a s zapamatovaným streamem ho pustí rovnou)
 - **Sledování předplatného WebShare** – tlačítko v nastavení ukáže, kolik dní zbývá; upozornění pár dní před koncem a pak každý den, dokud předplatné nevyprší
 - **Žánr v popisu titulu** – tučně na začátku, přeložený do češtiny i u titulů z anglicky mluvících zdrojů
@@ -147,11 +148,11 @@ Vlastní úložiště nastavíš v kategorii *Vlastní úložiště* (adresa Web
 - **Sosáč** – jméno + heslo ke **Streamuj.tv** (přehrávač Sosáče). Katalogy a hledání jdou z veřejných JSON exportů `tv.sosac.to`, streamy ze `streamuj.tv` – stejně jako oficiální Kodi doplněk Sosáče.
 - **HellSpy** – jen přepínač v nastavení, rozhraní je veřejné a účet nepotřebuje.
 - **Sledujteto** – e-mail a heslo ve skupině *Sledujteto*. Hledá se s jakýmkoli účtem, přehrát jde jen s **Premium**; *Nastavení → Pokročilé → Ověřit zdroje* ukáže, jestli je aktivní.
-- **FastShare** – jméno a heslo ve skupině *FastShare*; volbou *Účet z* vybereš, jestli máš účet na FastShare, nebo na Sdilej.cz (od 8.4.0, katalog je stejný, účty ne). Hledá se i bez účtu, přehrání se odečte z **kreditu** podle velikosti souboru (pokud nemáš neomezené stahování); *Nastavení → Pokročilé → Ověřit zdroje* ukáže, kolik kreditu zbývá. Soubor chce cookie z přihlášení, Kodi ji posílá samo.
+- **FastShare** – jméno a heslo ve skupině *FastShare*; volbou *Účet z* vybereš, jestli máš účet na FastShare, nebo na Sdilej.cz (od 8.4.0, katalog je stejný, účty ne). Hledá se i bez účtu, přehrání se odečte z **kreditu** podle velikosti souboru (pokud nemáš neomezené stahování); *Nastavení → Pokročilé → Ověřit zdroje* ukáže, kolik kreditu zbývá. Soubor chce cookie z přihlášení, Kodi ji posílá samo. Podrobně v [nápovědě](https://matata86.github.io/nokturno-napoveda/cs/sdilej-cz).
 - **Přehraj.to** – zapnuté rovnou po instalaci, účet není potřeba. E-mail a heslo (skupina *Přehraj.to*) přidají další strany výsledků a u **Premium** původní soubor místo překódovaného 1080p. Server omezuje dotazy z jedné adresy (HTTP 429) – doplněk pak zdroj na 10 minut přeskočí; *Nastavení → Pokročilé → Ověřit zdroje* ukáže stav.
-- **CZtor** – *Nastavení → Zdroje a účty → CZtor → Spárovat PINem*: na TV se ukáže PIN, zadáš ho na `cztor.com/activate`; heslo se do doplňku nezadává.
-- **Luna** – otevři setup stránku Luny (`http://IP-Luny:7126/setup`), zkopíruj **adresu doplňku** (`…/e1.XXXX/manifest.json`) a vlož ji do pole *Adresa doplňku nebo token*; adresa serveru se z ní vezme sama. Tlačítka *Najít Lunu v síti* a *Ověřit nastavení Luny* řeknou, co nefunguje. Luna běží jako APK přímo na Android TV boxu (adresa `http://127.0.0.1:7126`), jako program na počítači nebo NAS, nebo jako addon Home Assistantu, a vždy potřebuje WebShare VIP.
-- **Vlastní databáze filmů a seriálů (TMDB)** – nepovinné, ale s klíčem má přednost i před Lunou (viz níž): zdarma klíč z [themoviedb.org](https://www.themoviedb.org/signup) → ikona profilu → *Nastavení* → *API* → *Request an API Key* → *Developer* → krátký formulář → zkopíruj **API Key (v3 auth)** (ne delší "API Read Access Token") do *Nastavení → Zdroje a účty → TMDB API*. Bez klíče se použije Luna (je-li dostupná), jinak zdarma veřejný katalog Sosáče a Cinemeta, ale bez českého popisu.
+- **CZtor** – *Nastavení → Zdroje a účty → CZtor → Spárovat PINem*: na TV se ukáže PIN, zadáš ho na `cztor.com/activate`; heslo se do doplňku nezadává. Podrobně v [nápovědě](https://matata86.github.io/nokturno-napoveda/cs/cztor).
+- **Luna** – v nové instalaci vypnutá, zapneš ji přepínačem *Používat Lunu*. Otevři setup stránku Luny (`http://IP-Luny:7126/setup`), zkopíruj **adresu doplňku** (`…/e1.XXXX/manifest.json`) a vlož ji do pole *Adresa doplňku nebo token*; adresa serveru se z ní vezme sama. Tlačítka *Najít Lunu v síti* a *Ověřit nastavení Luny* řeknou, co nefunguje. Luna běží jako APK přímo na Android TV boxu (adresa `http://127.0.0.1:7126`), jako program na počítači nebo NAS, nebo jako addon Home Assistantu, a vždy potřebuje WebShare VIP.
+- **Vlastní databáze filmů a seriálů (TMDB)** – nepovinné, ale s klíčem má přednost i před Lunou (viz níž): zdarma klíč z [themoviedb.org](https://www.themoviedb.org/signup) → ikona profilu → *Nastavení* → *API* → *Request an API Key* → *Developer* → krátký formulář → zkopíruj **API Key (v3 auth)** (ne delší "API Read Access Token") do *Nastavení → Zdroje a účty → TMDB API*. Bez klíče se použije Luna (je-li dostupná), jinak zdarma veřejný katalog Sosáče a Cinemeta, ale bez českého popisu. S klíčem mají české popisy i katalogy ze Sosáče.
 
 ## Vlastní databáze filmů a seriálů
 
@@ -178,7 +179,7 @@ Tlačítka otevřou tvoji instanci: první přidá integraci do HACS, druhé spu
 
 ## Nokturno ve Stremiu
 
-Vlastní úložiště a stejné zdroje kromě Luny jsou i jako [**doplněk pro Stremio**](https://github.com/matata86/nokturno-stremio) – funguje i v Nuviu a Streamletu. Nabízí volitelné katalogy (české novinky s dabingem a titulky, žebříček nejsledovanějších, Koncerty), ale nemá knihovnu ani Pokračovat ve sledování – dohledává streamy k titulům, které si Stremio najde samo.
+Vlastní úložiště a stejné zdroje kromě Luny jsou i jako [**doplněk pro Stremio**](https://github.com/matata86/nokturno-stremio) – funguje i v Nuviu a Streamletu. Nabízí volitelné katalogy (novinky s CZ/SK dabingem a titulky, žebříček nejsledovanějších, Koncerty) a sezónní katalogy z dashboardu, ale nemá knihovnu ani Pokračovat ve sledování – dohledává streamy k titulům, které si Stremio najde samo.
 
 **Přidat do Stremia:** [nokturno.stream/configure](https://nokturno.stream/configure).
 
@@ -240,7 +241,7 @@ Log se posílá na `https://nokturno.stream/logs?id=<id instalace>&version=<verz
 jako syrová gzip data v těle POST požadavku (stejné `id` jako u statistik).
 Očekávaná odpověď je HTTP 200; při chybě (síť, server, moc časté odeslání)
 doplněk zobrazí notifikaci s důvodem. Log uvidíme jen my a odpovíme přes zprávy
-v doplňku; starší 30 dní se mažou automaticky. Víc v [řešení problémů](https://github.com/matata86/plugin.video.nokturno/wiki/Reseni-problemu#jak-nahlásit-chybu).
+v doplňku; starší 30 dní se mažou automaticky. Víc v [nápovědě](https://matata86.github.io/nokturno-napoveda/cs/poslat-log).
 
 ## Pomoc
 
