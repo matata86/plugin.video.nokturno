@@ -22,6 +22,7 @@ import time
 import unittest
 import urllib.parse
 import xml.etree.ElementTree as ET
+import zipfile
 from unittest import mock
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -458,6 +459,26 @@ class TestBuildRepo(unittest.TestCase):
         self.assertLess(vk("3.1.10"), vk("3.2.0~beta1"))
         self.assertEqual(sorted(["3.2.0", "3.1.10", "3.2.0~beta1", "3.1.9"], key=vk),
                          ["3.1.9", "3.1.10", "3.2.0~beta1", "3.2.0"])
+
+    def test_index_ma_posledni_verze_a_kratke_novinky(self):
+        news = "\n".join("1.0.%d – %s" % (i, "x" * 90) for i in range(60))
+        with tempfile.TemporaryDirectory() as d:
+            for i in range(14):
+                with zipfile.ZipFile(os.path.join(d, "plugin.video.nokturno-1.0.%d.zip" % i), "w") as zf:
+                    zf.writestr("plugin.video.nokturno/addon.xml",
+                                '<?xml version="1.0"?>\n<addon id="plugin.video.nokturno" version="1.0.%d">'
+                                '<extension point="xbmc.addon.metadata"><news>%s</news></extension></addon>'
+                                % (i, news))
+            bloky = build_repo.all_versions_xml("plugin.video.nokturno", d)
+        self.assertEqual(len(bloky), build_repo.MAX_VERSIONS)
+        verze = [ET.fromstring(b).get("version") for b in bloky]
+        self.assertEqual(verze[0], "1.0.4")
+        self.assertEqual(verze[-1], "1.0.13")
+        for b in bloky:
+            text = ET.fromstring(b).findtext(".//news")
+            self.assertLessEqual(len(text), build_repo.NEWS_LIMIT)
+            self.assertTrue(text.startswith("1.0.0 – "))
+            self.assertTrue(news.startswith(text))
 
 
 class TestPomocneFunkce(unittest.TestCase):

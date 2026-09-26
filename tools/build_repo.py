@@ -112,8 +112,29 @@ def version_key(text):
     return nums, (0, tag_key) if tag else (1, ())
 
 
+# addons.xml stahuje každé Kodi při každé kontrole aktualizací. Se všemi verzemi
+# a celými <news> měl 7 MB (repo/) a 8 MB (repo-beta/). V „Vyberte verzi" stačí
+# posledních pár verzí, starší zipy v repu zůstávají pro ruční instalaci.
+MAX_VERSIONS = 10
+NEWS_LIMIT = 1500
+
+
+def short_news(xml):
+    """<news> v indexu zkrácené na celé řádky do `NEWS_LIMIT` znaků. addon.xml
+    v zipu zůstává celý — Novinky ve verzi v doplňku čtou z něj."""
+    def cut(m):
+        kept, size = [], 0
+        for line in m.group(2).split("\n"):
+            if kept and size + len(line) > NEWS_LIMIT:
+                break
+            kept.append(line)
+            size += len(line) + 1
+        return m.group(1) + "\n".join(kept) + m.group(3)
+    return re.sub(r"(<news>)(.*?)(</news>)", cut, xml, count=1, flags=re.S)
+
+
 def all_versions_xml(addon_id, out_dir):
-    """`<addon>` bloky pro všechny verze, které v repu leží jako zip.
+    """`<addon>` bloky pro posledních `MAX_VERSIONS` verzí, které v repu leží jako zip.
 
     Kodi nabízí v „Vyberte verzi" jen to, co je vypsané v addons.xml — samotná
     přítomnost starého zipu nestačí. Metadata každé verze se čtou z addon.xml
@@ -128,8 +149,8 @@ def all_versions_xml(addon_id, out_dir):
         with zipfile.ZipFile(os.path.join(out_dir, name)) as zf:
             xml = zf.read(f"{addon_id}/addon.xml").decode("utf-8")
         xml = re.sub(r"<\?xml[^>]*\?>\s*", "", xml).strip()
-        blocks[ET.fromstring(xml).get("version")] = xml
-    return [blocks[v] for v in sorted(blocks, key=version_key)]
+        blocks[ET.fromstring(xml).get("version")] = short_news(xml)
+    return [blocks[v] for v in sorted(blocks, key=version_key)[-MAX_VERSIONS:]]
 
 
 def check(version):
