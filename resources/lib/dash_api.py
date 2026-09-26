@@ -56,6 +56,7 @@ DISCOVER_MAX_PAGE = 10
 # parametry vlastního katalogu, které server přijme (bílá listina `tmdb_discover` na serveru je širší)
 DISCOVER_PARAMS = {
     "with_genres": re.compile(r"^[0-9]{1,6}([,|][0-9]{1,6}){0,9}$"),
+    "with_keywords": re.compile(r"^[0-9]{1,7}([,|][0-9]{1,7}){0,9}$"),
     "with_original_language": re.compile(r"^[a-z]{2}(\|[a-z]{2}){0,4}$"),
     "with_origin_country": re.compile(r"^[A-Z]{2}(\|[A-Z]{2}){0,4}$"),
     "year_from": re.compile(r"^(19|20)[0-9]{2}$"),

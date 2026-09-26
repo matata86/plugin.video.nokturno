@@ -6818,6 +6818,14 @@ class TestVlastniKatalogy(unittest.TestCase):
                                                      "sort_by": "vote_average.desc", "year_from": 1990})
         self.assertEqual(default.mycat_params({**cat, "join": "or"})["with_genres"], "35|10751")
 
+    def test_pohadky_jako_klicove_slovo(self):
+        cat = self._vytvor(multiselect=(18,), selects=(3, 0))[0]
+        self.assertEqual((cat["genres"], cat["keywords"], cat["lang"]), ([], ["fairy"], "cs|sk"))
+        self.assertEqual(cat["name"], "Pohádky · Čeština nebo slovenština")
+        self.assertEqual(default.mycat_params(cat), {"with_keywords": "3205|329731|358931|351899",
+                                                     "with_original_language": "cs|sk",
+                                                     "sort_by": "popularity.desc", "year_from": 1990})
+
     def test_zruseni_nic_neulozi(self):
         with mock.patch.object(xbmcgui.Dialog, "multiselect", return_value=None):
             default.main("action=mycat_new&type=movie")

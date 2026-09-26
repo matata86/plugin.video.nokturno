@@ -2762,3 +2762,7 @@ msgstr ""
 msgctxt "#30975"
 msgid "at least one selected genre"
 msgstr ""
+
+msgctxt "#30976"
+msgid "Fairy tales"
+msgstr ""

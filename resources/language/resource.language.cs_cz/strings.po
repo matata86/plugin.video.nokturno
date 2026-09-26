@@ -2762,3 +2762,7 @@ msgstr "všechny vybrané žánry"
 msgctxt "#30975"
 msgid "at least one selected genre"
 msgstr "aspoň jeden vybraný žánr"
+
+msgctxt "#30976"
+msgid "Fairy tales"
+msgstr "Pohádky"

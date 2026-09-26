@@ -5031,6 +5031,9 @@ MYCAT_GENRES = {   # id žánrů TMDB → anglický název (česky přes `genre_
                (99, "Documentary"), (18, "Drama"), (10751, "Family"), (10762, "Kids"), (9648, "Mystery"),
                (10764, "Reality"), (10765, "Sci-Fi & Fantasy"), (10768, "War & Politics"), (37, "Western")),
 }
+# Klíčová slova TMDB, která TMDB jako žánr nemá (pohádka je u něj jen klíčové slovo).
+# Ve formuláři jsou pod žánry; ukládá se klíč, ne id, ať jde seznam id později doplnit.
+MYCAT_KEYWORDS = (("fairy", "3205|329731|358931|351899", 30976, "Pohádky"),)
 MYCAT_LANGS = (("", 30950, "Jakýkoli"), ("cs", 30960, "Čeština"), ("sk", 30961, "Slovenština"),
                ("cs|sk", 30962, "Čeština nebo slovenština"), ("en", 30963, "Angličtina"),
                ("de", 30964, "Němčina"), ("fr", 30965, "Francouzština"), ("es", 30966, "Španělština"),
@@ -5049,15 +5052,18 @@ def mycats(ctype=None):
 def mycat_params(cat):
     """Uložené volby → parametry `DashApi.discover` (neplatné hodnoty zahodí až klient)."""
     genres = [str(g) for g in cat.get("genres") or []]
+    keywords = [ids for key, ids, _, _ in MYCAT_KEYWORDS if key in (cat.get("keywords") or [])]
     params = {"with_genres": ("|" if cat.get("join") == "or" else ",").join(genres),
+              "with_keywords": "|".join(keywords),
               "with_original_language": cat.get("lang") or "", "sort_by": cat.get("sort") or "",
               "year_from": cat.get("year_from") or "", "year_to": cat.get("year_to") or ""}
     return {k: v for k, v in params.items() if v}
 
 
-def mycat_auto_name(ctype, genres, lang):
+def mycat_auto_name(ctype, genres, lang, keywords=()):
     names = dict(MYCAT_GENRES["series" if ctype == "series" else "movie"])
-    parts = [genre_label(names[g]) for g in genres if g in names][:3]
+    parts = ([L(sid, fb) for key, _, sid, fb in MYCAT_KEYWORDS if key in keywords]
+             + [genre_label(names[g]) for g in genres if g in names])[:3]
     lang_label = next((L(sid, fb) for code, sid, fb in MYCAT_LANGS if code and code == lang), "")
     return " · ".join(parts + ([lang_label] if lang_label else [])) or L(30972, "Vlastní katalog")
 
@@ -5074,11 +5080,15 @@ def mycat_form(ctype, cat=None):
     kind = "series" if ctype == "series" else "movie"
     dlg = xbmcgui.Dialog()
     genres = MYCAT_GENRES[kind]
-    chosen = dlg.multiselect(L(30948, "Žánry (nic = všechny)"), [genre_label(n) for _, n in genres],
-                             preselect=[i for i, (g, _) in enumerate(genres) if g in (cat.get("genres") or [])])
+    kw_keys = [key for key, _, _, _ in MYCAT_KEYWORDS]
+    labels = [genre_label(n) for _, n in genres] + [L(sid, fb) for _, _, sid, fb in MYCAT_KEYWORDS]
+    preselect = ([i for i, (g, _) in enumerate(genres) if g in (cat.get("genres") or [])]
+                 + [len(genres) + i for i, k in enumerate(kw_keys) if k in (cat.get("keywords") or [])])
+    chosen = dlg.multiselect(L(30948, "Žánry (nic = všechny)"), labels, preselect=preselect)
     if chosen is None:
         return None
-    picked = [genres[i][0] for i in chosen]
+    picked = [genres[i][0] for i in chosen if i < len(genres)]
+    keywords = [kw_keys[i - len(genres)] for i in chosen if i >= len(genres)]
     join = cat.get("join") or "and"
     if len(picked) > 1:
         idx = dlg.select(L(30973, "Tituly musí mít"),
@@ -5100,10 +5110,10 @@ def mycat_form(ctype, cat=None):
                      preselect=sorts.index(cat.get("sort")) if cat.get("sort") in sorts else 0)
     if idx < 0:
         return None
-    default_name = cat.get("name") or mycat_auto_name(kind, picked, lang)
+    default_name = cat.get("name") or mycat_auto_name(kind, picked, lang, keywords)
     name = dlg.input(L(30957, "Název katalogu"), default_name).strip()[:60] or default_name
     return {"id": cat.get("id") or f"k{int(time.time() * 1000):x}", "kind": kind, "name": name,
-            "genres": picked, "join": join, "lang": lang, "year_from": year_from, "year_to": year_to,
+            "genres": picked, "keywords": keywords, "join": join, "lang": lang, "year_from": year_from, "year_to": year_to,
             "sort": sorts[idx]}
 
 
