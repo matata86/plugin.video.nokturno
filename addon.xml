@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="8.4.0~beta21" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="8.4.0" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -40,7 +40,13 @@
       <screenshot>resources/screenshots/03-vyber-streamu.jpg</screenshot>
       <screenshot>resources/screenshots/04-nastaveni.jpg</screenshot>
     </assets>
-    <news>8.4.0~beta21 – Titul odebraný z Pokračovat ve sledování se zase otevírá výběrem streamu, dřív ho klik rovnou pustil starým streamem od začátku.
+    <news>8.4.0 – Hlídané: nový díl seriálu nebo film, který zatím nikde není, Nokturno ohlásí samo, až bude k dispozici. Kontrolovat dál i u titulu nebo dílu, který streamy má, ale ne takové, jaké chceš (třeba bez CZ titulků). Hlídané jsou v hlavním menu a synchronizují se mezi Kodi i s Home Assistantem.
+8.4.0 – Vlastní katalogy ve Filmech a Seriálech: katalog si poskládáš podle žánrů, původního jazyka, let a řazení, bez vlastního klíče TMDB.
+8.4.0 – FastShare jde používat i s účtem ze Sdilej.cz. Trakt.tv bez vlastní aplikace: stačí kód na trakt.tv/activate, i s free účtem.
+8.4.0 – Nová volba Skrýt 3D streamy. Hodnocení nese svůj zdroj (IMDb, TMDB, Sosáč). S vlastním klíčem TMDB jsou české popisy i v katalozích ze Sosáče.
+8.4.0 – Katalogy Nově přidané s CZ/SK dabingem a s CZ/SK titulky, u Seriálů celé seriály. Sjednocené texty ve čtyřech jazycích a přepínače zdrojů „Používat …“.
+8.4.0 – Luna je v nové instalaci vypnutá. Průvodce nabídne přepnout TMDb Helper do češtiny. Nové synchronizaci je předvolený Dashboard Nokturna. Drobné opravy.
+8.4.0~beta21 – Titul odebraný z Pokračovat ve sledování se zase otevírá výběrem streamu, dřív ho klik rovnou pustil starým streamem od začátku.
 8.4.0~beta20 – Vlastní katalogy: ve Filmech a Seriálech si poskládáš katalog podle žánrů, původního jazyka, let a řazení. Nepotřebuje vlastní klíč TMDB.
 8.4.0~beta19 – Katalogy Nově přidané se jmenují s CZ/SK dabingem a s CZ/SK titulky, zařazují i slovenské. Hlídaný titul má štítek „hlídá se“ a texty oslovují bez rodu. V Synchronizaci je Dashboard Nokturna první i ve volbě střediska.
 8.4.0~beta18 – Tlačítko v Synchronizaci se jmenuje Založit skupinu / otevřít připojení: u existující skupiny znovu otevře připojení pro další zařízení. Jazyk zvukové stopy se pozná i z novějšího značení MKV. U dílů seriálu se lépe vyřazují streamy s příliš vysokým datovým tokem. Štítek vlastního úložiště ve streamech je v jazyce rozhraní. V Synchronizaci je Dashboard Nokturna zase nad Home Assistantem.
