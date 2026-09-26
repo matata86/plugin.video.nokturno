@@ -22,6 +22,10 @@ Tři veřejné endpointy, které server skládá sám z TMDB (klient nic nedohle
   Klíč je vázaný na aplikaci, ne na uživatele, a denní kvóta se počítá na IP toho,
   kdo stahuje — proto ho dostane klient a volá OpenSubtitles přímo, ne přes nás.
   Do repozitáře se nesmí; tudy jde vyměnit bez vydání nové verze doplňku.
+* `GET /trakt-key` — client id a secret aplikace Nokturno na Traktu. Uživatel si tak
+  nemusí zakládat vlastní aplikaci (od 7/2026 to Trakt free účtům ztížil); jen zadá
+  kód na trakt.tv/activate. Tokeny jsou vázané na client id, výměna klíče tedy znamená
+  nové přihlášení.
 
 Dashboard nesmí zdržet menu doplňku: krátký timeout, výsledky v cache a při výpadku
 se vrací poslední známá data (i prošlá) a na pět minut se síť přestane zkoušet
@@ -47,6 +51,7 @@ CATALOG_TTL = 6 * 3600
 SIMILAR_TTL = 7 * 86400
 TV_TTL = 30 * 60
 OS_KEY_TTL = 7 * 86400   # klíč se nemění; při výměně se rozejde nejvýš na týden
+TRAKT_KEY_TTL = 7 * 86400
 STALE_TTL = 14 * 86400   # jak staré záložní data ještě ukázat při výpadku
 DOWN_TTL = 300
 DOWN_KEY = "nokturno:dash:down"
@@ -63,6 +68,7 @@ IMDB_RE = re.compile(r"^tt\d{5,10}$")
 DAY_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 CHANNEL_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,39}$")
 OS_KEY_RE = re.compile(r"^[A-Za-z0-9]{16,64}$")   # tvar klíče OpenSubtitles
+TRAKT_KEY_RE = re.compile(r"^[A-Za-z0-9_-]{20,128}$")   # hex (staré aplikace) i base64url (developer.trakt.tv)
 MEDIA_TIMEOUT = 2      # dotaz na hlavičky ze serveru — kratší než strop čtení hlaviček (3 s)
 MEDIA_MAX = 50         # identů na jeden dotaz (server víc odmítne)
 MEDIA_IDENT_RE = re.compile(r"^(ws|hs|fs|cz):[A-Za-z0-9:_./=-]{1,120}$")
@@ -290,6 +296,23 @@ class DashApi:
         data = self._load("nokturno:dash:os-key", OS_KEY_TTL, fetch) or {}
         klic = data.get("key") or ""
         return klic if OS_KEY_RE.match(str(klic)) else ""
+
+    # --- klíč aplikace Nokturno na Traktu ------------------------------------------------
+
+    def trakt_key(self):
+        """`(client_id, client_secret)` aplikace Nokturno na Traktu, nebo `("", "")`,
+        když ho server nemá nebo je nedostupný (a nejsou ani stará data)."""
+        def fetch():
+            data = self._get("/trakt-key")
+            if not isinstance(data, dict):
+                return None
+            cid, sec = data.get("client_id"), data.get("client_secret")
+            ok = all(isinstance(v, str) and TRAKT_KEY_RE.match(v) for v in (cid, sec))
+            return {"client_id": cid, "client_secret": sec} if ok else None
+
+        data = self._load("nokturno:dash:trakt-key", TRAKT_KEY_TTL, fetch) or {}
+        cid, sec = str(data.get("client_id") or ""), str(data.get("client_secret") or "")
+        return (cid, sec) if TRAKT_KEY_RE.match(cid) and TRAKT_KEY_RE.match(sec) else ("", "")
 
     # --- hlavičky souborů ze společné cache serveru ------------------------------------
 

@@ -43064,4 +43064,468 @@
 1.0.0 – první vydání</news>
   </extension>
 </addon>
+<addon id="plugin.video.nokturno" name="Nokturno" version="8.4.0~beta14" provider-name="matata86">
+  <requires>
+    <import addon="xbmc.python" version="3.0.1"/>
+  </requires>
+  <extension point="xbmc.python.pluginsource" library="default.py">
+    <provides>video</provides>
+  </extension>
+  <extension point="xbmc.service" library="service.py"/>
+  <extension point="xbmc.addon.metadata">
+    <!-- Kodi nechá interpret běžet a při dalším kliknutí spustí default.py znovu v něm.
+         Ušetří se start interpretu a import ~30 modulů. Patří sem, do metadat — uvnitř
+         `xbmc.python.pluginsource` si toho Kodi nevšimne (ověřeno na Office 2026-09-20,
+         stejné místo mají youtube i themoviedb.helper). Podmínka: importované moduly si
+         drží stav mezi spuštěními, tělo default.py se spouští znovu — viz
+         dokumentace.md § Reuse invoker. -->
+    <reuselanguageinvoker>true</reuselanguageinvoker>
+    <summary lang="en_GB">Play your own storage (WebDAV/NAS) in Kodi, optionally also WebShare, Sosáč, Sledujteto, FastShare, CZtor, Přehraj.to, Luna: Absolute Cinema and HellSpy — one add-on, search across sources</summary>
+    <summary lang="cs_CZ">Přehrávač vlastního úložiště (WebDAV/NAS) pro Kodi, volitelně i WebShare, Sosáč, Sledujteto, FastShare, CZtor, Přehraj.to, Luna a HellSpy — jeden doplněk, hledání napříč</summary>
+    <summary lang="sk_SK">Prehrávač vlastného úložiska (WebDAV/NAS) pre Kodi, voliteľne aj WebShare, Sosáč, Sledujteto, FastShare, CZtor, Přehraj.to, Luna a HellSpy — jeden doplnok, hľadanie naprieč zdrojmi</summary>
+    <description lang="en_GB">Nokturno is first of all a player and manager for your own storage — WebDAV, NAS, Nextcloud or a home server, up to three folders, no account needed. Eight more sources are an optional add-on service, each toggled independently: WebShare directly (your account – file search and playback), Sosáč directly (its catalogues, series with episodes, Czech dubbing and subtitles – only a Streamuj.tv account), Sledujteto (your account – search, playback with Premium, audio and subtitle tracks straight from its API), FastShare (search without an account, playback from your credit or with unlimited downloads), CZtor (subscription at cztor.com – the device is paired with a PIN, audio and subtitle tracks straight from its API), Přehraj.to (works without an account, Premium adds the original file instead of the transcoded 1080p), a Luna: Absolute Cinema server, reachable on your LAN or running locally on the same device (TMDB catalogues, WebShare streams with detected quality and languages), and HellSpy (public, no account needed). The movie/series catalogue and search always work, even with none of these configured, thanks to a built-in Cinemeta connection. Search across sources, streams from several sources for one title with a quality/audio/subtitle filter, bitrate and length on every stream, continue watching, my list, downloads, Trakt, WebShare subscription tracking, and a TMDb Helper player — Play on a movie details page (Arctic Fuse and other skins) searches Nokturno, with stream choice and filter in a dialog. Support the author: Ko-fi https://ko-fi.com/matata86 · PayPal https://paypal.me/matata86 · BTC bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc</description>
+    <description lang="cs_CZ">Nokturno je především přehrávač a správce tvého vlastního úložiště — WebDAV, NAS, Nextcloud nebo domácí server, až tři složky, bez účtu. Osm dalších zdrojů je volitelná doplňková služba, každý se zapíná zvlášť: WebShare přímo (tvůj účet – hledání souborů a přehrávání), Sosáč napřímo (jeho katalogy, seriály s epizodami, český dabing a titulky – stačí účet Streamuj.tv), Sledujteto (tvůj účet – hledání, přehrávání s Premium, zvukové stopy a titulky přímo z jeho API), FastShare (hledání i bez účtu, přehrávání z kreditu nebo s neomezeným stahováním), CZtor (předplatné na cztor.com – zařízení se spáruje PINem, zvukové stopy a titulky přímo z jeho API), Přehraj.to (funguje i bez účtu, Premium přidá původní soubor místo překódovaného 1080p), server Luna: Absolute Cinema, dostupný v LAN nebo běžící lokálně na stejném zařízení (TMDB katalogy, streamy z WebShare s rozpoznanou kvalitou a jazyky), a HellSpy (veřejný, bez účtu). Katalog filmů a seriálů i hledání fungují vždy, i bez jediného nastaveného zdroje, díky vlastnímu napojení na Cinemetu. Hledání napříč zdroji, streamy z více zdrojů u jednoho titulu s filtrem podle kvality/zvuku/titulků, datový tok a délka u každého streamu, pokračovat ve sledování, můj seznam, stahování, Trakt, sledování předplatného WebShare a player pro TMDb Helper — Přehrát v detailu filmu (Arctic Fuse a další skiny) hledá v Nokturnu, s výběrem streamu a filtrem v dialogu. Podpoř autora: Ko-fi https://ko-fi.com/matata86 · PayPal https://paypal.me/matata86 · BTC bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc</description>
+    <description lang="sk_SK">Nokturno je predovšetkým prehrávač a správca tvojho vlastného úložiska — WebDAV, NAS, Nextcloud alebo domáci server, až tri zložky, bez účtu. Osem ďalších zdrojov je voliteľná doplnková služba, každý sa zapína zvlášť: WebShare priamo (tvoj účet – hľadanie súborov a prehrávanie), Sosáč priamo (jeho katalógy, seriály s dielmi, český dabing a titulky – stačí účet Streamuj.tv), Sledujteto (tvoj účet – hľadanie, prehrávanie s Premium, zvukové stopy a titulky priamo z jeho API), FastShare (hľadanie aj bez účtu, prehrávanie z kreditu alebo s neobmedzeným sťahovaním), CZtor (predplatné na cztor.com – zariadenie sa spáruje PIN kódom, zvukové stopy a titulky priamo z jeho API), Přehraj.to (funguje aj bez účtu, Premium pridá pôvodný súbor namiesto prekódovaného 1080p), server Luna: Absolute Cinema, dostupný v LAN alebo bežiaci lokálne na tom istom zariadení (TMDB katalógy, streamy z WebShare s rozpoznanou kvalitou a jazykmi), a HellSpy (verejný, bez účtu). Katalóg filmov a seriálov aj hľadanie fungujú vždy, aj bez jediného nastaveného zdroja, vďaka vlastnému napojeniu na Cinemetu. Hľadanie naprieč zdrojmi, streamy z viacerých zdrojov pri jednom titule s filtrom podľa kvality/zvuku/titulkov, dátový tok a dĺžka pri každom streame, pokračovať v sledovaní, môj zoznam, sťahovanie, Trakt, sledovanie predplatného WebShare a player pre TMDb Helper — Prehrať v detaile filmu (Arctic Fuse a ďalšie skiny) hľadá v Nokturne, s výberom streamu a filtrom v dialógu. Podpor autora: Ko-fi https://ko-fi.com/matata86 · PayPal https://paypal.me/matata86 · BTC bc1qhjwt8xxmuym0xsd50yfpvjph00386uz73gqwlc</description>
+    <platform>all</platform>
+    <license>MIT</license>
+    <source>https://github.com/matata86/plugin.video.nokturno</source>
+    <website>https://github.com/matata86/plugin.video.nokturno</website>
+    <forum>https://github.com/matata86/plugin.video.nokturno/issues</forum>
+    <assets>
+      <icon>resources/media/icon2.png</icon>
+      <fanart>resources/media/fanart.jpg</fanart>
+    </assets>
+    <news>8.4.0~beta14 – Trakt.tv bez vlastní aplikace: stačí se přihlásit kódem na trakt.tv/activate, jde to i s free účtem. Opraveno přihlášení, které Trakt odmítal.
+8.4.0~beta13 – Místní složka z Windows (C:\…) v adrese vlastního úložiště už neshodí celý doplněk, úložiště se jen přeskočí.
+8.2.5 – Místní složka z Windows (C:\…) v adrese vlastního úložiště už neshodí celý doplněk, úložiště se jen přeskočí.
+8.4.0~beta12 – Hodnocení nese svůj zdroj (IMDb, TMDB, Sosáč), skin tak ukáže správné logo.
+8.4.0~beta11 – Průvodce prvním nastavením nabídne přepnout TMDb Helper do češtiny (má vlastní jazyk, výchozí angličtinu).
+8.4.0~beta10 – Drobné opravy.
+8.4.0~beta9 – Luna je v nové instalaci vypnutá; kdo ji už používá, má ji zapnutou dál.
+8.4.0~beta8 – S vlastním klíčem TMDB mají české popisy i katalogy ze Sosáče (Nově přidané s CZ dabingem/titulky), dřív anglicky z Cinemety.
+8.2.4 – S vlastním klíčem TMDB mají české popisy i katalogy ze Sosáče (Nově přidané s CZ dabingem/titulky), dřív anglicky z Cinemety.
+8.4.0~beta7 – Drobné opravy.
+8.4.0~beta6 – Drobné opravy.
+8.4.0~beta5 – Drobné opravy.
+8.4.0~beta4 – Hlídané: „kontrolovat dál“ u dílu se ukazuje přímo na řádku seriálu (Cizinka · 2x02 · kontrolovat dál).
+8.4.0~beta3 – Hlídané v hlavním menu hned pod Pokračovat ve sledování.
+8.4.0~beta2 – Hlídané: stav a číslo dílu oddělené od názvu tečkou (Zrádci · 3x02, … · kontrolovat dál).
+8.4.0~beta1 – Hlídané: „Kontrolovat dál“ i u dílu seriálu (kontextové menu dílu nebo seriálu v Hlídaných). Díl, který streamy má, ale ne takové, jaké chceš (třeba bez CZ titulků), se hlídá dál a Nokturno se ozve, až streamů přibude.
+8.3.0~beta9 – S účtem ze Sdilej.cz se streamy FastShare hlásí jako Sdilej.cz, i ve filtru zdrojů.
+8.3.0~beta8 – Přepínače zdrojů v nastavení se jmenují jednotně „Používat …“ (WebShare, Přehraj.to, Sosáč, HellSpy, Sledujteto, FastShare / Sdilej.cz, CZtor, Luna, OpenSubtitles, Trakt.tv).
+8.3.0~beta7 – V Info u Podpořit projekt je vidět i Ko-fi.
+8.3.0~beta6 – FastShare jde nově používat i s účtem ze Sdilej.cz (Nastavení → Zdroje a účty → FastShare → Účet z, v průvodci se to nabídne samo). Oba weby mají stejné soubory, liší se jen účet. Zároveň se ve výsledcích FastShare ukazují i soubory, které dřív kvůli chybě chyběly.
+8.3.0~beta5 – Nově přidané s CZ dabingem nebo titulky ukazují u Seriálů celé seriály, ne jednotlivé díly. Jazyk se ověřuje na nejnovějším dílu.
+8.3.0~beta4 – Hlídané mají zase výchozí ikonu skinu (seznam videí, s novým dílem nově přidané díly).
+8.3.0~beta3 – Zkontrolovat teď v Hlídaných bere díly seriálu i streamy nově, ne z cache. Běžná kontrola na pozadí používá metadata nejvýš 6 hodin stará (dřív až 30 dní), takže nový díl ani nová série neujdou.
+8.3.0~beta2 – Hlídané uložené v Home Assistantu nebo v Kodi před touto betou se teď synchronizují taky.
+8.3.0~beta1 – Hlídané: nový díl seriálu nebo film, který zatím nikde není, ohlásí Nokturno samo, až bude k dispozici. V kontextovém menu Hlídat nové díly (seriál) a Hlídat, až bude k dispozici (film), totéž se nabídne, když se nenajde žádný stream. Kontrolovat dál u titulu, který stream má, ale ne v kvalitě nebo zvuku, jakou chceš. Položka Hlídané v menu ukazuje nové díly. Seznam se synchronizuje s dalšími Kodi i s Home Assistantem (nová volba v Synchronizaci) a kontrola se nedělá na každém zařízení znovu.
+8.2.0 – SyncWatch: společné sledování na víc zařízeních (menu SyncWatch, kód skupiny, tentýž stream u všech, pauza a přetáčení platí pro všechny, Vrátit se do filmu). Nová volba Automaticky použít poslední filtr u výběru streamu. Po odmítnutém jménu či hesle se zdroj hodinu nezkouší. Souhlas s podmínkami rovnou v dialogu. Každé vlastní úložiště jde vypnout bez smazání údajů. Sledujteto hraje přes stahovací odkaz.
+8.2.0~beta6 – Vlastní úložiště má u každého ze tří slotů přepínač Použít toto úložiště. Vypnuté zůstane vyplněné, jen se v něm nehledá a v menu se neukáže.
+8.2.0~beta5 – Souhlas s podmínkami použití se dává rovnou v okně Souhlasím / Nesouhlasím. Dřív se otevřelo nastavení, přepínač ale byl až v poslední kategorii, takže se po aktualizaci ze starší verze menu neotevřelo.
+8.2.0~beta4 – Když Sledujteto, Přehraj.to nebo FastShare odmítne jméno či heslo, doplněk to s týmiž údaji hodinu nezkouší. Dřív se hlásil znovu u každého hledání (v katalogu s jazykem i stokrát za kolo). Po opravě hesla v nastavení se přihlásí hned.
+8.2.0~beta3 – Nová volba Nastavení → Výběr streamu → Automaticky použít poslední filtr: výběr streamu se otevře rovnou s filtrem, který jsi nastavil naposledy. SyncWatch: odpočet zániku skupiny v okně běží po vteřinách.
+8.2.0~beta2 – SyncWatch: kdo ve skupině omylem zastaví přehrávání, vrátí se zpátky do filmu položkou Vrátit se do filmu v menu SyncWatch. Film naskočí tam, kde ho mají ostatní.
+8.2.0~beta1 – Nová položka menu SyncWatch: společné sledování na víc zařízeních. Jeden založí skupinu a dostane kód, ostatní (nejvýš 4 další zařízení) ho zadají a čekají. Co vedoucí pustí, spustí se i u nich — přes jejich vlastní účty u zdrojů — a začne se, až se načte všem. Pauza, play a přetáčení od kohokoli platí pro všechny, na pomalé zařízení se počká. Skupina zanikne, když se k ní 5 minut nikdo nepřipojí. Co sledujete, server nevidí. Zároveň oprava: synchronizace a přenos nastavení přes nokturno.stream znovu fungují (od 7.9.3 je server odmítal).
+8.1.2 – Když by server Nokturna přestal být dostupný na své adrese, doplněk si sám najde náhradní adresu. Žebříčky, katalogy, synchronizace a odesílání logů tak přežijí i změnu adresy serveru bez aktualizace doplňku.
+8.1.1 – Synchronizace přes Dashboard Nokturna a přenos nastavení do dalšího Kodi znovu fungují. Od 7.9.3 je nový server odmítal.
+8.0.1 – Položka Koncerty se ukáže, jakmile jsou koncerty dostupné. Dřív ji mohlo na hodinu schovat otevření menu hned po startu, kdy Kodi ještě nemělo síť, a restart nepomohl. Sezónní katalogy (třeba Vánoce) se v menu objeví hned po půlnoci, ne až do hodiny.
+8.0.0 – Nová položka menu Koncerty: katalog záznamů hudebních koncertů podle interpreta. Nahoře Nově přidané (padesát naposledy přidaných, každý soubor před zařazením prošel ruční kontrolou), pod tím Všichni, Podle žánru a Podle abecedy. U každého záznamu je vidět zdroj, velikost, rozlišení a délka; klik přehraje nejlepší soubor z tvých zapnutých zdrojů a když nejde, zkusí se další kopie. Koncerty najdeš i ve Stremiu jako samostatný doplněk.
+8.0.0~beta7 – Koncerty: položka Podle písmene se jmenuje Podle abecedy.
+8.0.0~beta6 – Koncerty: nahoře nová složka Nově přidané — padesát koncertů, které do katalogu přibyly naposledy. Nové soubory teď do katalogu jdou až po ruční kontrole, takže v Nově přidaných je jen prověřený obsah.
+8.0.0~beta5 – Oprava: když se doplněk jednou nedovolal na server Nokturna (na Androidu k tomu stačí, že Kodi po startu ještě nemá síť), pět minut se tam nezkoušel dovolat vůbec — a seznamy, které si ještě nestihl uložit, zůstaly prázdné, i když síť mezitím byla. Nově se to, pro co nemá zálohu, zkusí i tak.
+8.0.0~beta4 – Koncerty: v seznamu je teď u každého záznamu vidět zdroj, velikost, rozlišení a délka (i kolik je jiných kopií téhož koncertu), položky mají náhledový obrázek ze zdroje a dvě stě interpretů už se neprochází v jednom výpisu — nahoře je rozcestník Všichni / Podle žánru / Podle písmene.
+8.0.0~beta3 – Bety 1 a 2 se nedovolaly na server, takže se Koncerty ani neukázaly: vyšly ještě před tím, než doplněk poznal novou adresu nokturno.stream. Tahle beta ji má, takže Koncerty (a s nimi žebříčky, katalogy, TV program a statistiky) zase fungují.
+7.9.6 – Stahování do síťové složky (smb://, nfs://) funguje. Dřív skončilo chybou „Read-only file system“ a soubor se neuložil. Přerušené stahování do síťové složky začne po obnovení od začátku, do místní složky naváže jako dosud.
+7.9.4 – Odkaz na web Nokturna v nastavení (Pokročilé → Info) vede na novou adresu nokturno.stream, stejně tak příklad adresy vlastního úložiště v nápovědě.
+7.9.3 – Doplněk zná dvě adresy serveru Nokturna. Když se nedovolá na tu první (nokturno.stream), zkusí druhou (nokturno.tailf0014.ts.net). Přepíná se jen při chybě spojení, na chybu serveru (404, 429, 500) ne — obě vedou na tentýž stroj.
+8.0.0~beta2 – Koncerty ve zkušebním provozu: položka je v menu jen na instalacích, kterým je server vydává (ostatním se neukáže); server navíc ověřuje odkazem, že uložené soubory ještě existují, a lépe slučuje verze téhož koncertu.
+8.0.0~beta1 – Nová položka menu „Koncerty“: katalog hudebních koncertů z WebShare, HellSpy a FastShare, sestavený serverem (300 interpretů, svět i CZ/SK). Interpret → koncerty → klik hraje rovnou největší soubor z tvých zapnutých zdrojů, další kopie téhož koncertu se zkusí samy, když první nejde. Bez IMDb id, mimo Filmy/Seriály.
+7.9.2 – Oprava tlačítka souhlasu s podmínkami v Průvodci prvním nastavením (7.9.0): tvrdilo „Otevřít nastavení", ale ve skutečnosti jen rovnou zapsalo souhlas a pokračovalo v průvodci. Nově „Souhlasím" / „Souhlasíš s podmínkami použití výše?" — stejný text jako na stránce „Nastavit z mobilu".
+7.9.1 – Oprava zastaralého docstringu u průvodce prvním nastavením (kosmetika, bez funkční změny).
+7.9.0 – Souhlas s podmínkami použití jde dát i ze stránky „Nastavit z mobilu“ (přepínač a tlačítko „Přečíst podmínky“ v nové sekci) a je teď vlastním krokem přímo v Průvodci prvním nastavením, ne jen v Nastavení doplňku.
+7.7.0 – Nedostupné streamy se skrývají samy. Měřeno: ze streamovacích serverů Sosáče (streamuj.tv) třetina zrovna nebrala spojení, ale streamy z nich stály v dialogu výběru na svém místě, jako by fungovaly, a selhaly až po stisku Přehrát. Doplněk teď hlavičku souboru, kterou stejně čte kvůli zvuku a rozlišení, umí poznat jako nedostupnou — takový stream ze seznamu zmizí (uvidíš ho přes „Zobrazit všechny streamy“) a další stream ze stejného serveru se dalších deset minut ani nezkouší. Nová notifikace po hledání hlásí, kolik streamů se skrylo. Ve Stavu zdrojů navíc přibylo tlačítko „Uspat zdroj“ (10 minut / 1 hodina / 12 hodin) — pro chvíli, kdy je celý zdroj rozbitý a nechceš na něj čekat u každého titulu.
+7.6.6 – Seznamy „Nově přidané s CZ dabingem/titulky“ se staví rychleji a šetrněji k serverům zdrojů. U každého titulu se zdrojů ptá dál všech najednou, ale jakmile kterýkoli nabídne český nebo slovenský dabing, na zbytek se už nečeká a jde se na další titul. Přehraj.to se do tohohle hromadného ověřování zapojí jen s účtem — bez něj z něj jazyk stejně nepozná a jeho server odmítal časté dotazy. Zařazení titulu se navíc pamatuje den, takže obnova na pozadí (každých 6 hodin) už na zdroje většinou vůbec nesáhne.
+7.6.5 – Vlastní ikony menu z 7.6.0–7.6.4 zrušené, zpět na ikony ze skinu — nevyhovovaly. Katalogy z dashboardu zůstávají nahoře v menu Filmů a Seriálů.
+7.6.4 – Ikony menu mají tmavý kruh na pozadí. Bílá silueta na průhledném pozadí byla i po opravě 7.6.3 málo vidět na některých skinech (Arctic Fuse ji kreslí i jako zvětšený náhled) — kruh dá kontrast bez ohledu na barvu podkladu.
+7.6.3 – Ikony v menu vypadaly na skinu Arctic Fuse rozbitě — položky Filmů, Seriálů a spol. nesly ikonu i jako velký náhledový obrázek (thumb), který Arctic Fuse zvětšuje do dlaždice. Bílá silueta na průhledném pozadí v ní vypadala jako prázdné místo. Ikona teď nese jen malý obrázek u položky, náhled si skin dokreslí sám.
+7.6.2 – Oprava: když vybraný stream nešel přehrát, doplněk to vzdal, i když tentýž film ležel na dalších zdrojích. Stávalo se to hlavně u FastShare s vyčerpaným kreditem, u vypršelého účtu nebo u smazaného souboru — chyba se objevila i po opakovaném pokusu, protože nové hledání zase vybralo tentýž zdroj. Teď se po neúspěchu zkusí další nalezené streamy a přehrávání naskočí z toho, který funguje.
+7.6.1 – Doplněk přestal zaplňovat protokol Kodi: zahřívání seznamů „Nově přidané s CZ dabingem/titulky“ psalo desítky řádků při každém kole a nefunkční synchronizace hlásila totéž dokola každých pět minut. Teď se každá potíž zapíše jednou a znovu až při změně — v odeslaném protokolu je tak vidět, co se opravdu stalo.
+7.6.0 – Celé menu má vlastní sadu ikon v jednom stylu — Pokračovat ve sledování, Můj seznam, Stažené, Podobné tituly i sezónní katalogy poznáš podle obrázku, který k nim opravdu patří. Katalogy z Nokturna (Vánoce, Film pro dnešní den) jsou nahoře v menu Filmů a Seriálů, ne až pod ostatními seznamy.
+7.6.0~beta3 – Celé menu má vlastní sadu ikon v jednom stylu: Pokračovat ve sledování, Můj seznam, Stažené, Podobné tituly i sezónní katalogy poznáš podle obrázku, který k nim opravdu patří — dřív je Kodi kreslilo tím, co měl zrovna po ruce aktivní vzhled, takže třeba všech pět podkategorií Vánoc mělo tutéž masku. Katalogy z Nokturna (Vánoce, Film pro dnešní den) jsou nově nahoře v menu Filmů a Seriálů, ne až pod ostatními seznamy.
+7.5.1 – Sezónní katalogy z Nokturna mají vlastní ikony: Vánoce, Pohádky, Komedie, Romantické, Rodinné a Animované jde v menu rozeznat na první pohled. Vánoční ikona se navíc do doplňku vůbec nebalila, takže u složky Vánoce žádná nebyla.
+7.5.0 – Nastavení se z dvaceti kategorií smrsklo na osm. Všechny zdroje (WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna) i OpenSubtitles, TMDB API a Trakt.tv jsou teď v jedné kategorii „Zdroje a účty“, každý ve vlastní rozbalovací skupině — mezi dvěma zdroji se chodí dolů, ne přes celé menu. Nic se neruší ani nepřejmenovává, po aktualizaci nemusíš nic zadávat znovu. OpenSubtitles nově jdou vyplnit i ze stránky „Nastavit z mobilu“ a přenést do dalšího Kodi. V menu: „Můj seznam“ se ukáže, až když v něm něco je, a hlášení o zdrojích je kratší, aby se na televizi vešlo na řádek.
+7.5.0~beta2 – Trakt.tv se přestěhoval do „Zdroje a účty“ k ostatním přihlášením, kategorií je tak 8. Nastavení Traktu zůstává, kde bylo — nemusíš nic zadávat znovu. „Můj seznam“ se v menu ukáže, až když v něm něco je (jako „Pokračovat ve sledování“). Hlášení o zdrojích v menu je kratší, aby se na televizi vešlo na řádek bez rolování.
+7.5.0~beta1 – Nastavení má 9 kategorií místo 20 (strop Kodi byl vyčerpaný — další zdroj by se už nevešel). Osm zdrojů (WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna) i OpenSubtitles a TMDB API teď žijí v jedné kategorii „Zdroje a účty“, každý ve vlastní rozbalovací skupině — mezi dvěma zdroji se chodí dolů, ne přes celé menu. Nic se neruší, nic se nepřejmenovává, po aktualizaci nemusíš dělat nic. OpenSubtitles nově jdou vyplnit i ze stránky „Nastavit z mobilu“ a jdou přenést do dalšího Kodi.
+7.4.4 – Oprava: „Vymazat historii“ v hledání zapisovalo do protokolu Kodi chybu, i když se historie v pořádku vymazala. Položka je teď tlačítko, ne složka — chování stejné, protokol čistý.
+7.4.2 – Anonymní statistiky hlásí i Přehraj.to, CZtor a vlastní úložiště. Do teď se přehled zdrojů na serveru o těchto třech vůbec nedozvěděl, takže v něm vypadaly, jako by je nikdo neměl zapnuté. Posílají se dál jen názvy zdrojů, nikdy účty ani adresy.
+7.4.1 – Oprava: při výpadku Wikidat nebo Cinemety čekalo hledání na každý zdroj zvlášť (až 5× timeout za sebou) místo jednou — souběžné dotazy na týž údaj teď dostanou výsledek prvního i při neúspěchu.
+7.4.0 – Rychlejší první otevření titulu: údaje o souborech (zvuk, rozlišení, velikost), které už někdo jiný přečetl, si doplněk vezme ze serveru jedním dotazem místo čtení každého souboru zvlášť. Jen se zapnutými statistikami; při výpadku serveru se čte jako dřív.
+7.3.2 – HellSpy: hláška „HTTP 429“ teď říká, co znamená — HellSpy odmítá tvoji síť (VPN, mobilní data), ne že by doplněk posílal moc dotazů. Stav zdrojů v menu píše totéž a zkusí to znovu za 10 minut. Souběžné dotazy na stejný titul se slévají do jednoho.
+7.0.4 – Přehraj.to s účtem Premium teď jede přes jejich rychlé rozhraní: stránkuje se dál, u souborů rovnou vidíš hodnocení a titulky a stahuje se původní soubor bez omezení dotazů. Bez účtu funguje zdroj dál jako dřív (první strana výsledků, přehrávaný soubor v 1080p).
+7.0.3 – Stahování: soubory z Přehraj.to se znovu stahují (dřív skončily chybou „unknown url type: pt“).
+7.0.2 – Přehraj.to se už neptá víc titulů naráz: dotazy jdou za sebou s odstupem, takže server přestane odmítat hledání při výběru náhodného titulu a při zahřívání katalogů (HTTP 429). Popis doplňku, README a wiki teď Přehraj.to uvádějí mezi zdroji.
+7.0.1 – Odkaz na Ko-fi je zpět: v popisu doplňku, v nápovědě pokročilého nastavení i v okně Podpořit projekt.
+7.0.0 – Přehraj.to jako osmý zdroj obsahu. Funguje i zdarma bez účtu: bez přihlášení je vidět první strana výsledků a hraje se překódovaný soubor v 1080p. S účtem Premium přibude stránkování a hraje se původní soubor včetně 4K. Účet zadáš v Nastavení → Přehraj.to, po aktualizaci je zdroj rovnou zapnutý.
+7.0.0 – Stav zdrojů umí i Přehraj.to: řekne, jestli jedeš bez účtu, kolik dní zbývá do konce Premium, nebo že server na chvíli omezil dotazy.
+7.0.0 – Šipka doprava v nastavení už neskáče na záložku Info. „Nastavit z mobilu“ je teď první skupinou kategorie „Nastavit z mobilu a přenos“.
+7.0.0 – Pozadí doplňku vypisuje zdroje na dvou řádcích, aby se osmý zdroj vešel čitelně.
+7.0.0~beta3 – Pozadí doplňku vypisuje zdroje na dvou řádcích, aby se osmý zdroj Přehraj.to vešel čitelně.
+7.0.0~beta2 – Přehraj.to je po aktualizaci rovnou zapnuté: zdroj funguje i zdarma bez účtu, jen je vidět první strana výsledků (32 souborů) a hraje se překódovaný soubor v 1080p. Šipka doprava v nastavení už neskáče na záložku Info — „Nastavit z mobilu“ je teď první skupinou v kategorii Nastavit z mobilu a přenos.
+7.0.0~beta1 – Přehraj.to jako osmý zdroj. Zapni ho v Nastavení → Přehraj.to. Účet není povinný: bez něj je vidět jen první strana výsledků a hraje se překódovaný soubor v 1080p, s účtem Premium je výsledků víc a hraje se původní soubor včetně 4K.
+7.0.0~beta1 – Stav zdrojů umí i Přehraj.to: řekne, jestli jedeš bez účtu, kolik dní zbývá do konce Premium, nebo že server na chvíli omezil dotazy.
+6.6.5 – Nedostupná Luna se po prvním neúspěchu pět minut nevolá a spojení se ověřuje s limitem 5 s (dřív každý výpis čekal přes 20 s na timeout). Řádky ve výpisu Stav zdrojů už nezapisují do logu chybu „GetDirectory failed“. U řádku z Luny se ukážou rozlišení, kodek a titulky ze souboru.
+6.6.4 – Streamy z WebShare, které uživatelé opakovaně označili jako špatné (hlasy kladné minus záporné ≤ −2), se z výpisu vynechají. Jeden záporný hlas ani oblíbený soubor s pár zápory (+10/−4) se neskryje. Skryté soubory ukáže „Zobrazit všechny streamy“.
+6.6.3 – Naposledy zhlédnuté se po synchronizaci ukáže i na druhém zařízení. Zhlédnuté tituly z jiného Kodi dřív přišly bez náhledu a výpis je vynechal; teď se náhled dohledá a synchronizace ho posílá rovnou.
+6.6.2 – Stav zdrojů se po otevření menu sám obnoví, když říká „neodpovídá“ nebo když poslední obnova proběhla bez sítě — na mobilu Android utne Kodi na pozadí síť a stav z takové obnovy dřív stál v menu až do další.
+6.6.1 – Stav zdrojů už nehlásí „neodpovídá“ u všeho, když Kodi na pozadí nebo hned po startu chvíli nemá síť (mobil) — uložený stav zůstane a obnova se zopakuje do dvaceti minut. Výpadek sítě při jednom hledání nepřepíše ověřený stav účtu.
+6.6.0 – Synchronizace více Kodi i bez Home Assistanta: střediskem je dashboard Nokturna, který do dat nevidí. První Kodi založí skupinu a ukáže kód, ostatní ho opíšou; kdo má Home Assistant, zadá týž kód i v nastavení integrace a HA je dalším členem skupiny.
+6.6.0 – Zvlášť si zapneš, co se sdílí: zhlédnuto a rozkoukanost, Můj seznam, historie hledání, nastavení doplňku a přihlášení ke zdrojům (poslední dvě jsou vypnuté). Volby platí i pro cestu přes Home Assistant.
+6.6.0 – Záložka Info vypisuje verzi, adresu webu, rodinu doplňků, obě fóra a ID této instalace (uveď ho, když hlásíš problém). Podpořit projekt otevře okno s QR kódem na stránku podpory a s adresami PayPalu a Bitcoinu.
+6.6.0 – Stav zdrojů v menu rozlišuje výpadek sítě od odmítnutého účtu, „Ověřit zdroje“ ho rovnou přepíše a vypnutá Luna se v něm neobjeví. Zdroj, na který se nešlo dostat, se zkusí znovu za dvacet minut.
+6.6.0 – Nastavit z mobilu ukazuje kód skupiny synchronizace; bez skupiny jde kód z prvního Kodi rovnou zadat.
+6.6.0 – Texty v nastavení, průvodci a hlášeních jsou věcné, bez první osoby a hovorových obratů.
+6.6.0~beta13 – Po „Otestovat zdroje“ z výpisu stavu zdrojů se po OK točilo kolečko navěky — položka byla složka.
+6.6.0~beta12 – Stav zdrojů hlásil „Luna: běží, ale chybí token“ i u vypnutého zdroje Luna.
+6.6.0~beta11 – Po „Ověřit zdroje“ se v betě 10 točilo kolečko a stav v menu se nepřepsal.
+6.6.0~beta10 – Stav zdrojů v menu už nehlásí „nesedí jméno nebo heslo“, když se k účtu jen nešlo připojit — výpadek sítě a odmítnutý účet jsou teď rozlišené. „Ověřit zdroje“ zároveň rovnou přepíše stav v menu, takže obě obrazovky nemůžou tvrdit opak; zdroj, na který se nešlo dostat, se zkusí znovu za dvacet minut místo za šest hodin. V záložce Info otevírá Podpořit projekt okno s QR kódem na stránku podpory a s adresami PayPalu i Bitcoinu; řádky Info se nedají přepsat. Nastavit z mobilu ukazuje kód skupiny synchronizace, a když žádná není, jde tam kód z prvního Kodi rovnou zadat.
+6.6.0~beta9 – ID instalace v Info zůstávalo v betě 8 prázdné.
+6.6.0~beta8 – Záložka Info místo tlačítka na web vypisuje verzi, adresu webu, rodinu doplňků, adresy na podporu projektu a obě fóra. Nově je tam i ID této instalace — uveď ho, když hlásíš problém, podle něj se najde odeslaný log i hlášení o pádu.
+6.6.0~beta7 – V nastavení synchronizace je Dashboard Nokturna nahoře a Home Assistant pod ním.
+6.6.0~beta6 – Po přepnutí střediska synchronizace se ukáže i jeho nastavení. Dřív po přepnutí zmizela obě — adresa a klíč Home Assistantu i tlačítka skupiny — a zůstal viset prázdný nadpis. Teď jsou obě sekce vidět pořád a ta, která zrovna neplatí, je jen zašedlá.
+6.6.0~beta5 – Novinky ve verzi teď ukazují i řádky ze stabilní 6.5.13, která vyšla z vlastní větve; samotné opravy z ní beta 4 obsahovala už předtím.
+6.6.0~beta4 – Uložená volba „HA i dashboard“ se opravdu překlopí na dashboard. Beta 2 ji přepsat měla, ale ptala se Kodi na hodnotu, kterou už Kodi neumí načíst, takže zůstávala v nastavení zapsaná a plnila kodi.log hláškou „failed to load value 2 for setting sync_mode“.
+6.6.0~beta3 – Texty v nastavení, průvodci a hlášeních jsou věcné: doplněk o sobě nemluví v první osobě („Adrese nerozumím“ → „Adresa nemá očekávaný tvar“), zmizely hovorové obraty a sjednotilo se tykání (dřív se u OpenSubtitles vykalo).
+6.6.0~beta3 – Volba střediska synchronizace se jmenuje „Středisko synchronizace“ a hlášky u skupiny říkají, co se stane, ne co si uživatel má myslet.
+6.6.0~beta3 – Adresa pro nastavení z mobilu platí 30 minut; text v doplňku tvrdil 10.
+6.6.0~beta2 – Střediska jsou jen dvě: Home Assistant, nebo dashboard. Kdo má obojí, zadá týž kód skupiny i v nastavení integrace v Home Assistantu — HA se tím stane dalším členem skupiny a změny z Kodi mimo domácí síť se k ní dostanou přes dashboard. Uložená volba „HA i dashboard“ se překlopí na dashboard.
+6.6.0~beta1 – Synchronizace více Kodi i bez Home Assistanta: střed dělá dashboard, který do dat nevidí. První Kodi založí skupinu a ukáže kód, ostatní ho opíšou.
+6.6.0~beta1 – Zvlášť si zapneš, co se sdílí: zhlédnuto a rozkoukanost, Můj seznam, historie hledání, nastavení doplňku a přihlášení ke zdrojům (poslední dvě jsou vypnuté).
+6.6.0~beta1 – Volby „co se synchronizuje“ platí nově i pro cestu přes Home Assistant; dřív se tam posílalo a přijímalo vždycky všechno.
+6.5.13 – Menu Nastavení, Novinky a Průvodce už nezapisují do logu chybu „GetDirectory failed“ (jen šum, funkce se nemění). Po aktualizaci se statistiky neposílají podruhé do několika minut (server to odmítal jako HTTP 429).
+6.5.12 – U řádku streamu z Luny se ukážou i rozlišení, kodek a titulky ze souboru (dřív chyběly). U českých a slovenských titulů se zvuk označený jen „EN“ ukáže jako odhad „~CZ“.
+6.5.12~beta4 – Stopa zvuku bez jazyka v souboru si nechá jazyk od Luny (po doplnění titulků a rozlišení ze souboru zmizelo „EN“).
+6.5.12~beta3 – U řádku streamu z Luny se ukážou i rozlišení, kodek a titulky ze souboru (dřív chyběly); čtou se přímo z Lunina odkazu, ne z odhadem spárovaného souboru.
+6.5.12~beta2 – Beta 2 byla neúplná (u dvou podobně velkých souborů mohla ukázat cizí titulky), nahrazuje ji beta 3.
+6.5.12~beta1 – U českých a slovenských titulů se zvuk označený jen „EN“ (špatně vyplněný jazyk v souboru, třeba seriál Hospoda) ukáže jako odhad „~CZ“ místo „EN“.
+6.5.11 – Katalog „Nově přidané s CZ dabingem/titulky“ se počítá po čtveřicích titulů souběžně místo po jednom (dřív až přes 170 s při prvním otevření).
+6.5.10 – Bez nastaveného zdroje nabízí menu na prvním místě Průvodce nastavením (Lunu najde v síti sám, nebo jde nastavit z mobilu přes QR). Dřív ho po přeskočení nebylo vidět.
+6.5.9 – Tlačítka s dialogem (Ověřit nastavení Luny, Najít Lunu…) otevřená z výpisu Stav zdrojů už nehlásí do logu GetDirectory failed a nečekají na timeout.
+6.4.3 – Oprava pádu tlačítka Vyzkoušet OpenSubtitles v nastavení (NameError: Dialog).
+6.4.2 – Odkaz na Ko-fi je dočasně odebraný z popisu doplňku a z nápovědy.
+6.4.1 – Náhodný film a Náhodný seriál nabízí jen tituly, které mají tvůj preferovaný jazyk ve zvuku nebo v titulcích (u češtiny se počítají i slovenské titulky). Dřív se losovalo naslepo a část titulů byla jen anglicky. Když žádný z osmi vylosovaných kandidátů nevyhoví do 15 sekund (po tu dobu běží ukazatel na pozadí), vezme se prostě první a oznámení to řekne. Bez nastaveného preferovaného jazyka se nic nemění (díky, @fsecko1)
+6.4.0 – Titulky z OpenSubtitles: tituly, ke kterým zdroje žádné české ani slovenské titulky nemají (u více než třetiny titulů), se doplní z opensubtitles.com. Hledá se podle IMDb id a u seriálu podle sezóny a dílu, takže se nepřichytí titulky k jinému dílu. Stáhne se vždy nejvýš jeden soubor, až při přehrání — bez účtu 5 titulků denně, s vlastním účtem (Nastavení → OpenSubtitles, nepovinné) 20. Tlačítko Vyzkoušet OpenSubtitles ukáže, jestli zdroj funguje a kolik stažení dnes zbývá
+6.3.7 – Řádek se stavem zdrojů v menu je kratší, aby se vešel na řádek a neroloval se: ukáže nejzávažnější zdroj a u ostatních jen počet. Celé vysvětlení je ve výpisu po kliknutí, kde má každý zdroj vlastní řádek
+6.3.6 – Anglický název položky menu je „For You“
+6.3.5 – Doplněk už nehledá díly, které ještě nevyšly. Po dokoukání dílu se na pozadí předstahuje ten další — jenže se bral první s vyšším číslem bez ohledu na datum vydání, takže u seriálu vysílaného po týdnu se pořád dokola hledal díl, který nikde být nemůže. Totéž platilo pro řádek „Další díl“ v Pokračovat ve sledování
+6.3.4 – Slovenský překlad položky menu srovnán s češtinou: „Pre Teba“
+6.3.3 – Položka v menu Filmů i Seriálů se nově píše „Pro Tebe“
+6.3.1 – Menu má nahoře řádek se stavem zdrojů: kolik dní zbývá z předplatného WebShare, že HellSpy dočasně odmítá dotazy, že Luna neodpovídá nebo že účet nemá Premium. Ukáže se jen tehdy, když je co řešit, a klik na něj vede rovnou tam, kde se to spraví
+6.3.0 – Dvě nové položky v menu Filmů i Seriálů. „Pro tebe“ nabídne tituly podle toho, co jsi dokoukal naposledy, a u každého napíše, proč ho doporučuje. „Náhodný film“ (u seriálů „Náhodný seriál“) vylosuje jeden titul v žánru, který obvykle koukáš — jedním kliknutím rovnou k výběru streamu. Doporučení se počítají z historie ve vašem Kodi, nikam se neposílá, co koukáte, a seznam se sám obnovuje na pozadí
+6.2.8 – Oprava pádu: když se některý zdroj neozval včas a jiný stream našel, výpis streamů skončil chybou místo seznamu. Nahlášeno z verze 6.2.7 přes hlášení o chybách
+6.2.7 – Doplněk už nezapisuje chybu do logu Kodi při zahřívání dalšího dílu na pozadí. Na funkci to nemělo vliv, ale v odeslaném logu to vypadalo jako porucha
+6.2.6 – Menu a výpisy naskočí rychleji: Kodi si po prvním spuštění nechá běžet interpret a nestartuje ho znovu při každém kliknutí. Na Android boxu se otevření menu zkrátilo z 1,60 s na 0,91 s. Těžké části doplňku se načtou, až když na ně dojde
+6.2.6~beta2 – Oprava bety 1: přepínač zrychleného spouštění byl v addon.xml na místě, kde si ho Kodi nevšimne, takže beta 1 běžela stejně pomalu jako dřív. Měřeno na Android boxu: otevření menu 1,60 s před, 0,87 s po
+6.2.6~beta1 – Menu a výpisy naskočí rychleji: Kodi si po prvním spuštění nechá běžet interpret a nestartuje ho znovu při každém kliknutí (na Android boxu to bylo půl vteřiny až vteřina). Těžké části doplňku se načtou, až když na ně dojde
+6.2.3 – Stahování navazuje tam, kde skončilo: po restartu Kodi, výpadku sítě nebo vypnutí boxu se film nestahuje znovu od nuly (u dvacetigigového filmu to dřív znamenalo začít celé znovu); rozdělaný soubor zůstane ležet a „Zkusit znovu“ na něj naváže, zrušené stahování po sobě uklidí
+6.2.2 – Méně práce na pozadí: seznamy „Nově přidané s CZ dabingem/titulky“ se předpočítávají jen tehdy, když jste je za poslední dva týdny otevřeli (dřív to doplněk dělal u všech instalací každých 6 hodin, i když se na ně nikdo nepodíval — a právě tím si říkal o dočasnou blokaci u HellSpy); když se seznam používá, obnoví se teď včas a nehlásí „Data nejsou připravená“; při výpadku serveru se „Nejsledovanější tento týden“ neptá znovu při každém otevření menu a ukáže poslední známý žebříček
+6.2.1 – Spolehlivější ukládání (audit): zhlédnuto, rozkoukáno a fronta stahování se už nepřepisují mezi doplňkem a službou na pozadí (obojí zapisovalo do týchž souborů naráz a prohrávající zápis se tiše zahodil); soubory s přihlášením (Trakt, CZtor) mají práva jen pro vlastníka; značka změny vlastního úložiště se pamatuje mezi spuštěními, takže NAS v režimu spánku nezdržuje každý výpis streamů
+6.2.0 – Přenos nastavení do dalšího Kodi: v Nastavení přibyla kategorie Přenos nastavení. Na prvním Kodi dej Odeslat do jiného Kodi, opiš z obrazovky kód (NKT-XXXX-XXXX) a na druhém zvol Načíst z jiného Kodi — účty zdrojů, úložiště, přehrávání i výběr streamu se přenesou naráz. Obsah je šifrovaný kódem, server do něj nevidí, přenos platí 15 minut a použije se jednou; místo serveru jde uložit i do souboru na USB. Účty CZtoru a Traktu se nepřenášejí (jejich přihlášení je vázané na zařízení) — doplněk po načtení rovnou nabídne spárování. Před zápisem uvidíš, co se změní, a původní nastavení se odloží do zálohy.
+6.1.5 – Rychlejší a klidnější doplněk (souhrn bet 6.1.4): zdroj, který neodpoví do 20 s, už nezdržuje seznam streamů (bere se, co došlo, opozdilec doběhne na pozadí do cache); cache se po aktualizaci nemaže, takže první otevření katalogů není studené; odeslaný log z nastavení nenese tokeny, hesla, e-maily ani IP; dialogy „zdroj neodpověděl“ a „hledat pod jiným názvem“ vyskočí jen po kliku ve výpisu Nokturna, z widgetu, karty Home Assistantu a TMDb Helperu jen oznámení (dialog tam blokoval i vypínání Kodi); zpráva z dashboardu nezastaví službu na pozadí a nepřeruší film; selhané přihlášení k WebShare se hlásí jako výpadek místo tichého „bez WebShare“ na 72 h; seznam streamů se po zapnutí nového zdroje najde znovu; přesměrování na cizí server nepošle heslo úložiště ani cookie FastShare; zhlédnuto ze skinu se čte jen před výpisem titulů a další díl se předem hledá jen u seriálů z posledních 14 dní
+6.1.4~beta2 – Klidnější doplněk (audit, 2. kolo): odeslaný log z nastavení už nenese tokeny, hesla, e-maily ani IP (čistí se stejně jako hlášení o pádech); chyba zdroje při hledání a nabídka „hledat pod jiným názvem“ vyskočí jako dialog jen po kliku ve výpisu Nokturna, z widgetu, karty HA a TMDb Helperu jen oznámení (dialog tam blokoval i vypínání Kodi); zpráva z dashboardu nezastaví službu na pozadí a nepřeruší přehrávání; cache se po aktualizaci nemaže, jen při změně jejího tvaru (první otevření po aktualizaci není studené); zhlédnuto ze skinu se čte jen před výpisem titulů, ne při každém přehrání; zahřívání dalšího dílu jen u seriálů z posledních 14 dní (max 5); zdroj má na odpověď 20 s místo 15
+6.1.4~beta1 – Rychlost a bezpečnost (audit): zdroj, který neodpoví do 15 s, už nezdržuje seznam streamů (bere se, co je, opozdilec doběhne na pozadí); selhané přihlášení k WebShare se počítá jako výpadek, ne jako „bez WebShare“ na 72 h; cache streamů se rozliší podle zapnutých zdrojů a účtů (po zapnutí nového zdroje se titul najde znovu); přesměrování na cizí server nepošle heslo úložiště ani cookie FastShare; hlášení o pádech maskuje i Basic/Bearer a IPv6
+6.0.4 – HellSpy: po první chybě HTTP 429 se HellSpy na 10 minut přeskočí úplně, ne jen u jednoho titulu (katalog „Nově přidané s CZ dabingem/titulky“ ho volal pro každý titul zvlášť a blokaci prodlužoval)
+6.0.3 – Stahování: streamy z CZtoru se znovu stahují (dřív skončily chybou „unknown url type: cz“) a stažený soubor už nemá zdvojenou příponu (….mkv].mkv)
+6.0.2 – HellSpy: po chybě HTTP 429 (server omezil tvoji adresu) se hledání na HellSpy hned ukončí, další dotazy omezení jen prodlužovaly
+6.0.1 – Synchronizace mezi Kodi přes Home Assistant: změna poslaná se zpožděním (mazání historie hledání, zhlédnuto, Můj seznam) dorazí i na Kodi, které se mezitím synchronizovalo
+6.0.0 – Nový zdroj CZtor (předplatné na cztor.com): Nastavení → CZtor → Spárovat PINem, heslo se do doplňku nezadává. Streamy mají zvuk, titulky a rozlišení rovnou z API
+6.0.0 – Nastavit z mobilu: v sekci Luna tlačítka Najít Lunu v síti a Ověřit nastavení Luny s výsledkem přímo na stránce, návod krok za krokem a odkaz na nastavení Luny (/setup)
+6.0.0 – Titul nebo díl bez nalezeného streamu: uvolněné hledání a dialog s hledáním pod jiným názvem
+6.0.0 – TV program: přepínač Skončené pořady u dneška, historie programu 30 dní
+6.0.0 – Epizody: soubory s délkou filmu pod názvem epizody se ze seznamu streamů vyřadí
+5.5.4 – Epizody: soubory s délkou filmu pod názvem epizody (HellSpy: Iron Man jako Reacher S04E01) se ze seznamu streamů vyřadí
+5.5.0 – Maďarština: rozhraní doplňku, preferovaný jazyk zvuku, rozpoznání titulků a filtr streamů podle jazyka
+5.4.2 – Oprava pádu v průvodci prvním nastavením: vypnutý (ne odinstalovaný) TMDb Helper shazoval nastavení přehrávače
+5.4.0 – Stejné verze souboru (stejná kvalita, zvuk, titulky a velikost do 10 %) se ve výběru streamu slučují do jednoho řádku, u něj je počet kopií (×3). Když jedna nejde přehrát, zkusí se další
+5.4.0 – Nová položka „Zobrazit všechny streamy“ na konci výběru ukáže i sloučené verze
+5.4.0 – Hlavičky souborů se po otevření výběru dočtou na pozadí u všech streamů, při dalším otevření jsou ověřené
+5.4.0 – Stream v preferovaném jazyce se řadí podle kvality, i když je jazyk jen odhadnutý z názvu souboru (4K už není pod SD). Odhadnutý jazyk má vlnovku (~CZ)
+5.3.0 – Rychlejší načítání streamů: hlavní zdroj (Luna nebo Sosáč) se už nečeká předem, hledá se ve všech zdrojích najednou i s titulky
+5.3.0 – Výběr streamu čeká na ověření zvuku a rozlišení nejvýš 3 sekundy. Pomalé soubory se dočtou na pozadí a při dalším otevření titulu už ověřené jsou
+5.2.38 – „Označit jako zhlédnuté“ z kontextového menu Kodi (skinu) u filmů a dílů v Nokturnu dřív nedělalo nic: fajfka se neukázala a Nokturno o tom nevědělo. Teď se označení i jeho zrušení promítne do Nokturna, do Traktu i do synchronizace s Home Assistantem
+5.2.38 – Zhlédnuto z Nokturna se zapisuje i do databáze Kodi, takže s ní souhlasí i doplňky, které ji čtou
+5.2.38 – Zhlédnutý titul už nemůže ukazovat starý pruh rozkoukání z databáze Kodi
+5.2.37 – Ověřit zdroje" teď ověří i TMDB API klíč, pokud je vyplněný (dřív se chyba klíče poznala jen z chybějících popisů a obrázků)
+5.2.34 – Titulky stažené z WebShare u seriálů patřily občas k úplně jinému dílu: vyhledávání WebShare bere číslo dílu jen jako nápovědu, takže se k prvnímu dílu druhé série mohly připnout titulky ze čtvrtého dílu první. Teď musí číslo dílu sedět i v názvu souboru
+5.2.34 – Pořadí nabídnutých titulků se řídí jazykem nastaveným v Přehrávání (čeština, pak slovenština, nebo obráceně), ne vždycky češtinou
+5.2.32 – Nové tlačítko „Najít Lunu v síti“ v nastavení: doplněk projde domácí síť a adresu serveru Luny vyplní sám (trvá pár vteřin)
+5.2.32 – Nové tlačítko „Ověřit nastavení Luny“ řekne konkrétně, na čem to stojí — server neodpovídá, chybí token, Luna token nepřijala, nebo v ní není vyplněný účet WebShare. Když to nevyjde, nabídne rovnou odeslání logu
+5.2.32 – Ověření se na adresu zeptá rovnou (předvyplněná je ta uložená), takže kvůli němu není nutné nastavení nejdřív ukládat
+5.2.32 – „Ověřit zdroje“ u Luny už nehlásí zeleně nastavení, ze kterého nemůže přijít jediný stream: Luna vydá manifest i pro neplatný token, takže se doplněk nově ptá rovnou na streamy
+5.2.32 – Celá adresa doplňku vložená do pole Token se sama rozdělí na adresu a token, projde i holá IP bez portu
+5.2.32 – Průvodce prvním nastavením Lunu nejdřív najde v síti a rovnou ukáže, na jaké adrese si vyzvednout token
+5.2.32 – Katalogy z dashboardu můžou mít podsložky (třeba Vánoce → Komedie, Rodinné)
+5.2.22 – Beta kanál („Nokturno repozitář (beta)“) jde konečně nainstalovat přímo z „Nokturno repozitáře“ — instalace od 15. 9. končila chybou 404, protože zip repozitáře ležel na serveru pod jiným jménem, než pod jakým si pro něj Kodi sahá
+5.2.22 – Kodi log je čitelný i bez Luny a Sosáče: katalog „Nově přidané s CZ dabingem/titulky“ do něj u každého z desítek titulů psal, že zdroj není nastavený — zabralo to skoro půlku logu odeslaného na podporu
+5.2.22 – Zahřívání na pozadí přeskočí katalogy Luny, dokud k ní není vyplněný přístup (zapnutá bez tokenu předtím při každém zahřátí jen zapsala čtyři chyby do logu)
+5.2.21 – Stabilní vydání, souhrn bet 5.2.21~beta1–6:
+5.2.21 – Nastavit z mobilu na telefonu s Androidem: ťuknutí na adresu opravdu otevře prohlížeč (dřív jen zaostřilo tlačítko) — klik se bere i přímo z ťuknutí/OK, ne jen z kliknutí na tlačítko; krátké oznámení „Otvírám v prohlížeči…“
+5.2.21 – QR kód v Nastavit z mobilu zůstává čtvercový i na displeji s jiným poměrem stran než 16:9 (dřív roztažený obdélník)
+5.2.21 – Tlačítko s adresou má vlastní fialový podklad přes celou šířku, stejný v každém skinu
+5.2.21~beta6 – Klik na adresu z bety 5 funguje (ověřeno na telefonu); tlačítko s adresou má zpátky fialový podklad — výchozí textura skinu se na telefonu kreslila užší než tlačítko a posunutá, text přes ni přetékal
+5.2.21~beta5 – Klik na adresu v „Nastavit z mobilu“ jde nově dvěma nezávislými cestami: řádným kliknutím na tlačítko i přímo z ťuknutí/OK ve chvíli, kdy má adresa fokus (Kodi na některých telefonech to první nedoručí, i když tlačítko na dotyk reaguje); jeden klik = jedno otevření, každé ťuknutí se zapíše do logu
+5.2.21~beta4 – Ani skoro neprůhledný podklad z bety 3 klik na dotyku nedoručil (jen fokusový vzhled zareagoval, potvrzeno uživatelem) — tlačítko teď používá výchozí systémové textury skinu (stejné jako každé OK/Storno v Kodi), vypadá jako opravdové tlačítko, ale mělo by být konečně spolehlivě klikací
+5.2.21~beta3 – Oznámení z bety 2 se při ťuknutí na adresu neobjevilo — Kodi klik vůbec nedoručilo, i když fokusový vzhled (rámeček, barva) reagoval. Podklad tlačítka je teď skoro neprůhledný (vypadá jako malá pilulka, ne jako čitelný text) — dřívější slabá průhlednost možná bránila dotykovému testu, který kliká jen do skutečně vykreslené (neprůhledné) plochy
+5.2.21~beta2 – Dotyková plocha adresy z bety 1 už funguje (rámeček, barva se mění), ale prohlížeč se pořád neotevírá — přidáno krátké oznámení „Otvírám v prohlížeči…“ a záznam do logu při ťuknutí, ať víme, jestli Kodi klik vůbec zaregistruje
+5.2.21~beta1 – Oprava: QR kód v „Nastavit z mobilu“ vypadal na telefonu jako obdélník místo čtverce (Kodi ho na displeji s jiným poměrem stran než 16:9 roztahovalo) — teď si zachová poměr stran
+5.2.21~beta1 – Oprava: klikatelná adresa z 5.2.20 se na Androidu na dotyk vůbec nespustila (fungovala by jen přes dálkový ovladač) — tlačítko teď má skutečnou dotykovou plochu
+5.2.20 – U hotového stahování v kontextovém menu „Smazat“ místo matoucího „Odebrat ze seznamu“ (soubor se opravdu maže z disku)
+5.2.20 – Adresa v „Nastavit z mobilu“ je na Androidu klikatelná — OK ji otevře rovnou v prohlížeči, nemusíš ji ručně přepisovat
+5.2.19 – Zpráva z dashboardu (Nastavení → Pokročilé) se teď zobrazí ve větším, posouvatelném okně — dřív ji delší text prostě uřízl
+5.2.18 – Katalogy „Nedávno přidané s CZ dabingem/titulky“ bez Sosáče/Luny: jazyk se u ostatních zdrojů (WebShare, HellSpy, Sledujteto, FastShare) místo pořád prázdného výsledku odhadne z názvu souboru
+5.2.16 – Stabilní vydání, souhrn bet 5.2.14~beta1–6:
+5.2.16 – Výběr streamu vždy v dialogu na dva řádky s obrázky kvality (UHD 4K, FHD 1080, HD 720, SD 480, s HDR): klik na titul, Přehrát v detailu, widget i TMDb Helper. Nahoře filtr, dole uvolněný fulltext, u seriálu předvybraný naposledy zvolený stream
+5.2.16 – Co a v jakém pořadí se u streamu ukazuje (jazyky, velikost, rozlišení a kodek, stopy, datový tok, délka, titulky, zdroj, název souboru), si nastavíš v Nastavení → Výběr streamu, pohodlně z mobilu šipkami
+5.2.16 – V kontextovém menu filmu a dílu „Vybrat stream“ a „Stáhnout“ (stejný dialog, vybraný stream se stáhne místo přehrání)
+5.2.16 – Podobné tituly v kontextovém menu filmů a seriálů
+5.2.16 – TV program: filmy a seriály v české a slovenské televizi s volbou dne, stanice a typu
+5.2.16 – Katalogy ze serveru Nokturna: sezónní a tematické výběry (třeba vánoční filmy) bez nové verze doplňku
+5.2.16 – Streamy se načítají jen s ukazatelem v rohu obrazovky („Streamy: 35 · Meta: 5/24“)
+5.2.14~beta6 – „Stáhnout“ v kontextovém menu filmu a dílu: vybereš stream v dialogu a stáhne se místo přehrání
+5.2.14~beta5 – Tlačítko „Nastavit z mobilu“ přímo v Nastavení → Výběr streamu (stránka jen s pořadím údajů)
+5.2.14~beta4 – Co a v jakém pořadí se u streamu ukazuje, si nastavíš (Nastavení → Výběr streamu, z mobilu šipkami); nahradilo šest přepínačů
+5.2.14~beta4 – Výpis streamů jako složka zrušen, vše v dialogu: v kontextovém menu „Vybrat stream“, uvolněný fulltext jako řádek dialogu
+5.2.14~beta3 – Dialog výběru streamu s obrázky kvality (UHD 4K, FHD 1080, HD 720, SD 480, s HDR)
+5.2.14~beta3 – Kratší ukazatel načítání: „Streamy: 35 · Meta: 5/24“
+5.2.14~beta2 – Zrušeno nastavení „Výběr streamu“: stream se vždy vybírá v dialogu na dva řádky, i klikem na titul ve výpisu (dřív otevřel seznam streamů). Celý seznam streamů zůstal v kontextovém menu
+5.2.14~beta2 – Streamy se načítají jen s ukazatelem v rohu obrazovky, bez okna přes celou obrazovku
+5.2.14~beta2 – U seriálu je v dialogu předvybraný naposledy zvolený stream (Up Next a Home Assistant ho pustí rovnou)
+5.2.14~beta1 – Výběr streamu v dialogu na dva řádky: nahoře kvalita, jazyk a velikost, pod tím rozlišení a kodek (HDR, HEVC), zvukové stopy, datový tok, délka, titulky a zdroj
+5.2.14~beta1 – Podobné tituly: v kontextovém menu filmů a seriálů a jako složka pod seznamem streamů filmu a pod sériemi seriálu. S vlastním TMDB klíčem přímo z TMDB, bez něj přes server Nokturna
+5.2.14~beta1 – TV program: filmy a seriály, které dnes a v dalších dnech dávají české a slovenské stanice, s volbou dne, stanice a typu. Klik otevře streamy titulu
+5.2.14~beta1 – Katalogy ze serveru Nokturna: sezónní a tematické výběry (třeba vánoční filmy) se v menu objeví bez nové verze doplňku
+5.2.13 – Nastavit z mobilu má vlastní první záložku v nastavení (dřív schované pod WebShare); vlastní úložiště na stránce z mobilu rozlišené na Úložiště 1/2/3; adresa z mobilu platí 30 minut místo 10
+5.2.12 – Oprava pádu služby na pozadí při upozornění na vypršelé WebShare předplatné (nevystavovalo se uživateli, jen padlo hlášení o chybě)
+5.2.11 – Stabilní vydání, souhrn bet 5.2.10~beta1–3:
+5.2.11 – Zvuk a titulky podle preferovaného jazyka: po spuštění se přepne na český (slovenský, anglický) zvuk, i když má soubor jako výchozí jinou stopu; když zvuk v tom jazyce chybí, zapnou se české titulky, u dabingu se titulky vypnou. Nastavení → Přehrávání
+5.2.11 – Seznam streamů: streamy v preferovaném jazyce jsou vždy nahoře
+5.2.11 – Nastavit z mobilu: na TV se ukáže QR kód, mobil ve stejné Wi-Fi vyplní účty a nastavení v prohlížeči a uloží je rovnou do Kodi, bez psaní hesel ovladačem. První položka v nastavení doplňku, v Pokročilých a v průvodci prvním nastavením
+5.2.11 – Hlášení o chybách: chyba v kódu doplňku se autorovi nahlásí sama (bez adres, účtů, hesel a IP; výpadky zdrojů ne). Vypnout jde v Nastavení → Statistiky, s vypnutými statistikami se neposílá nic
+5.2.11 – Oprava: Zpět na ovladači zavře okno s QR kódem Nastavit z mobilu (v betě 3 zůstávalo až 10 minut)
+5.2.10~beta3 – Nastavit z mobilu: na TV se ukáže QR kód, mobil ve stejné Wi-Fi otevře stránku se všemi účty a nastavením a uloží je rovnou do Kodi — bez psaní hesel ovladačem. Nastavení doplňku (první položka) a Pokročilé; průvodce prvním nastavením na úvod nabídne Z mobilu, Průvodce ovladačem nebo Přeskočit. Funguje jen v místní síti, stránka platí 10 minut a pro jedno uložení
+5.2.10~beta3 – Hlášení o chybách: když v doplňku nastane chyba v kódu, pošle se autorovi krátké hlášení (typ chyby, místo v kódu, verze a pár řádků logu Nokturna), ať jde opravit dřív, než ji někdo nahlásí. Adresy, účty, hesla a IP se předem vymažou, výpadky zdrojů se neposílají a stejná chyba odejde nejvýš jednou za verzi. Vypnout jde v Nastavení → Statistiky; s vypnutými statistikami se neposílá nic
+5.2.10~beta2 – Když hraje zvuk v preferovaném jazyce, titulky se vypnou úplně, i vynucené (beta 1 vynucené titulky nechávala zapnuté)
+5.2.10~beta1 – Zvuk a titulky podle preferovaného jazyka: po spuštění přehrávání se přepne na český (slovenský, anglický) zvuk, i když má soubor jako výchozí jinou stopu. Když zvuk v tom jazyce chybí, zapnou se české titulky (náhradou slovenské), u dabingu se titulky naopak vypnou a zůstanou jen vynucené. Titulky ze zdroje se stáhnou, jazyk se pozná z textu a rozsypaná diakritika z windows-1250 je pryč. Nastavení → Přehrávání: „Automaticky přepnout zvuk“ a „Titulky“
+5.2.10~beta1 – Seznam streamů: streamy v preferovaném jazyce jsou vždy nahoře a ostatní až pod nimi (dřív jazyk rozhodoval jen mezi streamy stejné kvality)
+5.2.8 – Stabilní vydání, souhrn bet 5.2.7~beta1–23:
+5.2.8 – Přehrát v detailu titulu funguje v Arctic Fuse, Estuary i z TMDb Helperu — klik na film v menu Nokturna otevře seznam streamů, Přehrát nabídne výběr streamu a přehraje
+5.2.8 – Pokračovat ve sledování si pamatuje stream, na kterém jste skončili, a pustí ho rovnou od uloženého místa — i z karty Home Assistantu, widgetu a Up Next
+5.2.8 – Sjednocené seznamy: Můj seznam, Pokračovat a Naposledy zhlédnuté mají jako katalogy hodnocení, žánr, stopáž a věkové omezení; všude vpravo rok, názvy bez roku v závorce; položky bez fotky a popisu se samy doplní
+5.2.8 – Načítání streamů ukazuje „Nalezené streamy: N“ a „Ověřuji metadata: x/y“; Zpět hledání opravdu zruší
+5.2.8 – Vlastní úložiště (NAS/Nextcloud/WebDAV) se prohledává souběžně s ostatními zdroji a mnohem rychleji
+5.2.8 – Kodi se vypne za pár vteřin i během práce doplňku na pozadí (dřív až minuty)
+5.2.8 – Opravy: statistiky seriálů v žebříčku Nejsledovanější tento týden, zprávy z dashboardu dorazí hned po aktualizaci, přehrávání z TMDb Helperu a widgetů
+5.2.7~beta23 – Ukazatel při načítání streamů: „Nalezené streamy: N“ zůstává vidět po celou dobu, během ověřování k nim jen přibude „Ověřuji metadata: x/y“
+5.2.7~beta22 – Názvy titulů už bez roku v závorce („Matrix“ místo „Matrix (1999)“) — rok ukazuje každý seznam zvlášť, byl tam dvakrát; i u dřív uložených položek Mého seznamu a Pokračovat. Ukazatel při načítání streamů ukazuje jen „Nalezené streamy: N“ (průběžně přibývá) a po načtení „Ověřuji metadata: x/y“ místo dlouhého výčtu po zdrojích
+5.2.7~beta21 – Rychlejší vypínání Kodi (na testovacím boxu z víc než dvou minut na 10 sekund): služba doplňku i hledání (napříč zdroji, čtení hlaviček souborů, procházení vlastního úložiště, přepočet „Nově přidané s CZ dabingem/titulky“) teď na ukončení Kodi reagují do vteřin. Opravené i úplné zaseknutí vypínání po widgetu „Nově přidané“, který po sobě nechával visící vlákna. Zpět při „Načítám streamy…“ hledání opravdu zastaví, ne jen schová ukazatel
+5.2.7~beta20 – Přehrát v detailu titulu teď funguje v Arctic Fuse i Estuary i v režimu „Vybrat ze seznamu streamů“: film a díl v menu Nokturna už není složka — klik otevře seznam streamů, Přehrát (tlačítko v detailu, TMDb Helper, Play na ovladači) nabídne výběr streamu a přehraje. Můj seznam, Pokračovat ve sledování a Naposledy zhlédnuté ukazují jako katalogy i hodnocení, žánr, stopáž a věkové omezení (starší položky se samy doplní při prvním otevření). Všechny seznamy filmů a seriálů mají vpravo rok — dřív Můj seznam ukazoval stopáž a žebříček rok. (Beta 19 je vyhrazená pro rychlejší vypínání Kodi, vyjde samostatně.)
+5.2.7~beta18 – Oprava bety 17, která v režimu „Vybrat ze seznamu streamů“ shodila výpisy filmů a dílů i widget Pokračovat (špatný název metody Kodi API) — tu betu přeskočte
+5.2.7~beta17 – Přehrát v detailu Arctic Fuse (přes TMDb Helper) v režimu „Vybrat ze seznamu streamů“ znovu jen vypisovalo seznam — tahle cesta jde mimo playlist Kodi, takže ji beta 15 nepoznala. Složka s titulem teď nese v info tagu rovnou adresu přehrání, Přehrát otevře výběr streamu, klik dál seznam
+5.2.7~beta16 – Rok u titulů i v katalozích, žebříčku a hledání („Matrix (1999)“), ne jen v Mém seznamu: Kodi u nabídky řazení bez výslovné masky nahrazovalo popisek holým titulem
+5.2.7~beta15 – Přehrát v detailu titulu v režimu „Vybrat ze seznamu streamů“ konečně funguje (ověřeno na Office): otevře výběr streamu a přehraje, obyčejný klik dál otevře seznam streamů. Bety 13 a 14 stály na signálech, které Kodi 21 nedává — teď se rozhoduje podle playlistu Kodi
+5.2.7~beta14 – Oprava rozpoznání Přehrát z detailu (beta 13 to nepoznala a dál vypisovala seznam): doplněk už nespoléhá na nepřítomnost busy dialogu, ale na vlastní ukazatel čekání Kodi, který se objeví jen při přehrávání, nikdy při výpisu
+5.2.7~beta13 – Tlačítko Přehrát v detailu titulu (info dialog Estuary/Arctic Fuse, TMDb Helper) v režimu „Vybrat ze seznamu streamů“ dřív končilo „položku se nepodařilo přehrát“ — Kodi na složce s výpisem streamů nespouští přehrání, ale výpis, a čeká na stream. Doplněk teď takový požadavek pozná a rovnou nabídne výběr streamu jako u „Zeptat se v dialogu“; obyčejný klik v menu dál otevře seznam streamů podle nastavení. Zavření výběru Zpětem Kodi hlásí jako neúspěšné přehrání — to je jeho hláška, ne chyba
+5.2.7~beta12 – Oprava přehrávání z TMDb Helperu (a obecně přehrání spuštěného mimo menu Nokturna — widget, Up Next), které beta 7–11 rozbila: modální ukazatel průběhu zaváděný kvůli zrušení hledání Zpětem se nesmí použít mimo interaktivní procházení menu doplňku, jinak přehrání buď selže, nebo se nic nezobrazí. Zpět teď hledání zruší jen při procházení menu Nokturna, jinde (widget, JSON-RPC, TMDb Helper) běží bezpečně na pozadí jako dřív
+5.2.7~beta11 – Oprava: titul přidaný do Mého seznamu (nebo do Pokračovat ve sledování) dřív, než pro něj doběhlo obohacení daty (TMDB, přepočet na pozadí), zůstal navždy bez fotky a popisu, i když už mezitím data dorazila — teď se takový záznam sám dohledá, jakmile se seznam znovu otevře
+5.2.7~beta10 – Ukazatel při hledání streamů teď ukazuje i ověřování metadat (kolik souborů je ověřeno z kolika se čte) — poslední a nejdelší fáze. Hledání ve vlastním úložišti (NAS/Nextcloud/WebDAV) bylo pomalé: běželo až po ostatních zdrojích místo zároveň s nimi a procházelo složky jednu po druhé — teď běží souběžně se zbytkem hledání a čte víc složek zároveň
+5.2.7~beta9 – Oprava: hledání podle názvu (Hledat) po betě 8 omylem místo „Hledat“ ukazovalo „Načítám streamy…“ — ukazatel průběhu si teď nechává vlastní text, dokud nemá co hlásit odkud a kolik. Zpřesněn i název zdroje u křížového hledání (dřív vždy „Sosáč/Luna“, teď ten, který se doopravdy zkoušel navíc)
+5.2.7~beta8 – „Načítám streamy…“ teď ukazuje i odkud a kolik streamů zatím přišlo (WebShare, HellSpy, Sosáč/Luna…), ne jen procento
+5.2.7~beta7 – Oprava: zmáčknutí Zpět při „Načítám streamy…“ nedělalo nic — hledání běželo dál, a když ho po chvíli tvrdě zabilo samo Kodi, ukazatel průběhu zůstal viset na obrazovce jako duch. Zpět teď hledání rovnou zruší
+5.2.7~beta6 – Oprava: „Pokračovat ve sledování“ v režimu „Vybrat ze seznamu streamů“ (výchozí nastavení) zkratku z bety 5 vůbec nepoužilo a pořád nejdřív otevřelo celé hledání — rozkoukaný titul se teď přehraje rovnou na uloženém streamu i v tomhle režimu
+5.2.7~beta5 – „Pokračovat ve sledování“ si teď pamatuje i konkrétní stream, na kterém titul skončil — přehrání pak jede rovnou na něj místo nového hledání napříč zdroji; přestane-li stream mezitím fungovat (smazaný soubor, vypršelý účet), tiše se prohledá znovu jako dřív
+5.2.7~beta4 – Oprava: přehrání přímým odkazem (karta Home Assistant, widget, Up Next) pustilo rozkoukaný titul vždy od začátku místo od uloženého místa — resume point se nastavoval jen ve výpisech Kodi, ne při přímém přehrání
+5.2.7~beta3 – Oprava: zpráva z dashboardu se po aktualizaci doplňku mohla zobrazit dřív, než doběhne start Kodi (skin ještě nenačtený) — modální dialog si tak nikdo nevšiml. Teď počká aspoň 30 s od startu služby
+5.2.7~beta2 – Zpráva napsaná v dashboardu (obrazovka Zprávy) teď dorazí hned po aktualizaci doplňku, ne až s dalším pravidelným hlášením statistik (až 6 hodin)
+5.2.7~beta1 – Oprava statistik u seriálů: do žebříčku „Nejsledovanější tento týden“ šel u epizod bez vlastního (nebo jen generického placeholder) názvu název epizody místo seriálu, takže se sledovanost jednoho seriálu roztříštila na desítky položek a většina jich pak v žebříčku vůbec nešla dohledat (viz dashboard) — statistiky teď u seriálů vždy posílají název seriálu, přehrávání/„Pokračovat ve sledování“ beze změny
+5.2.6 – „Nově přidané s CZ dabingem/titulky“: když data nejsou připravená z pozadí, vysvětlí to a nabídne „Klepni pro spuštění“ místo automatického živého přepočtu (2–5 minut) — žádný modální dialog, jen běžná položka seznamu
+5.2.6 – Klepnutí na „Klepni pro spuštění“ spustí přepočet na pozadí a pošle upozornění, až bude hotovo, místo aby nutilo čekat na místě
+5.2.6 – Oprava: seznam ukazoval tiše prázdný výsledek, když se zrovna počítal na pozadí (zahřívač nebo dřívější žádost) a uživatel ho otevřel znovu — čekání na cizí výpočet bylo kratší než reálná doba běhu
+5.2.6 – Oprava: hledání spadlo, když WebShare zaskočil za nedostupnou/nenastavenou Lunu (`SORTS[0]`); katalogy TMDB (Populární na TMDB a další) spadly, když Luna nebyla nastavená
+5.2.5 – Oprava: u „Nově přidané s CZ dabingem/titulky“ chybělo hodnocení u části titulů — Sosáčovy exporty ho skoro nikdy nemají, doplňuje se teď spolehlivě i tam, kde dřív chyběl jen samotný rating (popis už byl)
+5.2.5 – Dabing a titulky se počítají v jednom průchodu (dřív dvakrát), zámek mezi souběžnými výpočty stejného seznamu (klik uživatele + zahřívání na pozadí si dřív šlapaly na zdroje), zámek po zaseknutém/zabitém procesu už nezůstane navždy držený
+5.2.5 – „Populární na TMDB“ a „Nejlépe hodnocené“ jdou filtrovat podle žánru
+5.2.5 – „Moje úložiště“ vždy nejdřív ukáže názvy připojených úložišť, teprve pak data — i když je nastavené jen jedno
+5.2.5 – Oprava: u seriálu se ve výběru sezóny místo „1. série“/„2. série“ zobrazoval název seriálu
+5.2.4~beta1 – Oprava popisku: položka menu u seriálů „Nové díly s CZ dabingem“ přejmenována na „Nově přidané epizody“ — Sosáč u epizod jazyk (dabing/titulky) neposkytuje, popisek to dřív mylně sliboval
+5.2.3~beta1 – Nová položka menu „Nejsledovanější tento týden“ — žebříček podle skutečného sledování napříč uživateli (dashboard), náhrada za starou položku „Trendy tento týden“ z TMDB, která se přejmenovala na „Populární na TMDB“; odstraněny položky „Podle žánru“ a „Podle roku“
+5.2.1~beta1 – Zprávy napsané v dashboardu se po odeslání statistik zobrazí jako upozornění (posílá administrátor, např. při výpadku zdroje)
+5.2.0 – Nastavení přeuspořádané (WebShare/Sosáč/HellSpy/Sledujteto/FastShare/Luna/Vlastní úložiště/TMDB API); nová kategorie Info s odkazem na web rodiny Nokturno (Stremio, Home Assistant)
+5.2.0 – Nastavení → Pokročilé: tlačítko „Odeslat log Kodi“ pošle posledních ~500 KB kodi.logu na server, teď s potvrzením a jako poslední položka (funguje i s vypnutými statistikami), pomůže rozklíčovat nahlášené pády
+5.1.3 – Detail filmu z TMDB: obsazení s fotkami a rolemi, počet hlasů, trailer a věkový rating (jen s vlastním klíčem TMDB); scénárista
+5.1.3 – Oprava: FastShare u některých titulů spadl na vadně zakódovaném bajtu v odpovědi; pojistka proti prázdnému hledání mimo dialog
+5.1.0 – FastShare jako šestý zdroj: hledání i bez účtu, přehrávání z kreditu nebo s neomezeným stahováním, přetáčení; zvuk z hlavičky souboru jen s neomezeným stahováním
+5.1.0 – Nastavení → FastShare, krok v průvodci prvním nastavením, Otestovat zdroje ukáže zbývající kredit; fanart a popisy doplňku se všemi zdroji
+5.0.0~beta1 – FastShare jako šestý zdroj: hledání i bez účtu, přehrávání z kreditu nebo s neomezeným stahováním (Nastavení → FastShare, krok v průvodci)
+5.0.0~beta1 – Zvukové stopy FastShare se čtou jen s neomezeným stahováním, na kredit se kvůli nim nic nestahuje; Otestovat zdroje ukáže zbývající kredit
+4.0.1 – Průvodce prvním nastavením nabídne nastavit Nokturno jako přehrávač TMDb Helperu (Přehrát v detailu filmu), je-li TMDb Helper nainstalovaný
+4.0.0 – Stabilní Nokturno 4.0: doplněk stojí na sdíleném jádru s Home Assistantem a Stremiem — stejné hledání, streamy a párování zdrojů
+4.0.0 – Přehrát v detailu filmu z TMDb Helperu (Arctic Fuse) hledá v Nokturnu; výběr streamu v dialogu s filtrem, ve výpisu seznam streamů
+4.0.0 – Nalezené streamy se pamatují 72 hodin, fulltext hledá i pod českým a originálním názvem, titulky z WebShare, rychlejší načítání
+4.0.0 – Tlačítko Zkontrolovat aktualizace doplňků; odkaz bez parametru už neshodí doplněk ani Kodi; popisky bez češtiny natvrdo
+4.0.0 – Opravy: seznam streamů v zobrazení FlixArt, Přehrát z widgetu, průvodce nastavením, Pokračovat u HellSpy a vlastního úložiště
+4.0.0~beta4 – Přehrát v detailu filmu nebo dílu z TMDb Helperu (Arctic Fuse a další skiny) hledá streamy v Nokturnu — Nastavení → Pokročilé → Přidat Nokturno do TMDb Helperu
+4.0.0~beta4 – Výběr streamu: ve výpisu Nokturna klik otevře seznam streamů, z widgetu nebo detailu se nabídne dialog — nově s Filtrem streamů, Zrušit filtr a Použít poslední filtr
+4.0.0~beta4 – Kontextové menu filmu a dílu: Vybrat stream a přehrát (ve výpisu), Seznam streamů (ve widgetu); režim výběru se jmenuje „Vybrat ze seznamu streamů“
+4.0.0~beta4 – Oprava: seznam streamů v zobrazení FlixArt ukazoval u všech streamů jen název filmu; Přehrát z detailu filmu Nokturna ve widgetu nic nepustilo
+4.0.0~beta4 – Při přehrání z widgetu nebo detailu je vidět průběh „Načítám streamy“
+4.0.0~beta3 – Oprava: odkaz bez parametru (starší widget, ruční URL z HA) už neshodí doplněk ani Kodi — jen upozornění
+4.0.0~beta2 – Hledání jde přes sdílené jádro (řetězec zdrojů TMDB → Luna → Sosáč → Cinemeta, sloučení, rok v dotazu, cache) — stejně jako v Home Assistantu a Stremiu
+4.0.0~beta2 – Tlačítko „Zkontrolovat aktualizace doplňků“ přesunuto do Pokročilé (k „Otestovat zdroje“)
+4.0.0~beta1 – BETA rodiny Nokturno 4.0: doplněk stojí nad sdíleným jádrem (stejná logika streamů jako Home Assistant a Stremio) — co se chová jinak než ve 3.1, nahlaste na GitHubu
+4.0.0~beta1 – Nalezené streamy se pamatují 72 hodin (jen úspěšný výsledek), další otevření titulu je rychlejší
+4.0.0~beta1 – Fulltext hledá i pod českým a originálním názvem (Wikidata, Cinemeta); k streamům bez titulků se přibalí titulky z WebShare
+4.0.0~beta1 – Rychlejší načítání: zdroje streamů souběžně, TMDB jedním dotazem, index seriálů Sosáče; hlavičky souborů se čtou až u seřazených streamů
+4.0.0~beta1 – Popisky bez češtiny natvrdo (žánry česky jen v české a slovenské Kodi), Novinky ukazují i beta verze
+4.0.0~beta1 – Výpisy se řadí podle skinu (rok, hodnocení); zahřívání cache po sobě uklidí prošlé soubory; Pokračovat ve sledování se načítá souběžně
+4.0.0~beta1 – Fronta stahování se stabilním id (soubor podruhé se nezařadí); Odebrat z Pokračovat i u souborů z úložiště
+4.0.0~beta1 – Tlačítko „Zkontrolovat aktualizace doplňků“ v nastavení — kontrola repozitářů hned, ne až podle plánu Kodi
+3.1.12 – Průvodce prvním nastavením se na čisté instalaci opravdu nabídne — jako položka nahoře v menu
+3.1.12 – Pokračovat ve sledování a Naposledy zhlédnuté fungují i u souborů z HellSpy a vlastního úložiště
+3.1.12 – Oprava: chyba uvnitř doplňku už nenechá Kodi čekat na timeout přehrání
+3.1.12 – Zahřívání cache bere aktuální nastavení (po zadání klíče TMDB se dál zahřívala Luna)
+3.1.12 – Vypršelý odkaz Streamuj už neshodí celý seznam streamů; čtení hlavičky souboru nestahuje celý film ze serveru bez podpory Range
+3.1.12 – Token Luny a heslo Streamuj se nedostanou do chybových hlášek ani do kodi.log
+3.1.12 – Vyžaduje Kodi 20 a novější (addon.xml to dřív tvrdil špatně)
+3.1.10 – Beta verze: volitelný „Nokturno repozitář (beta)“ pro novinky dřív
+3.1.10 – Vypnuté statistiky posílají už jen náhodné id instalace a verzi (že instalace žije), žádné tituly ani zdroje
+3.1.8 – Filmy: nově přidané zvlášť s CZ dabingem a s CZ titulky
+3.1.8 – Seznamy ze Sosáče se i na slabších zařízeních načtou za pár sekund místo minuty a víc
+3.1.8 – Zahřívání cache na pozadí připraví seznamy, které menu opravdu otevírá
+3.1.7 – Oprava: tituly začínající krátkým slovem („S čerty nejsou žerty“) zase dostanou všechny streamy
+3.1.6 – Přehlednější hlavní menu: Hledat, Pokračovat ve sledování, Filmy, Seriály, Můj seznam, Moje úložiště, Stažené, Nastavení
+3.1.6 – Filmy a Seriály bez rozdělení podle zdroje: Populární, Trendy tento týden, Nejlépe hodnocené, s CZ dabingem, podle žánru, roku a písmene
+3.1.6 – Přesnější streamy u titulů s obecným názvem („Pět švestek“ už nedostane „Seber si svých pět švestek“)
+3.1.5 – Náhled a logo filmu z TMDB (v náhledu už ne tentýž obrázek jako na pozadí)
+3.1.5 – Stejný soubor přes Lunu, její hledání a WebShare se v seznamu streamů ukáže jen jednou
+3.1.5 – Žánr v popisu na stejném řádku jako popis, oddělený tečkou (víc místa na popis)
+3.1.4 – Odebraný „Další díl“ z Pokračovat ve sledování se přenese synchronizací na ostatní Kodi i do Home Assistantu, i na Kodi, které bylo zrovna vypnuté
+3.1.3 – Slovenčina: celý doplnok a jeho popis v slovenčine (podľa jazyka Kodi)
+3.1.3 – Průvodce prvním nastavením se ptá i na Sledujteto
+3.1.2 – „Další díl“ jde odebrat z Pokračovat ve sledování (kontextové menu i karta Home Assistantu); nabídne se zase po zhlédnutí dalšího dílu
+3.1.1 – Streamy z vlastního úložiště jsou v seznamu vždy první a na začátku řádku mají název úložiště
+3.1.0 – Vlastní úložiště: až tři WebDAV složky (NAS, Nextcloud, server) — soubory se objeví mezi streamy i ve vyhledávání (Nastavení → Vlastní úložiště)
+3.1.0 – Moje úložiště v hlavním menu: procházení vlastních souborů po složkách
+3.1.0 – Kontrola zdrojů hlásí nedostupný zdroj srozumitelně („… neodpovídá“)
+3.0.2 – Verze srovnaná s doplňkem pro Stremio a integrací pro Home Assistant, bez změn v doplňku
+3.0.1 – Odkaz na podporu autora (Ko-fi, PayPal, Bitcoin) v popisu doplňku a v nápovědě pokročilého nastavení
+3.0.0 – Sledujteto jako pátý zdroj: hledání přes tvůj účet, přehrávání s Premium, zvukové stopy a titulky přímo z jeho API (Nastavení → Sledujteto)
+3.0.0 – Přesnější hledání u filmů, které mají na zdrojích český název jiný než originál: české a slovenské názvy se berou z Wikidat
+3.0.0 – Názvy souborů bez nesmyslných znaků z cizího písma na konci (kvůli nim se u streamu nezobrazily vlajky jazyků)
+3.0.0 – Test zdrojů kontroluje i HellSpy a Sledujteto
+3.0.0 – Anonymní statistiky hlásí, které zdroje máš zapnuté, a posílají se na novou adresu
+2.0.24 – Výpadek jednoho zdroje (třeba vypnutá Luna) už nezastaví hledání streamů: zdroj se přeskočí, ukáže se upozornění a nabídnou se streamy z ostatních zdrojů
+2.0.24 – Oprava: pozastavené video vracelo titul do „Pokračovat ve sledování“ i poté, co jsi ho odtamtud odebral
+2.0.23 – Oprava: rozkoukaný titul se někdy v „Pokračovat ve sledování“ vůbec neukázal (rejstřík Sosáče přepsal jeho uložený snímek); rejstřík má teď vlastní soubor a chybějící snímek si výpis dohledá sám
+2.0.22 – Oprava: rozkoukaný film se neuložil, když se bez zastavení pustil jiný; titul se teď do „Pokračovat ve sledování“ zapíše už po 90 s přehrávání a od 90 % se označí jako zhlédnutý, obojí hned za běhu
+2.0.22 – Přesnější výsledky z WebShare a HellSpy: u titulu s krátkým názvem (např. „To“) se už neobjeví nesouvisející filmy, u filmu se nenabízí jeho pokračování („Jak vycvičit draka 2“ u jedničky) a pozná se i rok oddělený podtržítkem
+2.0.21 – Oprava: u titulů s krátkým slovem v názvu (např. „Harry Potter a Kámen mudrců“) hledání na WebShare a HellSpy zahodilo všechny přesné shody
+2.0.20 – Oprava: položka „Novinky ve verzi“ po přečtení někdy nezmizela (verze se brala z paměti Kodi místo z addon.xml)
+2.0.19 – Oprava pádu služby na pozadí zavedené v 2.0.18 (chyba v note_play zastavila sledování rozkoukanosti i synchronizaci, dokud se Kodi neresetlo) — kdo 2.0.18 už nainstaloval, aktualizaci udělá sám
+2.0.18 – Znovu zavedená statistika zhlédnutí titulů (nová logika: max jedno zhlédnutí za den, ne počítadlo přehrání); oprava, kdy „Pokračovat ve sledování“ po znovuotevření nabídlo míň streamů než hned po přehrání (chyběl odkaz na druhý zdroj)
+2.0.17 – Výchozí řazení streamů je teď „Největší první“ místo „Jak přišly“ (u nových instalací; kdo si řazení už nastavil, zůstává mu, jak měl)
+2.0.16 – Nová položka „Odebrat z Pokračovat ve sledování“ v kontextovém menu rozkoukaného titulu (jde odebrat i z karty v Home Assistantu); opravený a rozšířený filtr streamů (kombinace jazyk+kanály se teď ověřuje na téže stopě, přidáno tlačítko Zrušit filtr a Použít poslední filtr); přehlednější ikony v menu (dřív měly stejnou ikonu i nesouvisející věci jako Vymazat mezipaměť a Novinky); nová čtvercová značka doplňku na nové cestě (stará se v cache TV nemá odkud vrátit); zrušená statistika zhlédnutí jednotlivých titulů (zbylo jen "instalace je živá")
+2.0.15 – Oprava: „Vymazat historii“ (i mazání jednotlivého dotazu) u sjednoceného hledání nefungovalo úplně – zobrazený seznam je sloučený z historie Filmů a Seriálů, ale mazala se jen jejich společná, jinak prázdná historie
+2.0.14 – Průvodce nastavením umí i změřit rychlost internetu; hlášení o nedostupném zdroji teď přesně jmenuje, který zdroj selhal (dřív hlásilo natvrdo "Server Luna neodpovídá" i u jiné chyby)
+2.0.13 – Oprava: 4 texty průvodce nastavením se kvůli chybě v překladu zobrazovaly anglicky místo česky
+2.0.12 – Průvodce prvním nastavením – při prvním otevření doplněk sám provede vyplněním zdrojů (WebShare, Sosáč, Luna, HellSpy, TMDB); kdykoli znovu spustitelný z Nastavení → Pokročilé
+2.0.11 – Tlačítko „Zkusit fulltext na WebShare/HellSpy“ u seznamu streamů – uvolněné hledání pro případ, že přísný filtr skutečnou shodu zahodil jako podobný, ale jiný titul
+2.0.10 – Oprava: fulltextové hledání (WebShare/HellSpy) mohlo nabídnout úplně jiný titul, jehož název náhodou obsahoval stejná slova (např. idiom „Seber si svých pět švestek“ místo filmu „Pět švestek“)
+2.0.9 – Cache API se teď po každé aktualizaci doplňku sama smaže, ať se staré odpovědi nezdrží až do vypršení
+2.0.8 – TMDB (má-li uživatel klíč) má teď přednost i před Lunou v katalogu a hledání, s pádem zpátky na Lunu/Sosáč/Cinemetu, když zrovna nejde
+2.0.7 – Historie hledání zkrácena na posledních 10 dotazů (dřív 30)
+2.0.6 – Vlastní klíč TMDB v nastavení (zdarma, návod přímo v nápovědě) – bez Luny teď jde mít i popis a obsazení titulu česky, ne jen název
+2.0.5 – Veřejný katalog Sosáče (české tituly, žádný účet) má teď přednost před Cinemetou jako vlastní databáze – funguje i bez Luny a bez Streamuj účtu
+2.0.4 – Vlastní napojení na databázi filmů a seriálů (Cinemeta) – katalog i hledání teď fungují i bez Luny a Sosáče, třeba jen s HellSpy
+2.0.3 – Ukazatel průběhu při načítání streamů (dřív jen obecné točící se kolečko Kodi)
+2.0.2 – Můj seznam přidaný ještě před verzí se synchronizací (1.7.0) se teď taky dosynchronizuje mezi Kodi
+2.0.2 – Sloučení duplicitních streamů z Lunina vlastního fulltextu WebShare, když se vrátí tentýž soubor víckrát
+2.0.1 – Hledat i na HellSpy je teď zapnuté ve výchozím nastavení (u nových instalací)
+2.0.0 – HellSpy jako čtvrtý zdroj streamů (veřejný, bez účtu) – hledá se automaticky spolu s ostatními
+2.0.0 – Filtr streamů podle kvality, zvuku, kanálů, kodeku, titulků i zdroje, s počtem nalezeného vždy v závorce
+2.0.0 – Datový tok a délka u úplně každého streamu, ne jen u toho, co si to sám řekl – z hlavičky souboru nebo odhadem podle stopáže titulu
+2.0.0 – Max. velikost streamu (GB) nahrazena datovým tokem (Mb/s) – přepočítá se podle stopáže právě otevřeného titulu; rychlost internetu jde rovnou v nastavení změřit
+2.0.0 – Sledování předplatného WebShare – upozornění pár dní před koncem a pak každý den po vypršení, dny do konce i v nastavení
+2.0.0 – Jazyk zvuku se ověřuje z hlavičky souboru i tam, kde ho tvrdí jen název – uploader se může splést nebo zkopírovat popisek odjinud
+2.0.0 – Žánr titulu tučně na začátku popisu (přeložený do češtiny, i u anglických zdrojů)
+2.0.0 – Nápověda ke všem položkám nastavení – dole v dialogu se teď zobrazí, co která volba dělá
+2.0.0 – Oprava: „Zeptat se v dialogu“ u výběru streamu konečně funguje (od prvních verzí doplňku se místo dialogu vždy zobrazil seznam)
+2.0.0 – Kvalita zpátky jako barevný text (4K/FHD/HD/SD), konec neviditelného textu na vybrané položce s bílým podkladem
+2.0.0 – Fulltext WebShare zmizel z hlavního menu – nabídne se až u titulu, který katalogy nenajdou
+2.0.0 – Ochrana proti lživým hlavičkám AVI souborů (chybná délka po přemuxování už nezkreslí datový tok)
+1.8.7 – po aktualizaci se v menu nahoře objeví „Novinky ve verzi“ se stručným přehledem změn
+1.8.6 – ikona zpět na původní, tenčí kresbu
+1.8.5 – silnější kresba ikony, aby se v seznamu doplňků nerozpadala; u Pokračovat ve sledování, Můj seznam, Naposledy zhlédnuté a Hledat na WebShare jde nastavit zobrazení jako u Filmů
+1.8.4 – nová ikona se propíše i tam, kde Kodi držel v paměti tu starou
+1.8.3 – nová ikona a pozadí doplňku
+1.8.2 – historie hledání se sdílí i s kartou v Home Assistantu (hlavní hledání pod společným typem)
+1.8.1 – synchronizace mezi Kodi zahrnuje i historii hledání
+1.8.0 – nová položka „Staženo v HA" (když běží synchronizace) — seznam filmů stažených integrací do Home Assistantu, přehratelných z tohohle Kodi přes adresu HA (i mimo síť, když je to Nabu Casa)
+1.7.1 – soubory z WebShare se k titulům dohledávají vždy, když je účet vyplněný (dřív to byl přepínač) — seznam streamů je stejný jako v kartě pro Home Assistant
+1.7.0 – synchronizace zhlédnuto, rozkoukané a Mého seznamu mezi více Kodi přes integraci Nokturno v Home Assistantu (Nastavení → Synchronizace; položka „Synchronizovat teď" v menu); k titulům se přidávají i soubory nalezené přímo na WebShare (stejně jako v kartě pro HA)
+1.6.0 – rychlejší seznam streamů (oba zdroje se prohledávají souběžně); u seriálu si doplněk pamatuje vybraný stream a další díly pouští bez ptaní; v seznamu epizod je označený díl, který je na řadě; tlačítko „Otestovat zdroje" v Pokročilém nastavení; katalogy a další díl rozkoukaného seriálu se na pozadí předstahují
+1.5.40 – v nastavení ubyla adresa sběrného bodu; zůstává jen přepínač
+1.5.39 – repozitář jde nově nainstalovat přímo v Kodi: stačí přidat zdroj https://nokturno.tailf0014.ts.net/repo/ a nainstalovat z něj ZIP, bez stahování v prohlížeči a přenášení do zařízení
+1.5.38 – drobné opravy
+1.5.37 – při aktualizaci doplňku už nevyskočí hláška o chybě (služba na pozadí se ukončovala ve chvíli, kdy Kodi doplněk na okamžik odregistruje)
+1.5.36 – drobné opravy
+1.5.35 – titulky u streamů z WebShare hledání se poznají i podle názvu souboru ("CZtit"), ne jen z popisu Luny/Sosáče
+1.5.34 – Up Next: u seriálů se službě Up Next posílá další díl, takže ke konci epizody nabídne „Další díl“ a pustí ho
+1.5.33 – vlastní ikony i pro zbylé položky (katalogy, žánry, historie hledání, další strana, volba Filmy/Seriály) — dřív je mělo jen hlavní menu
+1.5.32 – streamy sdílely zobrazení s výsledky hledání (typ obsahu "movies" byl stejný) — teď mají "episodes", kolize je jen s obrazovkou Epizody
+1.5.31 – oprava: streamy pořád nabízely jen "Seznam základní" (typ obsahu "videos" nestačil, teď je stejný jako u fungujících obrazovek)
+1.5.30 – vlastní ikony pro položky hlavního menu (dřív měly všechny stejnou ikonu doplňku)
+1.5.29 – oprava: obrazovka se streamy neuměla přepnout na bohatší zobrazení (jen "Seznam základní") — chyběl typ obsahu pro skin
+1.5.28 – cache hledání prodloužena na 12 hodin (streamy zůstávají 72 h); jde ji vymazat i z kontextového menu tlačítka Hledat, ne jen z Nastavení
+1.5.27 – opakované hledání teď skutečně rychlé i s tituly ze Sosáče (dřív se pokaždé znovu dotahoval popis, i když katalog byl už z cache)
+1.5.26 – hledání se kešuje 5 minut (Luna, WebShare), nalezené streamy 72 hodin — prázdný výsledek se nepamatuje, aby další pokus zkusil znovu
+1.5.25 – oprava zdvojeného roku ve statistikách ("Matrix (1999) (1999)")
+1.5.24 – oprava pádu při hledání napříč typy (Store nebyl bezpečný pro souběžný přístup ze dvou vláken, hlásilo se "dictionary changed size during iteration")
+1.5.23 – ukazatel průběhu při hledání napříč typy se skutečně hýbe (dřív zůstával na 0 %, dokud nedoběhlo úplně vše)
+1.5.22 – hledání napříč typy (film/seriál) neopakuje dotaz, když najde jen jeden typ — dřív to po krátkém průběhu dlouho tiše čekalo a pak najednou ukázalo výsledky
+1.5.21 – Luna může běžet i lokálně na stejném zařízení jako Kodi (ne jen v LAN); když Luna neodpovídá, hledání automaticky přejde na přímý fulltext WebShare
+1.5.20 – drobné vylepšení služby na pozadí
+1.5.19 – výchozí adresa sběrného bodu statistik
+1.5.18 – anonymní statistiky používání (v nastavení jdou vypnout)
+1.5.17 – položky nesou hodnocení i v procentech (vlastnost RatingPercent)
+1.5.16 – u „Trendy“ se časové okno TMDB zobrazuje česky (Za den / Za týden)
+1.5.15 – oprava: chyba importu v sosac_direct (relativní import z HA verze shazoval doplněk „attempted relative import")
+1.5.14 – tituly s podtitulem se v Sosáči najdou i podle části názvu před pomlčkou
+1.5.13 – hledání pro filmy i seriály běží souběžně a ukazuje průběh (dřív to vypadalo jako zaseknutí)
+1.5.12 – jazyk zvuku se bere i z názvu souboru (metadata zdroje občas hlásí EN u českého souboru)
+1.5.11 – jedno hledání pro filmy i seriály; volba typu se nabídne, jen když dotaz najde obojí
+1.5.10 – rok napsaný do hledání funguje jako filtr („Pět švestek 2026“ vrátí jen film z roku 2026)
+1.5.9 – výpadek Sosáče/streamuj už nespadne jako chyba doplňku (SosacError byl ve dvou třídách)
+1.5.8 – plakáty a popis titulů Sosáče bez IMDb id se dohledají z TMDB podle názvu a roku
+1.5.7 – oprava chyby „items.json.tmp“ při procházení katalogů (souběžný zápis cache)
+1.5.6 – náhledy titulů ze Sosáče se berou z TMDB (movies.sosac.tv je vrací jako 404)
+1.5.5 – popis streamu čitelný i v úzkém sloupci seznamu (Arctic Fuse): nejdřív jazyk s počtem kanálů (5.1 a víc tučně), velikost a kvalita, pak zdroj a zbytek; preferovaný jazyk je první; stopáž a hodnocení filmu se v seznamu streamů už nevyplňují, braly šířku popisku
+1.5.4 – popis, stopáž a obsazení u titulů Sosáče (exporty Sosáče popis nemají; dotahuje se podle IMDb id z Luny, bez Luny z Cinemety, cache 30 dní)
+1.5.3 – oprava: „Přidat do Mého seznamu“ v kontextovém menu (přepisovalo ho „Označit jako zhlédnuté“)
+1.5.2 – volba „Preferovat prostorový zvuk (5.1 a víc)“, kanály zvuku v popisku streamu
+1.5.1 – nové logo (monogram N), řazení podle kvality má přednost před jazykem
+1.5.0 – nové logo; seznam streamů: zdroj (Luna / WebShare / Sosáč), barevná kvalita, jazyky zvuku a titulků, velikost; štítek Sosáč jen ve smíšeném hledání
+1.4.1 – doplněný popis a nastavení
+1.4.0 – Sosáč napřímo: katalogy z tv.sosac.to a streamy ze streamuj.tv (stačí účet Streamuj, bez Stremia a bez loginu k Sosáči), CZ titulky ze streamuj
+1.3.3 – popisy a pořadí nastavení: WebShare, Sosáč, Luna jako rovnocenné zdroje
+1.3.2 – bez modálních dialogů při chybějícím nastavení (blokovaly Kodi při volání z widgetu)
+1.3.1 – nové ID doplňku plugin.video.nokturno (nastavení a historie se přenesou automaticky)
+1.3.0 – Pokračovat ve sledování a další díl, Můj seznam, Naposledy zhlédnuté, filtr a řazení streamů (jazyk, SD, velikost), stahování do složky, Trakt.tv, cache API, widgety
+1.2.1 – stejný titul z Luny a Sosáče je ve výsledcích hledání jen jednou, zdroj je vidět až u streamů
+1.2.0 – WebShare přímo (účet v nastavení, bez serveru Luna), Luna jde vypnout; historie hledání; zhlédnuto/rozkoukáno
+1.1.1 – nový název Nokturno a logo
+1.1.0 – Sosáč jako druhý zdroj: vlastní katalogy, hledání napříč oběma zdroji, dohledání streamů titulu v druhém zdroji; název filmu v OSD přehrávače
+1.0.1 – streamy i z fulltextu WebShare (Luna: Search), sloučené s hlavním zdrojem
+1.0.0 – první vydání</news>
+  </extension>
+</addon>
 </addons>

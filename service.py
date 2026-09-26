@@ -55,7 +55,8 @@ from sync import sync_once  # noqa: E402
 import syncbox  # noqa: E402
 from trend_api import CATALOG_ID as TREND_CATALOG_ID  # noqa: E402
 from tracks import SUBS_WHEN_NEEDED, pick_audio, pick_subtitle, track_lang  # noqa: E402
-from trakt_api import TraktApi, TraktError  # noqa: E402
+from trakt_api import TraktApi, TraktError, pick_keys  # noqa: E402
+from dash_api import DashApi  # noqa: E402
 from webshare_api import WebshareApi  # noqa: E402
 import kodi_marks  # noqa: E402 – vedle service.py, čte videodatabázi Kodi
 import update_info  # noqa: E402 – vedle service.py, čte databázi doplňků Kodi
@@ -176,8 +177,11 @@ def get_trakt(store):
     addon = fresh_addon()
     if addon is None or addon.getSetting("trakt_enabled") != "true":
         return None
-    api = TraktApi(addon.getSetting("trakt_client_id"), addon.getSetting("trakt_client_secret"),
-                   tokens=store.trakt(), on_tokens=store.set_trakt)
+    if not store.trakt():
+        return None
+    cid, sec = pick_keys(addon.getSetting("trakt_client_id"), addon.getSetting("trakt_client_secret"),
+                         DashApi(cache=store))
+    api = TraktApi(cid, sec, tokens=store.trakt(), on_tokens=store.set_trakt)
     return api if api.logged_in() else None
 
 

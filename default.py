@@ -69,7 +69,7 @@ import setsync  # noqa: E402
 import syncbox  # noqa: E402
 from streams import estimate_rank, langs_from_name, parse_stream, subs_from_name  # noqa: E402
 from tracks import FILE_CODES, SUBTITLE_FALLBACK, decode_subtitle, subtitle_format, subtitle_lang  # noqa: E402
-from trakt_api import TraktApi, TraktError  # noqa: E402
+from trakt_api import TraktApi, TraktError, pick_keys  # noqa: E402
 from webshare_api import SORTS, WebshareApi, WebshareError, human_size  # noqa: E402
 import kodi_marks  # noqa: E402 – vedle default.py, ne kopie jádra (čte videodatabázi Kodi)
 import kodi_sources  # noqa: E402 – vedle default.py, sdílený výčet zdrojů do statistik
@@ -815,9 +815,8 @@ def remember_ws_token(api):
 def get_trakt():
     if not on("trakt_enabled", "false"):
         return None
-    api = TraktApi(setting("trakt_client_id"), setting("trakt_client_secret"), tokens=STORE.trakt(),
-                   on_tokens=STORE.set_trakt)
-    return api
+    cid, sec = pick_keys(setting("trakt_client_id"), setting("trakt_client_secret"), get_dash())
+    return TraktApi(cid, sec, tokens=STORE.trakt(), on_tokens=STORE.set_trakt)
 
 
 def get_cinemeta():

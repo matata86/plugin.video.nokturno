@@ -1,8 +1,10 @@
 """Trakt.tv — přihlášení kódem zařízení, scrobble a zápis zhlédnutí.
 
-Trakt vyžaduje vlastní aplikaci (client id + secret) — vytvoří se na
-https://trakt.tv/oauth/applications (redirect URI `urn:ietf:wg:oauth:2.0:oob`).
-Přihlášení: Kodi ukáže kód, uživatel ho zadá na https://trakt.tv/activate.
+Client id + secret aplikace Nokturno rozdává dashboard (`DashApi.trakt_key()`),
+vlastní aplikace (developer.trakt.tv, redirect URI `urn:ietf:wg:oauth:2.0:oob`)
+je jen nepovinné přepsání. Přihlášení: Kodi ukáže kód, uživatel ho zadá na
+https://trakt.tv/activate — to jde i s free účtem (ten má ale jen jednu
+připojenou aplikaci třetí strany naráz).
 Posílá se jen to, co má IMDb/TMDB id (tituly z Luny); Sosáč a soubory WebShare
 Trakt nezná.
 """
@@ -13,6 +15,8 @@ import urllib.request
 
 API = "https://api.trakt.tv"
 TIMEOUT = 30
+# Cloudflare před Traktem odmítá výchozí `Python-urllib` (403, chyba 1010)
+USER_AGENT = "Nokturno (+https://github.com/matata86/nokturno-core)"
 
 
 class TraktError(Exception):
@@ -29,6 +33,16 @@ def ids_for(item_id):
     return None
 
 
+def pick_keys(client_id, client_secret, dash=None):
+    """Vlastní aplikace (obojí vyplněné), jinak aplikace Nokturno z dashboardu
+    (`DashApi.trakt_key()`). Tokeny patří k client id — kdo se přihlásil vlastní
+    aplikací, musí ji mít vyplněnou dál."""
+    client_id, client_secret = (client_id or "").strip(), (client_secret or "").strip()
+    if client_id and client_secret:
+        return client_id, client_secret
+    return dash.trakt_key() if dash is not None else ("", "")
+
+
 class TraktApi:
     def __init__(self, client_id, client_secret, tokens=None, on_tokens=None):
         self.client_id = (client_id or "").strip()
@@ -42,7 +56,7 @@ class TraktApi:
             "Content-Type": "application/json",
             "trakt-api-version": "2",
             "trakt-api-key": self.client_id,
-            "User-Agent": "Nokturno (+https://github.com/matata86/nokturno-core)",
+            "User-Agent": USER_AGENT,
         }
         if auth:
             if not self.tokens.get("access_token"):
@@ -70,7 +84,7 @@ class TraktApi:
         """Vrátí tokeny, None když uživatel ještě kód nezadal; výjimka při zamítnutí/vypršení."""
         req = urllib.request.Request(API + "/oauth/device/token", data=json.dumps({
             "code": device_code, "client_id": self.client_id, "client_secret": self.client_secret,
-        }).encode(), headers={"Content-Type": "application/json"})
+        }).encode(), headers={"Content-Type": "application/json", "User-Agent": USER_AGENT})
         try:
             with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
                 self._store(json.loads(resp.read()))
