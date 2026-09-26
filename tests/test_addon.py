@@ -3397,8 +3397,6 @@ class TestUdrzbaKodi(unittest.TestCase):
     def test_zip_bez_balastu_a_build_hlida_novinky(self):
         for f in ("lists", "tests"):
             self.assertIn(f, build_repo.EXCLUDE)
-        # vánoční varianta ikony doplňku se nikde nekreslí, do zipu nepatří
-        self.assertIn("icon-vanoce.png", build_repo.EXCLUDE)
         # engine.py je importuje — v zipu chybět nesmí (dřív byly vyjmuté jako „jen HA")
         self.assertFalse({"prowlarr.py", "qbittorrent.py", "engine.py"} & build_repo.EXCLUDE)
         build_repo.check(ET.parse(ROOT / "addon.xml").getroot().get("version"))   # aktuální stav projde

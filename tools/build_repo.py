@@ -32,7 +32,7 @@ EXCLUDE = {".git", ".gitignore", "repo", "repo-beta", "tools", "tests", "reposit
            "repository.nokturno.beta", "__pycache__", ".github",
            # v zipu bez užitku: vánoční seznam (torrenty bere jen HA, ale engine.py je
            # importuje, takže prowlarr.py a qbittorrent.py v zipu být musí)
-           "lists", "icon-vanoce.png"}
+           "lists"}
 
 
 def addon_version(path):
