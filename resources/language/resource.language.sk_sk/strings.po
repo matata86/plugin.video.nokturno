@@ -2301,7 +2301,7 @@ msgstr "Opustiť skupinu"
 
 msgctxt "#30811"
 msgid "Create a group (I'll lead)"
-msgstr "Založiť skupinu (budem vedúci)"
+msgstr "Založiť skupinu a viesť ju"
 
 msgctxt "#30812"
 msgid "Join with code"
