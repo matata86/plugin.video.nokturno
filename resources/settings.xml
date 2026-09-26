@@ -806,43 +806,6 @@
           <control format="string" type="spinner"/>
         </setting>
       </group>
-      <group id="3" label="30662">
-        <setting id="sync_url" type="string" label="30182" help="30327">
-          <level>0</level>
-          <default>http://homeassistant.local:8123</default>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <dependencies>
-            <dependency type="enable">
-              <and>
-                <condition setting="sync_enabled" operator="is">true</condition>
-                <condition setting="sync_mode" operator="is">0</condition>
-              </and>
-            </dependency>
-          </dependencies>
-          <control type="edit" format="string">
-          </control>
-        </setting>
-        <setting id="sync_key" type="string" label="30183" help="30328">
-          <level>0</level>
-          <default></default>
-          <constraints>
-            <allowempty>true</allowempty>
-          </constraints>
-          <dependencies>
-            <dependency type="enable">
-              <and>
-                <condition setting="sync_enabled" operator="is">true</condition>
-                <condition setting="sync_mode" operator="is">0</condition>
-              </and>
-            </dependency>
-          </dependencies>
-          <control type="edit" format="string">
-            <hidden>true</hidden>
-          </control>
-        </setting>
-      </group>
       <group id="2" label="30663">
         <setting id="sync_create_action" type="action" label="30665" help="30943">
           <level>0</level>
@@ -908,6 +871,43 @@
           </dependencies>
           <data>RunPlugin(plugin://plugin.video.nokturno/?action=sync_leave)</data>
           <control format="action" type="button"/>
+        </setting>
+      </group>
+      <group id="3" label="30662">
+        <setting id="sync_url" type="string" label="30182" help="30327">
+          <level>0</level>
+          <default>http://homeassistant.local:8123</default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable">
+              <and>
+                <condition setting="sync_enabled" operator="is">true</condition>
+                <condition setting="sync_mode" operator="is">0</condition>
+              </and>
+            </dependency>
+          </dependencies>
+          <control type="edit" format="string">
+          </control>
+        </setting>
+        <setting id="sync_key" type="string" label="30183" help="30328">
+          <level>0</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="enable">
+              <and>
+                <condition setting="sync_enabled" operator="is">true</condition>
+                <condition setting="sync_mode" operator="is">0</condition>
+              </and>
+            </dependency>
+          </dependencies>
+          <control type="edit" format="string">
+            <hidden>true</hidden>
+          </control>
         </setting>
       </group>
       <group id="4" label="30682">
