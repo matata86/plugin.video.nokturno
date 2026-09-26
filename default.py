@@ -475,17 +475,17 @@ def _existing_install():
 
 def terms_text():
     return (L(30729, "Nokturno is primarily a player and manager for your own storage — content you upload "
-                     "and expose yourself (e.g. via WebDAV) is played directly. As an optional add-on service, "
-                     "you may connect some publicly available third-party search engines (WebShare, Sosáč, "
+                     "and share yourself (e.g. via WebDAV) is played directly. As an optional add-on service, "
+                     "you can connect some publicly available third-party search engines (WebShare, Sosáč, "
                      "HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna, OpenSubtitles) — in that case "
                      "Nokturno is only a technical interface; it does not host, store, or provide any content "
                      "itself.\n\n"
-                     "Use the add-on only for content you have a legal right, licence, or other legal title to "
+                     "Use Nokturno only for content you have a legal right, licence, or other legal title to "
                      "access. Searching for, accessing, or playing copyrighted content without the "
                      "rightsholders' consent is prohibited.\n\n"
-                     "The add-on is provided \"as is\", with no warranty of functionality, availability, or "
-                     "legality of third-party sources. Responsibility for how it is used lies solely with the "
-                     "user. The operator reserves the right to restrict or terminate access at any time.")
+                     "Nokturno is provided \"as is\", with no warranty of functionality, availability, or "
+                     "legality of third-party sources. You alone are responsible for how you use it. The "
+                     "operator reserves the right to restrict or terminate access at any time.")
             + "\n\n" +
             L(30734, "Where to report illegal content at each source:\n"
                      "WebShare: abuse@webshare.cz\n"
@@ -2140,7 +2140,7 @@ def choose_stream(streams, preferred=None, relax=False, expand=None):
             rows.append(xbmcgui.ListItem(label=f"{L(30558, 'Zobrazit všechny streamy')}  ({len(streams) + hidden})"))
         if relax:
             tail.append(FULLTEXT)
-            rows.append(xbmcgui.ListItem(label=L(30335, "Zkusit uvolněný fulltext (WebShare, HellSpy, Sledujteto, FastShare)")))
+            rows.append(xbmcgui.ListItem(label=L(30335, "Hledat volněji podle názvu souboru")))
         focus = next((i for i, st in enumerate(shown) if st is preferred), None)
         idx = xbmcgui.Dialog().select(L(30024), rows, useDetails=True,
                                       preselect=len(entries) + focus if focus is not None else -1)
@@ -2485,7 +2485,8 @@ def mark_used():
     xbmcgui.Window(10000).setProperty(USED_PROP, str(int(time.time())))
 
 
-# Kde se Kodi potkávají (`sync_mode`): 0 = Home Assistant, 1 = dashboard (slepý relay).
+# Kde se Kodi potkávají (`sync_mode`): 0 = Home Assistant, 1 = dashboard (slepý relay, od
+# 8.4.0~beta17 výchozí, viz `migrate_sync_mode_default`).
 #
 # Třetí volba „HA i dashboard" existovala mezi `9.99.0~sync4` a `6.6.0~beta1`, kdy
 # byl relay jediná cesta, jak mít dashboard a zároveň nepřijít o data v kartě HA.
@@ -2532,6 +2533,28 @@ def migrate_sync_mode():
     ADDON.setSetting("sync_mode", SYNC_MODE_RELAY)
     notify(L(30688, "Synchronizace jede přes dashboard. S Home Assistantem zadej "
                     "týž kód skupiny i v nastavení integrace."), ms=8000)
+
+
+def migrate_sync_mode_default():
+    """Od 8.4.0~beta17 je výchozí středisko dashboard, dřív Home Assistant.
+
+    Hodnota se značkou `default="true"` v profilovém settings.xml jde po nové výchozí
+    hodnotě, takže kdo synchronizaci přes HA nastavil a volbu střediska nikdy nezměnil,
+    přešel by potichu na dashboard. Takovému uživateli se HA zapíše výslovně. Kdo
+    synchronizaci nikdy nenastavil, dostane novou výchozí hodnotu. Běží jednou
+    (`sync_default_migrated`), jinak by se přepsalo i pozdější vědomé přepnutí."""
+    if STORE.load("sync_default_migrated", ""):
+        return
+    STORE.save("sync_default_migrated", "1")
+    try:
+        with open(os.path.join(PROFILE, "settings.xml"), encoding="utf-8") as f:
+            ulozeno = f.read()
+    except (IOError, OSError):
+        return    # čerstvá instalace
+    if not re.search(r'<setting id="sync_mode" default="true">%s</setting>' % SYNC_MODE_HA, ulozeno):
+        return
+    if on("sync_enabled", "false") or setting("sync_url").strip() or setting("sync_key").strip():
+        ADDON.setSetting("sync_mode", SYNC_MODE_HA)
 
 
 def sync_settings():
@@ -2612,7 +2635,8 @@ def list_ha_files():
     (může být i Nabu Casa, pak hraje i mimo síť). Podepsané odkazy dává HA."""
     cfg = sync_settings()
     if not cfg:
-        notify(L(30186, "Synchronizace není zapnutá nebo chybí adresa a klíč"), xbmcgui.NOTIFICATION_WARNING, 5000)
+        notify(L(30186, "Synchronizace není zapnutá nebo nastavená (u Home Assistantu adresa a klíč, u dashboardu "
+                        "kód skupiny)"), xbmcgui.NOTIFICATION_WARNING, 5000)
         xbmcplugin.endOfDirectory(HANDLE, succeeded=False, cacheToDisc=False)
         return
     base, key = cfg
@@ -2644,7 +2668,8 @@ def sync_now():
     cile = sync_targets()
     jmeno = xbmc.getInfoLabel("System.FriendlyName")
     if not cile:
-        notify(L(30186, "Synchronizace není zapnutá nebo chybí adresa a klíč"), xbmcgui.NOTIFICATION_WARNING, 5000)
+        notify(L(30186, "Synchronizace není zapnutá nebo nastavená (u Home Assistantu adresa a klíč, u dashboardu "
+                        "kód skupiny)"), xbmcgui.NOTIFICATION_WARNING, 5000)
     else:
         odeslano = prijato = 0
         chyby = []
@@ -3693,9 +3718,9 @@ def _wizard_accounts(dialog):
     if dialog.yesno(L(30353, "Vlastní databáze filmů a seriálů"),
                      L(30354, "Chceš zadat zdarma klíč TMDB, aby popisy a obsazení filmů byly česky? (nepovinné)")):
         dialog.ok(L(30353, "Vlastní databáze filmů a seriálů"),
-                  L(30355, "Klíč se zakládá zdarma na themoviedb.org -> ikona profilu -> Nastavení -> API -> "
-                           "Request an API Key -> Developer -> zkopírovat \"API Key (v3 auth)\".[CR]"
-                           "Podrobný návod je i v nápovědě u tohoto nastavení."))
+                  L(30355, "Klíč se zakládá zdarma na themoviedb.org → ikona profilu → Nastavení → API → Request an "
+                           "API Key → Developer → zkopírovat „API Key (v3 auth)“.[CR]Podrobný návod je v nápovědě u "
+                           "tohoto nastavení."))
         key = dialog.input(L(30356, "API klíč TMDB"))
         if key:
             ADDON.setSetting("tmdb_api_key", key)
@@ -3778,8 +3803,8 @@ def setup_wizard(force=False):
         xbmcaddon.Addon(TMDBH_ID).setSetting(TMDBH_LANGUAGE_KEY, lang)
 
     dialog.ok(L(30357, "Nastavení uloženo"),
-              L(30358, "Hotovo. Vše se dá kdykoli změnit v Nastavení doplňku.[CR]"
-                       "Bez zadaného zdroje budou katalog a hledání fungovat i tak, jen anglicky."))
+              L(30358, "Hotovo. Vše se dá kdykoli změnit v nastavení doplňku.[CR]Bez klíče TMDB a bez Luny fungují "
+                       "katalogy i hledání dál, jen popisy budou anglicky."))
     STORE.save("wizard_done", True)
 
 
@@ -3817,7 +3842,7 @@ def test_sources():
         user = pt.me()
         if not user.get("premium"):
             return L(30722, "bez Premium — méně výsledků a jen 1080p")
-        return L(30723, "Premium, zbývá %s dní") % user.get("days", 0)
+        return L(30723, "Premium, zbývá dní: %s") % user.get("days", 0)
 
     def check_cztor():
         # párování se ověří dotazem na účet; bez aktivního předplatného se katalog neotevře
@@ -4012,21 +4037,21 @@ ACCOUNT_TAGS = {"luna": LUNA_TAG, "sosac": SOSAC_TAG, "webshare": WS_TAG, "cztor
 # ho doplněk ještě nestihl zeptat.
 ACCOUNT_TEXTS = {
     ("webshare", "vip"): (30631, "předplatné do %s"),
-    ("webshare", "expires_soon"): (30632, "předplatné končí za %s dní"),
+    ("webshare", "expires_soon"): (30632, "do konce předplatného zbývá dní: %s"),
     ("webshare", "expired"): (30633, "předplatné vypršelo"),
     ("webshare", "free"): (30634, "účet bez VIP — stahování pár kB/s"),
     ("fastshare", "unlimited"): (30635, "neomezené stahování"),
     ("fastshare", "credit"): (30636, "zbývá %s GB kreditu"),
     ("fastshare", "no_credit"): (30637, "došel kredit"),
     ("cztor", "ok"): (30638, "%s do %s"),
-    ("cztor", "expires_soon"): (30639, "předplatné končí za %s dní"),
+    ("cztor", "expires_soon"): (30639, "do konce předplatného zbývá dní: %s"),
     ("cztor", "expired"): (30640, "předplatné vypršelo"),
     ("cztor", "not_paired"): (30641, "zařízení není spárované"),
     ("cztor", "unknown"): (30642, "stav účtu neznámý"),
     ("sledujteto", "premium"): (30643, "Premium"),
     ("sledujteto", "no_premium"): (30644, "účet bez Premium — přehrávání nepůjde"),
-    ("prehrajto", "premium"): (30715, "Premium, zbývá %s dní"),
-    ("prehrajto", "expires_soon"): (30716, "předplatné končí za %s dní"),
+    ("prehrajto", "premium"): (30715, "Premium, zbývá dní: %s"),
+    ("prehrajto", "expires_soon"): (30716, "do konce předplatného zbývá dní: %s"),
     ("prehrajto", "no_premium"): (30717, "účet bez Premium — méně výsledků a jen 1080p"),
     ("prehrajto", "anonymous"): (30718, "bez účtu — jen první strana výsledků"),
     ("prehrajto", "paused"): (30719, "pozastaveno na %s min (HTTP 429)"),
@@ -4044,13 +4069,13 @@ ACCOUNT_TEXTS = {
 # uživatel nepoznal, co čte. Ve výpisu pod tím má každý zdroj vlastní řádek, takže
 # tam zůstává plný text z `ACCOUNT_TEXTS`.
 ACCOUNT_SHORT = {
-    ("webshare", "expires_soon"): (30651, "končí za %s dní"),
+    ("webshare", "expires_soon"): (30651, "zbývá dní: %s"),
     ("webshare", "free"): (30652, "účet bez VIP"),
     ("fastshare", "credit"): (30653, "zbývá %s GB"),
-    ("cztor", "expires_soon"): (30651, "končí za %s dní"),
+    ("cztor", "expires_soon"): (30651, "zbývá dní: %s"),
     ("cztor", "not_paired"): (30654, "není spárováno"),
     ("sledujteto", "no_premium"): (30655, "účet bez Premium"),
-    ("prehrajto", "expires_soon"): (30651, "končí za %s dní"),
+    ("prehrajto", "expires_soon"): (30651, "zbývá dní: %s"),
     ("prehrajto", "no_premium"): (30720, "účet bez Premium"),
     ("prehrajto", "paused"): (30656, "pauza %s min"),
     ("hellspy", "paused"): (30725, "odmítá síť"),
@@ -6761,7 +6786,8 @@ def pick_title(apis, ctype, item_id, series_id=None, alt=None, fulltext=False, d
     if download and not download_dir():
         return
     meta, video = load_meta(apis, ctype, item_id, series_id)
-    has_fulltext_source = bool(apis.get("ws") or apis.get("hs") or apis.get("st") or apis.get("fs"))
+    has_fulltext_source = bool(apis.get("ws") or apis.get("hs") or apis.get("st") or apis.get("fs")
+                               or apis.get("pt"))
 
     def collect(strict, meta=meta):
         bar = xbmcgui.DialogProgressBG()   # načítání jen ukazatelem v rohu, modální je až výběr streamu
@@ -7176,7 +7202,7 @@ def cztor_pair():
         pin = api.start_pin()
     except CztorError as e:
         log_error(e)
-        xbmcgui.Dialog().ok(L(30560, "CZtor"), f"{L(30569, 'Spárování s CZtor se nepovedlo.')}[CR]{e}")
+        xbmcgui.Dialog().ok(L(30560, "CZtor"), f"{L(30569, 'Spárování s CZtorem se nepodařilo.')}[CR]{e}")
         return
     dialog = xbmcgui.DialogProgress()
     text = L(30567, "Na telefonu nebo počítači otevři[CR][B]%s[/B][CR]přihlas se a zadej PIN [B]%s[/B]")
@@ -7199,7 +7225,7 @@ def cztor_pair():
     dialog.close()
     if not paired:
         if error or not canceled:
-            notify(L(30569, "Spárování s CZtor se nepovedlo."), xbmcgui.NOTIFICATION_ERROR)
+            notify(L(30569, "Spárování s CZtorem se nepodařilo."), xbmcgui.NOTIFICATION_ERROR)
         return
     ADDON.setSetting("cz_enabled", "true")
     STORE.clear_cache()   # seznamy streamů bez CZtor jinak drží 72 h
@@ -7524,6 +7550,7 @@ def main(query):
         # zrušená volba střediska „HA i dashboard"; patří sem, ne do `migrate_on_start`
         # — ta běží na úrovni modulu, tedy dřív, než je tahle funkce definovaná
         migrate_sync_mode()
+        migrate_sync_mode_default()
         migrate_terms()
         migrate_luna_default()
         action = dict(urllib.parse.parse_qsl(query.lstrip("?"))).get("action") or ""

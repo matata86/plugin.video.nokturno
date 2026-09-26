@@ -130,7 +130,7 @@ def import_bytes(code, blob):
     if not isinstance(payload, dict) or not isinstance(payload.get("settings"), dict):
         raise TransferError("Nesrozumitelný obsah přenosu")
     if int(payload.get("format") or 0) > FORMAT:
-        raise TransferError("Přenos je z novějšího Nokturna — nejdřív aktualizuj tohle zařízení")
+        raise TransferError("Přenos je z novějšího Nokturna — nejdřív aktualizuj toto zařízení")
     return payload
 
 
@@ -194,9 +194,9 @@ class Relay(object):
         except urllib.error.HTTPError as e:
             raise TransferError({
                 404: "Přenos neexistuje, vypršel, nebo už byl jednou vyzvednutý",
-                409: "Pod tímhle kódem už přenos leží",
+                409: "Pod tímto kódem už přenos leží",
                 413: "Nastavení je příliš velké",
-                429: "Moc častých pokusů, zkus to za chvíli",
+                429: "Příliš častých pokusů, zkus to za chvíli",
             }.get(e.code, "Server odpověděl %s" % e.code))
         except Exception as e:  # noqa: BLE001 – síť, DNS, špatná adresa
             raise TransferError(str(e)[:120])

@@ -622,7 +622,7 @@ class Engine:
             raise NokturnoError(f"Úložiště: {err}") from err
         api = next((s for s in self.storages if s.slot == slot), None)
         if api is None:
-            raise NokturnoError("Tohle úložiště už není v nastavení.")
+            raise NokturnoError("Toto úložiště už není v nastavení.")
         return api, path
 
     def storage_request(self, url):
@@ -1176,7 +1176,7 @@ class Engine:
     def catalog_detail(self, ctype="movie", item_id=""):
         """Popis, plakát a hodnocení titulu z databáze filmů — katalog Cinemety je nemá."""
         if not item_id:
-            raise NokturnoError("Chybí `id`.")
+            raise NokturnoError("Chybí identifikátor titulu.")
         kind = "series" if ctype == "series" else "movie"
         key = f"cinemeta:{kind}:{item_id}"
         try:
@@ -3054,7 +3054,7 @@ class Engine:
 
     # co WebShare vrací u nedostupných souborů — hlášky jsou anglické a nic neříkající
     WS_ERRORS = {
-        "temporarily unavailable": "WebShare tenhle soubor teď nevydá (bývá to dočasné). "
+        "temporarily unavailable": "WebShare tento soubor teď nevydá (bývá to dočasné). "
                                    "Zkus jiný stream ze seznamu.",
         "file not found": "Soubor už na WebShare není. Zkus jiný stream ze seznamu.",
         "file password": "Soubor na WebShare je chráněný heslem.",
@@ -3177,7 +3177,7 @@ class Engine:
         """První výsledek hledání — pro „pusť X" jedním krokem (hlasovka, skripty)."""
         results = self.search(ctype, query, limit=3)
         if not results:
-            raise NokturnoError(f"„{query}“ jsem nenašel.")
+            raise NokturnoError(f"„{query}“ se nenašel.")
         return results[0]
 
     def best_stream(self, ctype, item_id, alt=None, series_id=None):

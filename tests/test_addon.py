@@ -1306,7 +1306,7 @@ class TestSeznamStreamu(unittest.TestCase):
             return len(rows) - 1 if len(labels) == 1 else -1   # poprvé poslední řádek = fulltext
 
         collect, _mv = self.pick([[s], [s]], select, apis={"ws": object()})
-        self.assertTrue(labels[0][-1].startswith("Zkusit uvolněný fulltext"))
+        self.assertTrue(labels[0][-1].startswith("Hledat volněji"))
         self.assertFalse(any(l.startswith("Zkusit") for l in labels[1]), "uvolněný už fulltext nenabízí")
         self.assertEqual([c[0][6] for c in collect.call_args_list], [True, False])
 
@@ -4451,7 +4451,7 @@ class TestSloucenéVerze(unittest.TestCase):
         prvni = dialogy[0]
         self.assertIn("×2", prvni[1])
         self.assertTrue(prvni[-2].startswith("Zobrazit všechny streamy") and "(3)" in prvni[-2], prvni)
-        self.assertTrue(prvni[-1].startswith("Zkusit uvolněný fulltext"))
+        self.assertTrue(prvni[-1].startswith("Hledat volněji"))
         self.assertEqual(rozbaleno, [1])
         self.assertFalse(any(label.startswith("Zobrazit všechny") for label in dialogy[1]), "po rozbalení už není co")
 
@@ -5559,6 +5559,27 @@ class TestStavZdrojuPoTestu(unittest.TestCase):
         self.assertIn("action=accounts_refresh", rpc.call_args[0][0])
 
 
+class TestUpozorneniNaPredplatne(unittest.TestCase):
+    """Účet WebShare bez VIP dostával každý den „předplatné vypršelo“, i když
+    předplatné nikdy neměl (audit textů 2026-09-26)."""
+
+    def _hlaska(self, kod):
+        checker = service.AccountsChecker.__new__(service.AccountsChecker)
+        checker.store = mock.Mock()
+        checker.store.reload.side_effect = lambda name, d=None: (
+            {"webshare": {"code": kod, "detail": {"days": 2}}} if name == service.accounts_lib.STORE else {})
+        addon = mock.Mock()
+        addon.getSetting.side_effect = lambda k: {"ws_enabled": "true", "sub_warn_days": "5"}.get(k, "")
+        with mock.patch.object(service, "fresh_addon", return_value=addon), \
+                mock.patch.object(xbmcgui.Dialog, "notification") as note:
+            checker.warn_subscription()
+        return note.call_args[0][1]
+
+    def test_ucet_bez_vip_nema_hlasku_o_vyprseni(self):
+        self.assertEqual(self._hlaska("free"), "Účet WebShare nemá VIP – stahování jen pár kB/s.")
+        self.assertEqual(self._hlaska("expired"), "Předplatné WebShare vypršelo.")
+
+
 class TestUspaniZdroje(unittest.TestCase):
     """„Uspat zdroj" ve Stavu zdrojů (2026-09-22, detekce nedostupných streamů) —
     dialog zapíše pauzu, adresář se zavře i s handle ≥ 0 (stejná past jako
@@ -6644,6 +6665,49 @@ class TestKvalitaDoStatistik(unittest.TestCase):
         extra = send.call_args.kwargs["extra"]
         self.assertEqual(extra["cnt"], {"play_ok:ws": 1})
         self.assertIn("feat", extra)
+
+
+class TestVychoziStrediskoSynchronizace(unittest.TestCase):
+    """Od 8.4.0~beta17 je výchozí středisko dashboard. Kdo jel přes HA na staré
+    výchozí hodnotě (značka `default="true"`), musí na HA zůstat."""
+
+    def setUp(self):
+        xbmcaddon.settings.clear()
+        default.STORE.save("sync_default_migrated", "")
+
+    def tearDown(self):
+        xbmcaddon.settings.clear()
+
+    _profil = staticmethod(lambda radek: TestLunaVychoziVypnuta._profil(radek))
+
+    def test_vychozi_hodnota_je_dashboard(self):
+        root = ET.parse(os.path.join(os.path.dirname(default.__file__), "resources", "settings.xml"))
+        self.assertEqual(root.find(".//setting[@id='sync_mode']/default").text, default.SYNC_MODE_RELAY)
+
+    def test_ha_na_stare_vychozi_hodnote_zustane(self):
+        self._profil('<setting id="sync_mode" default="true">0</setting>')
+        xbmcaddon.settings.update({"sync_enabled": "true", "sync_url": "http://ha:8123", "sync_key": "k"})
+        default.migrate_sync_mode_default()
+        self.assertEqual(xbmcaddon.settings["sync_mode"], default.SYNC_MODE_HA)
+
+    def test_bez_synchronizace_dostane_novou_vychozi(self):
+        self._profil('<setting id="sync_mode" default="true">0</setting>')
+        default.migrate_sync_mode_default()
+        self.assertNotIn("sync_mode", xbmcaddon.settings)
+
+    def test_ulozenou_hodnotu_neprepise(self):
+        self._profil('<setting id="sync_mode">1</setting>')
+        xbmcaddon.settings.update({"sync_enabled": "true", "sync_mode": "1", "sync_code": "NKT-1"})
+        default.migrate_sync_mode_default()
+        self.assertEqual(xbmcaddon.settings["sync_mode"], "1")
+
+    def test_bezi_jen_jednou(self):
+        self._profil('<setting id="sync_mode" default="true">0</setting>')
+        xbmcaddon.settings.update({"sync_enabled": "true"})
+        default.migrate_sync_mode_default()
+        xbmcaddon.settings["sync_mode"] = "1"    # uživatel pak vědomě přepne na dashboard
+        default.migrate_sync_mode_default()
+        self.assertEqual(xbmcaddon.settings["sync_mode"], "1")
 
 
 class TestLunaVychoziVypnuta(unittest.TestCase):

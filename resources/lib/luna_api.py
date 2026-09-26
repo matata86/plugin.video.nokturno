@@ -114,7 +114,7 @@ class LunaApi:
         req = urllib.request.Request(url, headers={"User-Agent": "Nokturno (+https://github.com/matata86/nokturno-core)"})
         down = self.cache is not None and hasattr(self.cache, "peek_cached")
         if down and self.cache.peek_cached(self._down_key(), DOWN_TTL) is not None:
-            raise LunaError(f"Luna neodpovídá (adresu {self.base} nedosáhnu, zkusím to znovu za pár minut)")
+            raise LunaError(f"Luna neodpovídá (adresa {self.base} není dostupná, další pokus za pár minut)")
         try:
             if down:
                 self._probe_connect()

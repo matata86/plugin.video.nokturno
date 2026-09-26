@@ -39,6 +39,7 @@ ACCOUNT_KEYS = frozenset({
     "streamuj_username", "streamuj_password",
     "st_email", "st_password",
     "fs_username", "fs_password", "fs_provider",
+    "pt_email", "pt_password",
     "os_username", "os_password",
     "luna_url", "token",
     "tmdb_api_key",
@@ -58,7 +59,7 @@ DENY = frozenset({
 
 def circle_of(name):
     """Do kterého okruhu klíč patří, nebo None, když se nesdílí vůbec."""
-    if not name or name in DENY:
+    if not name or name in DENY or name.startswith("sync_"):
         return None
     return CIRCLE_ACCOUNTS if name in ACCOUNT_KEYS else CIRCLE_SETTINGS
 

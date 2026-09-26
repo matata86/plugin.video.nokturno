@@ -155,8 +155,8 @@ msgid "Smallest"
 msgstr "Legkisebb"
 
 msgctxt "#30104"
-msgid "No source is configured – enable Luna, Sosáč or WebShare in settings"
-msgstr "Nincs beállítva forrás – engedélyezd a Lunát, a Sosáčot vagy a WebShare-t a beállításokban"
+msgid "The source is not enabled or set up – check Sources and accounts and Own storage in settings"
+msgstr "A forrás nincs bekapcsolva vagy beállítva – nézd meg a beállításokban a Források és fiókok és a Saját tárhely részt"
 
 msgctxt "#30060"
 msgid "My list"
@@ -311,8 +311,8 @@ msgid "Advanced"
 msgstr "Speciális"
 
 msgctxt "#30106"
-msgid "Clear API cache (catalogues, series)"
-msgstr "API gyorsítótár törlése (katalógusok, sorozatok)"
+msgid "Clear cache (catalogues, searches, streams)"
+msgstr "Gyorsítótár törlése (katalógusok, keresések, streamek)"
 
 msgctxt "#30110"
 msgid "Preferred audio language"
@@ -391,8 +391,8 @@ msgid "Send statistics now"
 msgstr "Statisztika küldése most"
 
 msgctxt "#30164"
-msgid "Sends a random installation id, add-on version, platform, last use and per-title stream view counts. Nothing else leaves the device. When switched off, only the random installation id and add-on version are still sent, so it is known the installation is alive."
-msgstr "Elküld egy véletlen telepítés-azonosítót, a bővítmény verzióját, a platformot, az utolsó használatot és a címenkénti stream-megtekintések számát. Más semmi nem hagyja el az eszközt. Kikapcsolva csak a véletlen telepítés-azonosító és a bővítmény verziója megy el, hogy tudni lehessen, a telepítés él."
+msgid "Sends a random installation id, add-on version, platform, language, enabled sources (switches only, no accounts), the titles whose streams were opened, and technical reliability data (skin, architecture, update method, playback counts, loading time). Login details and search queries never leave the device; the server does not store your IP address or storage addresses with the statistics. When switched off, only the random installation id, add-on version, update method and a message that the add-on started or stopped are still sent, so it is known the installation is alive."
+msgstr "Elküld egy véletlen telepítés-azonosítót, a bővítmény verzióját, a platformot, a nyelvet, a bekapcsolt forrásokat (csak a kapcsolókat, fiókokat nem), azokat a címeket, amelyeknél megnyíltak a streamek, és a megbízhatóságra vonatkozó technikai adatokat (skin, architektúra, frissítési mód, lejátszások száma, betöltési idő). A bejelentkezési adatok és a keresések soha nem hagyják el az eszközt, az IP-címet és a tárhelyek címét a szerver nem tárolja a statisztikákhoz. Kikapcsolva csak a véletlen telepítés-azonosító, a bővítmény verziója, a frissítési mód és egy üzenet megy el arról, hogy a bővítmény elindult vagy leállt, hogy tudni lehessen, a telepítés él."
 
 msgctxt "#30165"
 msgid "Statistics sent"
@@ -439,12 +439,12 @@ msgid "Sync now"
 msgstr "Szinkronizálás most"
 
 msgctxt "#30185"
-msgid "Watched, in-progress and My list are shared across all your Kodi devices"
-msgstr "A megnézett, folyamatban lévő és Saját lista tételek megosztva az összes Kodid között"
+msgid "Watched, in-progress, My list and the other circles (below in What gets synced) are shared across your Kodi devices, and with Home Assistant too if you use it."
+msgstr "A megnézett, folyamatban lévő, Saját lista és a többi kör (lent a Mi legyen szinkronizálva részben) megosztva az összes Kodid között, és ha használod, a Home Assistanttal is."
 
 msgctxt "#30186"
-msgid "Sync is off or the address and key are missing"
-msgstr "A szinkronizálás ki van kapcsolva, vagy hiányzik a cím és a kulcs"
+msgid "Sync is off or not set up (Home Assistant needs the address and key, the dashboard needs the group code)"
+msgstr "A szinkronizálás ki van kapcsolva vagy nincs beállítva (a Home Assistanthoz cím és kulcs, a dashboardhoz csoportkód kell)"
 
 msgctxt "#30187"
 msgid "Synced: sent %d, received %d"
@@ -571,7 +571,7 @@ msgid "WebShare is off or has no account filled in."
 msgstr "A WebShare ki van kapcsolva, vagy nincs megadva fiók."
 
 msgctxt "#30231"
-msgid "VIP active, %s days left (until %s)"
+msgid "VIP active, days left: %s (until %s)"
 msgstr "VIP aktív, még %s nap van hátra (eddig: %s)"
 
 msgctxt "#30232"
@@ -587,7 +587,7 @@ msgid "Warn this many days before expiry (0 = only after expiry)"
 msgstr "Ennyi nappal a lejárat előtt figyelmeztessen (0 = csak lejárat után)"
 
 msgctxt "#30236"
-msgid "WebShare subscription runs out in %s day(s)."
+msgid "Days until the WebShare subscription runs out: %s."
 msgstr "A WebShare előfizetés %s nap múlva jár le."
 
 msgctxt "#30237"
@@ -627,12 +627,12 @@ msgid "When a title has streams in only one of the two sources, also look it up 
 msgstr "Ha egy címnek csak az egyik forrásban vannak streamjei, a másikban is keresse meg. Lassabb keresés, de több stream."
 
 msgctxt "#30308"
-msgid "Luna supplies catalogues, posters and Czech descriptions. Without it, only WebShare and Sosáč work."
-msgstr "A Luna katalógusokat, plakátokat és cseh leírásokat ad. Nélküle csak a WebShare és a Sosáč működik."
+msgid "Luna: Absolute Cinema is your own server (a computer, NAS or the Android TV box itself) with catalogues, posters and Czech descriptions. It needs a WebShare VIP account. The other sources and your own storage work without it."
+msgstr "A Luna: Absolute Cinema saját szerver (számítógép, NAS vagy maga az Android TV box) katalógusokkal, plakátokkal és cseh leírásokkal. WebShare VIP-fiókot igényel. A többi forrás és a saját tárhely nélküle is működik."
 
 msgctxt "#30309"
-msgid "Address of your Luna server on the local network, e.g. http://192.168.1.10:7126."
-msgstr "A Luna szervered címe a helyi hálózaton, pl. http://192.168.1.10:7126."
+msgid "Address of your Luna server on the local network, e.g. http://192.168.1.10:7126. If Luna runs on the same device as Kodi, enter http://127.0.0.1:7126."
+msgstr "A Luna szervered címe a helyi hálózaton, pl. http://192.168.1.10:7126. Ha a Luna ugyanazon az eszközön fut, mint a Kodi, add meg: http://127.0.0.1:7126."
 
 msgctxt "#30310"
 msgid "Paste the whole add-on URL from Luna's setup page (…/setup), or just the token itself starting with 'e1.'."
@@ -651,8 +651,8 @@ msgid "At equal quality, a stream with surround sound (5.1 and up) is sorted hig
 msgstr "Azonos minőség esetén a térhatású hanggal (5.1-től) rendelkező stream kerül feljebb."
 
 msgctxt "#30315"
-msgid "Streams below 720p are removed from the list entirely — the filter can't bring them back either."
-msgstr "A 720p alatti streamek teljesen kikerülnek a listából — a szűrő sem hozza vissza őket."
+msgid "Streams below 720p are removed from the list — the filter can't bring them back either. If no stream would be left, all of them are shown."
+msgstr "A 720p alatti streamek kikerülnek a listából — a szűrő sem hozza vissza őket. Ha egy stream sem maradna, mind megjelenik."
 
 msgctxt "#30316"
 msgid "'As provided' keeps the source's own order; the other options sort by quality or file size."
@@ -704,14 +704,14 @@ msgstr "TMDB API kulcs"
 
 msgctxt "#30334"
 msgid "TMDB API key help"
-msgstr "A saját TMDB (themoviedb.org) kulcsod — a keresés és a film/sorozat katalógus ezt használja, valahányszor a Luna: Absolute Cinema nem elérhető (a Lunának saját beépített TMDB kapcsolata van). Kulcs nélkül az ingyenes nyilvános Sosáč katalógus és a Cinemeta használódik, de egyiknek sincs cseh leírása (a Sosáčnak egyáltalán nincs, a Cinemeta csak angol). Kulccsal a címek, leírások, műfajok és szereplők csehül lesznek Luna nélkül is.\n\nIngyenes beszerezni: regisztrálj a themoviedb.org-on → profilikon → Settings → API (bal menü) → Request an API Key → Developer → rövid űrlap („Nokturno” jó lesz app névnek) → másold ki az „API Key (v3 auth)” kulcsot (nem a hosszabb „API Read Access Token”-t)."
+msgstr "A saját TMDB (themoviedb.org) kulcsod — ezzel a címek, leírások, műfajok és szereplők csehül jelennek meg, a Sosáč katalógusaiban és Luna nélkül is. Kulcs nélkül a nyilvános Sosáč katalógus és a Cinemeta használódik, de egyiknek sincs cseh leírása (a Sosáčnak egyáltalán nincs, a Cinemeta csak angol).\n\nIngyenes beszerezni: regisztrálj a themoviedb.org-on → profilikon → Settings → API (bal menü) → Request an API Key → Developer → rövid űrlap („Nokturno” jó lesz app névnek) → másold ki az „API Key (v3 auth)” kulcsot (nem a hosszabb „API Read Access Token”-t)."
 
 msgctxt "#30335"
-msgid "Try fulltext on WebShare/HellSpy"
-msgstr "Fulltext próbálása a WebShare-en/HellSpyn"
+msgid "Search more loosely by file name"
+msgstr "Lazább keresés fájlnév alapján"
 
 msgctxt "#30336"
-msgid "Vítej v Nokturnu"
+msgid "Welcome to Nokturno"
 msgstr "Üdv a Nokturnóban"
 
 msgctxt "#30339"
@@ -779,8 +779,8 @@ msgid "Do you want to enter a free TMDB key so descriptions and cast are in Czec
 msgstr "Megadsz egy ingyenes TMDB kulcsot, hogy a leírások és a szereposztás csehül legyenek? (opcionális)"
 
 msgctxt "#30355"
-msgid "Get a free key at themoviedb.org"
-msgstr "Ingyenes kulcs a themoviedb.org oldalon"
+msgid "Get a free key at themoviedb.org → profile icon → Settings → API → Request an API Key → Developer → copy the \"API Key (v3 auth)\".\nThe help for this setting has a detailed guide."
+msgstr "Ingyenes kulcs a themoviedb.org oldalon → profilikon → Settings → API → Request an API Key → Developer → másold ki az „API Key (v3 auth)” kulcsot.\nRészletes útmutató a beállítás súgójában található."
 
 msgctxt "#30356"
 msgid "TMDB API key"
@@ -791,8 +791,8 @@ msgid "Settings saved"
 msgstr "Beállítások elmentve"
 
 msgctxt "#30358"
-msgid "Done. You can change any of this later in the add-on settings."
-msgstr "Kész. Mindez később bármikor módosítható a bővítmény beállításaiban."
+msgid "Done. You can change any of this later in the add-on settings.\nWithout a TMDB key and without Luna, catalogues and search still work, only descriptions will be in English."
+msgstr "Kész. Mindez később bármikor módosítható a bővítmény beállításaiban.\nTMDB-kulcs és Luna nélkül a katalógusok és a keresés is működik, csak a leírások lesznek angolul."
 
 msgctxt "#30359"
 msgid "Run setup wizard"
@@ -1055,8 +1055,8 @@ msgid "Send Kodi log"
 msgstr "Kodi napló küldése"
 
 msgctxt "#30428"
-msgid "Sends the last ~500 KB of kodi.log to the same server as statistics, so the reported problem can be diagnosed. Nothing else leaves the device."
-msgstr "Elküldi a kodi.log utolsó ~500 KB-ját ugyanarra a szerverre, mint a statisztikát, hogy a jelentett probléma diagnosztizálható legyen. Más semmi nem hagyja el az eszközt."
+msgid "Sends the last ~500 KB of kodi.log to the same server as statistics, so the reported problem can be diagnosed. Passwords, tokens and IP addresses are removed first. Nothing else leaves the device."
+msgstr "Elküldi a kodi.log utolsó ~500 KB-ját ugyanarra a szerverre, mint a statisztikát, hogy a jelentett probléma diagnosztizálható legyen. A jelszavak, tokenek és IP-címek előtte törlődnek. Más semmi nem hagyja el az eszközt."
 
 msgctxt "#30429"
 msgid "Log sent"
@@ -1564,8 +1564,8 @@ msgid "How to set up Luna"
 msgstr "Így állítsd be a Lunát"
 
 msgctxt "#30575"
-msgid "1. Luna runs on a computer or server at home (the Home Assistant add-on, port 7126).[CR]2. Tap Find Luna on the network - the address fills in by itself.[CR]3. Open the Luna address plus /setup in a browser, copy the add-on address and paste all of it into the Token field - the add-on takes the address and the token from it.[CR]4. Tap Check Luna setup. When it says all is well, tap Save to Kodi at the bottom."
-msgstr "1. A Luna otthon fut egy számítógépen vagy szerveren (a Home Assistant kiegészítője, 7126-os port).[CR]2. Koppints a Luna keresése a hálózaton gombra — a cím magától kitöltődik.[CR]3. Nyisd meg böngészőben a Luna címét /setup-pal a végén, másold ki a kiegészítő címét, és egészben told be a Token mezőbe — a címet és a tokent belőle kiolvassa.[CR]4. Koppints a Luna beállításainak ellenőrzése gombra. Ha minden rendben, alul koppints a Mentés a Kodiba gombra."
+msgid "1. Luna runs at home on a computer, server, NAS or right on the Android TV box with Kodi (port 7126) and needs a WebShare VIP account.[CR]2. Tap Find Luna on the network - the address fills in by itself. If Luna runs on the same device as Kodi, the address is http://127.0.0.1:7126.[CR]3. Open the Luna address plus /setup in a browser, copy the add-on address and paste all of it into the Token field - the add-on takes the address and the token from it.[CR]4. Tap Check Luna setup. When it says all is well, tap Save to Kodi at the bottom."
+msgstr "1. A Luna otthon fut egy számítógépen, szerveren, NAS-on vagy közvetlenül a Kodit futtató Android TV boxon (7126-os port), és WebShare VIP-fiókot igényel.[CR]2. Koppints a Luna keresése a hálózaton gombra — a cím magától kitöltődik. Ha a Luna ugyanazon az eszközön fut, mint a Kodi, a cím http://127.0.0.1:7126.[CR]3. Nyisd meg böngészőben a Luna címét /setup-pal a végén, másold ki a kiegészítő címét, és egészben told be a Token mezőbe — a címet és a tokent belőle kiolvassa.[CR]4. Koppints a Luna beállításainak ellenőrzése gombra. Ha minden rendben, alul koppints a Mentés a Kodiba gombra."
 
 msgctxt "#30576"
 msgid "Luna found: %s[CR]Tap Save to Kodi at the bottom to keep the address."
@@ -1636,8 +1636,8 @@ msgid "Load from a file"
 msgstr "Betöltés fájlból"
 
 msgctxt "#30593"
-msgid "On the other Kodi open Settings – Transfer settings – Load from another Kodi and type this code:[CR][CR][B]%s[/B][CR][CR]It works once and expires in %s minutes."
-msgstr "A másik Kodin nyisd meg a Beállítások – Beállítások átvitele – Betöltés másik Kodiról pontot, és írd be ezt a kódot:[CR][CR][B]%s[/B][CR][CR]Egyszer használható, és %s percig él."
+msgid "On the other Kodi open Settings → Set up from phone and transfer → Load from another Kodi and type this code:[CR][CR][B]%s[/B][CR][CR]It works once and expires in %s minutes."
+msgstr "A másik Kodin nyisd meg a Beállítások → Beállítás telefonról és átvitel → Betöltés másik Kodiról pontot, és írd be ezt a kódot:[CR][CR][B]%s[/B][CR][CR]Egyszer használható, és %s percig él."
 
 msgctxt "#30594"
 msgid "Code from the other Kodi"
@@ -1781,7 +1781,7 @@ msgid "subscription until %s"
 msgstr "előfizetés eddig: %s"
 
 msgctxt "#30632"
-msgid "subscription ends in %s days"
+msgid "days until the subscription ends: %s"
 msgstr "az előfizetés %s nap múlva lejár"
 
 msgctxt "#30633"
@@ -1809,7 +1809,7 @@ msgid "%s until %s"
 msgstr "%s eddig: %s"
 
 msgctxt "#30639"
-msgid "subscription ends in %s days"
+msgid "days until the subscription ends: %s"
 msgstr "az előfizetés %s nap múlva lejár"
 
 msgctxt "#30640"
@@ -1857,7 +1857,7 @@ msgid "the status could not be determined"
 msgstr "az állapot nem állapítható meg"
 
 msgctxt "#30651"
-msgid "ends in %s days"
+msgid "days left: %s"
 msgstr "%s nap múlva lejár"
 
 msgctxt "#30652"
@@ -1997,8 +1997,8 @@ msgid "Options such as preferred language, stream sorting or enabled sources. Th
 msgstr "Olyan beállítások, mint a kívánt nyelv, a streamek sorrendje vagy a bekapcsolt források. A letöltési mappa és maga a szinkronizálás beállítása nem kerül megosztásra."
 
 msgctxt "#30686"
-msgid "Sign-ins to the sources (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, own storage) and the TMDB key. Passwords travel encrypted and the server cannot read them, but anyone holding the group code can — give the code only to your own devices. CZtor and Trakt must be paired on each device separately."
-msgstr "A forrásokhoz tartozó bejelentkezések (WebShare, Sosáč, Sledujteto, FastShare, OpenSubtitles, Luna, saját tárhely) és a TMDB-kulcs. A jelszavak titkosítva utaznak, a szerver nem olvassa el őket, de akinél a csoportkód van, elolvassa — a kód csak a saját eszközökre való. A CZtort és a Traktot minden eszközön külön kell párosítani."
+msgid "Sign-ins to the sources (WebShare, Sosáč, Sledujteto, FastShare, Přehraj.to, OpenSubtitles, Luna, own storage) and the TMDB key. Passwords travel encrypted and the server cannot read them, but anyone holding the group code can — give the code only to your own devices. CZtor and Trakt must be paired on each device separately."
+msgstr "A forrásokhoz tartozó bejelentkezések (WebShare, Sosáč, Sledujteto, FastShare, Přehraj.to, OpenSubtitles, Luna, saját tárhely) és a TMDB-kulcs. A jelszavak titkosítva utaznak, a szerver nem olvassa el őket, de akinél a csoportkód van, elolvassa — a kód csak a saját eszközökre való. A CZtort és a Traktot minden eszközön külön kell párosítani."
 
 msgctxt "#30688"
 msgid "Synchronisation goes through the dashboard. With Home Assistant, enter the same group code in the integration settings as well."
@@ -2101,11 +2101,11 @@ msgid "The password for the same account. Prehraj.to counts every sign-in as a d
 msgstr "Ugyanannak a fióknak a jelszava. A Prehraj.to minden belépést eszköznek számol, ezért a Nokturno csak néhány óránként lép be."
 
 msgctxt "#30715"
-msgid "Premium, %s days left"
+msgid "Premium, days left: %s"
 msgstr "Premium, %s nap van hátra"
 
 msgctxt "#30716"
-msgid "subscription ends in %s days"
+msgid "days until the subscription ends: %s"
 msgstr "az előfizetés %s nap múlva lejár"
 
 msgctxt "#30717"
@@ -2133,7 +2133,7 @@ msgid "no Premium — fewer results and 1080p only"
 msgstr "nincs Premium — kevesebb találat és csak 1080p"
 
 msgctxt "#30723"
-msgid "Premium, %s days left"
+msgid "Premium, days left: %s"
 msgstr "Premium, %s nap van hátra"
 
 msgctxt "#30724"
@@ -2157,8 +2157,8 @@ msgid "Legal notice"
 msgstr "Jogi nyilatkozat"
 
 msgctxt "#30729"
-msgid "Nokturno is primarily a player and manager for your own storage — content you upload and expose yourself (e.g. via WebDAV) is played directly. As an optional add-on service, you may connect some publicly available third-party search engines (WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna, OpenSubtitles) — in that case Nokturno is only a technical interface; it does not host, store, or provide any content itself.\n\nUse the add-on only for content you have a legal right, licence, or other legal title to access. Searching for, accessing, or playing copyrighted content without the rightsholders' consent is prohibited.\n\nThe add-on is provided \"as is\", with no warranty of functionality, availability, or legality of third-party sources. Responsibility for how it is used lies solely with the user. The operator reserves the right to restrict or terminate access at any time."
-msgstr "A Nokturno elsősorban a saját tárhelyéhez készült lejátszó és kezelő — az Ön által feltöltött és megosztott tartalmat (pl. WebDAV-on keresztül) közvetlenül lejátssza. Kiegészítő szolgáltatásként opcionálisan csatlakoztathat néhány nyilvánosan elérhető, harmadik féltől származó keresőt is (WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna, OpenSubtitles) — ebben az esetben a Nokturno csak technikai felület, maga nem tárol, nem ment és nem szolgáltat semmilyen tartalmat.\n\nA kiegészítőt csak olyan tartalomhoz használja, amelyhez jogszerű jogosultsága, licence vagy más jogcíme van. Szerzői joggal védett tartalom keresése, elérése vagy lejátszása a jogtulajdonosok hozzájárulása nélkül tilos.\n\nA kiegészítő „ahogy van” alapon kerül biztosításra, működésre, elérhetőségre és a harmadik féltől származó források jogszerűségére vonatkozó garancia nélkül. A használat módjáért kizárólag a felhasználó felel. Az üzemeltető fenntartja a jogot a hozzáférés bármikori korlátozására vagy megszüntetésére."
+msgid "Nokturno is primarily a player and manager for your own storage — content you upload and share yourself (e.g. via WebDAV) is played directly. As an optional add-on service, you can connect some publicly available third-party search engines (WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna, OpenSubtitles) — in that case Nokturno is only a technical interface; it does not host, store, or provide any content itself.\n\nUse Nokturno only for content you have a legal right, licence, or other legal title to access. Searching for, accessing, or playing copyrighted content without the rightsholders' consent is prohibited.\n\nNokturno is provided \"as is\", with no warranty of functionality, availability, or legality of third-party sources. You alone are responsible for how you use it. The operator reserves the right to restrict or terminate access at any time."
+msgstr "A Nokturno elsősorban a saját tárhelyedhez készült lejátszó és kezelő — az általad feltöltött és megosztott tartalmat (pl. WebDAV-on keresztül) közvetlenül lejátssza. Kiegészítő szolgáltatásként opcionálisan csatlakoztathatsz néhány nyilvánosan elérhető, harmadik féltől származó keresőt is (WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna, OpenSubtitles) — ebben az esetben a Nokturno csak technikai felület, maga nem tárol, nem ment és nem szolgáltat semmilyen tartalmat.\n\nA kiegészítőt csak olyan tartalomhoz használd, amelyhez jogszerű jogosultságod, licenced vagy más jogcímed van. Szerzői joggal védett tartalom keresése, elérése vagy lejátszása a jogtulajdonosok hozzájárulása nélkül tilos.\n\nA kiegészítő „ahogy van” alapon kerül biztosításra, működésre, elérhetőségre és a harmadik féltől származó források jogszerűségére vonatkozó garancia nélkül. A használat módjáért kizárólag a felhasználó felel. Az üzemeltető fenntartja a jogot a hozzáférés bármikori korlátozására vagy megszüntetésére."
 
 msgctxt "#30730"
 msgid "I confirm I will use the add-on only for content I have the right to access, and I agree to the terms of use."
@@ -2588,3 +2588,7 @@ msgstr "3D streamek elrejtése"
 msgctxt "#30932"
 msgid "3D files (by name: 3D, H-SBS, Half-OU, MVC, or by the MKV header) are never shown, not even when there is no other stream."
 msgstr "A 3D fájlok (név alapján: 3D, H-SBS, Half-OU, MVC, vagy az MKV fejléc alapján) soha nem jelennek meg, akkor sem, ha nincs más stream."
+
+msgctxt "#30933"
+msgid "WebShare account without VIP – downloads at only a few kB/s."
+msgstr "VIP nélküli WebShare-fiók – a letöltés csak pár kB/s."

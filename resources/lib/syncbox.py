@@ -115,7 +115,7 @@ class Relay(object):
                 404: "Skupina neexistuje nebo vypršela",
                 409: "Skupina je plná",
                 413: "Data jsou příliš velká",
-                429: "Moc častá synchronizace, zkus to za chvíli",
+                429: "Příliš častá synchronizace, zkus to za chvíli",
             }.get(e.code, "Server odpověděl %s" % e.code))
         except Exception as e:  # noqa: BLE001 – síť, DNS, špatná adresa
             raise SyncError(str(e)[:120])

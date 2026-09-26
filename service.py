@@ -787,7 +787,12 @@ class AccountsChecker:
         if state.get("last_warned") == today:
             return
         self.store.save(SUB_STATE, {"last_warned": today})
-        msg = Lf(30236, days) if rec["code"] == "expires_soon" else L(30237, "WebShare předplatné vypršelo.")
+        if rec["code"] == "expires_soon":
+            msg = Lf(30236, days)
+        elif rec["code"] == "free":
+            msg = L(30933, "Účet WebShare nemá VIP – stahování jen pár kB/s.")
+        else:
+            msg = L(30237, "Předplatné WebShare vypršelo.")
         xbmcgui.Dialog().notification(L(30000), msg, xbmcgui.NOTIFICATION_WARNING, 8000)
 
 

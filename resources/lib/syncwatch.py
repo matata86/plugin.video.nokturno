@@ -204,9 +204,9 @@ class Client(object):
             if e.code == 410 or (e.code == 401 and path != "/join"):
                 raise Closed(reason)
             raise SyncWatchError({
-                404: "Skupina s tímhle kódem neexistuje nebo už skončila",
+                404: "Skupina s tímto kódem neexistuje nebo už skončila",
                 409: reason or "Skupina je plná",
-                429: "Moc častých pokusů, zkus to za chvíli",
+                429: "Příliš častých pokusů, zkus to za chvíli",
             }.get(e.code, reason or "Server odpověděl %s" % e.code))
         except Exception as e:  # noqa: BLE001 – síť, DNS, timeout
             raise SyncWatchError(str(e)[:120] or "Server neodpovídá")
