@@ -42,8 +42,6 @@ import os
 import threading
 import time
 import urllib.parse
-from http.server import BaseHTTPRequestHandler, HTTPServer
-from socketserver import ThreadingMixIn
 
 DEFAULT_PORTS = range(52100, 52110)
 MAX_BODY = 64 * 1024
@@ -84,9 +82,16 @@ def parse_order(value, keys, rows=2):
     return out + [[] for _ in range(rows - len(out))]
 
 
-class _Server(ThreadingMixIn, HTTPServer):
-    daemon_threads = True
-    allow_reuse_address = True
+def _server_class():
+    # `http.server` až při spuštění stránky: některé buildy Kodi pro Android ho v Pythonu nemají
+    # a modul se načítá i kvůli `parse_order` ve výběru streamu (pád 15dde7be7240 v 8.4.2).
+    from http.server import HTTPServer
+    from socketserver import ThreadingMixIn
+
+    class _Server(ThreadingMixIn, HTTPServer):
+        daemon_threads = True
+        allow_reuse_address = True
+    return _Server
 
 
 def _token():
@@ -117,7 +122,7 @@ class SetupServer:
         last = None
         for port in ports:
             try:
-                self._httpd = _Server((host, port), self._handler())
+                self._httpd = _server_class()((host, port), self._handler())
                 break
             except OSError as err:
                 last = err
@@ -297,6 +302,7 @@ class SetupServer:
                 f'<input type="hidden" name="{fid}" id="{fid}" value="{esc(current)}">{body}</div>')
 
     def _handler(self):
+        from http.server import BaseHTTPRequestHandler
         owner = self
 
         class Handler(BaseHTTPRequestHandler):

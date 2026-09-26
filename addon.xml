@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.nokturno" name="Nokturno" version="8.4.2" provider-name="matata86">
+<addon id="plugin.video.nokturno" name="Nokturno" version="8.4.3" provider-name="matata86">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -40,7 +40,8 @@
       <screenshot>resources/screenshots/03-vyber-streamu.jpg</screenshot>
       <screenshot>resources/screenshots/04-nastaveni.jpg</screenshot>
     </assets>
-    <news>8.4.2 – S účtem ze Sdilej.cz se streamy FastShare ve výběru streamu, ve stavu zdrojů i v Ověřit zdroje jmenují Sdilej.cz.
+    <news>8.4.3 – Výběr streamu nepadá na dalších buildech Kodi pro Android, kterým chybí část Pythonu.
+8.4.2 – S účtem ze Sdilej.cz se streamy FastShare ve výběru streamu, ve stavu zdrojů i v Ověřit zdroje jmenují Sdilej.cz.
 8.4.1 – Výběr streamu nepadá na Kodi pro Android, kterému chybí část Pythonu.
 8.4.0 – Hlídané: nový díl seriálu nebo film, který zatím nikde není, Nokturno ohlásí samo, až bude k dispozici. Kontrolovat dál i u titulu nebo dílu, který streamy má, ale ne takové, jaké chceš (třeba bez CZ titulků). Hlídané jsou v hlavním menu a synchronizují se mezi Kodi i s Home Assistantem.
 8.4.0 – Vlastní katalogy ve Filmech a Seriálech: katalog si poskládáš podle žánrů, původního jazyka, let a řazení, bez vlastního klíče TMDB.
