@@ -306,7 +306,7 @@ def info_install():
     do popisku napsat nedají, ukazuje je tenhle dialog."""
     xbmcgui.Dialog().textviewer(L(30432, "Info"),
                                 "%s: %s[CR]%s: %s" % (L(30703, "Verze"), _ADDON_VERSION,
-                                                      L(30695, "ID této instalace"), install_id() or "—"))
+                                                      L(30695, "ID této instalace"), install_id() or "–"))
 
 
 KOFI_URL = "ko-fi.com/matata86"
@@ -474,10 +474,10 @@ def _existing_install():
 
 
 def terms_text():
-    return (L(30729, "Nokturno is primarily a player and manager for your own storage — content you upload "
+    return (L(30729, "Nokturno is primarily a player and manager for your own storage – content you upload "
                      "and share yourself (e.g. via WebDAV) is played directly. As an optional add-on service, "
                      "you can connect some publicly available third-party search engines (WebShare, Sosáč, "
-                     "HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna, OpenSubtitles) — in that case "
+                     "HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna, OpenSubtitles) – in that case "
                      "Nokturno is only a technical interface; it does not host, store, or provide any content "
                      "itself.\n\n"
                      "Use Nokturno only for content you have a legal right, licence, or other legal title to "
@@ -1034,7 +1034,7 @@ def skipped_notice(errors):
     """Upozornění, že se zdroj přeskočil a výsledky jsou z ostatních — bez adres
     a tokenů, ty jsou jen v logu (viz `lib/source_errors.py`)."""
     lines = summarize_failures((error_label(e), e) for e in errors)
-    return f"{'; '.join(lines)} — {L(30366, 'přeskočeno')}"
+    return f"{'; '.join(lines)} – {L(30366, 'přeskočeno')}"
 
 
 def describe_errors(errors):
@@ -2834,7 +2834,7 @@ def _group_fields(group):
             field["label"] = _plain(L(30664, "Kód skupiny"))
             field["help"] = _plain(L(30707, "Kód z prvního Kodi, na kterém jsi skupinu založil. "
                                             "Zapni Synchronizaci, jako středisko zvol Dashboard "
-                                            "Nokturna a ulož — toto Kodi se připojí do pěti minut."))
+                                            "Nokturna a ulož – toto Kodi se připojí do pěti minut."))
             field["enable"] = [("sync_enabled", "true"), ("sync_mode", "1")]
             fields.append(field)
             continue
@@ -2993,16 +2993,16 @@ class SyncWatchIntroWindow(xbmcgui.WindowDialog):
 
 
 SW_INTRO_TEXT = (
-    "Sledujte jeden film nebo díl společně na víc zařízeních — každý u sebe, ale ve stejnou chvíli.[CR][CR]"
+    "Sledujte jeden film nebo díl společně na víc zařízeních – každý u sebe, ale ve stejnou chvíli.[CR][CR]"
     "[B]1.[/B] Jeden založí skupinu a stane se vedoucím. Dostane kód, například SW-7K2Q-9MFX.[CR]"
     "[B]2.[/B] Ostatní (nejvýš 4 další zařízení) zadají kód v SyncWatch → Připojit se kódem. Čekají, až vedoucí něco pustí.[CR]"
-    "[B]3.[/B] Vedoucí pustí film normálně v Nokturnu. Stejný stream se sám spustí i u ostatních — "
+    "[B]3.[/B] Vedoucí pustí film normálně v Nokturnu. Stejný stream se sám spustí i u ostatních – "
     "začne se, až se načte všem.[CR]"
     "[B]4.[/B] Pauza, přehrávání a přetáčení od kohokoli platí pro všechny. Když se někomu načítá, ostatní počkají.[CR][CR]"
-    "Všichni pustí přesně tentýž stream — stejnou kvalitu, zvuk i délku — každý přes svůj vlastní účet "
+    "Všichni pustí přesně tentýž stream – stejnou kvalitu, zvuk i délku – každý přes svůj vlastní účet "
     "u zdroje. Kdo účet u zdroje vedoucího nemá, stream se mu nespustí.[CR]"
     "Skupina zanikne, když se k ní 5 minut nikdo nepřipojí, nebo když ji vedoucí ukončí. "
-    "Co sledujete, server nevidí — je to zašifrované kódem skupiny."
+    "Co sledujete, server nevidí – je to zašifrované kódem skupiny."
 )
 
 
@@ -3155,13 +3155,13 @@ class SyncWatchWindow(xbmcgui.WindowDialog):
         else:
             self.addControl(xbmcgui.ControlLabel(90, 140, 1100, 60, "[B]%s[/B]" % L(30824, "Čekám na vysílání…"),
                                                  font="font13", textColor="FFC4B5FD"))
-            hint = _swf(30825, "Skupina %s — až vedoucí něco pustí, spustí se to i tady.", code)
+            hint = _swf(30825, "Skupina %s – až vedoucí něco pustí, spustí se to i tady.", code)
         self.addControl(xbmcgui.ControlLabel(90, 280, 1100, 40, hint, font="font13", textColor="FFE6E1F0"))
         self.status = xbmcgui.ControlLabel(90, 330, 1100, 40, "", font="font13", textColor="FFFFB86C")
         self.addControl(self.status)
         self.members = xbmcgui.ControlTextBox(90, 390, 1100, 200, font="font13", textColor="FFE6E1F0")
         self.addControl(self.members)
-        footer = (L(30826, "Zpět zavře okno. Pak pusť film v Nokturnu — spustí se všem.") if leader
+        footer = (L(30826, "Zpět zavře okno. Pak pusť film v Nokturnu – spustí se všem.") if leader
                   else L(30827, "Zpět zavře okno, ve skupině zůstaneš. Odejít jde v menu SyncWatch."))
         self.addControl(xbmcgui.ControlLabel(90, 620, 1100, 40, footer, font="font13", textColor="FF9B95AD"))
 
@@ -3181,7 +3181,7 @@ class SyncWatchWindow(xbmcgui.WindowDialog):
         line = ""
         if status.get("expires") is not None and leader:
             left = max(0, int(status["expires_at"] - time.time())) if status.get("expires_at") else int(status["expires"])
-            line = _swf(30831, "Zatím se nikdo nepřipojil — kód zanikne za %s", "%d:%02d" % divmod(left, 60))
+            line = _swf(30831, "Zatím se nikdo nepřipojil – kód zanikne za %s", "%d:%02d" % divmod(left, 60))
         elif status.get("title") and status.get("loaded"):
             line = "%s: %s" % (L(30832, "Hraje se"), status["title"])
         self.status.setLabel(line)
@@ -3393,18 +3393,18 @@ def remote_setup(section=None):
     values = {f["id"]: ADDON.getSetting(f["id"]) or f["default"] for section in schema for f in section["fields"]
               if f.get("type") not in ("heading", "info", "action")}
     texts = {
-        "title": "Nokturno — " + L(30447, "Nastavit z mobilu"),
+        "title": "Nokturno – " + L(30447, "Nastavit z mobilu"),
         "intro": L(30458, "Vyplň, co chceš změnit, a ulož. Nastavení se hned propíše do Kodi."),
         "save": L(30459, "Uložit do Kodi"),
         "saved": L(30460, "Uloženo. Nastavení je v Kodi, stránku můžeš zavřít."),
-        "password_set": L(30461, "vyplněno — prázdné pole ponechá původní hodnotu"),
+        "password_set": L(30461, "vyplněno – prázdné pole ponechá původní hodnotu"),
         "expired": L(30462, "Tato adresa už neplatí. Na TV spusť Nastavit z mobilu znovu."),
         "invalid": L(30463, "Neplatná hodnota: %s").replace("%s", "{}"),
         "order_rows": L(30499, "Horní řádek|Dolní řádek"),
         "order_hidden": L(30500, "Nezobrazovat"),
         "order_up": L(30510, "Nahoru"),
         "order_down": L(30511, "Dolů"),
-        "action_failed": L(30580, "Spojení s televizí se přerušilo — na TV spusť Nastavit z mobilu znovu."),
+        "action_failed": L(30580, "Spojení s televizí se přerušilo – na TV spusť Nastavit z mobilu znovu."),
         "action_running": L(30942, "Pracuji…"),
     }
     server = _remote_setup().SetupServer(schema, values, texts, actions={"luna_find": luna_find_remote,
@@ -3645,9 +3645,9 @@ def transfer_apply(payload):
 def _wizard_accounts(dialog):
     """Průvodce ovladačem: účty a zdroje otázku po otázce."""
     if dialog.yesno(L(30340, "WebShare"), L(30341, "Máš účet WebShare?")):
-        user = dialog.input(L(30342, "WebShare — e-mail"))
+        user = dialog.input(L(30342, "WebShare – e-mail"))
         if user:
-            pwd = dialog.input(L(30343, "WebShare — heslo"), option=xbmcgui.ALPHANUM_HIDE_INPUT)
+            pwd = dialog.input(L(30343, "WebShare – heslo"), option=xbmcgui.ALPHANUM_HIDE_INPUT)
             if pwd:
                 ADDON.setSetting("ws_username", user)
                 ADDON.setSetting("ws_password", pwd)
@@ -3656,9 +3656,9 @@ def _wizard_accounts(dialog):
     if dialog.yesno(L(30344, "Sosáč"),
                      L(30345, "Máš účet Streamuj.tv (přehrávač Sosáče)?[CR]"
                               "Katalogy Sosáče fungují i bez účtu, jen pro přehrávání je potřeba.")):
-        user = dialog.input(L(30346, "Streamuj.tv — uživatel"))
+        user = dialog.input(L(30346, "Streamuj.tv – uživatel"))
         if user:
-            pwd = dialog.input(L(30347, "Streamuj.tv — heslo"), option=xbmcgui.ALPHANUM_HIDE_INPUT)
+            pwd = dialog.input(L(30347, "Streamuj.tv – heslo"), option=xbmcgui.ALPHANUM_HIDE_INPUT)
             if pwd:
                 ADDON.setSetting("streamuj_username", user)
                 ADDON.setSetting("streamuj_password", pwd)
@@ -3689,9 +3689,9 @@ def _wizard_accounts(dialog):
     if dialog.yesno(L(30367, "Sledujteto"),
                      L(30388, "Máš účet Sledujteto?[CR]"
                               "Hledá se přes tvůj účet, přehrávat jde jen s Premium.")):
-        email = dialog.input(L(30389, "Sledujteto — e-mail"))
+        email = dialog.input(L(30389, "Sledujteto – e-mail"))
         if email:
-            pwd = dialog.input(L(30390, "Sledujteto — heslo"), option=xbmcgui.ALPHANUM_HIDE_INPUT)
+            pwd = dialog.input(L(30390, "Sledujteto – heslo"), option=xbmcgui.ALPHANUM_HIDE_INPUT)
             if pwd:
                 ADDON.setSetting("st_email", email)
                 ADDON.setSetting("st_password", pwd)
@@ -3702,9 +3702,9 @@ def _wizard_accounts(dialog):
                               "Hledá se i bez něj, přehrání jde z tvého kreditu nebo neomezeného tarifu.")):
         # Sdilej.cz = týž katalog, jen vlastní účty
         web = dialog.select(L(30926, "Účet z"), [L(30417, "FastShare"), L(30928, "Sdilej.cz")])
-        user = dialog.input(L(30420, "FastShare — uživatel")) if web >= 0 else ""
+        user = dialog.input(L(30420, "FastShare – uživatel")) if web >= 0 else ""
         if user:
-            pwd = dialog.input(L(30422, "FastShare — heslo"), option=xbmcgui.ALPHANUM_HIDE_INPUT)
+            pwd = dialog.input(L(30422, "FastShare – heslo"), option=xbmcgui.ALPHANUM_HIDE_INPUT)
             if pwd:
                 ADDON.setSetting("fs_username", user)
                 ADDON.setSetting("fs_password", pwd)
@@ -3765,7 +3765,7 @@ def setup_wizard(force=False):
         # úvodní volba (přání uživatele 2026-09-16): z mobilu, průvodce ovladačem, nebo přeskočit
         choice = dialog.yesnocustom(
             L(30336, "Vítej v Nokturnu"),
-            L(30449, "Účty a zdroje můžeš vyplnit v mobilu — na TV se ukáže QR kód, stačí mobil ve stejné "
+            L(30449, "Účty a zdroje můžeš vyplnit v mobilu – na TV se ukáže QR kód, stačí mobil ve stejné "
                      "Wi-Fi a hesla nepíšeš ovladačem. Nebo projdi krátkého průvodce ovladačem.[CR]"
                      "Kdykoli to můžeš přeskočit a doplnit později v Nastavení doplňku."),
             customlabel=L(30450, "Z mobilu"), nolabel=L(30339, "Přeskočit"), yeslabel=L(30451, "Průvodce ovladačem"),
@@ -3825,7 +3825,7 @@ def test_sources():
     def check_sledujteto():
         # přihlášení samo nestačí — bez Premium Sledujteto odkaz na přehrání nevydá
         user = st.me()
-        return "Premium" if user.get("is_premium") else L(30406, "bez Premium — přehrávání nepůjde")
+        return "Premium" if user.get("is_premium") else L(30406, "bez Premium – přehrávání nepůjde")
 
     def check_fastshare():
         # přihlášení a kolik zbývá — soubor se odečítá z kreditu, pokud účet nemá neomezený tarif
@@ -3842,7 +3842,7 @@ def test_sources():
             return L(30721, "bez účtu, nalezeno %s") % len(found)
         user = pt.me()
         if not user.get("premium"):
-            return L(30722, "bez Premium — méně výsledků a jen 1080p")
+            return L(30722, "bez Premium – méně výsledků a jen 1080p")
         return L(30723, "Premium, zbývá dní: %s") % user.get("days", 0)
 
     def check_cztor():
@@ -3956,10 +3956,10 @@ LUNA_DIAG_TEXTS = {
     "bad_url": (30522, "Adresa %s nemá očekávaný tvar.[CR]Očekává se například 192.168.1.10:7126."),
     "unreachable": (30523, "Na adrese %s se nikdo neozval.[CR][CR]Běží počítač, kde je Luna spuštěná? Je ve stejné "
                            "síti jako toto zařízení? Zkus „Najít Lunu v síti“."),
-    "not_luna": (30524, "Na adrese %s něco odpovídá, ale není to Luna.[CR]Zkontroluj port — Luna má "
+    "not_luna": (30524, "Na adrese %s něco odpovídá, ale není to Luna.[CR]Zkontroluj port – Luna má "
                         "výchozí 7126."),
     "no_token": (30525, "Luna %s běží, ale chybí token.[CR][CR]Otevři v prohlížeči %s/setup, zkopíruj "
-                        "adresu doplňku a vlož ji celou do pole Token — adresu i token z ní doplněk "
+                        "adresu doplňku a vlož ji celou do pole Token – adresu i token z ní doplněk "
                         "vytáhne sám."),
     "bad_token_format": (30526, "V poli Token není token.[CR][CR]Token začíná „e1.“ a je dlouhý. Otevři "
                                 "%s/setup a zkopíruj celou adresu doplňku."),
@@ -3969,7 +3969,7 @@ LUNA_DIAG_TEXTS = {
                           "nevrací.[CR][CR]Zkontroluj na %s/setup účet WebShare a jestli je token opravdu z této "
                           "Luny."),
     "no_streams": (30529, "Luna %s běží, ale nenašla streamy ani u známých filmů.[CR][CR]Nejčastěji "
-                          "chybí účet WebShare v samotné Luně — otevři %s/setup a doplň ho."),
+                          "chybí účet WebShare v samotné Luně – otevři %s/setup a doplň ho."),
 }
 
 
@@ -3982,8 +3982,8 @@ LUNA_DIAG_SHORT = {
     "no_token": (30547, "běží, ale chybí token"),
     "bad_token_format": (30548, "v poli Token není token"),
     "bad_token": (30549, "token Luna nepřijala"),
-    "main_empty": (30550, "hlavní zdroj nic nevrací — účet WebShare v Luně?"),
-    "no_streams": (30551, "nenašla žádné streamy — účet WebShare v Luně?"),
+    "main_empty": (30550, "hlavní zdroj nic nevrací – účet WebShare v Luně?"),
+    "no_streams": (30551, "nenašla žádné streamy – účet WebShare v Luně?"),
 }
 
 # co se v které hlášce dosazuje za %s (pořadí podle textu)
@@ -4040,7 +4040,7 @@ ACCOUNT_TEXTS = {
     ("webshare", "vip"): (30631, "předplatné do %s"),
     ("webshare", "expires_soon"): (30632, "do konce předplatného zbývá dní: %s"),
     ("webshare", "expired"): (30633, "předplatné vypršelo"),
-    ("webshare", "free"): (30634, "účet bez VIP — stahování pár kB/s"),
+    ("webshare", "free"): (30634, "účet bez VIP – stahování pár kB/s"),
     ("fastshare", "unlimited"): (30635, "neomezené stahování"),
     ("fastshare", "credit"): (30636, "zbývá %s GB kreditu"),
     ("fastshare", "no_credit"): (30637, "došel kredit"),
@@ -4050,17 +4050,17 @@ ACCOUNT_TEXTS = {
     ("cztor", "not_paired"): (30641, "zařízení není spárované"),
     ("cztor", "unknown"): (30642, "stav účtu neznámý"),
     ("sledujteto", "premium"): (30643, "Premium"),
-    ("sledujteto", "no_premium"): (30644, "účet bez Premium — přehrávání nepůjde"),
+    ("sledujteto", "no_premium"): (30644, "účet bez Premium – přehrávání nepůjde"),
     ("prehrajto", "premium"): (30715, "Premium, zbývá dní: %s"),
     ("prehrajto", "expires_soon"): (30716, "do konce předplatného zbývá dní: %s"),
-    ("prehrajto", "no_premium"): (30717, "účet bez Premium — méně výsledků a jen 1080p"),
-    ("prehrajto", "anonymous"): (30718, "bez účtu — jen první strana výsledků"),
+    ("prehrajto", "no_premium"): (30717, "účet bez Premium – méně výsledků a jen 1080p"),
+    ("prehrajto", "anonymous"): (30718, "bez účtu – jen první strana výsledků"),
     ("prehrajto", "paused"): (30719, "pozastaveno na %s min (HTTP 429)"),
     # Sosáč se na nic neptá, řádek je tu kvůli uspání zdroje — text sdílí s HellSpy
     ("sosac", "ok"): (30645, "v pořádku"),
     ("hellspy", "ok"): (30645, "v pořádku"),
     # 429 od HellSpy = blokace sítě uživatele, ne limit dotazů (viz `source_errors`)
-    ("hellspy", "paused"): (30646, "odmítá tuto síť (HTTP 429) — VPN nebo mobilní data? Zkusí se za %s min"),
+    ("hellspy", "paused"): (30646, "odmítá tuto síť (HTTP 429) – VPN nebo mobilní data? Zkusí se za %s min"),
     ("storage", "ok"): (30647, "odpovídá"),
 }
 
@@ -4279,7 +4279,7 @@ def os_check():
     api = get_opensubtitles()
     if api is None:
         xbmcgui.Dialog().ok(L(30611, "OpenSubtitles"),
-                    L(30623, "Klíč se nepodařilo získat ze serveru — zkus to později."))
+                    L(30623, "Klíč se nepodařilo získat ze serveru – zkus to později."))
         return
     radky = []
     try:
@@ -4287,16 +4287,16 @@ def os_check():
     except OpenSubtitlesError as err:
         xbmc.log(f"[{ADDON_ID}] OpenSubtitles účet: {err}", xbmc.LOGINFO)
         xbmcgui.Dialog().ok(L(30611, "OpenSubtitles"),
-                    L(30624, "Přihlášení se nepodařilo — zkontroluj jméno a heslo."))
+                    L(30624, "Přihlášení se nepodařilo – zkontroluj jméno a heslo."))
         return
     if ucet:
         radky.append(L(30627, "Přihlášen jako %s") % ucet["user"])
         radky.append(L(30626, "Zbývá dnes stažení: %s") % ucet["zbyva"])
     else:
-        radky.append(L(30628, "Bez přihlášení — 5 stažení denně pro tuto IP adresu."))
+        radky.append(L(30628, "Bez přihlášení – 5 stažení denně pro tuto IP adresu."))
     nalez = api.hledej(OS_PROBE_ID, ("CZ", "SK"))
     radky.insert(0, L(30621, "OpenSubtitles funguje.") if nalez
-                 else L(30623, "Klíč se nepodařilo získat ze serveru — zkus to později."))
+                 else L(30623, "Klíč se nepodařilo získat ze serveru – zkus to později."))
     radky.append(L(30625, "Titulků ke zkušebnímu titulu: %s") % len(nalez))
     xbmcgui.Dialog().ok(L(30611, "OpenSubtitles"), "\n".join(radky))
 
@@ -4396,7 +4396,7 @@ def luna_check(base=None, token=None, kolo=0, ask=False):
     # Zadat adresu je první volba schválně: ověřuje se uložené nastavení, takže
     # hodnota právě přepsaná v políčku (bez OK) se sem jinak nedostane
     volba = xbmcgui.Dialog().yesnocustom(
-        L(30534, "Ověření Luny"), f"{mark}{text}[CR][CR]" + L(30557, "Ověřuje se uložené nastavení — hodnota "
+        L(30534, "Ověření Luny"), f"{mark}{text}[CR][CR]" + L(30557, "Ověřuje se uložené nastavení – hodnota "
                                                                     "rozepsaná v políčku se započítá až po OK. "
                                                                     "Jinou adresu lze zadat rovnou zde."),
         customlabel=L(30536, "Poslat log"), nolabel=L(30537, "Zavřít"), yeslabel=L(30555, "Zadat adresu"))
@@ -5043,14 +5043,14 @@ def lang_catalog_menu(apis, ctype, want):
         return
     set_content("tvshows" if ctype == "series" else "movies")
     if age is not None and age < LANG_LOCK_STALE:
-        label = L(30438, "Started in the background — you'll get a notification when it's ready.")
+        label = L(30438, "Started in the background – you'll get a notification when it's ready.")
         progress = _lang_progress_text(win.getProperty(f"{LANG_PROGRESS_PROP}:{key}"))
         if progress:
             label = f"{label} ({progress})"
         folder_item(label, build_url(action="lang_catalog_menu", type=ctype, want=want),
                     icon="DefaultAddonsSearch.png")
     else:
-        folder_item(L(30437, "The list isn't ready yet — start"),
+        folder_item(L(30437, "The list isn't ready yet – start"),
                     build_url(action="lang_catalog_trigger", type=ctype, want=want), icon="DefaultAddonsSearch.png")
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
@@ -5077,7 +5077,7 @@ def lang_catalog_trigger(apis, ctype, want):
         # nikdo to zrovna nepočítá (zahřívač ani dřívější žádost) — teprve teď o to požádat
         win.setProperty(f"{LANG_TRIGGER_PROP}:{ctype}", "1")
     set_content("tvshows" if ctype == "series" else "movies")
-    label = L(30438, "Started in the background — you'll get a notification when it's ready.")
+    label = L(30438, "Started in the background – you'll get a notification when it's ready.")
     progress = _lang_progress_text(win.getProperty(f"{LANG_PROGRESS_PROP}:{key}"))
     if progress:
         label = f"{label} ({progress})"
@@ -6429,7 +6429,7 @@ def list_foryou(apis, ctype):
         add_meta_item(m, ctype)
     if not items:
         # notifikace, ne modál — sem se dá dostat i z widgetu a z JSON-RPC
-        notify(L(30607, "Zatím není z čeho doporučovat — seznam vzniká z naposledy zhlédnutých titulů."),
+        notify(L(30607, "Zatím není z čeho doporučovat – seznam vzniká z naposledy zhlédnutých titulů."),
                xbmcgui.NOTIFICATION_INFO, 4000)
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
@@ -7235,7 +7235,7 @@ def cztor_pair():
 def cztor_status():
     api = cztor_client()
     if not api.paired():
-        xbmcgui.Dialog().ok(L(30560, "CZtor"), L(30571, "CZtor není spárovaný — použij Spárovat PINem."))
+        xbmcgui.Dialog().ok(L(30560, "CZtor"), L(30571, "CZtor není spárovaný – použij Spárovat PINem."))
         return
     try:
         account = api.profile()

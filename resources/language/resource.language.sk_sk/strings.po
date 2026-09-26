@@ -551,7 +551,7 @@ msgid "Too little data downloaded, try again"
 msgstr "Stiahlo sa príliš málo dát, skús to znova"
 
 msgctxt "#30223"
-msgid "Speed %s Mb/s -> allowed %s Mb/s (e.g. %s GB for a 2-hour movie)"
+msgid "Speed %s Mb/s → allowed %s Mb/s (e.g. %s GB for a 2-hour movie)"
 msgstr "Rýchlosť %s Mb/s → povolené %s Mb/s (napr. %s GB pri dvojhodinovom filme)"
 
 msgctxt "#30224"
@@ -595,7 +595,7 @@ msgid "WebShare subscription has run out."
 msgstr "Predplatné WebShare vypršalo."
 
 msgctxt "#30300"
-msgid "Works without a Luna server — logs into WebShare directly with your own account and searches full-text by title."
+msgid "Works without a Luna server – logs into WebShare directly with your own account and searches full-text by title."
 msgstr "Funguje bez servera Luna – doplnok sa prihlási priamo na WebShare tvojím účtom a hľadá fulltextom podľa názvu."
 
 msgctxt "#30301"
@@ -615,7 +615,7 @@ msgid "Catalogues and descriptions come from tv.sosac.to's public exports; playb
 msgstr "Katalógy a popisy titulov sa berú z verejných exportov tv.sosac.to, samotné prehrávanie ide cez tvoj účet Streamuj.tv."
 
 msgctxt "#30305"
-msgid "Streamuj.tv user name — needed to play streams found on Sosáč."
+msgid "Streamuj.tv user name – needed to play streams found on Sosáč."
 msgstr "Používateľské meno pre streamuj.tv – potrebné na prehrávanie streamov zo Sosáča."
 
 msgctxt "#30306"
@@ -639,7 +639,7 @@ msgid "Paste the whole add-on address from Luna's /setup page, or just the token
 msgstr "Vlož celú adresu doplnku zo stránky /setup Luny, alebo len samotný token začínajúci na „e1.“."
 
 msgctxt "#30311"
-msgid "Luna can also full-text search WebShare (its own Search feature) — finds more, but takes longer."
+msgid "Luna can also full-text search WebShare (its own Search feature) – finds more, but takes longer."
 msgstr "Luna vie aj fulltext cez WebShare (vlastná funkcia Search) – nájde viac, ale hľadanie trvá dlhšie."
 
 msgctxt "#30313"
@@ -651,7 +651,7 @@ msgid "At equal quality, a stream with surround sound (5.1 and up) is sorted hig
 msgstr "Pri rovnakej kvalite ide vyššie stream s priestorovým zvukom (5.1 a viac)."
 
 msgctxt "#30315"
-msgid "Streams below 720p are removed from the list — the filter can't bring them back either. If no stream would be left, all of them are shown."
+msgid "Streams below 720p are removed from the list – the filter can't bring them back either. If no stream would be left, all of them are shown."
 msgstr "Streamy pod 720p sa zo zoznamu vyradia a nedajú sa zobraziť ani cez filter. Keby nezostal žiadny stream, zobrazia sa všetky."
 
 msgctxt "#30316"
@@ -704,7 +704,7 @@ msgstr "API kľúč TMDB"
 
 msgctxt "#30334"
 msgid "TMDB API key help"
-msgstr "Vlastný kľúč pre TMDB (themoviedb.org) — s ním sú názvy, popisy, žánre aj herci po česky, aj v katalógoch zo Sosáča a bez Luny. Bez kľúča sa použije verejný katalóg Sosáča a Cinemeta, tie však nemajú popis v slovenčine ani češtine (Sosáč popis vôbec nemá, Cinemeta len po anglicky).\n\nZaloženie je zadarmo: registrácia na themoviedb.org → ikona profilu → Nastavenia → API (v ľavom menu) → Request an API Key → Developer → krátky formulár (názov aplikácie stačí „Nokturno“) → skopírovať „API Key (v3 auth)“ (nie dlhší „API Read Access Token“)."
+msgstr "Vlastný kľúč pre TMDB (themoviedb.org) – s ním sú názvy, popisy, žánre aj herci po česky, aj v katalógoch zo Sosáča a bez Luny. Bez kľúča sa použije verejný katalóg Sosáča a Cinemeta, tie však nemajú popis v slovenčine ani češtine (Sosáč popis vôbec nemá, Cinemeta len po anglicky).\n\nZaloženie je zadarmo: registrácia na themoviedb.org → ikona profilu → Nastavenia → API (v ľavom menu) → Request an API Key → Developer → krátky formulár (názov aplikácie stačí „Nokturno“) → skopírovať „API Key (v3 auth)“ (nie dlhší „API Read Access Token“)."
 
 msgctxt "#30335"
 msgid "Search more loosely by file name"
@@ -728,12 +728,12 @@ msgid "Do you have a WebShare account?"
 msgstr "Máš účet WebShare?"
 
 msgctxt "#30342"
-msgid "WebShare — e-mail"
-msgstr "WebShare — e-mail"
+msgid "WebShare – e-mail"
+msgstr "WebShare – e-mail"
 
 msgctxt "#30343"
-msgid "WebShare — password"
-msgstr "WebShare — heslo"
+msgid "WebShare – password"
+msgstr "WebShare – heslo"
 
 msgctxt "#30344"
 msgid "Sosáč"
@@ -744,12 +744,12 @@ msgid "Do you have a Streamuj.tv account (Sosáč player)?\nSosáč catalogues w
 msgstr "Máš účet Streamuj.tv (prehrávač Sosáča)?\nKatalógy Sosáča fungujú aj bez účtu, potrebný je len na prehrávanie."
 
 msgctxt "#30346"
-msgid "Streamuj.tv — username"
-msgstr "Streamuj.tv — používateľ"
+msgid "Streamuj.tv – username"
+msgstr "Streamuj.tv – používateľ"
 
 msgctxt "#30347"
-msgid "Streamuj.tv — password"
-msgstr "Streamuj.tv — heslo"
+msgid "Streamuj.tv – password"
+msgstr "Streamuj.tv – heslo"
 
 msgctxt "#30348"
 msgid "Luna: Absolute Cinema"
@@ -837,7 +837,7 @@ msgstr "Používať Sledujteto"
 
 msgctxt "#30369"
 msgid "Sledujteto.cz is a Czech video hosting. Searching needs an account, playback needs a Premium account."
-msgstr "Sledujteto.cz je česká úschovňa videí. Hľadanie vyžaduje účet, prehrávanie účet Premium — bez neho Sledujteto odkaz na súbor nevydá."
+msgstr "Sledujteto.cz je česká úschovňa videí. Hľadanie vyžaduje účet, prehrávanie účet Premium – bez neho Sledujteto odkaz na súbor nevydá."
 
 msgctxt "#30370"
 msgid "E-mail"
@@ -920,12 +920,12 @@ msgid "Do you have a Sledujteto account?[CR]Search uses your account, playback n
 msgstr "Máš účet Sledujteto?[CR]Hľadá sa cez tvoj účet, prehrávať sa dá len s Premium."
 
 msgctxt "#30389"
-msgid "Sledujteto — e-mail"
-msgstr "Sledujteto — e-mail"
+msgid "Sledujteto – e-mail"
+msgstr "Sledujteto – e-mail"
 
 msgctxt "#30390"
-msgid "Sledujteto — password"
-msgstr "Sledujteto — heslo"
+msgid "Sledujteto – password"
+msgstr "Sledujteto – heslo"
 
 msgctxt "#30391"
 msgid "Downloaded"
@@ -972,8 +972,8 @@ msgid "Storage"
 msgstr "Úložisko"
 
 msgctxt "#30406"
-msgid "no Premium — playback will not work"
-msgstr "bez Premium — prehrávanie nepôjde"
+msgid "no Premium – playback will not work"
+msgstr "bez Premium – prehrávanie nepôjde"
 
 msgctxt "#30407"
 msgid "Check for add-on updates"
@@ -1021,19 +1021,19 @@ msgstr "Používať FastShare / Sdilej.cz"
 
 msgctxt "#30419"
 msgid "FastShare.cz is a Czech file host. Search works without an account; playback needs one and is charged from your credit unless you have unlimited downloads."
-msgstr "FastShare.cz je česká úschovňa súborov. Hľadá sa aj bez účtu, na prehratie je potrebný účet — súbor sa odpočíta z kreditu, ak nemáš neobmedzené sťahovanie."
+msgstr "FastShare.cz je česká úschovňa súborov. Hľadá sa aj bez účtu, na prehratie je potrebný účet – súbor sa odpočíta z kreditu, ak nemáš neobmedzené sťahovanie."
 
 msgctxt "#30420"
-msgid "FastShare — username"
-msgstr "FastShare — používateľ"
+msgid "FastShare – username"
+msgstr "FastShare – používateľ"
 
 msgctxt "#30421"
 msgid "Name you use to sign in to fastshare.cz or sdilej.cz."
 msgstr "Meno, ktorým sa prihlasuješ na fastshare.cz alebo sdilej.cz."
 
 msgctxt "#30422"
-msgid "FastShare — password"
-msgstr "FastShare — heslo"
+msgid "FastShare – password"
+msgstr "FastShare – heslo"
 
 msgctxt "#30423"
 msgid "Password for fastshare.cz or sdilej.cz. It is sent only when signing in; playback then uses a cookie."
@@ -1085,12 +1085,12 @@ msgid "The list is being built in the background right now…"
 msgstr "Zoznam sa práve zostavuje na pozadí…"
 
 msgctxt "#30437"
-msgid "The list isn't ready yet — start"
-msgstr "Zoznam ešte nie je pripravený — spustiť"
+msgid "The list isn't ready yet – start"
+msgstr "Zoznam ešte nie je pripravený – spustiť"
 
 msgctxt "#30438"
-msgid "Started in the background — you'll get a notification when it's ready."
-msgstr "Spustené na pozadí — keď to bude hotové, príde upozornenie."
+msgid "Started in the background – you'll get a notification when it's ready."
+msgstr "Spustené na pozadí – keď to bude hotové, príde upozornenie."
 
 msgctxt "#30439"
 msgid "Newly added with CZ dubbing/subtitles (%s) is ready"
@@ -1129,12 +1129,12 @@ msgid "Set up from phone"
 msgstr "Nastaviť z mobilu"
 
 msgctxt "#30448"
-msgid "Shows a QR code on the TV. Open it on a phone connected to the same Wi-Fi and fill in the settings in the browser — no typing passwords with the remote. Works only on the local network."
-msgstr "Na TV sa zobrazí QR kód. Otvor ho mobilom pripojeným k tej istej Wi-Fi a vyplň nastavenia v prehliadači — bez písania hesiel ovládačom. Funguje len v miestnej sieti."
+msgid "Shows a QR code on the TV. Open it on a phone connected to the same Wi-Fi and fill in the settings in the browser – no typing passwords with the remote. Works only on the local network."
+msgstr "Na TV sa zobrazí QR kód. Otvor ho mobilom pripojeným k tej istej Wi-Fi a vyplň nastavenia v prehliadači – bez písania hesiel ovládačom. Funguje len v miestnej sieti."
 
 msgctxt "#30449"
-msgid "You can fill in accounts and sources on your phone — the TV shows a QR code, the phone just needs the same Wi-Fi and you don't type passwords with the remote. Or go through a short wizard with the remote.[CR]You can skip this and fill it in later in the add-on settings."
-msgstr "Účty a zdroje môžeš vyplniť v mobile — na TV sa zobrazí QR kód, stačí mobil v tej istej Wi-Fi a heslá nepíšeš ovládačom. Alebo použi krátkeho sprievodcu ovládačom.[CR]Kedykoľvek to môžeš preskočiť a doplniť neskôr v Nastaveniach doplnku."
+msgid "You can fill in accounts and sources on your phone – the TV shows a QR code, the phone just needs the same Wi-Fi and you don't type passwords with the remote. Or go through a short wizard with the remote.[CR]You can skip this and fill it in later in the add-on settings."
+msgstr "Účty a zdroje môžeš vyplniť v mobile – na TV sa zobrazí QR kód, stačí mobil v tej istej Wi-Fi a heslá nepíšeš ovládačom. Alebo použi krátkeho sprievodcu ovládačom.[CR]Kedykoľvek to môžeš preskočiť a doplniť neskôr v Nastaveniach doplnku."
 
 msgctxt "#30450"
 msgid "From phone"
@@ -1181,8 +1181,8 @@ msgid "Saved. The settings are in Kodi, you can close this page."
 msgstr "Uložené. Nastavenia sú v Kodi, stránku môžeš zavrieť."
 
 msgctxt "#30461"
-msgid "filled in — leave empty to keep the current value"
-msgstr "vyplnené — prázdne pole ponechá pôvodnú hodnotu"
+msgid "filled in – leave empty to keep the current value"
+msgstr "vyplnené – prázdne pole ponechá pôvodnú hodnotu"
 
 msgctxt "#30462"
 msgid "This address is no longer valid. Start Set up from phone on the TV again."
@@ -1365,12 +1365,12 @@ msgid "Nobody answered at %s.[CR][CR]Is the computer running Luna switched on? I
 msgstr "Na adrese %s sa nikto neozval.[CR][CR]Beží počítač, kde je Luna spustená? Je v rovnakej sieti ako toto zariadenie? Skús „Nájsť Lunu v sieti“."
 
 msgctxt "#30524"
-msgid "Something answers at %s, but it is not Luna.[CR]Check the port — Luna uses 7126 by default."
-msgstr "Na adrese %s niečo odpovedá, ale nie je to Luna.[CR]Skontroluj port — Luna má predvolený 7126."
+msgid "Something answers at %s, but it is not Luna.[CR]Check the port – Luna uses 7126 by default."
+msgstr "Na adrese %s niečo odpovedá, ale nie je to Luna.[CR]Skontroluj port – Luna má predvolený 7126."
 
 msgctxt "#30525"
-msgid "Luna %s is running, but the token is missing.[CR][CR]Open %s/setup in a browser, copy the add-on address and paste the whole thing into the Token field — the add-on will pull both the address and the token out of it."
-msgstr "Luna %s beží, ale chýba token.[CR][CR]Otvor v prehliadači %s/setup, skopíruj adresu doplnku a vlož ju celú do poľa Token — adresu aj token si z nej doplnok vytiahne sám."
+msgid "Luna %s is running, but the token is missing.[CR][CR]Open %s/setup in a browser, copy the add-on address and paste the whole thing into the Token field – the add-on will pull both the address and the token out of it."
+msgstr "Luna %s beží, ale chýba token.[CR][CR]Otvor v prehliadači %s/setup, skopíruj adresu doplnku a vlož ju celú do poľa Token – adresu aj token si z nej doplnok vytiahne sám."
 
 msgctxt "#30526"
 msgid "What is in the Token field is not a token.[CR][CR]A token starts with “e1.” and is long. Open %s/setup and copy the whole add-on address."
@@ -1385,8 +1385,8 @@ msgid "Luna %s answers and the WebShare search works, but its main source return
 msgstr "Luna %s odpovedá a hľadanie na WebShare funguje, ale jej hlavný zdroj nič nevracia.[CR][CR]Skontroluj na %s/setup účet WebShare a či je token naozaj z tejto Luny."
 
 msgctxt "#30529"
-msgid "Luna %s is running, but it found no streams even for well-known films.[CR][CR]Usually the WebShare account is missing in Luna itself — open %s/setup and fill it in."
-msgstr "Luna %s beží, ale nenašla streamy ani pri známych filmoch.[CR][CR]Najčastejšie chýba účet WebShare v samotnej Lune — otvor %s/setup a doplň ho."
+msgid "Luna %s is running, but it found no streams even for well-known films.[CR][CR]Usually the WebShare account is missing in Luna itself – open %s/setup and fill it in."
+msgstr "Luna %s beží, ale nenašla streamy ani pri známych filmoch.[CR][CR]Najčastejšie chýba účet WebShare v samotnej Lune – otvor %s/setup a doplň ho."
 
 msgctxt "#30530"
 msgid "Looking for Luna on the local network…"
@@ -1466,12 +1466,12 @@ msgid "Luna did not accept the token"
 msgstr "token Luna neprijala"
 
 msgctxt "#30550"
-msgid "the main source returns nothing — WebShare account in Luna?"
-msgstr "hlavný zdroj nič nevracia — účet WebShare v Lune?"
+msgid "the main source returns nothing – WebShare account in Luna?"
+msgstr "hlavný zdroj nič nevracia – účet WebShare v Lune?"
 
 msgctxt "#30551"
-msgid "no streams found — WebShare account in Luna?"
-msgstr "nenašla žiadne streamy — účet WebShare v Lune?"
+msgid "no streams found – WebShare account in Luna?"
+msgstr "nenašla žiadne streamy – účet WebShare v Lune?"
 
 msgctxt "#30552"
 msgid "All good"
@@ -1494,8 +1494,8 @@ msgid "Luna address (or the whole add-on address from /setup)"
 msgstr "Adresa Luny (alebo celá adresa doplnku zo /setup)"
 
 msgctxt "#30557"
-msgid "The saved setup is what gets checked — a value typed into the field counts only after OK. A different address can be entered right here."
-msgstr "Overuje sa uložené nastavenie — hodnota rozpísaná v políčku sa započíta až po OK. Inú adresu je možné zadať rovno tu."
+msgid "The saved setup is what gets checked – a value typed into the field counts only after OK. A different address can be entered right here."
+msgstr "Overuje sa uložené nastavenie – hodnota rozpísaná v políčku sa započíta až po OK. Inú adresu je možné zadať rovno tu."
 
 msgctxt "#30558"
 msgid "Show all streams"
@@ -1514,8 +1514,8 @@ msgid "Use CZtor"
 msgstr "Používať CZtor"
 
 msgctxt "#30562"
-msgid "CZtor catalogue with a subscription (cztor.com, storage at giganthost.com). The device is paired with a PIN — the account password is never entered into the add-on."
-msgstr "Katalóg CZtor s predplatným (cztor.com, úložisko giganthost.com). Zariadenie sa spáruje PIN kódom — heslo účtu sa do doplnku nezadáva."
+msgid "CZtor catalogue with a subscription (cztor.com, storage at giganthost.com). The device is paired with a PIN – the account password is never entered into the add-on."
+msgstr "Katalóg CZtor s predplatným (cztor.com, úložisko giganthost.com). Zariadenie sa spáruje PIN kódom – heslo účtu sa do doplnku nezadáva."
 
 msgctxt "#30563"
 msgid "Pair with PIN"
@@ -1550,8 +1550,8 @@ msgid "CZtor unpaired."
 msgstr "CZtor odhlásený."
 
 msgctxt "#30571"
-msgid "CZtor is not paired — use Pair with PIN."
-msgstr "CZtor nie je spárovaný — použi Spárovať PIN kódom."
+msgid "CZtor is not paired – use Pair with PIN."
+msgstr "CZtor nie je spárovaný – použi Spárovať PIN kódom."
 
 msgctxt "#30572"
 msgid "CZtor subscription is not active."
@@ -1566,8 +1566,8 @@ msgid "How to set up Luna"
 msgstr "Ako nastaviť Lunu"
 
 msgctxt "#30575"
-msgid "1. Luna runs at home on a computer, server, NAS or right on the Android TV box with Kodi (port 7126) and needs a WebShare VIP account.[CR]2. Tap Find Luna on the network - the address fills in by itself. If Luna runs on the same device as Kodi, the address is http://127.0.0.1:7126.[CR]3. Open the Luna address plus /setup in a browser, copy the add-on address and paste all of it into the Token field - the add-on takes the address and the token from it.[CR]4. Tap Check Luna setup. When it says all is well, tap Save to Kodi at the bottom."
-msgstr "1. Luna beží doma na počítači, serveri, NAS alebo priamo na Android TV boxe s Kodi (port 7126) a potrebuje účet WebShare VIP.[CR]2. Ťukni na Nájsť Lunu v sieti — adresa sa vyplní sama. Keď Luna beží na tom istom zariadení ako Kodi, adresa je http://127.0.0.1:7126.[CR]3. V prehliadači otvor adresu Luny s /setup na konci, skopíruj adresu doplnku a vlož ju celú do poľa Token — adresu aj token z nej doplnok vytiahne sám.[CR]4. Ťukni na Overiť nastavenie Luny. Keď napíše, že je všetko v poriadku, dole ťukni na Uložiť do Kodi."
+msgid "1. Luna runs at home on a computer, server, NAS or right on the Android TV box with Kodi (port 7126) and needs a WebShare VIP account.[CR]2. Tap Find Luna on the network – the address fills in by itself. If Luna runs on the same device as Kodi, the address is http://127.0.0.1:7126.[CR]3. Open the Luna address plus /setup in a browser, copy the add-on address and paste all of it into the Token field – the add-on takes the address and the token from it.[CR]4. Tap Check Luna setup. When it says all is well, tap Save to Kodi at the bottom."
+msgstr "1. Luna beží doma na počítači, serveri, NAS alebo priamo na Android TV boxe s Kodi (port 7126) a potrebuje účet WebShare VIP.[CR]2. Ťukni na Nájsť Lunu v sieti – adresa sa vyplní sama. Keď Luna beží na tom istom zariadení ako Kodi, adresa je http://127.0.0.1:7126.[CR]3. V prehliadači otvor adresu Luny s /setup na konci, skopíruj adresu doplnku a vlož ju celú do poľa Token – adresu aj token z nej doplnok vytiahne sám.[CR]4. Ťukni na Overiť nastavenie Luny. Keď napíše, že je všetko v poriadku, dole ťukni na Uložiť do Kodi."
 
 msgctxt "#30576"
 msgid "Luna found: %s[CR]Tap Save to Kodi at the bottom to keep the address."
@@ -1586,8 +1586,8 @@ msgid "Name to search for"
 msgstr "Názov na hľadanie"
 
 msgctxt "#30580"
-msgid "Connection to the TV was lost - start Set up from phone on the TV again."
-msgstr "Spojenie s televízorom sa prerušilo — na TV spusti Nastaviť z mobilu znova."
+msgid "Connection to the TV was lost – start Set up from phone on the TV again."
+msgstr "Spojenie s televízorom sa prerušilo – na TV spusti Nastaviť z mobilu znova."
 
 msgctxt "#30581"
 msgid "Open Luna settings (/setup)"
@@ -1618,8 +1618,8 @@ msgid "Transfer settings"
 msgstr "Prenos nastavení"
 
 msgctxt "#30588"
-msgid "Copies accounts and options to another Kodi. CZtor and Trakt accounts stay behind — sign in again on the new device."
-msgstr "Prenesie účty a voľby do ďalšieho Kodi. Účty CZtoru a Traktu zostanú — na novom zariadení sa prihlás znova."
+msgid "Copies accounts and options to another Kodi. CZtor and Trakt accounts stay behind – sign in again on the new device."
+msgstr "Prenesie účty a voľby do ďalšieho Kodi. Účty CZtoru a Traktu zostanú – na novom zariadení sa prihlás znova."
 
 msgctxt "#30589"
 msgid "Send to another Kodi"
@@ -1658,7 +1658,7 @@ msgid "Settings transferred (%s)"
 msgstr "Nastavenia prenesené (%s)"
 
 msgctxt "#30598"
-msgid "Nothing to change — the other device has the same settings."
+msgid "Nothing to change – the other device has the same settings."
 msgstr "Z prenosu neprišla žiadna zmena."
 
 msgctxt "#30599"
@@ -1690,8 +1690,8 @@ msgid "Because you watched %s"
 msgstr "Pretože si videl: %s"
 
 msgctxt "#30607"
-msgid "No recommendations yet — they are built from recently watched titles."
-msgstr "Zatiaľ nie je z čoho odporúčať — zoznam vzniká z naposledy pozretých titulov."
+msgid "No recommendations yet – they are built from recently watched titles."
+msgstr "Zatiaľ nie je z čoho odporúčať – zoznam vzniká z naposledy pozretých titulov."
 
 msgctxt "#30608"
 msgid "Random movie"
@@ -1751,12 +1751,12 @@ msgid "OpenSubtitles is switched off in the settings."
 msgstr "OpenSubtitles sú v nastavení vypnuté."
 
 msgctxt "#30623"
-msgid "The key could not be fetched from the server — try again later."
-msgstr "Kľúč sa nepodarilo získať zo servera — skús to neskôr."
+msgid "The key could not be fetched from the server – try again later."
+msgstr "Kľúč sa nepodarilo získať zo servera – skús to neskôr."
 
 msgctxt "#30624"
-msgid "Sign-in failed — check the username and password."
-msgstr "Prihlásenie sa nepodarilo — skontroluj meno a heslo."
+msgid "Sign-in failed – check the username and password."
+msgstr "Prihlásenie sa nepodarilo – skontroluj meno a heslo."
 
 msgctxt "#30625"
 msgid "Subtitles found for the test title: %s"
@@ -1771,8 +1771,8 @@ msgid "Signed in as %s"
 msgstr "Prihlásený ako %s"
 
 msgctxt "#30628"
-msgid "Not signed in — 5 downloads a day for this IP address."
-msgstr "Bez prihlásenia — 5 stiahnutí denne pre túto IP adresu."
+msgid "Not signed in – 5 downloads a day for this IP address."
+msgstr "Bez prihlásenia – 5 stiahnutí denne pre túto IP adresu."
 
 msgctxt "#30630"
 msgid "Source status"
@@ -1791,8 +1791,8 @@ msgid "subscription has expired"
 msgstr "predplatné vypršalo"
 
 msgctxt "#30634"
-msgid "account without VIP — downloads at a few kB/s"
-msgstr "účet bez VIP — sťahovanie pár kB/s"
+msgid "account without VIP – downloads at a few kB/s"
+msgstr "účet bez VIP – sťahovanie pár kB/s"
 
 msgctxt "#30635"
 msgid "unlimited downloads"
@@ -1831,16 +1831,16 @@ msgid "Premium"
 msgstr "Premium"
 
 msgctxt "#30644"
-msgid "account without Premium — playback will not work"
-msgstr "účet bez Premium — prehrávanie nepôjde"
+msgid "account without Premium – playback will not work"
+msgstr "účet bez Premium – prehrávanie nepôjde"
 
 msgctxt "#30645"
 msgid "all good"
 msgstr "v poriadku"
 
 msgctxt "#30646"
-msgid "rejects this network (HTTP 429) — VPN or mobile data? Retry in %s min"
-msgstr "odmieta túto sieť (HTTP 429) — VPN alebo mobilné dáta? Skúsi sa o %s min"
+msgid "rejects this network (HTTP 429) – VPN or mobile data? Retry in %s min"
+msgstr "odmieta túto sieť (HTTP 429) – VPN alebo mobilné dáta? Skúsi sa o %s min"
 
 msgctxt "#30647"
 msgid "responding"
@@ -1943,8 +1943,8 @@ msgid "The group is set up. Enter this code on the next Kodi:"
 msgstr "Skupina je založená. Na ďalšom Kodi zadaj tento kód:"
 
 msgctxt "#30672"
-msgid "The code lets a new device join for 30 minutes. Keep the code — without it the data cannot be read and cannot be recovered."
-msgstr "Nové zariadenie sa môže kódom pripojiť do 30 minút. Kód si uschovaj — bez neho dáta nikto neprečíta a nedajú sa obnoviť."
+msgid "The code lets a new device join for 30 minutes. Keep the code – without it the data cannot be read and cannot be recovered."
+msgstr "Nové zariadenie sa môže kódom pripojiť do 30 minút. Kód si uschovaj – bez neho dáta nikto neprečíta a nedajú sa obnoviť."
 
 msgctxt "#30673"
 msgid "Type the group code from your first Kodi"
@@ -1959,12 +1959,12 @@ msgid "That code does not look right."
 msgstr "Kód nemá správny tvar."
 
 msgctxt "#30676"
-msgid "No group yet — start one, or join with a code from another Kodi."
-msgstr "Zatiaľ žiadna skupina — založ ju, alebo sa pripoj kódom z iného Kodi."
+msgid "No group yet – start one, or join with a code from another Kodi."
+msgstr "Zatiaľ žiadna skupina – založ ju, alebo sa pripoj kódom z iného Kodi."
 
 msgctxt "#30677"
-msgid "Leave the group? This Kodi stops synchronising. Nothing already saved here is deleted. The other devices keep the code — to really cut off a removed device, start a new group and join the others with a new code."
-msgstr "Odísť zo skupiny? Toto Kodi sa prestane synchronizovať. Nič uložené sa nezmaže. Ostatným zariadeniam kód zostáva — odobraté zariadenie sa dá odrezať len založením novej skupiny a pripojením ostatných novým kódom."
+msgid "Leave the group? This Kodi stops synchronising. Nothing already saved here is deleted. The other devices keep the code – to really cut off a removed device, start a new group and join the others with a new code."
+msgstr "Odísť zo skupiny? Toto Kodi sa prestane synchronizovať. Nič uložené sa nezmaže. Ostatným zariadeniam kód zostáva – odobraté zariadenie sa dá odrezať len založením novej skupiny a pripojením ostatných novým kódom."
 
 msgctxt "#30678"
 msgid "The group has been left."
@@ -1979,8 +1979,8 @@ msgid "Joining is open for 30 minutes."
 msgstr "Pripojenie je otvorené 30 minút."
 
 msgctxt "#30681"
-msgid "The dashboard only stores sealed data it cannot read. The code is the key and never leaves the devices. With Home Assistant, enter the same group code in the integration settings — HA then joins the group as another device and its card stays current."
-msgstr "Dashboard u seba drží len zapečatené dáta, ktoré sám neprečíta. Kód je kľúč a zo zariadení nikdy neodíde. S Home Assistantom zadaj ten istý kód skupiny aj v nastavení integrácie — HA sa tým stane ďalším členom skupiny a karta v HA zostane aktuálna."
+msgid "The dashboard only stores sealed data it cannot read. The code is the key and never leaves the devices. With Home Assistant, enter the same group code in the integration settings – HA then joins the group as another device and its card stays current."
+msgstr "Dashboard u seba drží len zapečatené dáta, ktoré sám neprečíta. Kód je kľúč a zo zariadení nikdy neodíde. S Home Assistantom zadaj ten istý kód skupiny aj v nastavení integrácie – HA sa tým stane ďalším členom skupiny a karta v HA zostane aktuálna."
 
 msgctxt "#30682"
 msgid "What gets synced"
@@ -1999,8 +1999,8 @@ msgid "Options such as preferred language, stream sorting or enabled sources. Th
 msgstr "Voľby ako preferovaný jazyk, zoradenie streamov alebo zapnuté zdroje. Nezdieľa sa priečinok na sťahovanie ani samotné nastavenie synchronizácie."
 
 msgctxt "#30686"
-msgid "Sign-ins to the sources (WebShare, Sosáč, Sledujteto, FastShare, Přehraj.to, OpenSubtitles, Luna, own storage) and the TMDB key. Passwords travel encrypted and the server cannot read them, but anyone holding the group code can — give the code only to your own devices. CZtor and Trakt must be paired on each device separately."
-msgstr "Prihlásenie k zdrojom (WebShare, Sosáč, Sledujteto, FastShare, Přehraj.to, OpenSubtitles, Luna, vlastné úložisko) a kľúč k TMDB. Heslá idú zašifrované a server ich neprečíta, ale kto má kód skupiny, prečíta ich — kód patrí len vlastným zariadeniam. CZtor a Trakt sa musia spárovať na každom zariadení zvlášť."
+msgid "Sign-ins to the sources (WebShare, Sosáč, Sledujteto, FastShare, Přehraj.to, OpenSubtitles, Luna, own storage) and the TMDB key. Passwords travel encrypted and the server cannot read them, but anyone holding the group code can – give the code only to your own devices. CZtor and Trakt must be paired on each device separately."
+msgstr "Prihlásenie k zdrojom (WebShare, Sosáč, Sledujteto, FastShare, Přehraj.to, OpenSubtitles, Luna, vlastné úložisko) a kľúč k TMDB. Heslá idú zašifrované a server ich neprečíta, ale kto má kód skupiny, prečíta ich – kód patrí len vlastným zariadeniam. CZtor a Trakt sa musia spárovať na každom zariadení zvlášť."
 
 msgctxt "#30688"
 msgid "Synchronisation goes through the dashboard. With Home Assistant, enter the same group code in the integration settings as well."
@@ -2071,8 +2071,8 @@ msgid "Scan the QR code to open the support page."
 msgstr "Naskenuj QR kód a otvorí sa stránka s možnosťami podpory."
 
 msgctxt "#30707"
-msgid "The code from the first Kodi where you created the group. Turn on Synchronisation, choose Nokturno dashboard as the hub and save — this Kodi joins within five minutes."
-msgstr "Kód z prvého Kodi, na ktorom si skupinu založil. Zapni Synchronizáciu, ako stredisko zvoľ Dashboard Nokturna a ulož — toto Kodi sa pripojí do piatich minút."
+msgid "The code from the first Kodi where you created the group. Turn on Synchronisation, choose Nokturno dashboard as the hub and save – this Kodi joins within five minutes."
+msgstr "Kód z prvého Kodi, na ktorom si skupinu založil. Zapni Synchronizáciu, ako stredisko zvoľ Dashboard Nokturna a ulož – toto Kodi sa pripojí do piatich minút."
 
 msgctxt "#30708"
 msgid "Přehraj.to"
@@ -2111,12 +2111,12 @@ msgid "days until the subscription ends: %s"
 msgstr "do konca predplatného zostáva dní: %s"
 
 msgctxt "#30717"
-msgid "account without Premium — fewer results and 1080p only"
-msgstr "účet bez Premium — menej výsledkov a len 1080p"
+msgid "account without Premium – fewer results and 1080p only"
+msgstr "účet bez Premium – menej výsledkov a len 1080p"
 
 msgctxt "#30718"
-msgid "no account — only the first page of results"
-msgstr "bez účtu — len prvá strana výsledkov"
+msgid "no account – only the first page of results"
+msgstr "bez účtu – len prvá strana výsledkov"
 
 msgctxt "#30719"
 msgid "paused for %s min (HTTP 429)"
@@ -2131,8 +2131,8 @@ msgid "no account, %s found"
 msgstr "bez účtu, nájdené %s"
 
 msgctxt "#30722"
-msgid "no Premium — fewer results and 1080p only"
-msgstr "bez Premium — menej výsledkov a len 1080p"
+msgid "no Premium – fewer results and 1080p only"
+msgstr "bez Premium – menej výsledkov a len 1080p"
 
 msgctxt "#30723"
 msgid "Premium, days left: %s"
@@ -2159,8 +2159,8 @@ msgid "Legal notice"
 msgstr "Právne upozornenie"
 
 msgctxt "#30729"
-msgid "Nokturno is primarily a player and manager for your own storage — content you upload and share yourself (e.g. via WebDAV) is played directly. As an optional add-on service, you can connect some publicly available third-party search engines (WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna, OpenSubtitles) — in that case Nokturno is only a technical interface; it does not host, store, or provide any content itself.\n\nUse Nokturno only for content you have a legal right, licence, or other legal title to access. Searching for, accessing, or playing copyrighted content without the rightsholders' consent is prohibited.\n\nNokturno is provided \"as is\", with no warranty of functionality, availability, or legality of third-party sources. You alone are responsible for how you use it. The operator reserves the right to restrict or terminate access at any time."
-msgstr "Nokturno je predovšetkým prehrávač a správca tvojho vlastného úložiska — obsah, ktorý si nahráš a sprístupníš (napr. cez WebDAV), prehráva priamo. Ako doplnkovú službu si môžeš voliteľne napojiť aj niektoré verejne dostupné vyhľadávače tretích strán (WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna, OpenSubtitles) — v tom prípade je Nokturno len technické rozhranie, samo žiadny obsah nehostuje, neukladá ani neposkytuje.\n\nNokturno smieš používať len na obsah, ku ktorému máš zákonné oprávnenie, licenciu alebo iný právny titul. Vyhľadávanie, sprístupňovanie alebo prehrávanie autorsky chráneného obsahu bez súhlasu nositeľov práv je zakázané.\n\nNokturno sa poskytuje „tak, ako je“, bez záruky funkčnosti, dostupnosti ani legálnosti zdrojov tretích strán. Za spôsob použitia zodpovedáš výhradne ty. Prevádzkovateľ si vyhradzuje právo kedykoľvek obmedziť alebo ukončiť prístup."
+msgid "Nokturno is primarily a player and manager for your own storage – content you upload and share yourself (e.g. via WebDAV) is played directly. As an optional add-on service, you can connect some publicly available third-party search engines (WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna, OpenSubtitles) – in that case Nokturno is only a technical interface; it does not host, store, or provide any content itself.\n\nUse Nokturno only for content you have a legal right, licence, or other legal title to access. Searching for, accessing, or playing copyrighted content without the rightsholders' consent is prohibited.\n\nNokturno is provided \"as is\", with no warranty of functionality, availability, or legality of third-party sources. You alone are responsible for how you use it. The operator reserves the right to restrict or terminate access at any time."
+msgstr "Nokturno je predovšetkým prehrávač a správca tvojho vlastného úložiska – obsah, ktorý si nahráš a sprístupníš (napr. cez WebDAV), prehráva priamo. Ako doplnkovú službu si môžeš voliteľne napojiť aj niektoré verejne dostupné vyhľadávače tretích strán (WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna, OpenSubtitles) – v tom prípade je Nokturno len technické rozhranie, samo žiadny obsah nehostuje, neukladá ani neposkytuje.\n\nNokturno smieš používať len na obsah, ku ktorému máš zákonné oprávnenie, licenciu alebo iný právny titul. Vyhľadávanie, sprístupňovanie alebo prehrávanie autorsky chráneného obsahu bez súhlasu nositeľov práv je zakázané.\n\nNokturno sa poskytuje „tak, ako je“, bez záruky funkčnosti, dostupnosti ani legálnosti zdrojov tretích strán. Za spôsob použitia zodpovedáš výhradne ty. Prevádzkovateľ si vyhradzuje právo kedykoľvek obmedziť alebo ukončiť prístup."
 
 msgctxt "#30730"
 msgid "I confirm I will use Nokturno only for content I have the right to access, and I agree to the terms of use."
@@ -2196,8 +2196,8 @@ msgstr "Zobraziť podmienky"
 
 
 msgctxt "#30741"
-msgid "Unavailable streams: %s — hidden"
-msgstr "Nedostupné streamy: %s — skryté"
+msgid "Unavailable streams: %s – hidden"
+msgstr "Nedostupné streamy: %s – skryté"
 
 msgctxt "#30742"
 msgid "Pause source"
@@ -2260,8 +2260,8 @@ msgid "SyncWatch"
 msgstr "SyncWatch"
 
 msgctxt "#30801"
-msgid "Watch one film or episode together on several devices — each on their own, but at the same moment.[CR][CR][B]1.[/B] One person creates a group and becomes its leader. They get a code, e.g. SW-7K2Q-9MFX.[CR][B]2.[/B] The others (up to 4 more devices) enter the code in SyncWatch → Join with code. They wait until the leader plays something.[CR][B]3.[/B] The leader plays a film in Nokturno as usual. The same stream starts on the other devices by itself — playback begins once it has loaded everywhere.[CR][B]4.[/B] Pause, play and seeking by anyone apply to everyone. When someone is buffering, the others wait.[CR][CR]Everyone plays exactly the same stream — same quality, audio and length — each through their own account at the source. Whoever has no account at the leader's source cannot play it.[CR]The group ends when nobody joins it for 5 minutes, or when the leader ends it. The server cannot see what you watch — it is encrypted with the group code."
-msgstr "Sledujte jeden film alebo diel spoločne na viacerých zariadeniach — každý u seba, ale v rovnakej chvíli.[CR][CR][B]1.[/B] Jeden založí skupinu a stane sa vedúcim. Dostane kód, napríklad SW-7K2Q-9MFX.[CR][B]2.[/B] Ostatní (najviac 4 ďalšie zariadenia) zadajú kód v SyncWatch → Pripojiť sa kódom. Čakajú, kým vedúci niečo pustí.[CR][B]3.[/B] Vedúci pustí film normálne v Nokturne. Rovnaký stream sa sám spustí aj u ostatných — začne sa, keď sa načíta všetkým.[CR][B]4.[/B] Pauza, prehrávanie a pretáčanie od kohokoľvek platí pre všetkých. Keď sa niekomu načítava, ostatní počkajú.[CR][CR]Všetci pustia presne ten istý stream — rovnakú kvalitu, zvuk aj dĺžku — každý cez svoj vlastný účet pri zdroji. Kto účet pri zdroji vedúceho nemá, stream sa mu nespustí.[CR]Skupina zanikne, keď sa k nej 5 minút nikto nepripojí, alebo keď ju vedúci ukončí. Čo sledujete, server nevidí — je to zašifrované kódom skupiny."
+msgid "Watch one film or episode together on several devices – each on their own, but at the same moment.[CR][CR][B]1.[/B] One person creates a group and becomes its leader. They get a code, e.g. SW-7K2Q-9MFX.[CR][B]2.[/B] The others (up to 4 more devices) enter the code in SyncWatch → Join with code. They wait until the leader plays something.[CR][B]3.[/B] The leader plays a film in Nokturno as usual. The same stream starts on the other devices by itself – playback begins once it has loaded everywhere.[CR][B]4.[/B] Pause, play and seeking by anyone apply to everyone. When someone is buffering, the others wait.[CR][CR]Everyone plays exactly the same stream – same quality, audio and length – each through their own account at the source. Whoever has no account at the leader's source cannot play it.[CR]The group ends when nobody joins it for 5 minutes, or when the leader ends it. The server cannot see what you watch – it is encrypted with the group code."
+msgstr "Sledujte jeden film alebo diel spoločne na viacerých zariadeniach – každý u seba, ale v rovnakej chvíli.[CR][CR][B]1.[/B] Jeden založí skupinu a stane sa vedúcim. Dostane kód, napríklad SW-7K2Q-9MFX.[CR][B]2.[/B] Ostatní (najviac 4 ďalšie zariadenia) zadajú kód v SyncWatch → Pripojiť sa kódom. Čakajú, kým vedúci niečo pustí.[CR][B]3.[/B] Vedúci pustí film normálne v Nokturne. Rovnaký stream sa sám spustí aj u ostatných – začne sa, keď sa načíta všetkým.[CR][B]4.[/B] Pauza, prehrávanie a pretáčanie od kohokoľvek platí pre všetkých. Keď sa niekomu načítava, ostatní počkajú.[CR][CR]Všetci pustia presne ten istý stream – rovnakú kvalitu, zvuk aj dĺžku – každý cez svoj vlastný účet pri zdroji. Kto účet pri zdroji vedúceho nemá, stream sa mu nespustí.[CR]Skupina zanikne, keď sa k nej 5 minút nikto nepripojí, alebo keď ju vedúci ukončí. Čo sledujete, server nevidí – je to zašifrované kódom skupiny."
 
 msgctxt "#30802"
 msgid "Got it"
@@ -2356,12 +2356,12 @@ msgid "Waiting for the broadcast…"
 msgstr "Čakám na vysielanie…"
 
 msgctxt "#30825"
-msgid "Group %s — when the leader plays something, it will start here too."
-msgstr "Skupina %s — keď vedúci niečo pustí, spustí sa to aj tu."
+msgid "Group %s – when the leader plays something, it will start here too."
+msgstr "Skupina %s – keď vedúci niečo pustí, spustí sa to aj tu."
 
 msgctxt "#30826"
-msgid "Back closes the window. Then play a film in Nokturno — it starts for everyone."
-msgstr "Späť zavrie okno. Potom pusti film v Nokturne — spustí sa všetkým."
+msgid "Back closes the window. Then play a film in Nokturno – it starts for everyone."
+msgstr "Späť zavrie okno. Potom pusti film v Nokturne – spustí sa všetkým."
 
 msgctxt "#30827"
 msgid "Back closes the window, you stay in the group. You can leave in the SyncWatch menu."
@@ -2380,8 +2380,8 @@ msgid "Connecting…"
 msgstr "Pripájam…"
 
 msgctxt "#30831"
-msgid "Nobody has joined yet — the code expires in %s"
-msgstr "Zatiaľ sa nikto nepripojil — kód zanikne o %s"
+msgid "Nobody has joined yet – the code expires in %s"
+msgstr "Zatiaľ sa nikto nepripojil – kód zanikne o %s"
 
 msgctxt "#30832"
 msgid "Now playing"
@@ -2440,12 +2440,12 @@ msgid "The stream could not be started"
 msgstr "Stream sa nepodarilo spustiť"
 
 msgctxt "#30850"
-msgid "You are playing a different version — times may not match exactly"
-msgstr "Hráš inú verziu — časy nemusia presne sedieť"
+msgid "You are playing a different version – times may not match exactly"
+msgstr "Hráš inú verziu – časy nemusia presne sedieť"
 
 msgctxt "#30851"
-msgid "You are playing something else — the group waits for the next title from the leader"
-msgstr "Hráš niečo iné — skupina čaká na ďalší titul od vedúceho"
+msgid "You are playing something else – the group waits for the next title from the leader"
+msgstr "Hráš niečo iné – skupina čaká na ďalší titul od vedúceho"
 
 msgctxt "#30852"
 msgid "This can't be shared with the others (it is not a Nokturno title)"

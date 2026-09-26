@@ -551,7 +551,7 @@ msgid "Too little data downloaded, try again"
 msgstr "Túl kevés adat töltődött le, próbáld újra"
 
 msgctxt "#30223"
-msgid "Speed %s Mb/s -> allowed %s Mb/s (e.g. %s GB for a 2-hour movie)"
+msgid "Speed %s Mb/s → allowed %s Mb/s (e.g. %s GB for a 2-hour movie)"
 msgstr "Sebesség %s Mb/s → engedélyezett %s Mb/s (pl. %s GB egy 2 órás filmhez)"
 
 msgctxt "#30224"
@@ -595,8 +595,8 @@ msgid "WebShare subscription has run out."
 msgstr "A WebShare előfizetés lejárt."
 
 msgctxt "#30300"
-msgid "Works without a Luna server — logs into WebShare directly with your own account and searches full-text by title."
-msgstr "Luna szerver nélkül is működik — közvetlenül bejelentkezik a WebShare-be a saját fiókoddal, és cím szerint teljes szöveges keresést végez."
+msgid "Works without a Luna server – logs into WebShare directly with your own account and searches full-text by title."
+msgstr "Luna szerver nélkül is működik – közvetlenül bejelentkezik a WebShare-be a saját fiókoddal, és cím szerint teljes szöveges keresést végez."
 
 msgctxt "#30301"
 msgid "E-mail or user name you log into webshare.cz with."
@@ -615,8 +615,8 @@ msgid "Catalogues and descriptions come from tv.sosac.to's public exports; playb
 msgstr "A katalógusok és leírások a tv.sosac.to nyilvános exportjaiból származnak; maga a lejátszás a Streamuj.tv fiókodon keresztül megy."
 
 msgctxt "#30305"
-msgid "Streamuj.tv user name — needed to play streams found on Sosáč."
-msgstr "Streamuj.tv felhasználónév — a Sosáčon talált streamek lejátszásához kell."
+msgid "Streamuj.tv user name – needed to play streams found on Sosáč."
+msgstr "Streamuj.tv felhasználónév – a Sosáčon talált streamek lejátszásához kell."
 
 msgctxt "#30306"
 msgid "Streamuj.tv password. It's stored as a one-way hash, not in plain text, so it can't be used to log into the streamuj.tv website itself."
@@ -639,8 +639,8 @@ msgid "Paste the whole add-on address from Luna's /setup page, or just the token
 msgstr "Illeszd be a teljes bővítménycímet a Luna /setup oldaláról, vagy csak magát a tokent, ami „e1.”-gyel kezdődik."
 
 msgctxt "#30311"
-msgid "Luna can also full-text search WebShare (its own Search feature) — finds more, but takes longer."
-msgstr "A Luna a WebShare-t is tudja teljes szöveggel keresni (saját Search funkciója) — többet talál, de tovább tart."
+msgid "Luna can also full-text search WebShare (its own Search feature) – finds more, but takes longer."
+msgstr "A Luna a WebShare-t is tudja teljes szöveggel keresni (saját Search funkciója) – többet talál, de tovább tart."
 
 msgctxt "#30313"
 msgid "Streams with this audio language always come first, then the rest. Nothing gets hidden, just reordered."
@@ -651,8 +651,8 @@ msgid "At equal quality, a stream with surround sound (5.1 and up) is sorted hig
 msgstr "Azonos minőség esetén a térhatású hanggal (5.1-től) rendelkező stream kerül feljebb."
 
 msgctxt "#30315"
-msgid "Streams below 720p are removed from the list — the filter can't bring them back either. If no stream would be left, all of them are shown."
-msgstr "A 720p alatti streamek kikerülnek a listából — a szűrő sem hozza vissza őket. Ha egy stream sem maradna, mind megjelenik."
+msgid "Streams below 720p are removed from the list – the filter can't bring them back either. If no stream would be left, all of them are shown."
+msgstr "A 720p alatti streamek kikerülnek a listából – a szűrő sem hozza vissza őket. Ha egy stream sem maradna, mind megjelenik."
 
 msgctxt "#30316"
 msgid "'As provided' keeps the source's own order; the other options sort by quality or file size."
@@ -704,7 +704,7 @@ msgstr "TMDB API kulcs"
 
 msgctxt "#30334"
 msgid "TMDB API key help"
-msgstr "A saját TMDB (themoviedb.org) kulcsod — ezzel a címek, leírások, műfajok és szereplők csehül jelennek meg, a Sosáč katalógusaiban és Luna nélkül is. Kulcs nélkül a nyilvános Sosáč katalógus és a Cinemeta használódik, de egyiknek sincs cseh leírása (a Sosáčnak egyáltalán nincs, a Cinemeta csak angol).\n\nIngyenes beszerezni: regisztrálj a themoviedb.org-on → profilikon → Settings → API (bal menü) → Request an API Key → Developer → rövid űrlap („Nokturno” jó lesz app névnek) → másold ki az „API Key (v3 auth)” kulcsot (nem a hosszabb „API Read Access Token”-t)."
+msgstr "A saját TMDB (themoviedb.org) kulcsod – ezzel a címek, leírások, műfajok és szereplők csehül jelennek meg, a Sosáč katalógusaiban és Luna nélkül is. Kulcs nélkül a nyilvános Sosáč katalógus és a Cinemeta használódik, de egyiknek sincs cseh leírása (a Sosáčnak egyáltalán nincs, a Cinemeta csak angol).\n\nIngyenes beszerezni: regisztrálj a themoviedb.org-on → profilikon → Settings → API (bal menü) → Request an API Key → Developer → rövid űrlap („Nokturno” jó lesz app névnek) → másold ki az „API Key (v3 auth)” kulcsot (nem a hosszabb „API Read Access Token”-t)."
 
 msgctxt "#30335"
 msgid "Search more loosely by file name"
@@ -727,12 +727,12 @@ msgid "Do you have a WebShare account?"
 msgstr "Van WebShare fiókod?"
 
 msgctxt "#30342"
-msgid "WebShare — e-mail"
-msgstr "WebShare — e-mail"
+msgid "WebShare – e-mail"
+msgstr "WebShare – e-mail"
 
 msgctxt "#30343"
-msgid "WebShare — password"
-msgstr "WebShare — jelszó"
+msgid "WebShare – password"
+msgstr "WebShare – jelszó"
 
 msgctxt "#30344"
 msgid "Sosáč"
@@ -743,12 +743,12 @@ msgid "Do you have a Streamuj.tv account (Sosáč player)?\nSosáč catalogues w
 msgstr "Van Streamuj.tv fiókod (Sosáč lejátszó)?\nA Sosáč katalógusai fiók nélkül is működnek, csak a lejátszáshoz kell."
 
 msgctxt "#30346"
-msgid "Streamuj.tv — username"
-msgstr "Streamuj.tv — felhasználónév"
+msgid "Streamuj.tv – username"
+msgstr "Streamuj.tv – felhasználónév"
 
 msgctxt "#30347"
-msgid "Streamuj.tv — password"
-msgstr "Streamuj.tv — jelszó"
+msgid "Streamuj.tv – password"
+msgstr "Streamuj.tv – jelszó"
 
 msgctxt "#30348"
 msgid "Luna: Absolute Cinema"
@@ -919,12 +919,12 @@ msgid "Do you have a Sledujteto account?[CR]Search uses your account, playback n
 msgstr "Van Sledujteto fiókod?[CR]A keresés a fiókodat használja, a lejátszáshoz Premium kell."
 
 msgctxt "#30389"
-msgid "Sledujteto — e-mail"
-msgstr "Sledujteto — e-mail"
+msgid "Sledujteto – e-mail"
+msgstr "Sledujteto – e-mail"
 
 msgctxt "#30390"
-msgid "Sledujteto — password"
-msgstr "Sledujteto — jelszó"
+msgid "Sledujteto – password"
+msgstr "Sledujteto – jelszó"
 
 msgctxt "#30391"
 msgid "Downloaded"
@@ -971,8 +971,8 @@ msgid "Storage"
 msgstr "Tárhely"
 
 msgctxt "#30406"
-msgid "no Premium — playback will not work"
-msgstr "nincs Premium — a lejátszás nem fog működni"
+msgid "no Premium – playback will not work"
+msgstr "nincs Premium – a lejátszás nem fog működni"
 
 msgctxt "#30407"
 msgid "Check for add-on updates"
@@ -1023,16 +1023,16 @@ msgid "FastShare.cz is a Czech file host. Search works without an account; playb
 msgstr "A FastShare.cz egy cseh fájltárhely. A keresés fiók nélkül is működik; a lejátszáshoz fiók kell, és a kreditedből vonódik le, hacsak nincs korlátlan letöltésed."
 
 msgctxt "#30420"
-msgid "FastShare — username"
-msgstr "FastShare — felhasználónév"
+msgid "FastShare – username"
+msgstr "FastShare – felhasználónév"
 
 msgctxt "#30421"
 msgid "Name you use to sign in to fastshare.cz or sdilej.cz."
 msgstr "A név, amivel a fastshare.cz-re vagy a sdilej.cz-re bejelentkezel."
 
 msgctxt "#30422"
-msgid "FastShare — password"
-msgstr "FastShare — jelszó"
+msgid "FastShare – password"
+msgstr "FastShare – jelszó"
 
 msgctxt "#30423"
 msgid "Password for fastshare.cz or sdilej.cz. It is sent only when signing in; playback then uses a cookie."
@@ -1084,12 +1084,12 @@ msgid "The list is being built in the background right now…"
 msgstr "A lista éppen a háttérben épül fel…"
 
 msgctxt "#30437"
-msgid "The list isn't ready yet — start"
-msgstr "A lista még nincs kész — indítás"
+msgid "The list isn't ready yet – start"
+msgstr "A lista még nincs kész – indítás"
 
 msgctxt "#30438"
-msgid "Started in the background — you'll get a notification when it's ready."
-msgstr "Elindult a háttérben — értesítést kapsz, ha kész."
+msgid "Started in the background – you'll get a notification when it's ready."
+msgstr "Elindult a háttérben – értesítést kapsz, ha kész."
 
 msgctxt "#30439"
 msgid "Newly added with CZ dubbing/subtitles (%s) is ready"
@@ -1128,12 +1128,12 @@ msgid "Set up from phone"
 msgstr "Beállítás telefonról"
 
 msgctxt "#30448"
-msgid "Shows a QR code on the TV. Open it on a phone connected to the same Wi-Fi and fill in the settings in the browser — no typing passwords with the remote. Works only on the local network."
-msgstr "QR-kódot mutat a TV-n. Nyisd meg egy ugyanahhoz a Wi-Fihez csatlakozó telefonon, és töltsd ki a beállításokat a böngészőben — nem kell jelszót gépelni a távirányítóval. Csak a helyi hálózaton működik."
+msgid "Shows a QR code on the TV. Open it on a phone connected to the same Wi-Fi and fill in the settings in the browser – no typing passwords with the remote. Works only on the local network."
+msgstr "QR-kódot mutat a TV-n. Nyisd meg egy ugyanahhoz a Wi-Fihez csatlakozó telefonon, és töltsd ki a beállításokat a böngészőben – nem kell jelszót gépelni a távirányítóval. Csak a helyi hálózaton működik."
 
 msgctxt "#30449"
-msgid "You can fill in accounts and sources on your phone — the TV shows a QR code, the phone just needs the same Wi-Fi and you don't type passwords with the remote. Or go through a short wizard with the remote.[CR]You can skip this and fill it in later in the add-on settings."
-msgstr "A fiókokat és forrásokat a telefonodon is kitöltheted — a TV mutat egy QR-kódot, a telefonnak csak ugyanaz a Wi-Fi kell, és nem kell jelszót gépelni a távirányítóval. Vagy végigmehetsz egy rövid varázslón a távirányítóval.[CR]Ezt kihagyhatod, és később is kitöltheted a bővítmény beállításaiban."
+msgid "You can fill in accounts and sources on your phone – the TV shows a QR code, the phone just needs the same Wi-Fi and you don't type passwords with the remote. Or go through a short wizard with the remote.[CR]You can skip this and fill it in later in the add-on settings."
+msgstr "A fiókokat és forrásokat a telefonodon is kitöltheted – a TV mutat egy QR-kódot, a telefonnak csak ugyanaz a Wi-Fi kell, és nem kell jelszót gépelni a távirányítóval. Vagy végigmehetsz egy rövid varázslón a távirányítóval.[CR]Ezt kihagyhatod, és később is kitöltheted a bővítmény beállításaiban."
 
 msgctxt "#30450"
 msgid "From phone"
@@ -1180,8 +1180,8 @@ msgid "Saved. The settings are in Kodi, you can close this page."
 msgstr "Elmentve. A beállítások a Kodiban vannak, ezt az oldalt bezárhatod."
 
 msgctxt "#30461"
-msgid "filled in — leave empty to keep the current value"
-msgstr "kitöltve — az üres mező megtartja az eredeti értéket"
+msgid "filled in – leave empty to keep the current value"
+msgstr "kitöltve – az üres mező megtartja az eredeti értéket"
 
 msgctxt "#30462"
 msgid "This address is no longer valid. Start Set up from phone on the TV again."
@@ -1364,12 +1364,12 @@ msgid "Nobody answered at %s.[CR][CR]Is the computer running Luna switched on? I
 msgstr "Senki nem válaszolt a(z) %s címen.[CR][CR]Be van kapcsolva a Lunát futtató számítógép? Ugyanazon a hálózaton van, mint ez az eszköz? Próbáld a „Luna keresése a hálózaton” funkciót."
 
 msgctxt "#30524"
-msgid "Something answers at %s, but it is not Luna.[CR]Check the port — Luna uses 7126 by default."
-msgstr "Valami válaszol a(z) %s címen, de az nem a Luna.[CR]Ellenőrizd a portot — a Luna alapból a 7126-ot használja."
+msgid "Something answers at %s, but it is not Luna.[CR]Check the port – Luna uses 7126 by default."
+msgstr "Valami válaszol a(z) %s címen, de az nem a Luna.[CR]Ellenőrizd a portot – a Luna alapból a 7126-ot használja."
 
 msgctxt "#30525"
-msgid "Luna %s is running, but the token is missing.[CR][CR]Open %s/setup in a browser, copy the add-on address and paste the whole thing into the Token field — the add-on will pull both the address and the token out of it."
-msgstr "A Luna %s fut, de hiányzik a token.[CR][CR]Nyisd meg a(z) %s/setup oldalt egy böngészőben, másold ki a bővítmény címét, és illeszd be az egészet a Token mezőbe — a bővítmény ebből kinyeri mind a címet, mind a tokent."
+msgid "Luna %s is running, but the token is missing.[CR][CR]Open %s/setup in a browser, copy the add-on address and paste the whole thing into the Token field – the add-on will pull both the address and the token out of it."
+msgstr "A Luna %s fut, de hiányzik a token.[CR][CR]Nyisd meg a(z) %s/setup oldalt egy böngészőben, másold ki a bővítmény címét, és illeszd be az egészet a Token mezőbe – a bővítmény ebből kinyeri mind a címet, mind a tokent."
 
 msgctxt "#30526"
 msgid "What is in the Token field is not a token.[CR][CR]A token starts with “e1.” and is long. Open %s/setup and copy the whole add-on address."
@@ -1384,8 +1384,8 @@ msgid "Luna %s answers and the WebShare search works, but its main source return
 msgstr "A Luna %s válaszol, és a WebShare keresés működik, de a fő forrása semmit nem ad vissza.[CR][CR]Ellenőrizd a WebShare fiókot a(z) %s/setup oldalon, és hogy a token tényleg ebből a Lunából származik-e."
 
 msgctxt "#30529"
-msgid "Luna %s is running, but it found no streams even for well-known films.[CR][CR]Usually the WebShare account is missing in Luna itself — open %s/setup and fill it in."
-msgstr "A Luna %s fut, de még jól ismert filmekhez sem talált streameket.[CR][CR]Általában a WebShare fiók hiányzik magából a Lunából — nyisd meg a(z) %s/setup oldalt, és add meg."
+msgid "Luna %s is running, but it found no streams even for well-known films.[CR][CR]Usually the WebShare account is missing in Luna itself – open %s/setup and fill it in."
+msgstr "A Luna %s fut, de még jól ismert filmekhez sem talált streameket.[CR][CR]Általában a WebShare fiók hiányzik magából a Lunából – nyisd meg a(z) %s/setup oldalt, és add meg."
 
 msgctxt "#30530"
 msgid "Looking for Luna on the local network…"
@@ -1464,12 +1464,12 @@ msgid "Luna did not accept the token"
 msgstr "A Luna nem fogadta el a tokent"
 
 msgctxt "#30550"
-msgid "the main source returns nothing — WebShare account in Luna?"
-msgstr "a fő forrás semmit nem ad vissza — van WebShare fiók a Lunában?"
+msgid "the main source returns nothing – WebShare account in Luna?"
+msgstr "a fő forrás semmit nem ad vissza – van WebShare fiók a Lunában?"
 
 msgctxt "#30551"
-msgid "no streams found — WebShare account in Luna?"
-msgstr "nem találhatók streamek — van WebShare fiók a Lunában?"
+msgid "no streams found – WebShare account in Luna?"
+msgstr "nem találhatók streamek – van WebShare fiók a Lunában?"
 
 msgctxt "#30552"
 msgid "All good"
@@ -1492,8 +1492,8 @@ msgid "Luna address (or the whole add-on address from /setup)"
 msgstr "Luna címe (vagy a teljes bővítmény cím a /setup oldalról)"
 
 msgctxt "#30557"
-msgid "The saved setup is what gets checked — a value typed into the field counts only after OK. A different address can be entered right here."
-msgstr "A mentett beállítás kerül ellenőrzésre — a mezőbe beírt érték csak OK után számít. Itt rögtön megadható másik cím is."
+msgid "The saved setup is what gets checked – a value typed into the field counts only after OK. A different address can be entered right here."
+msgstr "A mentett beállítás kerül ellenőrzésre – a mezőbe beírt érték csak OK után számít. Itt rögtön megadható másik cím is."
 
 msgctxt "#30558"
 msgid "Show all streams"
@@ -1512,8 +1512,8 @@ msgid "Use CZtor"
 msgstr "CZtor használata"
 
 msgctxt "#30562"
-msgid "CZtor catalogue with a subscription (cztor.com, storage at giganthost.com). The device is paired with a PIN — the account password is never entered into the add-on."
-msgstr "CZtor katalógus előfizetéssel (cztor.com, tárhely: giganthost.com). Az eszköz PIN-kóddal párosítható — a fiók jelszavát nem kell megadni a kiegészítőben."
+msgid "CZtor catalogue with a subscription (cztor.com, storage at giganthost.com). The device is paired with a PIN – the account password is never entered into the add-on."
+msgstr "CZtor katalógus előfizetéssel (cztor.com, tárhely: giganthost.com). Az eszköz PIN-kóddal párosítható – a fiók jelszavát nem kell megadni a kiegészítőben."
 
 msgctxt "#30563"
 msgid "Pair with PIN"
@@ -1548,8 +1548,8 @@ msgid "CZtor unpaired."
 msgstr "CZtor leválasztva."
 
 msgctxt "#30571"
-msgid "CZtor is not paired — use Pair with PIN."
-msgstr "A CZtor nincs párosítva — használd a Párosítás PIN-kóddal lehetőséget."
+msgid "CZtor is not paired – use Pair with PIN."
+msgstr "A CZtor nincs párosítva – használd a Párosítás PIN-kóddal lehetőséget."
 
 msgctxt "#30572"
 msgid "CZtor subscription is not active."
@@ -1564,8 +1564,8 @@ msgid "How to set up Luna"
 msgstr "Így állítsd be a Lunát"
 
 msgctxt "#30575"
-msgid "1. Luna runs at home on a computer, server, NAS or right on the Android TV box with Kodi (port 7126) and needs a WebShare VIP account.[CR]2. Tap Find Luna on the network - the address fills in by itself. If Luna runs on the same device as Kodi, the address is http://127.0.0.1:7126.[CR]3. Open the Luna address plus /setup in a browser, copy the add-on address and paste all of it into the Token field - the add-on takes the address and the token from it.[CR]4. Tap Check Luna setup. When it says all is well, tap Save to Kodi at the bottom."
-msgstr "1. A Luna otthon fut egy számítógépen, szerveren, NAS-on vagy közvetlenül a Kodit futtató Android TV boxon (7126-os port), és WebShare VIP-fiókot igényel.[CR]2. Koppints a Luna keresése a hálózaton gombra — a cím magától kitöltődik. Ha a Luna ugyanazon az eszközön fut, mint a Kodi, a cím http://127.0.0.1:7126.[CR]3. Nyisd meg böngészőben a Luna címét /setup-pal a végén, másold ki a kiegészítő címét, és egészben told be a Token mezőbe — a címet és a tokent belőle kiolvassa.[CR]4. Koppints a Luna beállításainak ellenőrzése gombra. Ha minden rendben, alul koppints a Mentés a Kodiba gombra."
+msgid "1. Luna runs at home on a computer, server, NAS or right on the Android TV box with Kodi (port 7126) and needs a WebShare VIP account.[CR]2. Tap Find Luna on the network – the address fills in by itself. If Luna runs on the same device as Kodi, the address is http://127.0.0.1:7126.[CR]3. Open the Luna address plus /setup in a browser, copy the add-on address and paste all of it into the Token field – the add-on takes the address and the token from it.[CR]4. Tap Check Luna setup. When it says all is well, tap Save to Kodi at the bottom."
+msgstr "1. A Luna otthon fut egy számítógépen, szerveren, NAS-on vagy közvetlenül a Kodit futtató Android TV boxon (7126-os port), és WebShare VIP-fiókot igényel.[CR]2. Koppints a Luna keresése a hálózaton gombra – a cím magától kitöltődik. Ha a Luna ugyanazon az eszközön fut, mint a Kodi, a cím http://127.0.0.1:7126.[CR]3. Nyisd meg böngészőben a Luna címét /setup-pal a végén, másold ki a kiegészítő címét, és egészben told be a Token mezőbe – a címet és a tokent belőle kiolvassa.[CR]4. Koppints a Luna beállításainak ellenőrzése gombra. Ha minden rendben, alul koppints a Mentés a Kodiba gombra."
 
 msgctxt "#30576"
 msgid "Luna found: %s[CR]Tap Save to Kodi at the bottom to keep the address."
@@ -1584,8 +1584,8 @@ msgid "Name to search for"
 msgstr "Keresett név"
 
 msgctxt "#30580"
-msgid "Connection to the TV was lost - start Set up from phone on the TV again."
-msgstr "A kapcsolat a TV-vel megszakadt — indítsd újra a Beállítás telefonról funkciót a TV-n."
+msgid "Connection to the TV was lost – start Set up from phone on the TV again."
+msgstr "A kapcsolat a TV-vel megszakadt – indítsd újra a Beállítás telefonról funkciót a TV-n."
 
 msgctxt "#30581"
 msgid "Open Luna settings (/setup)"
@@ -1616,8 +1616,8 @@ msgid "Transfer settings"
 msgstr "Beállítások átvitele"
 
 msgctxt "#30588"
-msgid "Copies accounts and options to another Kodi. CZtor and Trakt accounts stay behind — sign in again on the new device."
-msgstr "Átmásolja a fiókokat és a beállításokat egy másik Kodira. A CZtor- és Trakt-fiók nem megy át — az új eszközön jelentkezz be újra."
+msgid "Copies accounts and options to another Kodi. CZtor and Trakt accounts stay behind – sign in again on the new device."
+msgstr "Átmásolja a fiókokat és a beállításokat egy másik Kodira. A CZtor- és Trakt-fiók nem megy át – az új eszközön jelentkezz be újra."
 
 msgctxt "#30589"
 msgid "Send to another Kodi"
@@ -1656,7 +1656,7 @@ msgid "Settings transferred (%s)"
 msgstr "Beállítások átvéve (%s)"
 
 msgctxt "#30598"
-msgid "Nothing to change — the other device has the same settings."
+msgid "Nothing to change – the other device has the same settings."
 msgstr "Az átvitel nem hozott változást."
 
 msgctxt "#30599"
@@ -1688,8 +1688,8 @@ msgid "Because you watched %s"
 msgstr "Mert ezt nézted: %s"
 
 msgctxt "#30607"
-msgid "No recommendations yet — they are built from recently watched titles."
-msgstr "Még nincs ajánlás — a lista a legutóbb megnézett címekből áll össze."
+msgid "No recommendations yet – they are built from recently watched titles."
+msgstr "Még nincs ajánlás – a lista a legutóbb megnézett címekből áll össze."
 
 msgctxt "#30608"
 msgid "Random movie"
@@ -1749,12 +1749,12 @@ msgid "OpenSubtitles is switched off in the settings."
 msgstr "Az OpenSubtitles ki van kapcsolva a beállításokban."
 
 msgctxt "#30623"
-msgid "The key could not be fetched from the server — try again later."
-msgstr "A kulcsot nem sikerült lekérni a szerverről — próbáld meg később."
+msgid "The key could not be fetched from the server – try again later."
+msgstr "A kulcsot nem sikerült lekérni a szerverről – próbáld meg később."
 
 msgctxt "#30624"
-msgid "Sign-in failed — check the username and password."
-msgstr "A bejelentkezés nem sikerült — ellenőrizd a felhasználónevet és a jelszót."
+msgid "Sign-in failed – check the username and password."
+msgstr "A bejelentkezés nem sikerült – ellenőrizd a felhasználónevet és a jelszót."
 
 msgctxt "#30625"
 msgid "Subtitles found for the test title: %s"
@@ -1769,8 +1769,8 @@ msgid "Signed in as %s"
 msgstr "Bejelentkezve mint %s"
 
 msgctxt "#30628"
-msgid "Not signed in — 5 downloads a day for this IP address."
-msgstr "Bejelentkezés nélkül — napi 5 letöltés erre az IP-címre."
+msgid "Not signed in – 5 downloads a day for this IP address."
+msgstr "Bejelentkezés nélkül – napi 5 letöltés erre az IP-címre."
 
 msgctxt "#30630"
 msgid "Source status"
@@ -1789,8 +1789,8 @@ msgid "subscription has expired"
 msgstr "az előfizetés lejárt"
 
 msgctxt "#30634"
-msgid "account without VIP — downloads at a few kB/s"
-msgstr "VIP nélküli fiók — a letöltés csak pár kB/s"
+msgid "account without VIP – downloads at a few kB/s"
+msgstr "VIP nélküli fiók – a letöltés csak pár kB/s"
 
 msgctxt "#30635"
 msgid "unlimited downloads"
@@ -1829,16 +1829,16 @@ msgid "Premium"
 msgstr "Premium"
 
 msgctxt "#30644"
-msgid "account without Premium — playback will not work"
-msgstr "Premium nélküli fiók — a lejátszás nem fog működni"
+msgid "account without Premium – playback will not work"
+msgstr "Premium nélküli fiók – a lejátszás nem fog működni"
 
 msgctxt "#30645"
 msgid "all good"
 msgstr "rendben"
 
 msgctxt "#30646"
-msgid "rejects this network (HTTP 429) — VPN or mobile data? Retry in %s min"
-msgstr "elutasítja ezt a hálózatot (HTTP 429) — VPN vagy mobilnet? Újra %s perc múlva"
+msgid "rejects this network (HTTP 429) – VPN or mobile data? Retry in %s min"
+msgstr "elutasítja ezt a hálózatot (HTTP 429) – VPN vagy mobilnet? Újra %s perc múlva"
 
 msgctxt "#30647"
 msgid "responding"
@@ -1941,8 +1941,8 @@ msgid "The group is set up. Enter this code on the next Kodi:"
 msgstr "A csoport létrejött. A következő Kodin add meg ezt a kódot:"
 
 msgctxt "#30672"
-msgid "The code lets a new device join for 30 minutes. Keep the code — without it the data cannot be read and cannot be recovered."
-msgstr "A kód 30 percig enged be új eszközt. Őrizd meg a kódot — nélküle az adatok nem olvashatók és nem állíthatók vissza."
+msgid "The code lets a new device join for 30 minutes. Keep the code – without it the data cannot be read and cannot be recovered."
+msgstr "A kód 30 percig enged be új eszközt. Őrizd meg a kódot – nélküle az adatok nem olvashatók és nem állíthatók vissza."
 
 msgctxt "#30673"
 msgid "Type the group code from your first Kodi"
@@ -1957,12 +1957,12 @@ msgid "That code does not look right."
 msgstr "A kód nem megfelelő alakú."
 
 msgctxt "#30676"
-msgid "No group yet — start one, or join with a code from another Kodi."
-msgstr "Még nincs csoport — hozz létre egyet, vagy csatlakozz egy másik Kodi kódjával."
+msgid "No group yet – start one, or join with a code from another Kodi."
+msgstr "Még nincs csoport – hozz létre egyet, vagy csatlakozz egy másik Kodi kódjával."
 
 msgctxt "#30677"
-msgid "Leave the group? This Kodi stops synchronising. Nothing already saved here is deleted. The other devices keep the code — to really cut off a removed device, start a new group and join the others with a new code."
-msgstr "Kilépés a csoportból? Ez a Kodi nem szinkronizál tovább. A már mentett adatok nem törlődnek. A többi eszköznél a kód marad — az eltávolított eszköz csak új csoport létrehozásával és a többi eszköz új kóddal való csatlakoztatásával vágható le."
+msgid "Leave the group? This Kodi stops synchronising. Nothing already saved here is deleted. The other devices keep the code – to really cut off a removed device, start a new group and join the others with a new code."
+msgstr "Kilépés a csoportból? Ez a Kodi nem szinkronizál tovább. A már mentett adatok nem törlődnek. A többi eszköznél a kód marad – az eltávolított eszköz csak új csoport létrehozásával és a többi eszköz új kóddal való csatlakoztatásával vágható le."
 
 msgctxt "#30678"
 msgid "The group has been left."
@@ -1977,8 +1977,8 @@ msgid "Joining is open for 30 minutes."
 msgstr "A csatlakozás 30 percig nyitva van."
 
 msgctxt "#30681"
-msgid "The dashboard only stores sealed data it cannot read. The code is the key and never leaves the devices. With Home Assistant, enter the same group code in the integration settings — HA then joins the group as another device and its card stays current."
-msgstr "A dashboard csak lezárt adatot tárol, amit maga nem olvas el. A kód a kulcs, és sosem hagyja el az eszközöket. Home Assistant esetén add meg ugyanazt a csoportkódot az integráció beállításaiban is — a HA így a csoport további tagja lesz, és a kártya naprakész marad."
+msgid "The dashboard only stores sealed data it cannot read. The code is the key and never leaves the devices. With Home Assistant, enter the same group code in the integration settings – HA then joins the group as another device and its card stays current."
+msgstr "A dashboard csak lezárt adatot tárol, amit maga nem olvas el. A kód a kulcs, és sosem hagyja el az eszközöket. Home Assistant esetén add meg ugyanazt a csoportkódot az integráció beállításaiban is – a HA így a csoport további tagja lesz, és a kártya naprakész marad."
 
 msgctxt "#30682"
 msgid "What gets synced"
@@ -1997,8 +1997,8 @@ msgid "Options such as preferred language, stream sorting or enabled sources. Th
 msgstr "Olyan beállítások, mint a kívánt nyelv, a streamek sorrendje vagy a bekapcsolt források. A letöltési mappa és maga a szinkronizálás beállítása nem kerül megosztásra."
 
 msgctxt "#30686"
-msgid "Sign-ins to the sources (WebShare, Sosáč, Sledujteto, FastShare, Přehraj.to, OpenSubtitles, Luna, own storage) and the TMDB key. Passwords travel encrypted and the server cannot read them, but anyone holding the group code can — give the code only to your own devices. CZtor and Trakt must be paired on each device separately."
-msgstr "A forrásokhoz tartozó bejelentkezések (WebShare, Sosáč, Sledujteto, FastShare, Přehraj.to, OpenSubtitles, Luna, saját tárhely) és a TMDB-kulcs. A jelszavak titkosítva utaznak, a szerver nem olvassa el őket, de akinél a csoportkód van, elolvassa — a kód csak a saját eszközökre való. A CZtort és a Traktot minden eszközön külön kell párosítani."
+msgid "Sign-ins to the sources (WebShare, Sosáč, Sledujteto, FastShare, Přehraj.to, OpenSubtitles, Luna, own storage) and the TMDB key. Passwords travel encrypted and the server cannot read them, but anyone holding the group code can – give the code only to your own devices. CZtor and Trakt must be paired on each device separately."
+msgstr "A forrásokhoz tartozó bejelentkezések (WebShare, Sosáč, Sledujteto, FastShare, Přehraj.to, OpenSubtitles, Luna, saját tárhely) és a TMDB-kulcs. A jelszavak titkosítva utaznak, a szerver nem olvassa el őket, de akinél a csoportkód van, elolvassa – a kód csak a saját eszközökre való. A CZtort és a Traktot minden eszközön külön kell párosítani."
 
 msgctxt "#30688"
 msgid "Synchronisation goes through the dashboard. With Home Assistant, enter the same group code in the integration settings as well."
@@ -2069,8 +2069,8 @@ msgid "Scan the QR code to open the support page."
 msgstr "Olvasd be a QR-kódot, és megnyílik a támogatási oldal."
 
 msgctxt "#30707"
-msgid "The code from the first Kodi where you created the group. Turn on Synchronisation, choose Nokturno dashboard as the hub and save — this Kodi joins within five minutes."
-msgstr "A kód az első Kodiról, ahol a csoportot létrehoztad. Kapcsold be a szinkronizálást, központnak válaszd a Nokturno vezérlőpultot, és mentsd el — ez a Kodi öt percen belül csatlakozik."
+msgid "The code from the first Kodi where you created the group. Turn on Synchronisation, choose Nokturno dashboard as the hub and save – this Kodi joins within five minutes."
+msgstr "A kód az első Kodiról, ahol a csoportot létrehoztad. Kapcsold be a szinkronizálást, központnak válaszd a Nokturno vezérlőpultot, és mentsd el – ez a Kodi öt percen belül csatlakozik."
 
 msgctxt "#30708"
 msgid "Přehraj.to"
@@ -2109,12 +2109,12 @@ msgid "days until the subscription ends: %s"
 msgstr "az előfizetés %s nap múlva lejár"
 
 msgctxt "#30717"
-msgid "account without Premium — fewer results and 1080p only"
-msgstr "Premium nélküli fiók — kevesebb találat és csak 1080p"
+msgid "account without Premium – fewer results and 1080p only"
+msgstr "Premium nélküli fiók – kevesebb találat és csak 1080p"
 
 msgctxt "#30718"
-msgid "no account — only the first page of results"
-msgstr "fiók nélkül — csak az első találati oldal"
+msgid "no account – only the first page of results"
+msgstr "fiók nélkül – csak az első találati oldal"
 
 msgctxt "#30719"
 msgid "paused for %s min (HTTP 429)"
@@ -2129,8 +2129,8 @@ msgid "no account, %s found"
 msgstr "fiók nélkül, %s találat"
 
 msgctxt "#30722"
-msgid "no Premium — fewer results and 1080p only"
-msgstr "nincs Premium — kevesebb találat és csak 1080p"
+msgid "no Premium – fewer results and 1080p only"
+msgstr "nincs Premium – kevesebb találat és csak 1080p"
 
 msgctxt "#30723"
 msgid "Premium, days left: %s"
@@ -2157,8 +2157,8 @@ msgid "Legal notice"
 msgstr "Jogi nyilatkozat"
 
 msgctxt "#30729"
-msgid "Nokturno is primarily a player and manager for your own storage — content you upload and share yourself (e.g. via WebDAV) is played directly. As an optional add-on service, you can connect some publicly available third-party search engines (WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna, OpenSubtitles) — in that case Nokturno is only a technical interface; it does not host, store, or provide any content itself.\n\nUse Nokturno only for content you have a legal right, licence, or other legal title to access. Searching for, accessing, or playing copyrighted content without the rightsholders' consent is prohibited.\n\nNokturno is provided \"as is\", with no warranty of functionality, availability, or legality of third-party sources. You alone are responsible for how you use it. The operator reserves the right to restrict or terminate access at any time."
-msgstr "A Nokturno elsősorban a saját tárhelyedhez készült lejátszó és kezelő — az általad feltöltött és megosztott tartalmat (pl. WebDAV-on keresztül) közvetlenül lejátssza. Kiegészítő szolgáltatásként opcionálisan csatlakoztathatsz néhány nyilvánosan elérhető, harmadik féltől származó keresőt is (WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna, OpenSubtitles) — ebben az esetben a Nokturno csak technikai felület, maga nem tárol, nem ment és nem szolgáltat semmilyen tartalmat.\n\nA kiegészítőt csak olyan tartalomhoz használd, amelyhez jogszerű jogosultságod, licenced vagy más jogcímed van. Szerzői joggal védett tartalom keresése, elérése vagy lejátszása a jogtulajdonosok hozzájárulása nélkül tilos.\n\nA kiegészítő „ahogy van” alapon kerül biztosításra, működésre, elérhetőségre és a harmadik féltől származó források jogszerűségére vonatkozó garancia nélkül. A használat módjáért kizárólag a felhasználó felel. Az üzemeltető fenntartja a jogot a hozzáférés bármikori korlátozására vagy megszüntetésére."
+msgid "Nokturno is primarily a player and manager for your own storage – content you upload and share yourself (e.g. via WebDAV) is played directly. As an optional add-on service, you can connect some publicly available third-party search engines (WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna, OpenSubtitles) – in that case Nokturno is only a technical interface; it does not host, store, or provide any content itself.\n\nUse Nokturno only for content you have a legal right, licence, or other legal title to access. Searching for, accessing, or playing copyrighted content without the rightsholders' consent is prohibited.\n\nNokturno is provided \"as is\", with no warranty of functionality, availability, or legality of third-party sources. You alone are responsible for how you use it. The operator reserves the right to restrict or terminate access at any time."
+msgstr "A Nokturno elsősorban a saját tárhelyedhez készült lejátszó és kezelő – az általad feltöltött és megosztott tartalmat (pl. WebDAV-on keresztül) közvetlenül lejátssza. Kiegészítő szolgáltatásként opcionálisan csatlakoztathatsz néhány nyilvánosan elérhető, harmadik féltől származó keresőt is (WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna, OpenSubtitles) – ebben az esetben a Nokturno csak technikai felület, maga nem tárol, nem ment és nem szolgáltat semmilyen tartalmat.\n\nA kiegészítőt csak olyan tartalomhoz használd, amelyhez jogszerű jogosultságod, licenced vagy más jogcímed van. Szerzői joggal védett tartalom keresése, elérése vagy lejátszása a jogtulajdonosok hozzájárulása nélkül tilos.\n\nA kiegészítő „ahogy van” alapon kerül biztosításra, működésre, elérhetőségre és a harmadik féltől származó források jogszerűségére vonatkozó garancia nélkül. A használat módjáért kizárólag a felhasználó felel. Az üzemeltető fenntartja a jogot a hozzáférés bármikori korlátozására vagy megszüntetésére."
 
 msgctxt "#30730"
 msgid "I confirm I will use Nokturno only for content I have the right to access, and I agree to the terms of use."
@@ -2194,8 +2194,8 @@ msgstr "Feltételek megjelenítése"
 
 
 msgctxt "#30741"
-msgid "Unavailable streams: %s — hidden"
-msgstr "Elérhetetlen streamek: %s — elrejtve"
+msgid "Unavailable streams: %s – hidden"
+msgstr "Elérhetetlen streamek: %s – elrejtve"
 
 msgctxt "#30742"
 msgid "Pause source"
@@ -2258,8 +2258,8 @@ msgid "SyncWatch"
 msgstr "SyncWatch"
 
 msgctxt "#30801"
-msgid "Watch one film or episode together on several devices — each on their own, but at the same moment.[CR][CR][B]1.[/B] One person creates a group and becomes its leader. They get a code, e.g. SW-7K2Q-9MFX.[CR][B]2.[/B] The others (up to 4 more devices) enter the code in SyncWatch → Join with code. They wait until the leader plays something.[CR][B]3.[/B] The leader plays a film in Nokturno as usual. The same stream starts on the other devices by itself — playback begins once it has loaded everywhere.[CR][B]4.[/B] Pause, play and seeking by anyone apply to everyone. When someone is buffering, the others wait.[CR][CR]Everyone plays exactly the same stream — same quality, audio and length — each through their own account at the source. Whoever has no account at the leader's source cannot play it.[CR]The group ends when nobody joins it for 5 minutes, or when the leader ends it. The server cannot see what you watch — it is encrypted with the group code."
-msgstr "Nézzetek meg egy filmet vagy epizódot együtt több eszközön — mindenki a sajátján, de ugyanabban a pillanatban.[CR][CR][B]1.[/B] Valaki létrehoz egy csoportot, és ő lesz a vezető. Kap egy kódot, például SW-7K2Q-9MFX.[CR][B]2.[/B] A többiek (legfeljebb további 4 eszköz) beírják a kódot: SyncWatch → Csatlakozás kóddal. Várnak, amíg a vezető elindít valamit.[CR][B]3.[/B] A vezető a szokásos módon elindít egy filmet a Nokturnóban. Ugyanaz a stream magától elindul a többieknél is — a lejátszás akkor kezdődik, amikor mindenkinél betöltődött.[CR][B]4.[/B] A szünet, a lejátszás és a tekerés bárkitől mindenkire érvényes. Ha valakinél töltődik, a többiek várnak.[CR][CR]Mindenki pontosan ugyanazt a streamet játssza le — azonos minőségben, hanggal és hosszban —, mindenki a saját fiókjával a forrásnál. Akinek nincs fiókja a vezető forrásánál, annál nem indul el.[CR]A csoport megszűnik, ha 5 percig senki sem csatlakozik, vagy ha a vezető befejezi. A szerver nem látja, mit néztek — a csoport kódjával titkosítva van."
+msgid "Watch one film or episode together on several devices – each on their own, but at the same moment.[CR][CR][B]1.[/B] One person creates a group and becomes its leader. They get a code, e.g. SW-7K2Q-9MFX.[CR][B]2.[/B] The others (up to 4 more devices) enter the code in SyncWatch → Join with code. They wait until the leader plays something.[CR][B]3.[/B] The leader plays a film in Nokturno as usual. The same stream starts on the other devices by itself – playback begins once it has loaded everywhere.[CR][B]4.[/B] Pause, play and seeking by anyone apply to everyone. When someone is buffering, the others wait.[CR][CR]Everyone plays exactly the same stream – same quality, audio and length – each through their own account at the source. Whoever has no account at the leader's source cannot play it.[CR]The group ends when nobody joins it for 5 minutes, or when the leader ends it. The server cannot see what you watch – it is encrypted with the group code."
+msgstr "Nézzetek meg egy filmet vagy epizódot együtt több eszközön – mindenki a sajátján, de ugyanabban a pillanatban.[CR][CR][B]1.[/B] Valaki létrehoz egy csoportot, és ő lesz a vezető. Kap egy kódot, például SW-7K2Q-9MFX.[CR][B]2.[/B] A többiek (legfeljebb további 4 eszköz) beírják a kódot: SyncWatch → Csatlakozás kóddal. Várnak, amíg a vezető elindít valamit.[CR][B]3.[/B] A vezető a szokásos módon elindít egy filmet a Nokturnóban. Ugyanaz a stream magától elindul a többieknél is – a lejátszás akkor kezdődik, amikor mindenkinél betöltődött.[CR][B]4.[/B] A szünet, a lejátszás és a tekerés bárkitől mindenkire érvényes. Ha valakinél töltődik, a többiek várnak.[CR][CR]Mindenki pontosan ugyanazt a streamet játssza le – azonos minőségben, hanggal és hosszban –, mindenki a saját fiókjával a forrásnál. Akinek nincs fiókja a vezető forrásánál, annál nem indul el.[CR]A csoport megszűnik, ha 5 percig senki sem csatlakozik, vagy ha a vezető befejezi. A szerver nem látja, mit néztek – a csoport kódjával titkosítva van."
 
 msgctxt "#30802"
 msgid "Got it"
@@ -2354,12 +2354,12 @@ msgid "Waiting for the broadcast…"
 msgstr "Várakozás az adásra…"
 
 msgctxt "#30825"
-msgid "Group %s — when the leader plays something, it will start here too."
-msgstr "%s csoport — amikor a vezető elindít valamit, itt is elindul."
+msgid "Group %s – when the leader plays something, it will start here too."
+msgstr "%s csoport – amikor a vezető elindít valamit, itt is elindul."
 
 msgctxt "#30826"
-msgid "Back closes the window. Then play a film in Nokturno — it starts for everyone."
-msgstr "A Vissza bezárja az ablakot. Utána indíts egy filmet a Nokturnóban — mindenkinél elindul."
+msgid "Back closes the window. Then play a film in Nokturno – it starts for everyone."
+msgstr "A Vissza bezárja az ablakot. Utána indíts egy filmet a Nokturnóban – mindenkinél elindul."
 
 msgctxt "#30827"
 msgid "Back closes the window, you stay in the group. You can leave in the SyncWatch menu."
@@ -2378,8 +2378,8 @@ msgid "Connecting…"
 msgstr "Csatlakozás…"
 
 msgctxt "#30831"
-msgid "Nobody has joined yet — the code expires in %s"
-msgstr "Még senki sem csatlakozott — a kód %s múlva lejár"
+msgid "Nobody has joined yet – the code expires in %s"
+msgstr "Még senki sem csatlakozott – a kód %s múlva lejár"
 
 msgctxt "#30832"
 msgid "Now playing"
@@ -2438,12 +2438,12 @@ msgid "The stream could not be started"
 msgstr "A streamet nem sikerült elindítani"
 
 msgctxt "#30850"
-msgid "You are playing a different version — times may not match exactly"
-msgstr "Más verziót játszol — az idők nem biztos, hogy pontosan egyeznek"
+msgid "You are playing a different version – times may not match exactly"
+msgstr "Más verziót játszol – az idők nem biztos, hogy pontosan egyeznek"
 
 msgctxt "#30851"
-msgid "You are playing something else — the group waits for the next title from the leader"
-msgstr "Mást játszol — a csoport a vezető következő címére vár"
+msgid "You are playing something else – the group waits for the next title from the leader"
+msgstr "Mást játszol – a csoport a vezető következő címére vár"
 
 msgctxt "#30852"
 msgid "This can't be shared with the others (it is not a Nokturno title)"

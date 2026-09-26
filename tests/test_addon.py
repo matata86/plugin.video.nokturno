@@ -777,7 +777,7 @@ class TestJadroVKodi(unittest.TestCase):
         self.assertEqual(out[0]["url"], "ws:1")
         self.assertEqual([type(e).__name__ for e in errors], ["SourceFailure", "SourceFailure"])
         self.assertEqual(default.skipped_notice(errors),
-                         "Luna neodpovídá; WebShare: login: Wrong password — přeskočeno")
+                         "Luna neodpovídá; WebShare: login: Wrong password – přeskočeno")
         bar.update.assert_called_with(int(3 / 8 * 100), "Streamy: 1 · Meta: 2/4")
         # chyba jádra v hlášce nese zdroj sama
         self.assertEqual(default.describe_error(default.NokturnoError("WebShare: soubor není")), "WebShare: soubor není")
