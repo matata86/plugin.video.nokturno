@@ -940,7 +940,7 @@ msgid "Most watched this week"
 msgstr ""
 
 msgctxt "#30394"
-msgid "Recently added with Czech dubbing"
+msgid "Recently added with CZ/SK dubbing"
 msgstr ""
 
 msgctxt "#30398"
@@ -952,7 +952,7 @@ msgid "Top rated"
 msgstr ""
 
 msgctxt "#30401"
-msgid "Recently added with Czech subtitles"
+msgid "Recently added with CZ/SK subtitles"
 msgstr ""
 
 msgctxt "#30402"
@@ -1093,7 +1093,7 @@ msgid "Started in the background – you'll get a notification when it's ready."
 msgstr ""
 
 msgctxt "#30439"
-msgid "Newly added with CZ dubbing/subtitles (%s) is ready"
+msgid "Recently added with CZ/SK dubbing/subtitles (%s) is ready"
 msgstr ""
 
 msgctxt "#30440"

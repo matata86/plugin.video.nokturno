@@ -939,8 +939,8 @@ msgid "Most watched this week"
 msgstr "Legnézettebb a héten"
 
 msgctxt "#30394"
-msgid "Recently added with Czech dubbing"
-msgstr "Nemrég hozzáadva, cseh szinkronnal"
+msgid "Recently added with CZ/SK dubbing"
+msgstr "Nemrég hozzáadva, cseh/szlovák szinkronnal"
 
 msgctxt "#30398"
 msgid "Popular on TMDB"
@@ -951,8 +951,8 @@ msgid "Top rated"
 msgstr "Legjobbra értékelt"
 
 msgctxt "#30401"
-msgid "Recently added with Czech subtitles"
-msgstr "Nemrég hozzáadva, cseh felirattal"
+msgid "Recently added with CZ/SK subtitles"
+msgstr "Nemrég hozzáadva, cseh/szlovák felirattal"
 
 msgctxt "#30402"
 msgid "Measuring download speed…"
@@ -1092,8 +1092,8 @@ msgid "Started in the background – you'll get a notification when it's ready."
 msgstr "Elindult a háttérben – értesítést kapsz, ha kész."
 
 msgctxt "#30439"
-msgid "Newly added with CZ dubbing/subtitles (%s) is ready"
-msgstr "Az „Új, cseh szinkronnal/felirattal” (%s) elkészült"
+msgid "Recently added with CZ/SK dubbing/subtitles (%s) is ready"
+msgstr "Az „Új, cseh/szlovák szinkronnal/felirattal” (%s) elkészült"
 
 msgctxt "#30440"
 msgid "Switch audio to the preferred language automatically"
@@ -2515,7 +2515,7 @@ msgstr "még nem"
 
 msgctxt "#30911"
 msgid "watching"
-msgstr "figyelem"
+msgstr "figyelés alatt"
 
 msgctxt "#30912"
 msgid "torrent only"

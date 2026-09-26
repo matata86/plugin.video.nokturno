@@ -2833,7 +2833,7 @@ def _group_fields(group):
             field["type"] = "text"
             field["default"] = ""
             field["label"] = _plain(L(30664, "Kód skupiny"))
-            field["help"] = _plain(L(30707, "Kód z prvního Kodi, na kterém jsi skupinu založil. "
+            field["help"] = _plain(L(30707, "Kód z prvního Kodi, na kterém skupina vznikla. "
                                             "Zapni Synchronizaci, jako středisko zvol Dashboard "
                                             "Nokturna a ulož – toto Kodi se připojí do pěti minut."))
             field["enable"] = [("sync_enabled", "true"), ("sync_mode", "1")]
@@ -4937,9 +4937,9 @@ def browse_menu(apis, ctype):
          "DefaultFavourites.png"),
         (L(30399, "Nejlépe hodnocené"), "genres", pick("top_rated", f"tmdb.top_rated_{kind}", "imdbRating"),
          "DefaultMusicTop100.png"),
-        (L(30394, "Nově přidané s CZ dabingem"), "lang_catalog", ("dub", None, None)
+        (L(30394, "Nově přidané s CZ/SK dabingem"), "lang_catalog", ("dub", None, None)
          if sosac else None, "DefaultRecentlyAddedMovies.png"),
-        (L(30401, "Nově přidané s CZ titulky"), "lang_catalog", ("subs", None, None)
+        (L(30401, "Nově přidané s CZ/SK titulky"), "lang_catalog", ("subs", None, None)
          if sosac else None, "DefaultRecentlyAddedMovies.png"),
     ]
     for label, action, target, icon in rows:
@@ -5273,8 +5273,8 @@ def _lang_progress_text(raw):
     if not parts:
         return None
     dub_done, subs_done, target = parts
-    dub_label = L(30394, "Nově přidané s CZ dabingem")
-    subs_label = L(30401, "Nově přidané s CZ titulky")
+    dub_label = L(30394, "Nově přidané s CZ/SK dabingem")
+    subs_label = L(30401, "Nově přidané s CZ/SK titulky")
     return f"{dub_label} {dub_done}/{target} · {subs_label} {subs_done}/{target}"
 
 
@@ -5312,8 +5312,8 @@ def _build_lang_catalog(apis, ctype):
     else:
         candidates = sosac.catalog(ctype, "moviesrecentlyadded", skip=0, page=LANG_CATALOG_CAP)
     _diag(f"{ctype}: {len(candidates)} kandidátů za {time.time() - t_start:.1f} s")
-    dub_label = L(30394, "Nově přidané s CZ dabingem")
-    subs_label = L(30401, "Nově přidané s CZ titulky")
+    dub_label = L(30394, "Nově přidané s CZ/SK dabingem")
+    subs_label = L(30401, "Nově přidané s CZ/SK titulky")
     win = xbmcgui.Window(10000)
     progress_prop = f"{LANG_PROGRESS_PROP}:{lang_catalog_key(ctype)}"
     bar = None if warming() else xbmcgui.DialogProgressBG()
@@ -6015,7 +6015,7 @@ def watch_status(rec, flagged):
         return f"[COLOR {WATCH_OK}]{text}[/COLOR]"
     if not rec.get("checked"):
         return ""
-    return f"[COLOR {GREY}]{L(30911, 'hlídám') if rec.get('pending') else L(30910, 'zatím ne')}[/COLOR]"
+    return f"[COLOR {GREY}]{L(30911, 'hlídá se') if rec.get('pending') else L(30910, 'zatím ne')}[/COLOR]"
 
 
 def _watch_li(label, key, poster):

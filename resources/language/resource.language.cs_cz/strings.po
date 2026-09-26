@@ -940,8 +940,8 @@ msgid "Most watched this week"
 msgstr "Nejsledovanější tento týden"
 
 msgctxt "#30394"
-msgid "Recently added with Czech dubbing"
-msgstr "Nově přidané s CZ dabingem"
+msgid "Recently added with CZ/SK dubbing"
+msgstr "Nově přidané s CZ/SK dabingem"
 
 msgctxt "#30398"
 msgid "Popular on TMDB"
@@ -952,8 +952,8 @@ msgid "Top rated"
 msgstr "Nejlépe hodnocené"
 
 msgctxt "#30401"
-msgid "Recently added with Czech subtitles"
-msgstr "Nově přidané s CZ titulky"
+msgid "Recently added with CZ/SK subtitles"
+msgstr "Nově přidané s CZ/SK titulky"
 
 msgctxt "#30402"
 msgid "Measuring download speed…"
@@ -1093,8 +1093,8 @@ msgid "Started in the background – you'll get a notification when it's ready."
 msgstr "Spuštěno na pozadí – až to bude hotové, přijde upozornění."
 
 msgctxt "#30439"
-msgid "Newly added with CZ dubbing/subtitles (%s) is ready"
-msgstr "Nově přidané s CZ dabingem/titulky (%s) je připravené"
+msgid "Recently added with CZ/SK dubbing/subtitles (%s) is ready"
+msgstr "Nově přidané s CZ/SK dabingem/titulky (%s) je připravené"
 
 msgctxt "#30440"
 msgid "Switch audio to the preferred language automatically"
@@ -1687,7 +1687,7 @@ msgstr "Pro Tebe"
 
 msgctxt "#30606"
 msgid "Because you watched %s"
-msgstr "Protože jsi viděl: %s"
+msgstr "Doporučeno podle: %s"
 
 msgctxt "#30607"
 msgid "No recommendations yet – they are built from recently watched titles."
@@ -2072,7 +2072,7 @@ msgstr "Naskenuj QR kód a otevře se stránka s možnostmi podpory."
 
 msgctxt "#30707"
 msgid "The code from the first Kodi where you created the group. Turn on Synchronisation, choose Nokturno dashboard as the hub and save – this Kodi joins within five minutes."
-msgstr "Kód z prvního Kodi, na kterém jsi skupinu založil. Zapni Synchronizaci, jako středisko zvol Dashboard Nokturna a ulož – toto Kodi se připojí do pěti minut."
+msgstr "Kód z prvního Kodi, na kterém skupina vznikla. Zapni Synchronizaci, jako středisko zvol Dashboard Nokturna a ulož – toto Kodi se připojí do pěti minut."
 
 msgctxt "#30708"
 msgid "Přehraj.to"
@@ -2453,7 +2453,7 @@ msgstr "Toto se ostatním pustit nedá (není to titul z Nokturna)"
 
 msgctxt "#30853"
 msgid "You stopped playback, the others keep watching. You can return in SyncWatch"
-msgstr "Zastavil jsi přehrávání, ostatní sledují dál. Vrátit se jde v SyncWatch"
+msgstr "Přehrávání je zastavené, ostatní sledují dál. Vrátit se jde v SyncWatch"
 
 msgctxt "#30860"
 msgid "Apply the last filter automatically"
@@ -2461,7 +2461,7 @@ msgstr "Automaticky použít poslední filtr"
 
 msgctxt "#30861"
 msgid "The stream selection opens with the filter you set last time. If it would leave no stream for a title, all streams are shown."
-msgstr "Výběr streamu se otevře rovnou s filtrem, který jsi nastavil naposledy. Když by u titulu nenechal žádný stream, ukážou se všechny."
+msgstr "Výběr streamu se otevře rovnou s naposledy použitým filtrem. Když by u titulu nenechal žádný stream, ukážou se všechny."
 
 msgctxt "#30862"
 msgid "Use this storage"
@@ -2517,7 +2517,7 @@ msgstr "zatím ne"
 
 msgctxt "#30911"
 msgid "watching"
-msgstr "hlídám"
+msgstr "hlídá se"
 
 msgctxt "#30912"
 msgid "torrent only"
