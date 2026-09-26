@@ -342,10 +342,14 @@ class Store:
         naposledy hrál — na rozdíl od podepsaného odkazu zdroje nevyprší, jde ji tedy
         použít znovu při pokračování ve sledování a přeskočit tím nové hledání (`stream_url`
         z `set_resume`). `None`, když u záznamu není (starší záznam, nebo se nikdy nezapsal
-        — např. položka z jiného zařízení přes sync)."""
+        — např. položka z jiného zařízení přes sync).
+
+        Jen u rozkoukaného nebo zhlédnutého titulu: odebrání z Pokračovat ve sledování
+        vynuluje pozici, ale referenci nechá — titul se pak všude kreslil jako přímé
+        přehrání starého streamu od začátku, bez výběru (Četník na Office 2026-09-26)."""
         w = self.watched(item_id) or {}
         url = w.get("stream_url")
-        if not url:
+        if not url or not (float(w.get("resume") or 0) > 0 or w.get("playcount")):
             return None
         return url, w.get("stream_subs") or ""
 
