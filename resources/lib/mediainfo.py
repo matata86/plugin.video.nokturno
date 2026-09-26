@@ -173,6 +173,8 @@ def _mkv_walk(buf, i, end, out, info=None):
                 cur["width"] = int.from_bytes(data, "big")
             elif eid == 0xBA and data:
                 cur["height"] = int.from_bytes(data, "big")
+            elif eid == 0x53B8 and data:
+                cur["stereo"] = int.from_bytes(data, "big")   # StereoMode: 0 = 2D, jinak 3D (SBS, OU…)
         i = stop
     return
 
@@ -430,8 +432,11 @@ def probe(url, opener=None):
     video = [t for t in tracks if t.get("type") == 1]
     width = max((int(t.get("width") or 0) for t in video), default=0)
     height = max((int(t.get("height") or 0) for t in video), default=0)
-    return {"audio": audio, "subs": subs, "width": width, "height": height,
-            "duration": duration, "size": total_size}
+    out = {"audio": audio, "subs": subs, "width": width, "height": height,
+           "duration": duration, "size": total_size}
+    if any(t.get("stereo") for t in video):
+        out["stereo3d"] = True
+    return out
 
 
 def quality_from_size(width, height=0):

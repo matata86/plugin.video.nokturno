@@ -2587,5 +2587,5 @@ msgid "Hide 3D streams"
 msgstr ""
 
 msgctxt "#30932"
-msgid "Files marked as 3D in their name (3D, H-SBS, Half-OU, MVC) are left out of the list. If there is no other stream, 3D ones are shown too."
+msgid "3D files (by name: 3D, H-SBS, Half-OU, MVC, or by the MKV header) are never shown, not even when there is no other stream."
 msgstr ""

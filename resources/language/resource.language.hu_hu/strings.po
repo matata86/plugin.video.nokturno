@@ -2586,5 +2586,5 @@ msgid "Hide 3D streams"
 msgstr "3D streamek elrejtése"
 
 msgctxt "#30932"
-msgid "Files marked as 3D in their name (3D, H-SBS, Half-OU, MVC) are left out of the list. If there is no other stream, 3D ones are shown too."
-msgstr "A nevükben 3D-t jelölő fájlok (3D, H-SBS, Half-OU, MVC) kimaradnak a listából. Ha nincs más stream, a 3D is megjelenik."
+msgid "3D files (by name: 3D, H-SBS, Half-OU, MVC, or by the MKV header) are never shown, not even when there is no other stream."
+msgstr "A 3D fájlok (név alapján: 3D, H-SBS, Half-OU, MVC, vagy az MKV fejléc alapján) soha nem jelennek meg, akkor sem, ha nincs más stream."

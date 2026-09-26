@@ -262,8 +262,10 @@ STEREO_3D_RE = re.compile(r"(?<![A-Za-z0-9])(3D|HSBS|H-SBS|H-?OU|Half[ ._-]?(?:S
 
 
 def stream_3d(s):
-    """3D verze (SBS, OU, MVC) podle popisku nebo názvu souboru — na běžné TV dva obrazy
-    vedle sebe nebo nad sebou."""
+    """3D verze (SBS, OU, MVC) podle hlavičky MKV (`StereoMode`), jinak podle popisku nebo
+    názvu souboru — na běžné TV dva obrazy vedle sebe nebo nad sebou."""
+    if (s.get("_media") or {}).get("stereo3d"):
+        return True
     text = " ".join(str(s.get(k) or "") for k in ("label", "_ws_name", "name"))
     return bool(STEREO_3D_RE.search(text))
 
@@ -326,13 +328,18 @@ def arrange(streams, pref_lang="", hide_sd=False, max_size_gb=0.0, order="source
     """
     for s in streams:
         parse_stream(s)
+    if hide_3d:
+        # na rozdíl od ostatních filtrů bez pádu na původní seznam: 3D se neukáže nikdy
+        # (přání uživatele 2026-09-26), ani mezi sloučenými verzemi
+        streams = [s for s in streams if not stream_3d(s)]
+        for s in streams:
+            if s.get("_alts"):
+                s["_alts"] = [a for a in s["_alts"] if not stream_3d(a)]
     kept = []
     for s in streams:
         if hide_sd and s["quality_rank"] and s["quality_rank"] <= 1:
             continue
         if max_size_gb and s["size_gb"] and s["size_gb"] > max_size_gb:
-            continue
-        if hide_3d and stream_3d(s):
             continue
         kept.append(s)
     if not kept:
