@@ -9,11 +9,13 @@
   </extension>
   <extension point="xbmc.addon.metadata">
     <summary lang="cs_CZ">Repozitář doplňku Nokturno – automatické aktualizace</summary>
+    <summary lang="sk_SK">Repozitár doplnku Nokturno – automatické aktualizácie</summary>
     <summary lang="en_GB">Nokturno add-on repository – automatic updates</summary>
-    <description lang="cs_CZ">Po instalaci tohoto repozitáře se doplněk Nokturno (Luna + Sosáč + WebShare) aktualizuje sám. Zdroj: github.com/matata86/plugin.video.nokturno</description>
+    <description lang="cs_CZ">Po instalaci tohoto repozitáře se doplněk Nokturno aktualizuje sám. Zdroj: github.com/matata86/plugin.video.nokturno</description>
+    <description lang="sk_SK">Po inštalácii tohto repozitára sa doplnok Nokturno aktualizuje sám. Zdroj: github.com/matata86/plugin.video.nokturno</description>
     <description lang="en_GB">Install this repository once and the Nokturno add-on keeps itself up to date. Source: github.com/matata86/plugin.video.nokturno</description>
     <platform>all</platform>
-    <license>MIT</license>
+    <license>All rights reserved</license>
     <source>https://github.com/matata86/plugin.video.nokturno</source>
     <assets>
       <icon>resources/icon.png</icon>
