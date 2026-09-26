@@ -242,8 +242,8 @@ v doplňku; starší 30 dní se mažou automaticky. Víc v [řešení problémů
 ## Pomoc
 
 - **Dotazy, rady a novinky:** [facebooková skupina Nokturno](https://www.facebook.com/groups/nokturno). Odpovídáme tam my i ostatní uživatelé.
-- **Návody a řešení potíží:** [wiki](https://github.com/matata86/plugin.video.nokturno/wiki).
-- **Chyba v kódu** (pád nebo chování, které jde zopakovat): [GitHub Issues](https://github.com/matata86/plugin.video.nokturno/issues). Napiš verzi doplňku a Kodi; když jsi odeslal log (*Nastavení → Pokročilé → Odeslat log Kodi*), uveď to taky.
+- **Řešení častých potíží:** [nápověda Nokturna](https://matata86.github.io/nokturno-napoveda/). Podrobné návody k nastavení jsou ve [wiki](https://github.com/matata86/plugin.video.nokturno/wiki).
+- **Chyba v kódu** (pád nebo chování, které jde zopakovat): [GitHub Issues](https://github.com/matata86/plugin.video.nokturno/issues). Napiš verzi doplňku a Kodi; když jsi odeslal log (*Nastavení → Pokročilé → Odeslat log Kodi*, [jak na to](https://matata86.github.io/nokturno-napoveda/cs/poslat-log)), uveď to taky.
 
 ## Právní upozornění
 
