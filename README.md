@@ -239,6 +239,12 @@ Očekávaná odpověď je HTTP 200; při chybě (síť, server, moc časté odes
 doplněk zobrazí notifikaci s důvodem. Log uvidíme jen my a odpovíme přes zprávy
 v doplňku; starší 30 dní se mažou automaticky. Víc v [řešení problémů](https://github.com/matata86/plugin.video.nokturno/wiki/Reseni-problemu#jak-nahlásit-chybu).
 
+## Pomoc
+
+- **Dotazy, rady a novinky:** [facebooková skupina Nokturno](https://www.facebook.com/groups/nokturno). Odpovídáme tam my i ostatní uživatelé.
+- **Návody a řešení potíží:** [wiki](https://github.com/matata86/plugin.video.nokturno/wiki).
+- **Chyba v kódu** (pád nebo chování, které jde zopakovat): [GitHub Issues](https://github.com/matata86/plugin.video.nokturno/issues). Napiš verzi doplňku a Kodi; když jsi odeslal log (*Nastavení → Pokročilé → Odeslat log Kodi*), uveď to taky.
+
 ## Právní upozornění
 
 Nokturno je především přehrávač a správce tvého vlastního úložiště — obsah, který si nahraješ a zpřístupníš (např. přes WebDAV), přehrává napřímo. Jako doplňkovou službu si můžeš volitelně napojit i některé veřejně dostupné vyhledávače třetích stran (WebShare, Sosáč, HellSpy, Sledujteto, FastShare, Přehraj.to, CZtor, Luna, OpenSubtitles) — v tom případě je Nokturno jen technické rozhraní, samo žádný obsah nehostuje, neukládá ani neposkytuje.
