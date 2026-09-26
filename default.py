@@ -2994,11 +2994,11 @@ class SyncWatchIntroWindow(xbmcgui.WindowDialog):
 
 SW_INTRO_TEXT = (
     "Sledujte jeden film nebo díl společně na víc zařízeních — každý u sebe, ale ve stejnou chvíli.[CR][CR]"
-    "[B]1.[/B] Jeden založí skupinu a stane se vedoucím. Dostane kód, třeba SW-7K2Q-9MFX.[CR]"
-    "[B]2.[/B] Ostatní (nejvýš 4 další zařízení) zadají kód v SyncWatch → Připojit se. Čekají, až vedoucí něco pustí.[CR]"
+    "[B]1.[/B] Jeden založí skupinu a stane se vedoucím. Dostane kód, například SW-7K2Q-9MFX.[CR]"
+    "[B]2.[/B] Ostatní (nejvýš 4 další zařízení) zadají kód v SyncWatch → Připojit se kódem. Čekají, až vedoucí něco pustí.[CR]"
     "[B]3.[/B] Vedoucí pustí film normálně v Nokturnu. Stejný stream se sám spustí i u ostatních — "
     "začne se, až se načte všem.[CR]"
-    "[B]4.[/B] Pauza, play a přetáčení od kohokoli platí pro všechny. Když se někomu načítá, ostatní počkají.[CR][CR]"
+    "[B]4.[/B] Pauza, přehrávání a přetáčení od kohokoli platí pro všechny. Když se někomu načítá, ostatní počkají.[CR][CR]"
     "Všichni pustí přesně tentýž stream — stejnou kvalitu, zvuk i délku — každý přes svůj vlastní účet "
     "u zdroje. Kdo účet u zdroje vedoucího nemá, stream se mu nespustí.[CR]"
     "Skupina zanikne, když se k ní 5 minut nikdo nepřipojí, nebo když ji vedoucí ukončí. "
