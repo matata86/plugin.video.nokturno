@@ -15,6 +15,16 @@ import re
 import urllib.parse
 import urllib.request
 
+
+def _imdb(metas):
+    """Hodnocení ze Stremio metadat (Cinemeta, Luna) je IMDb — značka pro klienty,
+    kteří ho odliší od TMDB a Sosáče. Přidává se až po cache, platí i pro staré záznamy."""
+    for m in metas if isinstance(metas, list) else [metas]:
+        if m.get("imdbRating"):
+            m.setdefault("ratingSource", "imdb")
+    return metas
+
+
 _ID_RE = re.compile(r"^[A-Za-z0-9_.\-]{1,40}$")
 
 BASE = "https://v3-cinemeta.strem.io"
@@ -86,13 +96,13 @@ class CinemetaApi:
         loader = lambda: self._get(url).get("metas") or []  # noqa: E731
         # hledání se kešuje jako u Luny — výsledky se nemění rychle
         if search and self.cache is not None:
-            return self.cache.cached(url, SEARCH_TTL, loader)
-        return loader()
+            return _imdb(self.cache.cached(url, SEARCH_TTL, loader))
+        return _imdb(loader())
 
     def meta(self, ctype, imdb_id):
         if not _ID_RE.match(str(imdb_id or "")) or ctype not in ("movie", "series"):
             raise CinemetaError(f"neplatné id: {str(imdb_id)[:20]!r}")   # id jde do cesty URL
-        return self._get_cached(f"{BASE}/meta/{ctype}/{imdb_id}.json", ttl=SEARCH_TTL).get("meta") or {}
+        return _imdb(self._get_cached(f"{BASE}/meta/{ctype}/{imdb_id}.json", ttl=SEARCH_TTL).get("meta") or {})
 
 
 if __name__ == "__main__":

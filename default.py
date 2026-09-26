@@ -1418,10 +1418,24 @@ def snapshot(meta, ctype, video=None, series_id=None, alt=None):
         # název a popis, žádné hvězdičky, žánr ani stopáž (2026-09-16, nahlásil uživatel)
         "rating": meta.get("imdbRating") or "",
         "votes": meta.get("voteCount") or 0,
+        "rating_source": meta.get("ratingSource") or "",
         "genres": [str(g) for g in (meta.get("genres") or [])],
         "runtime": (video or meta).get("runtime") or "",
         "mpaa": str(meta.get("mpaa") or ""),
     }
+
+
+# zdroj hodnocení z jádra (`ratingSource`) → jméno hodnocení v Kodi; skiny podle
+# `ListItem.Rating(imdb)` / `(themoviedb)` kreslí logo. Kodi scrapery TMDB píšou `themoviedb`.
+RATING_TYPES = {"imdb": "imdb", "tmdb": "themoviedb", "sosac": "sosac"}
+
+
+def set_rating(li, tag, rating, votes=None, source=None):
+    """Hodnocení s názvem zdroje; bez zdroje (starší cache) jako dřív výchozí."""
+    rating = float(rating)
+    tag.setRating(rating, int(votes or 0), RATING_TYPES.get(source or "", ""), True)
+    # skin kreslí z ratingu hvězdičky; procento posíláme zvlášť jako vlastnost
+    li.setProperty("RatingPercent", f"{round(rating * 10)} %")
 
 
 def thin_snapshot(info):
@@ -1496,12 +1510,8 @@ def fill_info(li, meta, ctype="movie", video=None, tech=True):
         tag.setGenres([str(g) for g in meta["genres"]])
     try:
         if tech and meta.get("imdbRating"):
-            rating = float(meta["imdbRating"])
-            tag.setRating(rating)
-            # skin kreslí z ratingu hvězdičky; procento posíláme zvlášť jako vlastnost
-            li.setProperty("RatingPercent", f"{round(rating * 10)} %")
-            if meta.get("voteCount"):  # jen TMDB — Luna/Cinemeta/Sosáč počet hlasů neznají
-                tag.setVotes(int(meta["voteCount"]))
+            # počet hlasů zná jen TMDB — Luna/Cinemeta/Sosáč ne
+            set_rating(li, tag, meta["imdbRating"], meta.get("voteCount"), meta.get("ratingSource"))
     except (TypeError, ValueError):
         pass
     if meta.get("mpaa"):  # věkový rating (jen TMDB, přednostně český)
@@ -1607,11 +1617,7 @@ def fill_info_snapshot(li, snap):
         tag.setYear(int(snap["year"]))
     try:
         if snap.get("rating"):
-            rating = float(snap["rating"])
-            tag.setRating(rating)
-            li.setProperty("RatingPercent", f"{round(rating * 10)} %")
-            if snap.get("votes"):
-                tag.setVotes(int(snap["votes"]))
+            set_rating(li, tag, snap["rating"], snap.get("votes"), snap.get("rating_source"))
     except (TypeError, ValueError):
         pass
     if snap.get("mpaa"):

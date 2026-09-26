@@ -152,6 +152,7 @@ class SosacDirect:
         try:
             if v.get("r"):
                 meta["imdbRating"] = float(v["r"]) * 2
+                meta["ratingSource"] = "sosac"
         except (TypeError, ValueError):
             pass
         if link:
@@ -179,6 +180,7 @@ class SosacDirect:
         try:
             if v.get("r"):
                 meta["imdbRating"] = float(v["r"]) * 2
+                meta["ratingSource"] = "sosac"
         except (TypeError, ValueError):
             pass
         self._remember(meta)

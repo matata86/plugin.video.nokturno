@@ -96,7 +96,8 @@ def _fetch_title(luna, store, ctype, title, year):
             my = str(m.get("year") or m.get("releaseInfo") or "")[:4]
             if year and my.isdigit() and abs(int(my) - int(year)) > 1:
                 continue
-            picked = {k: m[k] for k in ("poster", "background", "description", "imdbRating", "genres") if m.get(k)}
+            picked = {k: m[k] for k in ("poster", "background", "description", "imdbRating", "ratingSource", "genres")
+                      if m.get(k)}
             if picked.get("poster"):
                 picked["poster"] = _capped(picked["poster"], "w500")
             if picked.get("background"):
@@ -136,8 +137,10 @@ def _fetch(luna, store, ctype, imdb, tmdb=None):
                 cinemeta = {}
             for k, v in cinemeta.items():
                 data.setdefault(k, v)
+        if data.get("imdbRating"):
+            data.setdefault("ratingSource", "imdb")   # bez značky z TMDB je to Luna nebo Cinemeta
         picked = {k: data[k] for k in FIELDS if data.get(k)}
-        for k in ("imdbRating", "background", "genres", "year", "releaseInfo", "poster"):
+        for k in ("imdbRating", "ratingSource", "background", "genres", "year", "releaseInfo", "poster"):
             if data.get(k):
                 picked[k] = data[k]
         if picked.get("poster"):
@@ -151,6 +154,12 @@ def _fetch(luna, store, ctype, imdb, tmdb=None):
 
 
 def _apply(meta, extra):
+    # zdroj hodnocení jen spolu s hodnocením — jinak by titul s hodnocením z IMDb
+    # dostal značku TMDB od doplněného popisu
+    if extra.get("imdbRating") and not meta.get("imdbRating"):
+        meta.pop("ratingSource", None)
+    else:
+        extra = {k: v for k, v in extra.items() if k != "ratingSource"}
     for k, v in extra.items():
         if k in ("poster", "background"):
             if not meta.get(k) or DEAD_IMAGES in (meta.get(k) or ""):

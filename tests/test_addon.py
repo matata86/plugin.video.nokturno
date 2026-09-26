@@ -540,13 +540,13 @@ class TestFillInfo(unittest.TestCase):
     def test_tmdb_obsazeni_s_fotkou_hlasy_trailer_mpaa_scenarista(self):
         li = xbmcgui.ListItem()
         meta = {
-            "id": "tt1", "name": "Film", "year": 2026, "imdbRating": 8.1, "voteCount": 12345,
+            "id": "tt1", "name": "Film", "year": 2026, "imdbRating": 8.1, "voteCount": 12345, "ratingSource": "tmdb",
             "mpaa": "15", "trailerYoutubeId": "abc123",
             "cast": [{"name": "Herec", "character": "Role", "photo": "https://image.tmdb.org/t/p/w500/h.jpg"}],
             "director": ["Režisér"], "writer": ["Scénárista"],
         }
         default.fill_info(li, meta)
-        self.assertEqual(self.calls(li, "setVotes"), [(12345,)])
+        self.assertEqual(self.calls(li, "setRating"), [(8.1, 12345, "themoviedb", True)], "hodnocení s názvem zdroje")
         self.assertEqual(self.calls(li, "setMpaa"), [("15",)])
         self.assertEqual(self.calls(li, "setTrailer"),
                          [("plugin://plugin.video.youtube/play/?video_id=abc123",)])
@@ -1575,7 +1575,7 @@ class TestHubenySnimek(unittest.TestCase):
         """Můj seznam/Pokračovat kreslí ze snímku, ne z API — bez těchhle polí měl titul jen
         název a popis, žádné hvězdičky, žánr, stopáž ani věk (2026-09-16, nahlásil uživatel:
         „u všech seznamů musí být hodnocení a rok")."""
-        meta = {"id": "tt_snap_full", "name": "Film", "year": 2020, "imdbRating": "7.4", "voteCount": 1200,
+        meta = {"id": "tt_snap_full", "name": "Film", "year": 2020, "imdbRating": "7.4", "voteCount": 1200, "ratingSource": "imdb",
                 "genres": ["Drama"], "runtime": "118 min", "mpaa": "15+", "description": "Popis",
                 "poster": "p.jpg", "background": "b.jpg"}
         snap = default.snapshot(meta, "movie")
@@ -1584,8 +1584,7 @@ class TestHubenySnimek(unittest.TestCase):
         li = xbmcgui.ListItem(label="x")
         default.fill_info_snapshot(li, snap)
         calls = {c[0]: c[1] for c in li.tag.calls}
-        self.assertEqual(calls["setRating"], (7.4,))
-        self.assertEqual(calls["setVotes"], (1200,))
+        self.assertEqual(calls["setRating"], (7.4, 1200, "imdb", True))
         self.assertEqual(calls["setGenres"], (["Drama"],))
         self.assertEqual(calls["setMpaa"], ("15+",))
         self.assertEqual(calls["setDuration"], (118 * 60,))

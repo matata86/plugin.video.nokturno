@@ -14,6 +14,16 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+
+def _imdb(metas):
+    """Hodnocení ze Stremio metadat (Cinemeta, Luna) je IMDb — značka pro klienty,
+    kteří ho odliší od TMDB a Sosáče. Přidává se až po cache, platí i pro staré záznamy."""
+    for m in metas if isinstance(metas, list) else [metas]:
+        if m.get("imdbRating"):
+            m.setdefault("ratingSource", "imdb")
+    return metas
+
+
 TOKEN_RE = re.compile(r"(e1\.[A-Za-z0-9_\-]+)")
 TIMEOUT = 40
 CONNECT_TIMEOUT = 5      # server, který za pět vteřin nepřijme spojení, neodpoví ani za čtyřicet
@@ -178,12 +188,12 @@ class LunaApi:
         # hledání (search=…) se kešuje — výsledky se mění (nové tituly, dostupnost),
         # ale ne rychle; procházení katalogu bez hledání necháváme jak bylo
         if search and self.cache is not None:
-            return self.cache.cached(url, SEARCH_TTL, loader)
-        return loader()
+            return _imdb(self.cache.cached(url, SEARCH_TTL, loader))
+        return _imdb(loader())
 
     def meta(self, ctype, item_id):
         _check_item_id(item_id)
-        return self._get_cached(self._meta_url("meta", ctype, item_id + ".json")).get("meta") or {}
+        return _imdb(self._get_cached(self._meta_url("meta", ctype, item_id + ".json")).get("meta") or {})
 
     def _stream_source(self, prefix, ctype, item_id):
         _check_item_id(item_id)

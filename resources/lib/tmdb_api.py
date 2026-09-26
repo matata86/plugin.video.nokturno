@@ -170,6 +170,7 @@ class TmdbApi:
                 "description": raw.get("overview") or "",
                 "genres": genres,
                 "imdbRating": raw.get("vote_average") or None,
+                "ratingSource": "tmdb" if raw.get("vote_average") else None,
                 "voteCount": int(raw.get("vote_count") or 0),   # v odpovědi katalogu zdarma, žádný dotaz navíc
                 **self._art(kind, raw["id"], raw.get("backdrop_path") or "", images=details.get("images") or {}),
             }
@@ -251,12 +252,16 @@ class TmdbApi:
             return {
                 "description": raw.get("overview") or "",
                 "imdbRating": raw.get("vote_average") or None,
+                "ratingSource": "tmdb" if raw.get("vote_average") else None,
                 "genres": [g for g in (genre_map.get(gid, "") for gid in raw.get("genre_ids") or []) if g],
                 "poster": IMG + raw["poster_path"] if raw.get("poster_path") else "",
                 "background": IMG_BIG + raw["backdrop_path"] if raw.get("backdrop_path") else "",
                 "year": (raw.get("release_date") or raw.get("first_air_date") or "")[:4],
             }
-        return self._cached(f"tmdb:brief:{kind}:{imdb_id}", DETAIL_TTL, load)
+        data = self._cached(f"tmdb:brief:{kind}:{imdb_id}", DETAIL_TTL, load)
+        if data and data.get("imdbRating"):
+            data["ratingSource"] = "tmdb"   # i záznamy z cache před 8.4.0, jinak by je enrich označil za IMDb
+        return data
 
     def meta(self, ctype, imdb_id):
         """Detail podle `tt…` id (přes TMDB `/find`) — titul, popis, žánry, obsazení,
@@ -327,6 +332,7 @@ class TmdbApi:
                 "writer": writer,
                 "cast": cast,
                 "imdbRating": data.get("vote_average") or None,
+                "ratingSource": "tmdb" if data.get("vote_average") else None,
                 "voteCount": int(data.get("vote_count") or 0),
                 "mpaa": _certification(kind, data.get(ratings_key) or {}),
                 "trailerYoutubeId": trailer_id,
