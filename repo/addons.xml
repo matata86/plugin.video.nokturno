@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addons>
+<addon id="plugin.video.nokturno" name="Nokturno" version="9.0.0" provider-name="Nokturno">
+  <requires>
+    <import addon="xbmc.python" version="3.0.1"/>
+  </requires>
+  <extension point="xbmc.python.pluginsource" library="default.py">
+    <provides>video</provides>
+  </extension>
+  <extension point="xbmc.service" library="service.py"/>
+  <extension point="xbmc.addon.metadata">
+    <!-- Kodi nechá interpret běžet a při dalším kliknutí spustí default.py znovu v něm.
+         Ušetří se start interpretu a import ~30 modulů. Patří sem, do metadat — uvnitř
+         `xbmc.python.pluginsource` si toho Kodi nevšimne (ověřeno na Office 2026-09-20,
+         stejné místo mají youtube i themoviedb.helper). Podmínka: importované moduly si
+         drží stav mezi spuštěními, tělo default.py se spouští znovu — viz
+         dokumentace.md § Reuse invoker. -->
+    <reuselanguageinvoker>true</reuselanguageinvoker>
+    <summary lang="en_GB">Player and search tool for your own storage and third-party storage services</summary>
+    <summary lang="cs_CZ">Přehrávač a vyhledávač nad vlastním úložištěm i úložišti třetích stran</summary>
+    <summary lang="sk_SK">Prehrávač a vyhľadávač nad vlastným úložiskom aj úložiskami tretích strán</summary>
+    <summary lang="hu_HU">Lejátszó és kereső saját tárhelyhez és harmadik felek tárhelyeihez</summary>
+    <description lang="en_GB">Nokturno is a player and search tool for Kodi. It plays files from your own storage (WebDAV, NAS, up to three folders) and from the storage services and catalogues of third parties that you enable in the settings, each one separately: WebShare, Sosáč, HellSpy, Sledujteto, FastShare / Sdilej.cz, Přehraj.to, CZtor and Luna. It searches for subtitles on OpenSubtitles. Nokturno itself does not host or distribute any content and does not verify the legal status of the files it finds – you are responsible for what you play. Features: search across sources and file choice with a filter, Continue watching, My list, Watchlist, SyncWatch (watch together), sync between several Kodi devices, set up from phone and settings transfer, TV guide, downloads, Trakt and a TMDb Helper player.</description>
+    <description lang="cs_CZ">Nokturno je přehrávač a vyhledávač pro Kodi. Přehrává soubory z tvého vlastního úložiště (WebDAV, NAS, až tři složky) i z úložišť a katalogů třetích stran, které si v nastavení zapneš, každé zvlášť: WebShare, Sosáč, HellSpy, Sledujteto, FastShare / Sdilej.cz, Přehraj.to, CZtor a Luna. Titulky hledá na OpenSubtitles. Nokturno samo žádný obsah nehostuje ani nešíří a neověřuje právní status souborů, které najde – za to, co přehráváš, odpovídáš ty. Umí: hledání napříč zdroji a výběr souboru s filtrem, Pokračovat ve sledování, Můj seznam, Hlídané, SyncWatch (společné sledování), synchronizaci více Kodi, nastavení z mobilu a přenos nastavení, TV program, stahování, Trakt a přehrávač pro TMDb Helper.</description>
+    <description lang="sk_SK">Nokturno je prehrávač a vyhľadávač pre Kodi. Prehráva súbory z tvojho vlastného úložiska (WebDAV, NAS, až tri zložky) aj z úložísk a katalógov tretích strán, ktoré si v nastaveniach zapneš, každé zvlášť: WebShare, Sosáč, HellSpy, Sledujteto, FastShare / Sdilej.cz, Přehraj.to, CZtor a Luna. Titulky hľadá na OpenSubtitles. Nokturno samo žiadny obsah nehostuje ani nešíri a neoveruje právny status súborov, ktoré nájde – za to, čo prehrávaš, zodpovedáš ty. Vie: vyhľadávanie naprieč zdrojmi a výber súboru s filtrom, Pokračovať v sledovaní, Môj zoznam, Sledované, SyncWatch (spoločné sledovanie), synchronizáciu viacerých Kodi, nastavenie z mobilu a prenos nastavenia, TV program, sťahovanie, Trakt a prehrávač pre TMDb Helper.</description>
+    <description lang="hu_HU">A Nokturno lejátszó és kereső Kodihoz. Fájlokat játszik le a saját tárhelyedről (WebDAV, NAS, legfeljebb három mappa), valamint harmadik felek tárhelyeiről és katalógusaiból, amelyeket a beállításokban külön-külön bekapcsolsz: WebShare, Sosáč, HellSpy, Sledujteto, FastShare / Sdilej.cz, Přehraj.to, CZtor és Luna. Feliratot az OpenSubtitles oldalon keres. A Nokturno maga nem tárol és nem terjeszt semmilyen tartalmat, és nem ellenőrzi a talált fájlok jogi helyzetét – azért, amit lejátszol, te felelsz. Tudja: keresés a források között és fájlválasztás szűrővel, Folytatás, Saját lista, Figyelőlista, SyncWatch (közös nézés), több Kodi szinkronizálása, beállítás telefonról és a beállítások átvitele, műsorújság, letöltés, Trakt és TMDb Helper lejátszó.</description>
+    <disclaimer lang="en_GB">Nokturno does not host or distribute any content itself and does not verify the legal status of the files it finds. You are responsible for what you play. You may use it only for content you have the right to (terms: nokturno.stream/terms).</disclaimer>
+    <disclaimer lang="cs_CZ">Nokturno samo žádný obsah nehostuje ani nešíří a neověřuje právní status souborů, které najde. Za to, co přehráváš, odpovídáš ty. Používat ho smíš jen k obsahu, ke kterému máš právo (podmínky: nokturno.stream/terms).</disclaimer>
+    <disclaimer lang="sk_SK">Nokturno samo žiadny obsah nehostuje ani nešíri a neoveruje právny status súborov, ktoré nájde. Za to, čo prehrávaš, zodpovedáš ty. Používať ho smieš len na obsah, ku ktorému máš právo (podmienky: nokturno.stream/terms).</disclaimer>
+    <disclaimer lang="hu_HU">A Nokturno maga nem tárol és nem terjeszt semmilyen tartalmat, és nem ellenőrzi a talált fájlok jogi helyzetét. Azért, amit lejátszol, te felelsz. Csak olyan tartalomhoz használhatod, amelyhez jogod van (feltételek: nokturno.stream/terms).</disclaimer>
+    <platform>all</platform>
+    <license>All rights reserved</license>
+    <source>https://github.com/nokturno-app/plugin.video.nokturno</source>
+    <website>https://github.com/nokturno-app/plugin.video.nokturno</website>
+    <forum>https://github.com/nokturno-app/plugin.video.nokturno/issues</forum>
+    <assets>
+      <icon>resources/media/icon2.png</icon>
+      <fanart>resources/media/fanart.jpg</fanart>
+      <screenshot>resources/screenshots/01-uloziste.jpg</screenshot>
+      <screenshot>resources/screenshots/02-menu.jpg</screenshot>
+      <screenshot>resources/screenshots/03-vyber-streamu.jpg</screenshot>
+      <screenshot>resources/screenshots/04-nastaveni.jpg</screenshot>
+    </assets>
+    <news>9.0.0 – Opravy chyb.</news>
+  </extension>
+</addon>
+<addon id="repository.nokturno" name="Nokturno repozitář" version="1.1.0" provider-name="Nokturno">
+  <extension point="xbmc.addon.repository" name="Nokturno repozitář">
+    <dir>
+      <info compressed="false">https://raw.githubusercontent.com/nokturno-app/plugin.video.nokturno/main/repo/addons.xml</info>
+      <checksum>https://raw.githubusercontent.com/nokturno-app/plugin.video.nokturno/main/repo/addons.xml.md5</checksum>
+      <datadir zip="true">https://raw.githubusercontent.com/nokturno-app/plugin.video.nokturno/main/repo/</datadir>
+    </dir>
+  </extension>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="cs_CZ">Repozitář doplňku Nokturno – automatické aktualizace</summary>
+    <summary lang="sk_SK">Repozitár doplnku Nokturno – automatické aktualizácie</summary>
+    <summary lang="en_GB">Nokturno add-on repository – automatic updates</summary>
+    <description lang="cs_CZ">Po instalaci tohoto repozitáře se doplněk Nokturno aktualizuje sám. Zdroj: github.com/nokturno-app/plugin.video.nokturno</description>
+    <description lang="sk_SK">Po inštalácii tohto repozitára sa doplnok Nokturno aktualizuje sám. Zdroj: github.com/nokturno-app/plugin.video.nokturno</description>
+    <description lang="en_GB">Install this repository once and the Nokturno add-on keeps itself up to date. Source: github.com/nokturno-app/plugin.video.nokturno</description>
+    <platform>all</platform>
+    <license>All rights reserved</license>
+    <source>https://github.com/nokturno-app/plugin.video.nokturno</source>
+    <assets>
+      <icon>resources/icon.png</icon>
+    </assets>
+  </extension>
+</addon>
+<addon id="repository.nokturno.beta" name="Nokturno repozitář (beta)" version="1.1.0" provider-name="Nokturno">
+  <extension point="xbmc.addon.repository" name="Nokturno repozitář (beta)">
+    <!-- stabilní verze i bety: Kodi nabídne vždy nejvyšší, a „3.2.0~beta1“ je nižší než „3.2.0“,
+         takže po vydání stabilní verze se beta sama přepíše na ni -->
+    <dir>
+      <info compressed="false">https://raw.githubusercontent.com/nokturno-app/plugin.video.nokturno/main/repo/addons.xml</info>
+      <checksum>https://raw.githubusercontent.com/nokturno-app/plugin.video.nokturno/main/repo/addons.xml.md5</checksum>
+      <datadir zip="true">https://raw.githubusercontent.com/nokturno-app/plugin.video.nokturno/main/repo/</datadir>
+    </dir>
+    <dir>
+      <info compressed="false">https://raw.githubusercontent.com/nokturno-app/plugin.video.nokturno/main/repo-beta/addons.xml</info>
+      <checksum>https://raw.githubusercontent.com/nokturno-app/plugin.video.nokturno/main/repo-beta/addons.xml.md5</checksum>
+      <datadir zip="true">https://raw.githubusercontent.com/nokturno-app/plugin.video.nokturno/main/repo-beta/</datadir>
+    </dir>
+  </extension>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="cs_CZ">Beta verze doplňku Nokturno – novinky dřív, ale můžou obsahovat chyby</summary>
+    <summary lang="sk_SK">Beta verzie doplnku Nokturno – novinky skôr, ale môžu obsahovať chyby</summary>
+    <summary lang="en_GB">Nokturno add-on beta versions – new features earlier, may contain bugs</summary>
+    <description lang="cs_CZ">Nabízí stabilní verze i bety doplňku Nokturno; Kodi vždy nainstaluje tu nejnovější. Po vydání stabilní verze se beta sama nahradí stabilní. Pro návrat jen na stabilní verze tento repozitář odinstaluj (stabilní „Nokturno repozitář“ nech). Zdroj: github.com/nokturno-app/plugin.video.nokturno</description>
+    <description lang="sk_SK">Ponúka stabilné verzie aj bety doplnku Nokturno; Kodi vždy nainštaluje tú najnovšiu. Po vydaní stabilnej verzie sa beta sama nahradí stabilnou. Pre návrat len na stabilné verzie tento repozitár odinštaluj (stabilný „Nokturno repozitář“ nechaj). Zdroj: github.com/nokturno-app/plugin.video.nokturno</description>
+    <description lang="en_GB">Offers both stable and beta versions of the Nokturno add-on; Kodi always installs the newest. Once a stable version is released, the beta is replaced by it automatically. To go back to stable only, uninstall this repository (keep the stable "Nokturno repozitář"). Source: github.com/nokturno-app/plugin.video.nokturno</description>
+    <platform>all</platform>
+    <license>All rights reserved</license>
+    <source>https://github.com/nokturno-app/plugin.video.nokturno</source>
+    <assets>
+      <icon>resources/icon.png</icon>
+    </assets>
+  </extension>
+</addon>
+</addons>
