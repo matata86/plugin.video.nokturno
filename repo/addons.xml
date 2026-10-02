@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
-<addon id="plugin.video.nokturno" name="Nokturno" version="9.0.0" provider-name="Nokturno">
+<addon id="plugin.video.nokturno" name="Nokturno" version="9.8.3" provider-name="Nokturno">
   <requires>
     <import addon="xbmc.python" version="3.0.1"/>
   </requires>
@@ -41,7 +41,16 @@
       <screenshot>resources/screenshots/03-vyber-streamu.jpg</screenshot>
       <screenshot>resources/screenshots/04-nastaveni.jpg</screenshot>
     </assets>
-    <news>9.0.0 – Opravy chyb.</news>
+    <news>9.8.3 – Doplněk zase dostává aktualizace i tam, kde zůstal na verzi 9.0.0: repozitář se sám přepojí na novou adresu.
+9.8.0 – Filmy ve vysoké kvalitě v menu Filmů: populární a nejsledovanější filmy, které mají stream podle tvé definice (kvalita, 5.1, jazyk zvuku), rozdělené podle žánrů. Datum premiéry v detailu. Další strana ve výpisech se otevře na první klik a začíná nahoře.
+9.7.0~beta1 – Detail filmu a seriálu ukazuje datum premiéry (vzhledy jako Arctic Fuse 3 ho kreslí místo roku).
+9.6.2 – Detail filmu a seriálu ukazuje datum premiéry (vzhledy jako Arctic Fuse 3 ho kreslí místo roku).
+9.6.0~beta8 – Filmy ve vysoké kvalitě: položky Nastavit, Spustit dávku a Jak to funguje jsou zase obyčejné položky bez složky.
+9.6.0~beta7 – Filmy ve vysoké kvalitě: položky Nastavit, Spustit dávku a Jak to funguje vypadají ve výpisu jako žánry.
+9.6.0~beta6 – Filmy ve vysoké kvalitě: hláška po ruční dávce říká, kolik z právě ověřených vyhovuje a kolik je v seznamu celkem.
+9.6.0~beta5 – Filmy ve vysoké kvalitě: ověřování po jednom titulu na pozadí, takže nebrzdí zbytek doplňku; ruční dávka s průběhem běží ve službě; za 4K a 2K se nepovažují příliš malé soubory.
+9.6.0~beta4 – Filmy ve vysoké kvalitě: ověřování se zastaví u prvního vyhovujícího streamu (rychlejší), Spustit dávku nyní ukazuje průběh v rohu a na konci výsledek.
+9.6.0~beta3 – Filmy ve vysoké kvalitě: seznam se udržuje na pozadí sám, i když ho neotevíráš, dávku ověřování jde spustit hned, položky nastavení mají ikony.</news>
   </extension>
 </addon>
 <addon id="repository.nokturno" name="Nokturno repozitář" version="1.1.0" provider-name="Nokturno">
